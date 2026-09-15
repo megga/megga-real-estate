@@ -1,7 +1,8 @@
 // MEGGA CRM Sugar — Calendrier (refonte « façon Google »)
 // Orchestrateur : cadre bento mono-page (rail mini-mois + filtres · carte
-// principale toolbar + grille). Vues Jour / Semaine (défaut) / Mois, drag&drop,
-// bulle détail, modale création/édition, créneaux « Occupé » externes.
+// principale toolbar + grille). Vues Jour / Semaine (défaut) / Mois, glisser-déposer
+// d'une heure et d'un jour à l'autre (visites ET tâches, enregistrés), bulle détail,
+// modale création/édition, créneaux « Occupé » externes.
 // Source de vérité : Supabase (visites + reminders via useCalendarScreen) +
 // agendas externes Google/Outlook (« Occupé », lecture seule). Libellés de
 // l'agence (useCalendarLabels) : rail, clic droit sur un bloc, bulle.
@@ -9,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
@@ -22,8 +24,8 @@ import { CalEventPopover } from './CalEventPopover'
 import { CalEditModal, type CalEditing } from './CalEditModal'
 import { CalEventLabelMenu, CalLabelSection } from './CalLabels'
 import {
-  buildCalPalette, calAppliquerLibelles, calBlankEvent, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
-  calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalPalette,
+  buildCalPalette, calAppliquerLibelles, calBlankEvent, calCleOccurrence, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
+  calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalEventRecurrence, type CalPalette,
 } from './data'
 import { calDays, calMonths, calMonthsShort, calShortTitle, fmtDate, fmtTime } from './helpers'
 import { majusculeInitiale } from '@/lib/utils'
@@ -32,9 +34,13 @@ import { useCalendarExternal } from '@/hooks/useCalendarExternal'
 import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
 import { useCalendarLabels } from '@/hooks/useCalendarLabels'
+import { useCalendarEvents } from '@/hooks/useCalendarEvents'
+import { useEcranActif } from '@/hooks/useEcranActif'
+import { evenementDepuisBrouillon, lireBrouillonCalendrier, oublierBrouillonCalendrier, versLigneEvenement } from '@/lib/calendrierEvenements'
 import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
+import type { Json } from '@/types/database'
 
 // Marge (jours) sous la fenêtre de lecture de useCalendarScreen (today ±60 j) :
 // en-deçà, un événement créé est forcément refetché → on peut retirer l'override.
@@ -223,9 +229,12 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const SP: CalPalette = buildCalPalette(dark)
 
   // ── Données ──
-  const { events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
+  // Les séries NON développées : les surcharges optimistes se posent sur le maître, puis la vue
+  // développe autour de la date affichée (`labelled`).
+  const { series: events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
   const { createVisit, updateVisit, deleteVisit } = useVisits()
-  const { createReminder, markAsDone, cancel: cancelReminder } = useReminders()
+  const evenements = useCalendarEvents()
+  const { createReminder, markAsDone, cancel: cancelReminder, reschedule: rescheduleReminder, rewrite: rewriteReminder } = useReminders()
   const calLabels = useCalendarLabels()
   // Le créateur et le menu des libellés sont ceux de la Messagerie : ils se
   // peignent avec ses surfaces, dérivées de la même palette MEGGA X.
@@ -242,12 +251,41 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   /** Clic droit sur un événement (ou la ligne « Libellé » de sa bulle). */
   const [eventLabelCtx, setEventLabelCtx] = useState<{ id: string; x: number; y: number } | null>(null)
   const [popover, setPopover] = useState<{ id: string; rect: DOMRect | null } | null>(null)
-  const [editing, setEditing] = useState<CalEditing | null>(null)
+  /**
+   * Un e-mail à planifier (Messagerie, 15.09.2026) : `?nouveau=<jeton>` ouvre la création
+   * pré-remplie du brouillon que la Messagerie a déposé EN MÉMOIRE sous ce jeton. Lu à
+   * l'initialisation, comme l'`openWizard` du KYC ; l'effet qui suit l'oublie — une
+   * relecture de l'écran ne rouvrira pas la modale.
+   *
+   * ⛔ LE PARAMÈTRE RESTE DANS L'ADRESSE. Le retirer la rendait à `/dashboard/calendar`, celle
+   * d'un onglet Calendrier déjà ouvert : la barre l'activait, et la création s'ouvrait depuis
+   * cet écran-ci devenu CACHÉ (voir `deposerBrouillonCalendrier`).
+   */
+  const [params] = useSearchParams()
+  const [jetonBrouillon] = useState(() => params.get('nouveau'))
+  const [editing, setEditing] = useState<CalEditing | null>(() => {
+    const b = lireBrouillonCalendrier(jetonBrouillon)
+    return b ? { mode: 'create', draft: evenementDepuisBrouillon(b) } : null
+  })
+  useEffect(() => { oublierBrouillonCalendrier(jetonBrouillon) }, [jetonBrouillon])
   const [toast, setToast] = useState<ToastData | null>(null)
+  // ⛔ La fiche est portée dans `<body>` : elle échappe au masquage de son écran. Un Calendrier
+  // ouvert par « Planifier » la peignait AVANT d'être l'écran montré — par-dessus la Messagerie,
+  // sourde à Échap (vu au banc sous charge le 15.09.2026). Elle paraît avec son écran.
+  const ecranActif = useEcranActif()
 
   // Couche interactive optimiste (édition/création/drag + statut + suppression).
   const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
+  // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux
+  // blocs par un contexte, et une valeur qui change à chaque pas d'un glissé
+  // (les surcharges) rendait TOUS les blocs, `memo` compris, à chaque pas.
+  const overridesRef = useRef(overrides)
+  useEffect(() => { overridesRef.current = overrides }, [overrides])
   const [statuses, setStatuses] = useState<Record<string, 'done' | 'cancelled' | undefined>>({})
+  // Lu par la replanification d'une tâche (une tâche faite ou annulée ne se rouvre pas), et
+  // par la bascule du statut (`setStatus`).
+  const statusesRef = useRef(statuses)
+  useEffect(() => { statusesRef.current = statuses }, [statuses])
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
 
   // Fenêtre externe mémoïsée par mois (évite les refetch à chaque navigation).
@@ -303,7 +341,8 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     const winEnd = new Date(currentDate); winEnd.setDate(winEnd.getDate() + 45); winEnd.setHours(23, 59, 59, 999)
     const expanded = calExpandEvents(all, winStart, winEnd)
     const vivants = expanded
-      .filter(e => !deletedIds.has(e.id))
+      // Une série supprimée (depuis sa fiche) disparaît avec toutes ses occurrences.
+      .filter(e => !deletedIds.has(e.id) && !(e.masterId && deletedIds.has(e.masterId)))
       .map(e => (e.id in statuses ? { ...e, status: statuses[e.id] } : e))
     return calAppliquerLibelles(vivants, calLabels.assignments, labelById)
   }, [events, overrides, statuses, deletedIds, externalEvents, currentDate, calLabels.assignments, labelById])
@@ -333,7 +372,9 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     setEditing({ mode: 'create', draft: { ...base, start, end } })
   }, [currentDate])
   const startEdit = useCallback((id: string) => {
-    const ev = eventsRef.current.find(e => e.id === calMasterId(id)) ?? overrides[calMasterId(id)]
+    // La surcharge d'abord : c'est elle que l'écran montre — une occurrence tout juste retirée
+    // de la série y est déjà, la base pas encore relue.
+    const ev = overrides[calMasterId(id)] ?? eventsRef.current.find(e => e.id === calMasterId(id))
     if (ev && !ev.external) { setPopover(null); setEditing({ mode: 'edit', draft: { ...ev } }) }
   }, [overrides])
   const cancelEdit = useCallback(() => setEditing(null), [])
@@ -369,13 +410,18 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         await queryClient.invalidateQueries({ queryKey: ['calendar-visits'] })
         const newId = (created as { id?: string } | undefined)?.id
         if (newId) propagateVisit(newId, 'create')
-      } else {
+      } else if (draft.type === 'task') {
+        // Une TÂCHE reste une relance : elle entre dans « Relances du jour ».
         await createReminder({
           type: 'custom', triggerAt: draft.start, title: draft.title,
           description: draft.notes ?? draft.location ?? undefined,
           contactId: draft.contactId ?? null, propertyId: draft.bienId ?? null,
         })
         await queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+      } else {
+        // ⛔ Tout le reste est un ÉVÉNEMENT, gardé tel qu'on l'a saisi (20260915080300).
+        // Il partait en relance, et revenait « Tâche » au rechargement.
+        await evenements.creer(draft)
       }
       // Succès : si l'événement tombe dans la fenêtre lue par useCalendarScreen
       // (today ±60 j), le refetch l'a rapporté → on retire le brouillon optimiste
@@ -390,18 +436,61 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           return next
         })
       }
-    } catch { /* échec : on garde l'override (événement visible cette session) */ }
-  }, [createVisit, createReminder, queryClient, propagateVisit])
+    } catch {
+      // ⛔ L'échec était avalé derrière le toast « créé » : l'événement tenait jusqu'au
+      // rechargement, puis disparaissait — le brouillon d'un e-mail à planifier compris (revue
+      // du 15.09.2026). On le retire, on le dit, et la fiche se rouvre sur ce qui était saisi.
+      setOverrides(prev => {
+        if (!(draft.id in prev)) return prev
+        const next = { ...prev }
+        delete next[draft.id]
+        return next
+      })
+      setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.createFailed')}`, echec: true })
+      setEditing(prev => prev ?? { mode: 'create', draft })
+    }
+  }, [createVisit, createReminder, evenements, queryClient, propagateVisit, t])
 
-  const persistTime = useCallback(async (ev: CalEvent, start: Date, end: Date) => {
-    if (ev.origin !== 'visit') return // reminders : pas de reschedule libre → optimiste
+  /**
+   * Enregistre un nouvel horaire ; rend `false` en échec.
+   *
+   * ⛔ Une TÂCHE (`reminder`) ne s'enregistrait pas : elle se déplaçait à l'écran, et le
+   * rechargement la ramenait à sa place sans un mot. Et un échec était avalé : un bloc
+   * laissé à sa nouvelle place quand la base l'a refusé montre un agenda qui n'existe
+   * pas. L'appelant le DIT désormais, et remet l'événement à sa place (`revertTime`).
+   * Un RDV KYC (`appointment`) n'arrive jamais ici : `calDeplacable` ne le laisse pas
+   * saisir — le client, qui l'a réservé, doit être prévenu.
+   */
+  const persistTime = useCallback(async (ev: CalEvent, start: Date, end: Date): Promise<boolean> => {
+    const mid = calMasterId(ev.id)
     try {
-      // Pas de visitStatus → mise à jour partielle : le statut serveur est préservé.
-      await updateVisit({ id: calMasterId(ev.id), start, end } as unknown as CalendarEvent)
-      await queryClient.invalidateQueries({ queryKey: ['calendar-visits'] })
-      propagateVisit(calMasterId(ev.id), 'update')
-    } catch { /* best-effort */ }
-  }, [updateVisit, queryClient, propagateVisit])
+      if (ev.origin === 'visit') {
+        // Pas de visitStatus → mise à jour partielle : le statut serveur est préservé.
+        await updateVisit({ id: mid, start, end } as unknown as CalendarEvent)
+        await queryClient.invalidateQueries({ queryKey: ['calendar-visits'] })
+        propagateVisit(mid, 'update')
+      } else if (ev.origin === 'reminder') {
+        await rescheduleReminder(mid, start, { closed: !!statusesRef.current[ev.id] })
+        await queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+      } else if (ev.origin === 'event') {
+        await evenements.modifier(mid, { starts_at: start.toISOString(), ends_at: end.toISOString() })
+      }
+      return true
+    } catch {
+      return false
+    }
+  }, [updateVisit, rescheduleReminder, evenements, queryClient, propagateVisit])
+
+  /** L'horaire n'a pas pu être enregistré : l'événement reprend sa place, et le toast le dit. */
+  const revertTime = useCallback((mid: string, title: string) => {
+    setOverrides(prev => {
+      if (!(mid in prev)) return prev
+      const next = { ...prev }
+      delete next[mid]
+      return next
+    })
+    setToast({ key: Date.now(), change: `${calShortTitle(title)} · ${t('toast.moveFailed')}`, echec: true })
+  }, [t])
 
   const saveEdit = useCallback((draft: CalEvent) => {
     const isCreate = editing?.mode === 'create'
@@ -409,13 +498,60 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     setEditing(null)
     setPopover(null)
     setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${isCreate ? t('toast.created') : t('toast.modified')}`, tone: isCreate ? 'success' : 'info', toneColor: eventToneColor(draft) })
-    if (isCreate) void persistCreate(draft)
-    else if (draft.origin === 'visit') void persistTime(draft, draft.start, draft.end)
-  }, [editing, t, eventToneColor, persistCreate, persistTime])
+    if (isCreate) { void persistCreate(draft); return }
+    const mid = calMasterId(draft.id)
+    const nonEnregistre = () => {
+      setOverrides(prev => { if (!(mid in prev)) return prev; const next = { ...prev }; delete next[mid]; return next })
+      setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.saveFailed')}`, echec: true })
+    }
+    if (draft.origin === 'visit') {
+      void persistTime(draft, draft.start, draft.end).then(ok => { if (!ok) revertTime(mid, draft.title) })
+    } else if (draft.origin === 'reminder') {
+      // Une tâche se réécrit en entier — titre, notes, contact, bien —, mais ne se rouvre
+      // (`pending`) que si son horaire a bougé : un titre corrigé ne la remet pas à traiter.
+      const src = eventsRef.current.find(e => e.id === mid)
+      const horaireChange = !src || src.start.getTime() !== draft.start.getTime()
+      void rewriteReminder(mid, {
+        title: draft.title, notes: draft.notes?.trim() || null, contactId: draft.contactId ?? null, propertyId: draft.bienId ?? null,
+        ...(horaireChange ? { triggerAt: draft.start, closed: !!statusesRef.current[draft.id] } : {}),
+      }).then(() => queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] }), nonEnregistre)
+    } else if (draft.origin === 'event') {
+      // Un événement se réécrit EN ENTIER : titre, type, lieu, notes, récurrence — pas
+      // seulement son horaire, comme une visite.
+      void evenements.modifier(mid, versLigneEvenement(draft)).catch(nonEnregistre)
+    }
+  }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime, evenements, rewriteReminder, queryClient])
+
+  /**
+   * Réécrit la récurrence d'une série d'ÉVÉNEMENTS : ce qui vaut pour une occurrence (retirée,
+   * faite, annulée) y vit sous sa clé (`CalEventRecurrence`). Rend `null` sans série.
+   *
+   * ⚠ Lue et réécrite depuis la surcharge optimiste, tenue à jour SANS attendre le rendu : deux
+   * occurrences cochées d'affilée repartaient sinon de la même série lue en base, et la seconde
+   * écriture effaçait la première. Un refus remet la série d'avant.
+   */
+  const ecrireRecurrence = useCallback((mid: string, maj: (r: CalEventRecurrence) => CalEventRecurrence): Promise<void> | null => {
+    const avant = overridesRef.current[mid]
+    const serie = avant ?? eventsRef.current.find(e => e.id === mid)
+    if (!serie?.recurrence) return null
+    const apres = { ...serie, recurrence: maj(serie.recurrence) }
+    const poser = (e: CalEvent | undefined) => {
+      const next = { ...overridesRef.current }
+      if (e) next[mid] = e; else delete next[mid]
+      overridesRef.current = next
+      setOverrides(next)
+    }
+    poser(apres)
+    return evenements.modifier(mid, { recurrence: apres.recurrence as unknown as Json }).catch((e: unknown) => {
+      poser(avant)
+      throw e
+    })
+  }, [evenements])
 
   const deleteEvent = useCallback((id: string) => {
     const mid = calMasterId(id)
     const ev = eventsRef.current.find(e => e.id === mid) ?? overrides[mid]
+    const cle = calCleOccurrence(id)
     // Masque UNIQUEMENT l'occurrence ciblée (id complet), pas toute la série.
     setDeletedIds(prev => { const n = new Set(prev); n.add(id); return n })
     setPopover(null)
@@ -428,10 +564,25 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     } else if (ev?.origin === 'reminder') {
       cancelReminder(mid)
       void queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+    } else if (ev?.origin === 'event') {
+      const annuler = () => {
+        setDeletedIds(prev => { const n = new Set(prev); n.delete(id); return n })
+        setToast({ key: Date.now(), change: `${calShortTitle(ev.title)} · ${t('toast.deleteFailed')}`, echec: true })
+      }
+      // ⛔ UNE OCCURRENCE SE RETIRE DE SA SÉRIE, elle n'efface pas la ligne maîtresse : la
+      // corbeille de sa bulle supprimait toute la série d'un clic, sans confirmation. La série
+      // entière se supprime depuis sa fiche (`CalEditModal`, qui porte l'id du maître).
+      if (!cle) { void evenements.supprimer(mid).catch(annuler); return }
+      const retrait = ecrireRecurrence(mid, r => ({ ...r, sauf: [...new Set([...(r.sauf ?? []), cle])] }))
+      if (retrait) void retrait.catch(annuler)
+      else annuler()
     }
-  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder])
+  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder, evenements, ecrireRecurrence])
 
-  // Drag live → override optimiste.
+  // Un glissé part : la bulle ouverte se ferme (elle resterait accrochée au point de départ).
+  const dragStartEvent = useCallback((_id: string) => setPopover(null), [])
+
+  // Glissé (relâché, ou pas à pas du redimensionnement) → override optimiste.
   const updateEventTime = useCallback((id: string, start: Date, end: Date) => {
     const mid = calMasterId(id)
     setPopover(p => (p && p.id === id ? null : p))
@@ -445,22 +596,35 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const commitEventTime = useCallback((id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => {
     const mid = calMasterId(id)
     const ev = overrides[mid] ?? eventsRef.current.find(e => e.id === mid)
+    // Un déplacement ne se confirme que par son point d'arrivée — le jour, le mois et
+    // l'heure (Julien, 14.09.2026) : le titre et le verbe redisaient ce que le geste
+    // venait de montrer, et repoussaient la date en bout de ligne.
     const change = mode === 'resize'
       ? `${calShortTitle(title)} · ${t('toast.durationChanged', { start: fmtTime(start), end: fmtTime(end) })}`
-      : `${calShortTitle(title)} · ${t('toast.moved', { date: fmtDate(start), time: fmtTime(start) })}`
+      : t('toast.moved', { date: fmtDate(start), time: fmtTime(start) })
     setToast({ key: Date.now(), change, tone: 'cyan', toneColor: ev ? eventToneColor(ev) : null })
-    if (ev) void persistTime(ev, start, end)
-  }, [overrides, t, eventToneColor, persistTime])
+    if (ev) void persistTime(ev, start, end).then(ok => { if (!ok) revertTime(mid, title) })
+  }, [overrides, t, eventToneColor, persistTime, revertTime])
 
   const setStatus = useCallback((id: string, status: 'done' | 'cancelled') => {
     const mid = calMasterId(id)
     const ev = eventsRef.current.find(e => e.id === mid) ?? overrides[mid]
-    // Statut appliqué à l'occurrence ciblée (id complet), pas à toute la série.
-    let nowOn = false
-    setStatuses(prev => {
-      nowOn = prev[id] !== status
-      return { ...prev, [id]: prev[id] === status ? undefined : status }
-    })
+    const cle = calCleOccurrence(id)
+    // ⛔ LA BASCULE SE DÉCIDE ICI, JAMAIS DANS L'UPDATER DE `setStatuses`. Elle y était calculée
+    // puis lue aussitôt : quand React diffère l'updater (une lane restée sur l'alternate — après
+    // l'extinction d'un toast, un tic d'horloge), « Marquer terminé » disait « Marqué à faire »,
+    // n'enregistrait rien pour une visite ou une tâche, et écrivait `status: null` sur un
+    // événement. La référence est tenue à jour sur-le-champ : deux clics avant le rendu
+    // basculent deux fois. Statut appliqué à l'occurrence ciblée (id complet), pas à la série.
+    const courant = id in statusesRef.current ? statusesRef.current[id]
+      // Un ÉVÉNEMENT se décoche comme il se coche : sans geste de la session, son état est celui
+      // de la base — celui de son occurrence, pour une série. Visites et tâches ne
+      // s'enregistrent que « faites » : leur bascule part du geste de la session.
+      : ev?.origin === 'event' ? (cle ? (overridesRef.current[mid] ?? ev).recurrence?.etats?.[cle] : ev.status) : undefined
+    const nowOn = courant !== status
+    const suivant = nowOn ? status : undefined
+    statusesRef.current = { ...statusesRef.current, [id]: suivant }
+    setStatuses(prev => ({ ...prev, [id]: suivant }))
     if (ev) {
       const change = status === 'done'
         ? `${calShortTitle(ev.title)} · ${nowOn ? t('toast.markedDone') : t('toast.markedTodo')}`
@@ -473,17 +637,23 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       } else if (nowOn && ev.origin === 'reminder') {
         if (status === 'done') markAsDone(mid)
         else cancelReminder(mid)
+      } else if (ev.origin === 'event') {
+        // Réversible dans les deux sens : l'événement porte son statut, il ne s'éteint pas. Une
+        // OCCURRENCE le porte dans sa série, sous sa clé : la série n'est pas « terminée » d'un coup.
+        const ecrit = cle
+          ? ecrireRecurrence(mid, r => {
+            const etats = { ...(r.etats ?? {}) }
+            if (suivant) etats[cle] = suivant
+            else delete etats[cle]
+            return { ...r, etats }
+          })
+          : evenements.modifier(mid, { status: suivant ?? null })
+        void ecrit?.catch(() => { /* best-effort, comme les autres sources */ })
       }
     }
-  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder])
+  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder, evenements, ecrireRecurrence])
 
   // ── Libellés ──
-  // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux
-  // blocs par un contexte, et une valeur qui change à chaque pas d'un glissé
-  // (les surcharges) rendait TOUS les blocs, `memo` compris, à chaque pas.
-  const overridesRef = useRef(overrides)
-  useEffect(() => { overridesRef.current = overrides }, [overrides])
-
   /** L'événement MAÎTRE d'une occurrence, s'il peut porter un libellé (enregistré, non externe). */
   const labellable = useCallback((id: string): CalEvent | null => {
     const mid = calMasterId(id)
@@ -577,6 +747,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const commonView = {
     events: filtered, currentDate, now: liveNow, selectedId: popover?.id ?? null,
     onSelectEvent: selectEvent, onUpdateEvent: updateEventTime, onCommitEvent: commitEventTime,
+    onDragStartEvent: dragStartEvent,
     onCreateAt: startCreateAt, onDateChange: setCurrentDate, onOpenDay: openDay,
   }
 
@@ -644,7 +815,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
                     <CalEventMenuContext.Provider value={openEventLabelMenu}>
                     {view === 'day' && <CalDayView {...commonView} />}
                     {view === 'week' && <CalWeekView {...commonView} />}
-                    {view === 'month' && <CalMonthView events={filtered} currentDate={currentDate} now={liveNow} selectedId={popover?.id ?? null} onSelectEvent={selectEvent} onDateChange={setCurrentDate} onOpenDay={openDay} onCreateAt={startCreateAt} />}
+                    {view === 'month' && <CalMonthView events={filtered} currentDate={currentDate} now={liveNow} selectedId={popover?.id ?? null} onSelectEvent={selectEvent} onUpdateEvent={updateEventTime} onCommitEvent={commitEventTime} onDragStartEvent={dragStartEvent} onDateChange={setCurrentDate} onOpenDay={openDay} onCreateAt={startCreateAt} />}
                     </CalEventMenuContext.Provider>
                   </div>
                 </div>
@@ -687,7 +858,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           />
         )}
 
-        {editing && (
+        {editing && ecranActif && (
           <CalEditModal editing={editing} onSave={saveEdit} onCancel={cancelEdit} onDelete={deleteEvent} />
         )}
 

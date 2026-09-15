@@ -33,11 +33,11 @@ function fauxClient(rows: Record<string, unknown[]>, erreurSur?: string) {
   return { client: { from } as never, appels }
 }
 
-describe('loadAgencyData — les quatre sources du point du jour', () => {
+describe('loadAgencyData — les cinq sources du point du jour', () => {
   it('⛔ chaque lecture porte le filtre d’agence (service role : c’est la seule garde de tenant)', async () => {
     const { client, appels } = fauxClient({})
     await loadAgencyData(client, AGENCY, '2026-07-04T22:00:00.000Z', '2026-07-05T22:00:00.000Z', NOW)
-    for (const table of ['visits', 'reminders', 'crm_offers']) {
+    for (const table of ['visits', 'calendar_events', 'reminders', 'crm_offers']) {
       expect(appels, table).toContainEqual({ table, op: 'eq', args: ['agency_id', AGENCY] })
     }
     // Leads vendeurs : pool partagé, mais JAMAIS celui d'une autre agence.
@@ -54,6 +54,9 @@ describe('loadAgencyData — les quatre sources du point du jour', () => {
         },
         { scheduled_at: '2026-07-05T12:00:00Z', buyer_name: 'Paul Visiteur', agent_id: null, contact: null, property: null },
       ],
+      calendar_events: [
+        { type: 'notary', starts_at: '2026-07-05T12:00:00Z', all_day: false, status: null, recurrence: null, contact: { first_name: 'Anne', last_name: 'Dubois' } },
+      ],
       reminders: [{ type: 'post_visit_feedback', trigger_at: '2026-07-05T07:00:00Z', contact: { first_name: 'Jean', last_name: null } }],
       crm_offers: [{ amount: 1450000, by_label: 'M. Keller', expires_at: '2026-07-06T10:00:00Z' }],
       seller_leads: [{ contact_name: 'Marie Curie', property_data: { city: 'Carouge' }, estimation_median: 1250000 }],
@@ -64,6 +67,8 @@ describe('loadAgencyData — les quatre sources du point du jour', () => {
         { scheduledAt: '2026-07-05T08:00:00Z', who: 'Anne Dubois', propertyTitle: 'Les Vergers', city: 'Meyrin', agentId: 'p-1' },
         { scheduledAt: '2026-07-05T12:00:00Z', who: 'Paul Visiteur', propertyTitle: null, city: null, agentId: null },
       ],
+      events: [{ startsAt: '2026-07-05T12:00:00.000Z', allDay: false, type: 'notary', who: 'Anne Dubois' }],
+      eventsAtLimit: false,
       reminders: [{ type: 'post_visit_feedback', who: 'Jean' }],
       offers: [{ amount: 1450000, byLabel: 'M. Keller', expiresAt: '2026-07-06T10:00:00Z' }],
       sellerLeads: [{ contactName: 'Marie Curie', city: 'Carouge', estimationMedian: 1250000 }],
@@ -71,7 +76,7 @@ describe('loadAgencyData — les quatre sources du point du jour', () => {
   })
 
   it('⛔ une seule lecture en échec rend null : une section vide en silence ferait croire la journée libre', async () => {
-    for (const table of ['visits', 'reminders', 'crm_offers', 'seller_leads']) {
+    for (const table of ['visits', 'calendar_events', 'reminders', 'crm_offers', 'seller_leads']) {
       const { client } = fauxClient({ visits: [{ scheduled_at: 'x', buyer_name: null, agent_id: null, contact: null, property: null }] }, table)
       expect(await loadAgencyData(client, AGENCY, 'a', 'b', NOW), table).toBeNull()
     }

@@ -18,6 +18,8 @@ const DNS: Record<string, string[]> = {
   'metadata.evil.ch': ['169.254.169.254'],
   'intranet.evil.ch': ['10.0.0.5'],
   'mapped.evil.ch': ['::ffff:169.254.169.254'],
+  'mail.example.ch': ['203.0.113.40', '2001:db8::40'],
+  'moitie.evil.ch': ['203.0.113.41', 'fd00::1'],
 }
 
 const originalDeno = (globalThis as Record<string, unknown>).Deno
@@ -33,7 +35,8 @@ beforeEach(() => {
   ;(globalThis as unknown as { Deno: unknown }).Deno = {
     env: { get: () => undefined },
     resolveDns: async (host: string, type: string) => {
-      const ips = DNS[host] ?? []
+      // Le module interroge le nom COMPLET (point final) : la table de test est écrite sans.
+      const ips = DNS[host.replace(/\.$/, '')] ?? []
       return type === 'A' ? ips.filter((ip) => ip.includes('.')) : ips.filter((ip) => ip.includes(':'))
     },
   }
@@ -52,7 +55,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch
 })
 
-const { safeFetchResponse, safeFetch, isBlockedIp, safeFetchErrorCode } = await import('./safe-fetch.ts')
+const { safeFetchResponse, safeFetch, isBlockedIp, safeFetchErrorCode, assertPublicHost } = await import('./safe-fetch.ts')
 
 const jpeg = (n = 16) => new Response(new Uint8Array(n).fill(0xff), { status: 200, headers: { 'content-type': 'image/jpeg' } })
 const redirect = (location: string, status = 302) => new Response(null, { status, headers: { location } })
@@ -146,6 +149,29 @@ describe('safeFetchResponse — plafond et erreurs', () => {
   })
 })
 
+// ⛔ Le délai n'annulait que le `fetch` : un nom dont les serveurs faisant autorité se taisent
+// tenait la requête le délai du RÉSOLVEUR — 15 007 ms mesurés pour 4 000 demandés (revue du 15.09.2026).
+describe('safeFetchResponse — ⛔ la résolution DNS est sous le même délai', () => {
+  it('un DNS muet cède au délai de l’appelant, et le résolveur a reçu le signal', async () => {
+    const signaux: (AbortSignal | undefined)[] = []
+    ;(globalThis as unknown as { Deno: unknown }).Deno = {
+      env: { get: () => undefined },
+      resolveDns: (_host: string, _type: string, opts?: { signal?: AbortSignal }) => new Promise<string[]>((_resolve, reject) => {
+        signaux.push(opts?.signal)
+        opts?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      }),
+    }
+    const debut = Date.now()
+    await expect(safeFetchResponse('https://muet.example.ch/', { timeoutMs: 50 })).rejects.toThrow(/fetch: timeout/)
+    expect(Date.now() - debut).toBeLessThan(1_000)
+    expect(signaux).toHaveLength(2)
+    expect(signaux.every((s) => s instanceof AbortSignal)).toBe(true)
+    expect(fetched).toEqual([])
+    // Et ce motif-là ne se rend pas tel quel à l'appelant : `fetch_failed`.
+    expect(safeFetchErrorCode(new Error('fetch: timeout'))).toBe('fetch_failed')
+  })
+})
+
 describe('safeFetch — le contrat historique ne bouge pas', () => {
   it('refuse toute redirection, même publique', async () => {
     routes['https://old-img.example.ch/p/1.jpg'] = () => redirect('https://img.getmegga.com/p/1.jpg', 301)
@@ -198,5 +224,21 @@ describe('safeFetchErrorCode — les motifs du module passent, le texte du runti
     expect(safeFetchErrorCode(new Error('ssrf: blocked_ip (169.254.169.254)'))).toBe('fetch_failed')
     expect(safeFetchErrorCode(new Error('fetch: 404 {"detail":"…"}'))).toBe('fetch_failed')
     expect(safeFetchErrorCode('ssrf: blocked_ip')).toBe('fetch_failed')
+  })
+})
+
+describe('assertPublicHost — l’hôte IMAP/SMTP que saisit l’agent', () => {
+  it('laisse passer un nom qui ne résout que vers le public', async () => {
+    await expect(assertPublicHost('mail.example.ch')).resolves.toBeUndefined()
+    await expect(assertPublicHost('Mail.Example.CH.')).resolves.toBeUndefined()
+  })
+  it('⛔ refuse un nom dont UNE des adresses est interne — la moitié suffit', async () => {
+    await expect(assertPublicHost('moitie.evil.ch')).rejects.toThrow('ssrf: blocked_ip')
+    await expect(assertPublicHost('metadata.evil.ch')).rejects.toThrow('ssrf: blocked_ip')
+  })
+  it('refuse une IP littérale, un nom sans domaine, un nom qui ne résout pas', async () => {
+    await expect(assertPublicHost('169.254.169.254')).rejects.toThrow('ssrf: invalid_host')
+    await expect(assertPublicHost('localhost')).rejects.toThrow('ssrf: invalid_host')
+    await expect(assertPublicHost('inconnu.example.ch')).rejects.toThrow('ssrf: dns_unresolved')
   })
 })

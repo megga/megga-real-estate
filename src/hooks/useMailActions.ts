@@ -10,17 +10,22 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { invokeMail } from '@/lib/mail/invoke'
+import { fxAgir, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 
-export type MailThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash'
+export type MailThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash' | 'spam' | 'not_spam'
 const PATCH: Record<MailThreadAction, Partial<MailThreadRow>> = {
   mark_read: { is_read: true }, mark_unread: { is_read: false }, star: { is_starred: true }, unstar: { is_starred: false },
   archive: { is_archived: true }, unarchive: { is_archived: false }, trash: { is_trashed: true }, untrash: { is_trashed: false, is_archived: false },
+  // « Ce n'est pas un spam » rend le fil à la Réception, comme le fait le fournisseur.
+  spam: { is_spam: true }, not_spam: { is_spam: false, is_archived: false },
 }
 
-/** Les cinq gestes de la liste et du lecteur, tous optimistes sauf `sync_now`. */
+/** Les gestes de la liste et du lecteur, tous optimistes sauf `sync_now`. */
 export function useMailActions(accountId: string | null) {
   const qc = useQueryClient()
+  // Banc : le geste s'écrit dans les fixtures, que la liste relit — comme la base en production.
+  const fx = useMailFixtures()
   const patchCaches = (threadId: string, patch: Partial<MailThreadRow>) => {
     qc.setQueriesData<{ rows: MailThreadRow[]; total: number }>({ queryKey: ['mail', 'threads', accountId] }, (old) =>
       old ? { ...old, rows: old.rows.map((r) => (r.id === threadId ? { ...r, ...patch } : r)) } : old)
@@ -33,6 +38,7 @@ export function useMailActions(accountId: string | null) {
 
   const act = useMutation({
     mutationFn: async (a: { action: MailThreadAction; threadId: string }) => {
+      if (fx) { fxAgir(a.threadId, PATCH[a.action]); return }
       const r = await invokeMail('mail-actions', { action: a.action, account_id: accountId, thread_id: a.threadId })
       if (r.error) throw new Error(r.detail ? `${r.error}: ${r.detail}` : r.error)
     },
@@ -46,8 +52,32 @@ export function useMailActions(accountId: string | null) {
     onSettled: settle,
   })
 
+  /**
+   * Un geste sur PLUSIEURS fils (15.09.2026) : un appel, un verdict par fil. L'écran les
+   * patche tous tout de suite ; au retour, la liste relit la base — un fil que le
+   * fournisseur a refusé y reprend donc sa place de lui-même, et le compte rendu dit
+   * combien sont passés.
+   */
+  const actLot = useMutation({
+    mutationFn: async (a: { action: MailThreadAction; threadIds: string[] }): Promise<{ reussis: number; total: number }> => {
+      if (fx) { for (const id of a.threadIds) fxAgir(id, PATCH[a.action]); return { reussis: a.threadIds.length, total: a.threadIds.length } }
+      const r = await invokeMail<{ results: { thread_id: string; ok: boolean }[] }>('mail-actions', { action: a.action, account_id: accountId, thread_ids: a.threadIds })
+      if (r.error) throw new Error(r.error)
+      return { reussis: (r.data?.results ?? []).filter((x) => x.ok).length, total: a.threadIds.length }
+    },
+    onMutate: async (a) => {
+      await qc.cancelQueries({ queryKey: ['mail', 'threads', accountId] })
+      const snapshot = qc.getQueriesData<{ rows: MailThreadRow[]; total: number }>({ queryKey: ['mail', 'threads', accountId] })
+      for (const id of a.threadIds) patchCaches(id, PATCH[a.action])
+      return { snapshot }
+    },
+    onError: (_e, _a, ctx) => { for (const [key, data] of ctx?.snapshot ?? []) qc.setQueryData(key, data) },
+    onSettled: settle,
+  })
+
   const setLabel = useMutation({
     mutationFn: async (a: { threadId: string; labelId: string | null }) => {
+      if (fx) { fxAgir(a.threadId, { label_id: a.labelId }); return }
       const { error } = await supabase.from('mail_threads').update({ label_id: a.labelId }).eq('id', a.threadId)
       if (error) throw error
     },
@@ -71,5 +101,5 @@ export function useMailActions(accountId: string | null) {
     onSettled: settle,
   })
 
-  return { act, setLabel, linkContact, syncNow }
+  return { act, actLot, setLabel, linkContact, syncNow }
 }

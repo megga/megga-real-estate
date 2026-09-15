@@ -5,7 +5,7 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { fxCounts, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { fxCounts, fxFil, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailFolder } from '@/components/crm/messagerie/mailState'
 
 export const MAIL_PER_PAGE = 12
@@ -15,10 +15,15 @@ export interface MailThreadRow {
   id: string; account_id: string; subject: string | null; snippet: string | null; from_name: string | null; from_email: string | null
   participants: MailAddress[]; last_message_at: string; has_attachments: boolean
   is_read: boolean; is_starred: boolean; is_archived: boolean; is_trashed: boolean
-  label_id: string | null; contact_id: string | null; message_count: number; total: number
+  /** Au spam chez le fournisseur : le fil ne vit que dans le dossier « Spam » (20260915080200). */
+  is_spam: boolean
+  label_id: string | null; contact_id: string | null; message_count: number
+  /** Le dernier message REÇU ; `null` pour un fil qui n'a rien reçu — il n'a rien à signaler comme spam. */
+  last_inbound_at: string | null
+  total: number
 }
 export interface MailThreadFilters { folder: MailFolder; labelId: string | null; q: string; unreadOnly: boolean; attOnly: boolean; page: number }
-export interface MailFolderCounts { inbox_unread: number; archived: number; drafts: number; label_counts: Record<string, number> }
+export interface MailFolderCounts { inbox_unread: number; archived: number; drafts: number; spam: number; label_counts: Record<string, number> }
 
 /**
  * La VUE : tout ce qui définit un jeu de résultats, la page exceptée. Deux clés
@@ -87,7 +92,30 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
   }
 }
 
-/** Les compteurs du rail : non lus en réception, archivés, brouillons, et par libellé. */
+/**
+ * UN fil par son identifiant, hors de toute page de liste (15.09.2026) : l'e-mail d'origine
+ * d'un événement du Calendrier (`/dashboard/messagerie?fil=…`). La RLS de `mail_threads`
+ * décide : un fil d'une boîte qu'on ne voit pas rend `null`, comme un fil supprimé.
+ */
+export function useMailThreadRow(threadId: string | null) {
+  const fx = useMailFixtures()
+  return useQuery({
+    queryKey: ['mail', 'thread-row', threadId, fx],
+    enabled: !!threadId,
+    queryFn: async (): Promise<MailThreadRow | null> => {
+      if (fx) return threadId ? fxFil(threadId) : null
+      if (!threadId) return null
+      const { data, error } = await supabase.from('mail_threads')
+        .select('id, account_id, subject, snippet, from_name, from_email, participants, last_message_at, has_attachments, is_read, is_starred, is_archived, is_trashed, is_spam, label_id, contact_id, message_count, last_inbound_at')
+        .eq('id', threadId).maybeSingle()
+      if (error) throw error
+      return data ? ({ ...data, participants: (data.participants ?? []) as unknown as MailAddress[], total: 0 } as MailThreadRow) : null
+    },
+    staleTime: 60_000,
+  })
+}
+
+/** Les compteurs du rail : non lus en réception, archivés, brouillons, spam, et par libellé. */
 export function useMailFolderCounts(accountId: string | null) {
   const fx = useMailFixtures()
   const q = useQuery({
@@ -98,8 +126,8 @@ export function useMailFolderCounts(accountId: string | null) {
       if (!accountId) throw new Error('no_account')
       const { data, error } = await supabase.rpc('mail_folder_counts', { p_account_id: accountId })
       if (error) throw error
-      const r = data?.[0] ?? { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} }
-      return { inbox_unread: Number(r.inbox_unread), archived: Number(r.archived), drafts: Number(r.drafts), label_counts: (r.label_counts ?? {}) as Record<string, number> }
+      const r = data?.[0] ?? { inbox_unread: 0, archived: 0, drafts: 0, spam: 0, label_counts: {} }
+      return { inbox_unread: Number(r.inbox_unread), archived: Number(r.archived), drafts: Number(r.drafts), spam: Number(r.spam), label_counts: (r.label_counts ?? {}) as Record<string, number> }
     },
     staleTime: 15_000,
   })
@@ -107,7 +135,7 @@ export function useMailFolderCounts(accountId: string | null) {
   // comme « zéro non-lu » — un état parfaitement normal à l'écran, donc une
   // panne invisible. C'est `MessagerieApp` qui la porte au bandeau.
   return {
-    counts: q.data ?? { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} },
+    counts: q.data ?? { inbox_unread: 0, archived: 0, drafts: 0, spam: 0, label_counts: {} },
     error: q.error as Error | null,
   }
 }

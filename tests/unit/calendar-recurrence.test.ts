@@ -57,6 +57,24 @@ describe('calExpandEvents — fast-forward', () => {
   })
 })
 
+// ⛔ Une occurrence n'est pas une ligne (15.09.2026) : supprimer ou cocher UNE occurrence
+// écrivait la ligne maîtresse — toute la série effacée, ou « terminée » d'un coup.
+describe('calExpandEvents — ce qui vaut pour UNE occurrence', () => {
+  const serie = (rec: Partial<NonNullable<CalEvent['recurrence']>>, status?: CalEvent['status']) =>
+    ev({ start: new Date('2026-03-02T14:00:00'), end: new Date('2026-03-02T15:00:00'), status, recurrence: { freq: 'weekly', ...rec } })
+  const fenetre = [new Date('2026-03-01T00:00:00'), new Date('2026-03-31T23:59:59')] as const
+
+  it('une occurrence retirée (`sauf`) n’existe plus ; ses sœurs restent', () => {
+    const out = calExpandEvents([serie({ sauf: ['2026-3-9'] })], ...fenetre)
+    expect(out.map(o => ymd(o.start))).toEqual(['2026-03-02', '2026-03-16', '2026-03-23', '2026-03-30'])
+  })
+
+  it('une occurrence porte SON statut (`etats`), jamais celui de la série', () => {
+    const out = calExpandEvents([serie({ etats: { '2026-3-16': 'done', '2026-3-23': 'cancelled' } }, 'done')], ...fenetre)
+    expect(out.map(o => o.status)).toEqual([undefined, undefined, 'done', 'cancelled', undefined])
+  })
+})
+
 describe('calExpandEvents — non récurrent', () => {
   it('renvoie l’événement tel quel (même référence → React.memo tient)', () => {
     const e = ev({})

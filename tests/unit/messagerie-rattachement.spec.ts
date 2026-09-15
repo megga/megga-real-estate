@@ -52,7 +52,8 @@ describe('Messagerie — l’écran lit la cible et le refus', () => {
 
   it('le bandeau vise cibleDeRattachement, plus l’expéditeur du premier message', () => {
     const reader = lire('src/components/crm/messagerie/MailReader.tsx')
-    expect(reader).toMatch(/cibleDeRattachement\(p\.messages, p\.thread\.participants/)
+    // Sur les messages HORS spam : l'expéditeur d'un hameçonnage n'est jamais proposé.
+    expect(reader).toMatch(/cibleDeRattachement\(horsSpam, p\.thread\.participants/)
     expect(reader).toContain('p.onLinkContact(cible.email, cible.name)')
     expect(reader).not.toContain("p.onLinkContact(inboundLast.from_email")
   })

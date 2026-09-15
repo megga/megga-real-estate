@@ -1,7 +1,7 @@
 // supabase/functions/_shared/mail/mime.ts
 // Adresses, RFC 2047, base64url, HTML↔texte, construction d'un message RFC 5322.
 // PUR (aucun import runtime) : testé sous Node, exécuté sous Deno.
-import type { MailAddress, OutgoingMessage } from './types.ts'
+import type { MailAddress, MailDirection, OutgoingMessage } from './types.ts'
 
 const CRLF = '\r\n'
 
@@ -63,6 +63,39 @@ export function decodeRfc2047(s: string): string {
   })
 }
 
+// ── Identifiants de message ───────────────────────────────────────────────────
+/** Un `<…>` fait de caractères ASCII visibles, chevrons exclus : la forme d'un Message-ID (RFC 5322 §3.6.4). */
+const MSG_ID = /<[\x21-\x3b\x3d\x3f-\x7e]{1,995}>/g
+
+/**
+ * Un identifiant de message (`Message-ID`, `In-Reply-To`, un élément de `References`)
+ * sous une forme qui peut circuler sans danger : son premier `<…>` en ASCII visible, sinon la
+ * valeur réduite à ses caractères ASCII visibles ; `null` s'il ne reste rien.
+ *
+ * ⛔ CES EN-TÊTES SONT DU TEXTE D'EXPÉDITEUR, et les décodeurs RFC 2047 (postal-mime,
+ * `decodeRfc2047`) y rendent des CR/LF : `Message-ID: =?utf-8?B?…?=` devenait une valeur de
+ * plusieurs lignes, stockée telle quelle. Elle partait ensuite dans une commande IMAP
+ * (`UID SEARCH HEADER Message-ID "…"` — la ligne suivante s'exécutait dans la vraie boîte de
+ * l'agent) et dans `In-Reply-To` / `References` de sa réponse (un en-tête, voire un corps,
+ * injecté dans un courrier signé de son domaine). Un vrai Message-ID n'a ni espace ni
+ * caractère de contrôle : tout ce qui en porte est une forgerie ou un défaut.
+ */
+export function nettoyerMessageId(v: string | null | undefined): string | null {
+  if (!v) return null
+  const m = v.match(MSG_ID)
+  if (m) return m[0]
+  const nu = v.replace(/[^\x21-\x7e]/g, '').slice(0, 998)
+  return nu || null
+}
+
+/** Les identifiants d'un `References` : chaque `<…>` dans l'ordre, ou les mots nettoyés s'il n'y en a aucun. */
+export function nettoyerReferences(v: string | null | undefined): string[] {
+  if (!v) return []
+  const ids = v.match(MSG_ID)
+  if (ids) return ids
+  return v.split(/\s+/).map(nettoyerMessageId).filter((x): x is string => !!x)
+}
+
 /** Encode un mot d'en-tête si non ASCII (`=?UTF-8?B?…?=`), sinon tel quel. */
 export function encodeHeaderWord(s: string): string {
   if (!/[^\x20-\x7e]/.test(s)) return s
@@ -73,23 +106,27 @@ export function encodeHeaderWord(s: string): string {
 export function parseAddress(raw: string): MailAddress | null {
   const s = decodeRfc2047((raw ?? '').trim())
   if (!s) return null
-  const m = s.match(/^(?:"?([^"<]*)"?\s*)?<([^>]+)>$/)
+  // Le nom : entre guillemets (échappements `\"` et `\\` compris), ou nu.
+  const m = s.match(/^(?:"((?:[^"\\]|\\.)*)"|([^<]*?))\s*<([^>]+)>$/)
   if (m) {
-    const name = (m[1] ?? '').trim()
-    return { name: name || null, email: m[2].trim().toLowerCase() }
+    const name = (m[1] !== undefined ? m[1].replace(/\\(.)/g, '$1') : (m[2] ?? '').replace(/^"|"$/g, '')).trim()
+    return { name: name || null, email: m[3].trim().toLowerCase() }
   }
   const bare = s.replace(/^<|>$/g, '').trim()
   if (!bare.includes('@')) return null
   return { name: null, email: bare.toLowerCase() }
 }
 
-/** Sépare sur les virgules qui ne sont ni entre guillemets ni entre chevrons. */
+/** Sépare sur les virgules qui ne sont ni entre guillemets (échappements compris) ni entre chevrons. */
 export function parseAddressList(raw: string): MailAddress[] {
   const out: MailAddress[] = []
   let cur = ''
   let quoted = false
+  let echappe = false
   let angle = 0
   for (const ch of raw ?? '') {
+    if (echappe) { echappe = false; cur += ch; continue }
+    if (ch === '\\' && quoted) { echappe = true; cur += ch; continue }
     if (ch === '"') quoted = !quoted
     else if (ch === '<' && !quoted) angle++
     else if (ch === '>' && !quoted) angle = Math.max(0, angle - 1)
@@ -106,8 +143,47 @@ export function parseAddressList(raw: string): MailAddress[] {
   return out
 }
 
+/** Les caractères qui imposent de citer un nom d'affichage (RFC 5322 §3.2.3, `specials`). */
+const SPECIAUX = /[()<>[\]:;@\\,."]/
+
+/**
+ * Une adresse telle qu'elle part dans un en-tête : « Nom <a@b.ch> ».
+ *
+ * ⛔ UN NOM À VIRGULE S'ÉCRIVAIT SANS GUILLEMETS (revue du 15.09.2026). Répondre à un
+ * expéditeur « Rochat, Camille » (la forme d'Exchange) écrivait `To: Rochat, Camille <c@…>`,
+ * que tout lecteur lit comme DEUX adresses : en SMTP, un faux destinataire « Rochat » ; chez
+ * Gmail, un envoi refusé. Un nom qui porte un caractère spécial part entre guillemets,
+ * `"` et `\` échappés ; un nom non ASCII part en mot encodé, qui n'en a pas besoin.
+ */
 export function formatAddress(a: MailAddress): string {
-  return a.name ? `${encodeHeaderWord(a.name)} <${a.email}>` : a.email
+  if (!a.name) return a.email
+  if (/[^\x20-\x7e]/.test(a.name)) return `${encodeHeaderWord(a.name)} <${a.email}>`
+  return SPECIAUX.test(a.name) ? `"${a.name.replace(/["\\]/g, (c) => `\\${c}`)}" <${a.email}>` : `${a.name} <${a.email}>`
+}
+
+/**
+ * Le SENS d'un message : écrit par la boîte (sortant) ou reçu (entrant).
+ *
+ * ⛔ IL SE DÉCIDAIT SUR `From`, QUE L'EXPÉDITEUR ÉCRIT (revue du 15.09.2026). « Envoyés », OU
+ * `From` = la boîte : l'arnaque qui usurpe l'adresse de la boîte (« j'ai piraté votre
+ * compte »), rangée au spam par le fournisseur, sortait « envoyée par l'agent » — son fil hors
+ * du Spam, dans « Envoyés » ; un formulaire de site qui écrit au nom de la boîte, `Reply-To` =
+ * le prospect, n'arrivait jamais en Réception.
+ *
+ * Le rangement du fournisseur fait foi : « Envoyés » (libellé `SENT`, Sent Items, `\Sent`) est
+ * sortant, le spam est entrant, quel que soit `From`. Ailleurs, `From` = la boîte reste
+ * sortant — la copie qu'Exchange ou un serveur IMAP dépose en Réception quand l'agent se met en
+ * copie —, sauf si `Reply-To` renvoie ailleurs : ce message attend sa réponse chez un tiers.
+ *
+ * ⚠ Ce sens-là classe et affiche. Ce qui ENGAGE — le journal `email_sent`, la reprise d'une
+ * ligne `pending:` — exige « Envoyés » (`NormalizedMessage.inSent`) : `From` n'y suffit jamais.
+ */
+export function sensDuMessage(p: { dansEnvoyes: boolean; spam: boolean; from: string; replyTo: string | null; boite: string }): MailDirection {
+  if (p.dansEnvoyes) return 'outbound'
+  if (p.spam) return 'inbound'
+  const boite = p.boite.trim().toLowerCase()
+  if (p.from.trim().toLowerCase() !== boite) return 'inbound'
+  return p.replyTo && p.replyTo.trim().toLowerCase() !== boite ? 'inbound' : 'outbound'
 }
 
 // ── Corps ─────────────────────────────────────────────────────────────────────
@@ -116,10 +192,19 @@ const ENTITIES: Record<string, string> = {
   eacute: 'é', egrave: 'è', ecirc: 'ê', agrave: 'à', acirc: 'â', ccedil: 'ç',
   ocirc: 'ô', ucirc: 'û', ugrave: 'ù', icirc: 'î', iuml: 'ï', euml: 'ë', uuml: 'ü', ouml: 'ö', auml: 'ä',
 }
+/**
+ * Un point de code d'entité numérique, ou U+FFFD s'il n'en est pas un. ⛔ `&#1114112;` (hors
+ * Unicode) faisait LEVER `String.fromCodePoint` — et avec lui l'analyse du message, donc
+ * toute la passe de synchro, au même message, à chaque tick. `&#0;` rendait un NUL, que
+ * Postgres refuse dans un `text`.
+ */
+const pointDeCode = (n: number): string =>
+  Number.isInteger(n) && n > 0 && n <= 0x10ffff && (n < 0xd800 || n > 0xdfff) ? String.fromCodePoint(n) : '�'
+
 function decodeEntities(s: string): string {
   return s
-    .replace(/&#x([0-9a-f]+);/gi, (_m, h: string) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_m, d: string) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_m, h: string) => pointDeCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_m, d: string) => pointDeCode(parseInt(d, 10)))
     .replace(/&([a-z]+);/gi, (m, n: string) => ENTITIES[n.toLowerCase()] ?? m)
 }
 
@@ -248,9 +333,13 @@ export function buildMime(m: OutgoingMessage): string {
   if (m.bcc.length) headers.push(`Bcc: ${m.bcc.map(formatAddress).join(', ')}`)
   headers.push(`Subject: ${encodeHeaderWord(m.subject)}`)
   headers.push(`Date: ${new Date().toUTCString()}`)
-  headers.push(`Message-ID: ${m.messageId}`)
-  if (m.inReplyTo) headers.push(`In-Reply-To: ${m.inReplyTo}`)
-  if (m.references.length) headers.push(`References: ${m.references.join(' ')}`)
+  headers.push(`Message-ID: ${nettoyerMessageId(m.messageId) ?? m.messageId.replace(/[\r\n]/g, '')}`)
+  // ⛔ Recopiés du message d'ORIGINE, donc de son expéditeur : jamais écrits sans passer par
+  // `nettoyerMessageId` (un CR/LF y ouvrait un en-tête de plus, ou le corps).
+  const inReplyTo = nettoyerMessageId(m.inReplyTo)
+  const references = m.references.map(nettoyerMessageId).filter((x): x is string => !!x)
+  if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`)
+  if (references.length) headers.push(`References: ${references.join(' ')}`)
   headers.push('MIME-Version: 1.0')
 
   if (m.attachments.length === 0) {

@@ -5,11 +5,18 @@
 // expiré côté Google : on repart en passe initiale (jamais une boucle d'erreur).
 // PUR : `fetch` injectable ; aucune écriture en base ici (c'est ingest.ts).
 import type { MailDirection, MailThreadAction, NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
-import { base64UrlDecodeToString, decodeRfc2047, htmlToText, parseAddress, parseAddressList, snippetOf } from './mime.ts'
+import { base64UrlDecodeToString, decodeRfc2047, htmlToText, nettoyerMessageId, nettoyerReferences, parseAddress, parseAddressList, sensDuMessage, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
 const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
-export const GMAIL_INITIAL_QUERY = 'newer_than:90d -in:spam -in:trash -in:chats'
+/**
+ * La passe initiale : 90 jours, corbeille et chats exclus — le SPAM compris depuis le
+ * 14.09.2026 (dossier « Spam » du CRM). ⚠ `-in:spam` ne suffisait pas à le tenir dehors :
+ * `history.list` rend ensuite TOUT message ajouté, spam compris, que la synchro lisait
+ * « archivé » faute de libellé INBOX. Gmail efface le spam au bout de 30 jours : la fenêtre
+ * est donc de 30 jours pour lui, de 90 pour le reste.
+ */
+export const GMAIL_INITIAL_QUERY = 'newer_than:90d -in:trash -in:chats'
 export const GMAIL_PAGE_SIZE = 50
 
 export interface GmailDeps { fetch?: typeof fetch }
@@ -55,7 +62,9 @@ async function gcall<T>(token: string, path: string, deps: GmailDeps, init: Requ
   })
   if (res.status === 401) throw new MailAuthError('reauth_required', 'gmail: 401')
   if (!res.ok) throw new GmailApiError(res.status, `gmail ${path}: http ${res.status} ${(await res.text()).slice(0, 200)}`)
-  return (await res.json()) as T
+  // `messages.batchModify` répond par un corps VIDE : `res.json()` y lèverait sur un succès.
+  const texte = await res.text()
+  return (texte ? JSON.parse(texte) : undefined) as T
 }
 
 export async function gmailIdentity(token: string, deps: GmailDeps = {}): Promise<{ email: string; historyId: string }> {
@@ -64,7 +73,9 @@ export async function gmailIdentity(token: string, deps: GmailDeps = {}): Promis
 }
 
 export async function gmailListInitial(token: string, pageToken: string | null, deps: GmailDeps = {}): Promise<{ ids: string[]; nextPageToken: string | null }> {
-  const q = new URLSearchParams({ q: GMAIL_INITIAL_QUERY, maxResults: String(GMAIL_PAGE_SIZE) })
+  // ⚠ `includeSpamTrash` : sans lui, `messages.list` écarte le spam QUELLE QUE SOIT la requête
+  // (et la corbeille, que `-in:trash` écarte de toute façon).
+  const q = new URLSearchParams({ q: GMAIL_INITIAL_QUERY, maxResults: String(GMAIL_PAGE_SIZE), includeSpamTrash: 'true' })
   if (pageToken) q.set('pageToken', pageToken)
   const j = await gcall<{ messages?: { id: string }[]; nextPageToken?: string }>(token, `/messages?${q}`, deps)
   return { ids: (j.messages ?? []).map((m) => m.id), nextPageToken: j.nextPageToken ?? null }
@@ -89,11 +100,27 @@ export async function gmailGetMessage(token: string, id: string, deps: GmailDeps
   return gcall<GmailMessage>(token, `/messages/${encodeURIComponent(id)}?format=full`, deps)
 }
 
-export async function gmailModify(
-  token: string, id: string, add: string[], remove: string[], deps: GmailDeps = {}, scope: 'message' | 'thread' = 'message',
-): Promise<void> {
-  const path = scope === 'thread' ? `/threads/${encodeURIComponent(id)}/modify` : `/messages/${encodeURIComponent(id)}/modify`
-  await gcall(token, path, deps, { method: 'POST', body: JSON.stringify({ addLabelIds: add, removeLabelIds: remove }) })
+/** Le plafond d'identifiants de `messages.batchModify` (référence de l'API). */
+export const GMAIL_BATCH_MAX = 1000
+
+/**
+ * Pose et retire des libellés sur des messages, `GMAIL_BATCH_MAX` par appel — un geste sur
+ * douze fils de cinq messages faisait soixante `messages.modify` à la file (revue du
+ * 15.09.2026). Rend les identifiants que Gmail a refusés : un appel en échec les refuse TOUS,
+ * `batchModify` ne répondant rien message par message.
+ */
+export async function gmailBatchModify(token: string, ids: string[], add: string[], remove: string[], deps: GmailDeps = {}): Promise<string[]> {
+  const refuses: string[] = []
+  for (let i = 0; i < ids.length; i += GMAIL_BATCH_MAX) {
+    const lot = ids.slice(i, i + GMAIL_BATCH_MAX)
+    try {
+      await gcall(token, '/messages/batchModify', deps, { method: 'POST', body: JSON.stringify({ ids: lot, addLabelIds: add, removeLabelIds: remove }) })
+    } catch (e) {
+      console.error(`[mail gmail] batchModify refusé (${lot.length} messages): ${e instanceof Error ? e.message : String(e)}`)
+      refuses.push(...lot)
+    }
+  }
+  return refuses
 }
 
 /**
@@ -123,6 +150,9 @@ export function gmailLabelPatch(action: MailThreadAction, direction: MailDirecti
     star: [['STARRED'], []], unstar: [[], ['STARRED']],
     archive: [[], ['INBOX']], unarchive: [inbox, []],
     trash: [['TRASH'], ['INBOX']], untrash: [inbox, ['TRASH']],
+    // SPAM se pose à la main comme TRASH (« Manage labels ») ; « pas un spam » rend la
+    // Réception au seul message ENTRANT, comme `untrash`.
+    spam: [['SPAM'], ['INBOX']], not_spam: [inbox, ['SPAM']],
   }
   const [add, remove] = table[action]
   return { add, remove }
@@ -179,17 +209,19 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
   const acc = { text: null as string | null, html: null as string | null, atts: [] as NormalizedAttachment[] }
   walk(m.payload, acc)
   const from = parseAddress(header(h, 'From')) ?? { name: null, email: '' }
-  const outbound = labels.includes('SENT') || from.email === boxEmail.toLowerCase()
   const bodyText = acc.text ?? (acc.html ? htmlToText(acc.html) : null)
   const snippet = snippetOf(htmlToText(m.snippet ?? '') || bodyText || '')
   const replyTo = parseAddress(header(h, 'Reply-To'))
+  const inSent = labels.includes('SENT')
   return {
     providerMessageId: m.id,
     providerThreadId: m.threadId,
-    rfc822MessageId: header(h, 'Message-ID') || null,
-    inReplyTo: header(h, 'In-Reply-To') || null,
-    references: header(h, 'References').split(/\s+/).filter(Boolean),
-    direction: outbound ? 'outbound' : 'inbound',
+    // ⛔ `header()` décode le RFC 2047 : un CR/LF peut y naître (cf. `nettoyerMessageId`).
+    rfc822MessageId: nettoyerMessageId(header(h, 'Message-ID')),
+    inReplyTo: nettoyerMessageId(header(h, 'In-Reply-To')),
+    references: nettoyerReferences(header(h, 'References')),
+    direction: sensDuMessage({ dansEnvoyes: inSent, spam: labels.includes('SPAM'), from: from.email, replyTo: replyTo?.email ?? null, boite: boxEmail }),
+    inSent,
     from,
     to: parseAddressList(header(h, 'To')),
     cc: parseAddressList(header(h, 'Cc')),
@@ -204,6 +236,7 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
     isStarred: labels.includes('STARRED'),
     inInbox: labels.includes('INBOX'),
     isTrashed: labels.includes('TRASH'),
+    isSpam: labels.includes('SPAM'),
     isDraft: labels.includes('DRAFT'),
     providerLabels: labels,
     attachments: acc.atts,
@@ -247,6 +280,7 @@ export function historyToChanges(page: GmailHistoryPage): { added: string[]; cha
       else if (l === 'STARRED') flags(id).isStarred = on
       else if (l === 'INBOX') flags(id).inInbox = on
       else if (l === 'TRASH') flags(id).isTrashed = on
+      else if (l === 'SPAM') flags(id).isSpam = on
     }
   }
   for (const rec of page.history ?? []) {

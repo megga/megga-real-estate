@@ -318,7 +318,7 @@
     {
       "id": "zindex-desordre",
       "section": "§3 — Modals",
-      "phrase": "186 sites `zIndex` portant 51 valeurs DISTINCTES",
+      "phrase": "185 sites `zIndex` portant 50 valeurs DISTINCTES",
       "severite": "derive",
       "tolerance": 0.15,
       "mesureLe": "2026-09-14",
@@ -334,8 +334,8 @@
         ]
       },
       "attendu": {
-        "occurrences": 186,
-        "valeursDistinctes": 51
+        "occurrences": 185,
+        "valeursDistinctes": 50
       },
       "note": "Aucune garde ne mesure l'empilement ; cette entrée est la seule chose qui le regarde. Elle ne prescrit rien — elle empêche seulement d'écrire « convention » là où il y a 45 valeurs."
     },

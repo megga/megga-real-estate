@@ -34,8 +34,17 @@ export const GOOGLE_MAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.modify o
 const REFRESH_BUFFER_MS = 5 * 60_000
 
 // ── Vault ─────────────────────────────────────────────────────────────────────
+/**
+ * Range un secret de boîte dans Vault et rend son identifiant.
+ *
+ * ⛔ LE NOM EST RENDU UNIQUE ICI (15.09.2026). Vault indexe `secrets.name` en UNIQUE : nommé
+ * par la seule adresse, un secret orphelin — une suppression ratée, ou la même adresse
+ * connectée dans une autre agence après un changement d'agence — interdisait À VIE toute
+ * nouvelle connexion de l'adresse (23505, puis 500). Le nom n'est qu'une étiquette pour qui
+ * parcourt Vault : tout le reste passe par l'identifiant.
+ */
 export async function storeAccountSecret(admin: SupabaseClient, name: string, payload: AccountSecret): Promise<string> {
-  const { data, error } = await admin.rpc('mail_secret_store', { p_secret: JSON.stringify(payload), p_name: name })
+  const { data, error } = await admin.rpc('mail_secret_store', { p_secret: JSON.stringify(payload), p_name: `${name}:${crypto.randomUUID()}` })
   if (error || !data) throw new Error(`vault store failed: ${error?.message ?? 'no id'}`)
   return data as string
 }

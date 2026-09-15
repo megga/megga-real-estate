@@ -1,10 +1,13 @@
 {
   "errorBoundary": {
-    "title": "Something went wrong",
-    "body": "Something broke on our side. You can reload the page or go back to your dashboard.",
-    "reload": "Reload",
+    "title": "This page couldn't be displayed",
+    "body": "Something broke on our side, not yours. Reload the page; if the error comes back, start again from your dashboard.",
+    "bodyClient": "Something broke on our side, not yours. Reload the page; if the error comes back, let the agency that sent you this link know.",
+    "reload": "Reload the page",
     "updating": "Updating the application…",
-    "dashboard": "Back to dashboard"
+    "dashboard": "Back to dashboard",
+    "reference": "Incident reference: {{id}}",
+    "help": "Help center"
   },
   "consentGate": {
     "title": "Legal update",
@@ -451,6 +454,13 @@
       "edge_function_error": "Server function error",
       "email_received": "Email received",
       "email_sent": "Email sent",
+      "mail_account_connected": "Mailbox connected",
+      "mail_account_connect_failed": "Mailbox connection refused",
+      "mail_account_disconnected": "Mailbox disconnected",
+      "mail_account_updated": "Mailbox updated",
+      "calendar_event_created": "Event scheduled",
+      "calendar_event_updated": "Event updated",
+      "calendar_event_deleted": "Event deleted",
       "extract_property_pdf": "Property extracted from a PDF",
       "extract_property_url": "Property extracted from an online listing",
       "idx_feed_pushed": "Syndication feed pushed",

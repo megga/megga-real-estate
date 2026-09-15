@@ -127,10 +127,7 @@
       "title": "Add a mailbox",
       "back": "Back",
       "share": "Share this mailbox with the whole agency",
-      "waSub": "Coexistence · app and Cloud API on the same number",
-      "imapSub": "IMAP / SMTP connection",
       "other": "Another mailbox (IMAP / SMTP)",
-      "otherSub": "Manual server setup",
       "oauth": {
         "subtitle": "Account authorisation",
         "addr": "Email address",
@@ -156,22 +153,43 @@
         }
       },
       "imap": {
-        "subtitle": "IMAP / SMTP connection",
         "email": "Email address",
         "imapHost": "IMAP server",
         "smtpHost": "SMTP server",
-        "port": "Port",
         "imapPort": "IMAP port",
         "smtpPort": "SMTP port",
         "user": "User",
         "password": "Password",
-        "encryption": "Encryption",
-        "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.",
+        "showPassword": "Show password",
+        "hidePassword": "Hide password",
         "test": "Test and connect",
-        "unavailable": "The IMAP connection is coming in a future version.",
+        "testing": "Testing the servers…",
+        "detect": {
+          "searching": "Looking up the servers…",
+          "found": "{{provider}} servers filled in.",
+          "appPassword": "This provider requires an app password.",
+          "enableImap": "First turn on IMAP access in your {{provider}} settings.",
+          "none": "Servers not recognised: enter your host's servers.",
+          "google": "Google address: connecting with Google avoids the app password.",
+          "microsoft": "Microsoft address: Microsoft no longer accepts passwords over IMAP.",
+          "useOauth": "Connect with {{provider}}"
+        },
         "err": {
           "invalid": "Address, servers and password are required.",
-          "starttls": "STARTTLS (port 587) is not available from our servers. Use SSL/TLS on port 465.",
+          "port": "Allowed ports: 993 or 143 for IMAP, 465 or 587 for SMTP.",
+          "host": "Server not found: check the IMAP and SMTP server names.",
+          "already": "This address is already connected through {{provider}}.",
+          "colleague": "This address is already connected by another member of the agency. Only its owner can reconnect it.",
+          "tooMany": "Too many connection attempts in the last hour. Try again later.",
+          "imapAuth": "User name or password rejected by the IMAP server. If the mailbox uses two-step verification, use an app password.",
+          "imapTemporary": "The server is refusing the connection for now (too many open connections, or the service is unavailable). Try again in a few minutes.",
+          "imapUnreachable": "The IMAP server is not responding: check its name and port.",
+          "imapStarttls": "This IMAP server does not accept STARTTLS on port 143: choose 993.",
+          "imapCertificate": "The IMAP server's certificate is not valid for this name: use the server name given by your host.",
+          "smtpAuth": "The outgoing server (SMTP) rejects the user name or password.",
+          "smtpUnreachable": "The outgoing server (SMTP) is not responding: check its name and port.",
+          "smtpStarttls": "The outgoing server does not accept STARTTLS on this port: choose 465.",
+          "smtpCertificate": "The outgoing server's (SMTP) certificate is not valid for this name: use the name given by your host.",
           "connection": "Connection refused: check the user name, the password (or app password) and the servers.",
           "generic": "The connection failed. Try again in a moment."
         }
@@ -181,7 +199,7 @@
         "sync": "Synchronisation",
         "syncValue": "Last 90 days",
         "folders": "Imported folders",
-        "foldersValue": "Inbox, Sent",
+        "foldersValue": "Inbox, Sent, Spam",
         "linking": "Contact linking",
         "linkingValue": "Active",
         "another": "Add another",
@@ -191,19 +209,22 @@
     "box": {
       "label": "Mailbox",
       "none": "No mailbox",
-      "synced": "synced",
       "disconnect": "Disconnect",
-      "disconnectConfirm": "Disconnect this mailbox? Its messages will be removed from the CRM; filed documents remain.",
+      "disconnectTitle": "Disconnect this mailbox?",
+      "disconnectBody": "Its messages will be removed from the CRM. Documents already filed stay in their folders, and the mailbox itself stays untouched at its provider.",
+      "disconnecting": "Disconnecting…",
+      "disconnected": "Mailbox disconnected",
       "status": {
         "reauth_required": "Authorisation to renew",
         "error": "Sync error",
         "disabled": "Disabled"
-      }
+      },
+      "disconnectError": "The mailbox could not be disconnected. Try again in a moment."
     },
     "compose": {
       "cta": "New message",
       "to": "Recipient",
-      "toPlaceholder": "To · recipient",
+      "toPlaceholder": "Name or email address",
       "title": "New message",
       "subject": "Subject",
       "body": "Message",
@@ -211,7 +232,31 @@
       "fromComputer": "From my computer",
       "agencyDocs": "Agency documents",
       "noAgencyDocs": "No document available.",
-      "removeAttachment": "Remove attachment"
+      "removeAttachment": "Remove attachment",
+      "from": "From",
+      "toShort": "To",
+      "cc": "Cc",
+      "bcc": "Bcc",
+      "ccField": "Cc recipients",
+      "bccField": "Bcc recipients",
+      "addCc": "Add Cc recipients",
+      "addBcc": "Add Bcc recipients",
+      "removeRecipient": "Remove {{address}}",
+      "invalidAddress": "Invalid address",
+      "invalidHint_one": "One address needs fixing: double-click it to edit.",
+      "invalidHint_other": "{{count}} addresses need fixing: double-click one to edit.",
+      "suggestions": "Suggested contacts"
+    },
+    "sendError": {
+      "generic": "Sending failed. Try again in a moment.",
+      "send_failed": "The mailbox server refused to send. Check the recipients, then try again.",
+      "provider_auth": "The mailbox no longer responds: reconnect it from the settings, then try again.",
+      "account_not_active": "This mailbox cannot send: its authorisation needs to be renewed.",
+      "attachments_too_large": "The attachments exceed the size allowed for one message.",
+      "attachment_too_large_outlook": "An attachment is larger than 3 MB, the Outlook limit for sending from the CRM.",
+      "recipient_required": "Add at least one recipient.",
+      "subject_required": "Add a subject to the message.",
+      "original_not_found": "The original message cannot be found: it may have been deleted."
     },
     "folders": {
       "aria": "Folders",
@@ -219,7 +264,8 @@
       "arch": "Archived",
       "star": "Starred",
       "sent": "Sent",
-      "draft": "Drafts"
+      "draft": "Drafts",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Labels",
@@ -261,15 +307,24 @@
       "unstar": "Remove star",
       "archive": "Archive",
       "unarchive": "Move out of archive",
+      "spam": "Report spam",
+      "notSpam": "Not spam",
       "delete": "Delete"
     },
     "delete": {
       "title": "Delete this message?",
-      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox."
+      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox.",
+      "legalMany": "The messages go to the bin and leave the list. The ten-year legal retention applies to the case file, not to the mailbox.",
+      "titleMany_one": "Delete this message?",
+      "titleMany_other": "Delete these {{count}} messages?",
+      "andMore_one": "and {{count}} more",
+      "andMore_other": "and {{count}} more"
     },
     "read": {
       "back": "Back to list",
       "to": "to {{box}}",
+      "copyAddress": "Copy address",
+      "copied": "Address copied",
       "me": "me",
       "reply": "Reply",
       "forward": "Forward",
@@ -280,7 +335,47 @@
       "showImages": "Show images",
       "bodyTitle": "Message body",
       "truncated": "Message truncated (too large): open it in your mail client for the full version.",
-      "unlinked": "Address not linked: {{email}}"
+      "bodyMissing": "This message's content cannot be shown here (too large, or unreadable): open it in your mail client.",
+      "unlinked": "Address not linked: {{email}}",
+      "spam": "In spam: this message isn't linked to any contact.",
+      "spamInThread_one": "{{count}} message in this conversation is in spam.",
+      "spamInThread_other": "{{count}} messages in this conversation are in spam.",
+      "spamShow": "Show",
+      "spamHide": "Hide"
+    },
+    "spam": {
+      "reported": "Reported as spam",
+      "restored": "Moved to the inbox"
+    },
+    "select": {
+      "all": "Select all",
+      "none": "Clear selection",
+      "row": "Select the message from {{sender}}",
+      "count_one": "{{count}} selected",
+      "count_other": "{{count}} selected",
+      "bar": "Actions on the selection"
+    },
+    "lot": {
+      "archive_one": "{{count}} message archived",
+      "archive_other": "{{count}} messages archived",
+      "unarchive_one": "{{count}} message moved out of archive",
+      "unarchive_other": "{{count}} messages moved out of archive",
+      "trash_one": "{{count}} message deleted",
+      "trash_other": "{{count}} messages deleted",
+      "spam_one": "{{count}} message reported as spam",
+      "spam_other": "{{count}} messages reported as spam",
+      "not_spam_one": "{{count}} message moved to the inbox",
+      "not_spam_other": "{{count}} messages moved to the inbox",
+      "mark_read_one": "{{count}} message marked as read",
+      "mark_read_other": "{{count}} messages marked as read",
+      "mark_unread_one": "{{count}} message marked as unread",
+      "mark_unread_other": "{{count}} messages marked as unread",
+      "partiel": "{{reussis}} of {{total}} done: try again for the rest.",
+      "echec": "None of the {{total}} messages could be processed. Try again."
+    },
+    "plan": {
+      "cta": "Schedule",
+      "notes": "Email from {{expediteur}} on {{date}}"
     },
     "link": {
       "cta": "Link",
@@ -352,7 +447,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Composing and replying are done on desktop for now."
+      "readOnly": "Composing and replying are done on desktop for now.",
+      "spamHidden_one": "{{count}} message in spam isn't shown here.",
+      "spamHidden_other": "{{count}} messages in spam aren't shown here."
     },
     "notice": {
       "sentNotRecorded": "The message was sent. Its local copy could not be saved: do not send it again.",

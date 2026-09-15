@@ -16,11 +16,13 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { accountVisibleTo, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { attachmentServing } from '../_shared/mail/mime.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailAttachment } from '../_shared/mail/gmail.ts'
 import { graphAttachmentBytes } from '../_shared/mail/graph.ts'
+import { imapAttachment } from '../_shared/mail/imap.ts'
 import type { MailAccountRow } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
@@ -29,6 +31,15 @@ const corsHeaders = {
 }
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+}
+
+/**
+ * ⛔ Le texte d'une erreur de fournisseur (bannière IMAP, corps d'une réponse Gmail ou Graph)
+ * ne part pas à l'appelant (S14) : journalisé caviardé, un code à l'écran.
+ */
+function echecFournisseur(pieceId: string, e: unknown): Response {
+  console.error(`[mail-attachment] pièce ${pieceId}, fournisseur: ${redactedErrorMessage(e)}`)
+  return json({ error: 'provider_failed' }, 502)
 }
 
 const MAX_BYTES = 25 * 1024 * 1024
@@ -62,6 +73,8 @@ async function loadAttachment(admin: SupabaseClient, id: string, ctx: { userId: 
 }
 
 async function fetchBytes(admin: SupabaseClient, a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
+  // IMAP : pas de jeton — le message est relu dans son dossier et la pièce extraite par son rang.
+  if (a.account.provider === 'imap') return imapAttachment(admin, a.account, a.providerMessageId, Number(a.att.provider_attachment_id))
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
   const token = await getValidAccessToken(admin, a.account, a.account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
   if (a.account.provider === 'gmail') return gmailAttachment(token, a.providerMessageId, a.att.provider_attachment_id)
@@ -88,8 +101,8 @@ serve(async (req: Request) => {
     if (!a) return json({ error: 'not_found' }, 404)
     if (a.att.size_bytes > MAX_BYTES) return json({ error: 'too_large' }, 413)
     let bytes: Uint8Array
-    try { bytes = await fetchBytes(admin, a) } catch (e) { return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502) }
-    const name = encodeURIComponent(a.att.filename).replace(/['()]/g, escape)
+    try { bytes = await fetchBytes(admin, a) } catch (e) { return echecFournisseur(a.att.id, e) }
+    const name = encodeURIComponent(a.att.filename).replace(/[\u0027()]/g, escape)
     // Le type vient de l'EXPÉDITEUR du courrier : il ne traverse jamais tel quel.
     // `attachmentServing` (mime.ts) rend l'essence autorisée pour un rendu en ligne, ou
     // `application/octet-stream` + `attachment` pour tout le reste — sans quoi une pièce
@@ -125,11 +138,11 @@ serve(async (req: Request) => {
   if (a.att.size_bytes > 20 * 1024 * 1024) return json({ error: 'too_large' }, 413)
 
   let bytes: Uint8Array
-  try { bytes = await fetchBytes(admin, a) } catch (e) { return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502) }
+  try { bytes = await fetchBytes(admin, a) } catch (e) { return echecFournisseur(a.att.id, e) }
   const documentId = crypto.randomUUID()
   const storagePath = `${profile.agency_id}/${documentId}.${ext}`
   const { error: upErr } = await admin.storage.from('documents').upload(storagePath, toBuffer(bytes), { contentType: a.att.mime_type, upsert: false })
-  if (upErr) return json({ error: 'upload_failed', detail: upErr.message }, 500)
+  if (upErr) { console.error(`[mail-attachment] pièce ${a.att.id}, dépôt: ${redactedErrorMessage(upErr)}`); return json({ error: 'upload_failed' }, 500) }
   const docType = typeof body.document_type === 'string' && body.document_type ? body.document_type.slice(0, 40) : 'autre'
   const name = typeof body.name === 'string' && body.name.trim() ? body.name.trim().slice(0, 160) : a.att.filename
   const { error: insErr } = await admin.from('documents').insert({
@@ -139,7 +152,8 @@ serve(async (req: Request) => {
   })
   if (insErr) {
     await admin.storage.from('documents').remove([storagePath])
-    return json({ error: 'document_insert_failed', detail: insErr.message }, 500)
+    console.error(`[mail-attachment] pièce ${a.att.id}, document: ${redactedErrorMessage(insErr)}`)
+    return json({ error: 'document_insert_failed' }, 500)
   }
   // ⚠ CE MARQUAGE EST CE QUI EMPÊCHE DE CLASSER DEUX FOIS. Son résultat n'était pas lu :
   // un échec ici laissait `document_id` nul alors que le fichier EST déposé et la ligne
@@ -148,7 +162,11 @@ serve(async (req: Request) => {
   // lieu, le défaire serait pire), on le DIT, pour que le lot 2 n'affiche pas « à classer »
   // sur une pièce déjà au dossier.
   const { error: eMark } = await admin.from('mail_attachments').update({ document_id: documentId }).eq('id', a.att.id)
-  if (eMark) console.error(`[mail-attachment] pièce ${a.att.id} classée en ${documentId} mais NON marquée:`, eMark.message)
+  let warning: 'not_marked_filed' | 'not_audited' | null = null
+  if (eMark) {
+    console.error(`[mail-attachment] pièce ${a.att.id} classée en ${documentId} mais NON marquée:`, eMark.message)
+    warning = 'not_marked_filed'
+  }
   // ⛔ L'AUDIT EST OBLIGATOIRE ICI (CLAUDE.md §5 : `activity_events` pour toute action), et
   // son résultat était jeté sans même un journal. Un document versé au dossier d'un contact
   // sans sa ligne d'audit est un trou de conformité qui ne se découvre qu'à l'audit, des
@@ -159,8 +177,10 @@ serve(async (req: Request) => {
     entity_type: 'contact', entity_id: contactId, object_label: name,
     metadata: { document_id: documentId, attachment_id: a.att.id, message_id: a.att.message_id, document_type: docType },
   })
-  if (eAudit) console.error(`[mail-attachment] activity_events refuse document_filed_from_email (document ${documentId}, contact ${contactId}):`, eAudit.message)
-  const warning = eMark ? 'not_marked_filed' : eAudit ? 'not_audited' : null
+  if (eAudit) {
+    console.error(`[mail-attachment] activity_events refuse document_filed_from_email (document ${documentId}, contact ${contactId}):`, eAudit.message)
+    warning ??= 'not_audited'
+  }
   return json(warning
     ? { ok: true, document_id: documentId, storage_path: storagePath, warning }
     : { ok: true, document_id: documentId, storage_path: storagePath })

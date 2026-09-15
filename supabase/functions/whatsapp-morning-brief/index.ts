@@ -1,9 +1,9 @@
 // supabase/functions/whatsapp-morning-brief/index.ts
 // Morning brief proactif 07h30 (Europe/Zurich) — inverse le pull en push : pousse à
 // chaque agent APPAIRÉ (whatsapp_agent_links.verified) sa journée — visites du jour,
-// relances dues, offres qui expirent, nouveaux leads vendeurs. 0 LLM : requêtes
-// déterministes + gabarit figé (_shared/morning-brief.ts). Agent-facing uniquement
-// (jamais de client) → pas de HITL.
+// rendez-vous du Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs.
+// 0 LLM : requêtes déterministes + gabarit figé (_shared/morning-brief.ts). Agent-facing
+// uniquement (jamais de client) → pas de HITL.
 //
 // Déclenché par pg_cron à 05:30, 06:30 ET 07:30 UTC (migration 20260705180000) : les
 // schedules encadrent le DST et fournissent un tick filet, la fonction n'agit que si

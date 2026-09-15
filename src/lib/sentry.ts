@@ -229,4 +229,15 @@ export function clearSentryUser() {
   Sentry.setUser(null)
 }
 
+/**
+ * Vrai si un événement capturé maintenant PART chez Sentry. ⚠ Un client peut exister sans
+ * envoyer : en dev il est initialisé mais `enabled: false` (hors `VITE_SENTRY_FORCE_DEV`).
+ * Les écrans qui montrent une référence d'incident s'y fient — une référence qui ne mène à
+ * rien ferait chercher le support dans le vide.
+ */
+export function sentryEnvoie(): boolean {
+  const client = Sentry.getClient()
+  return !!client && client.getOptions().enabled !== false && !!client.getDsn()
+}
+
 export { Sentry }

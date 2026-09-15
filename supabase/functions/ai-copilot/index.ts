@@ -31,6 +31,7 @@ import {
 } from '../_shared/knowledge-retrieval.ts'
 import { createPseudonymizer } from '../_shared/pseudonymize.ts'
 import { buildBriefSnapshot, type BriefFocusRow } from '../_shared/daily-brief.ts'
+import { filtreEvenementsDuJour, occurrencesDuJour } from '../_shared/calendar-events.ts'
 import {
   runAgentLoop, SseDecoder, StreamAssembler,
   type LoopEvent, type LoopMessage, type ModelTurn, type StreamEvent,
@@ -751,34 +752,42 @@ async function handleDailyBrief(params: {
   // Assemblage du snapshot (agence dérivée du JWT par les RPC SECURITY DEFINER).
   const start = new Date(); start.setHours(0, 0, 0, 0)
   const end = new Date(); end.setHours(23, 59, 59, 999)
-  const [focusRes, cockpitRes, objectifRes, remindersRes] = await Promise.all([
+  const [focusRes, cockpitRes, objectifRes, remindersRes, eventsRes] = await Promise.all([
     userClient.rpc('focus_top_matches', { p_limit: 6 }),
     userClient.rpc('analytics_cockpit', { p_period: 'month', p_scope: 'me' }),
     userClient.rpc('analytics_objectif', { p_period: 'month', p_scope: 'me' }),
     // On ne lit QUE le type (jamais message_template : texte libre à noms en dur).
     userClient.from('reminders').select('type')
       .eq('status', 'pending').gte('trigger_at', start.toISOString()).lte('trigger_at', end.toISOString()).limit(10),
+    // Les rendez-vous du Calendrier (20260915080300) : le type et la date, jamais le titre.
+    userClient.from('calendar_events').select('type, starts_at, status, recurrence')
+      .or(filtreEvenementsDuJour(start.toISOString(), end.toISOString())).limit(20),
   ])
 
   const focus = (focusRes.data ?? []) as BriefFocusRow[]
   const pseudo = createPseudonymizer()
   const reminderTypes = (remindersRes.error ? [] : (remindersRes.data ?? []))
     .map((r) => String(r.type))
+  const eventTypes = eventsRes.error ? [] : occurrencesDuJour(
+    (eventsRes.data ?? []) as Array<{ type: string; starts_at: string; status: string | null; recurrence: unknown }>,
+    start.toISOString(), end.toISOString(),
+  ).map((e) => e.type)
 
   // Assemblage pseudonymisé (module PUR testé) : noms de contacts ET titres de
   // biens → jetons ; `contributors` (noms d'acheteurs) retiré des agrégats ;
   // rappels réduits à des libellés de type. DeepSeek ne verra que des jetons {{Cn}},
   // re-substitués par les vraies valeurs après génération.
-  const { snapshot, itemCount, reminderCount } = buildBriefSnapshot({
+  const { snapshot, itemCount, reminderCount, eventCount } = buildBriefSnapshot({
     focus,
     cockpit: (cockpitRes.error ? {} : cockpitRes.data) as Record<string, unknown>,
     objectif: (objectifRes.error ? {} : objectifRes.data) as Record<string, unknown>,
     reminderTypes,
+    eventTypes,
     pseudo,
   })
 
   // Rien à dire → pas de briefing (le client n'affiche rien).
-  if (!itemCount && !reminderCount) return json({ result: '', empty: true })
+  if (!itemCount && !reminderCount && !eventCount) return json({ result: '', empty: true })
 
   const briefingPrompt = `Tu es MEGGA AI. Rédige le BRIEFING MATINAL de l'agent, en te basant UNIQUEMENT sur le snapshot ci-dessous (n'invente aucun contact, chiffre ou fait).
 Format : une phrase d'accroche courte, puis 3 à 5 priorités numérotées. Chaque priorité = le contact concerné + POURQUOI c'est prioritaire (avec le chiffre du snapshot) + l'action concrète suggérée.

@@ -11,7 +11,8 @@ import type { MailAddress } from '@/hooks/useMailThreads'
 
 export interface MailDraft {
   id: string; account_id: string; kind: 'new' | 'reply' | 'forward'; thread_id: string | null; in_reply_to_message_id: string | null
-  to: MailAddress[]; cc: MailAddress[]; subject: string | null; body_text: string | null; attachments: { name: string; size: number; storage_path: string }[]; updated_at: string
+  /** ⚠ Cci compris (20260915080100) : sans lui, un brouillon rouvert repartait SANS ses copies cachées. */
+  to: MailAddress[]; cc: MailAddress[]; bcc: MailAddress[]; subject: string | null; body_text: string | null; attachments: { name: string; size: number; storage_path: string }[]; updated_at: string
 }
 
 /** Les brouillons de la boîte courante, et leur enregistrement / suppression. */
@@ -34,12 +35,17 @@ export function useMailDrafts(accountId: string | null) {
       return (data ?? []) as unknown as MailDraft[]
     },
   })
-  const done = () => { void qc.invalidateQueries({ queryKey: ['mail', 'drafts', accountId] }); void qc.invalidateQueries({ queryKey: ['mail', 'folder-counts', accountId] }) }
+  // Préfixes et non la seule boîte ouverte : un brouillon rangé sous une AUTRE boîte
+  // (le « De » du composeur) doit apparaître dans ses « Brouillons » à elle.
+  const done = () => { void qc.invalidateQueries({ queryKey: ['mail', 'drafts'] }); void qc.invalidateQueries({ queryKey: ['mail', 'folder-counts'] }) }
   const save = useMutation({
     mutationFn: async (d: Partial<MailDraft> & { id?: string }) => {
-      if (!accountId || !user || !profile?.agency_id) throw new Error('no_account')
-      const row = { account_id: accountId, agency_id: profile.agency_id, author_id: user.id, kind: d.kind ?? 'new', thread_id: d.thread_id ?? null,
-        in_reply_to_message_id: d.in_reply_to_message_id ?? null, to: d.to ?? [], cc: d.cc ?? [], subject: d.subject ?? null, body_text: d.body_text ?? null, attachments: d.attachments ?? [] }
+      // Un brouillon appartient à la boîte D'ENVOI choisie, pas forcément à la boîte ouverte :
+      // rouvert, il repart de là où il devait partir.
+      const compte = d.account_id ?? accountId
+      if (!compte || !user || !profile?.agency_id) throw new Error('no_account')
+      const row = { account_id: compte, agency_id: profile.agency_id, author_id: user.id, kind: d.kind ?? 'new', thread_id: d.thread_id ?? null,
+        in_reply_to_message_id: d.in_reply_to_message_id ?? null, to: d.to ?? [], cc: d.cc ?? [], bcc: d.bcc ?? [], subject: d.subject ?? null, body_text: d.body_text ?? null, attachments: d.attachments ?? [] }
       const q = d.id ? supabase.from('mail_drafts').update(row).eq('id', d.id).select('id').single() : supabase.from('mail_drafts').insert(row).select('id').single()
       const { data, error } = await q
       if (error) throw error

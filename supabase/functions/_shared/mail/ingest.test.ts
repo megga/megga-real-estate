@@ -6,9 +6,9 @@ import type { MailAccountRow, NormalizedMessage, OutgoingMessage } from './types
 const BOX = 'g@agence.ch'
 const msg = (over: Partial<NormalizedMessage> = {}): NormalizedMessage => ({
   providerMessageId: 'm1', providerThreadId: 't1', rfc822MessageId: '<m1@ex>', inReplyTo: null, references: [],
-  direction: 'inbound', from: { name: 'Zoé', email: 'zoe@ex.ch' }, to: [{ name: null, email: BOX }], cc: [], bcc: [],
+  direction: 'inbound', inSent: false, from: { name: 'Zoé', email: 'zoe@ex.ch' }, to: [{ name: null, email: BOX }], cc: [], bcc: [],
   replyTo: null, subject: 'Visite', snippet: 'Bonjour', bodyText: 'Bonjour', bodyHtml: null,
-  sentAt: '2026-09-03T08:00:00.000Z', isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false,
+  sentAt: '2026-09-03T08:00:00.000Z', isRead: false, isStarred: false, inInbox: true, isTrashed: false, isSpam: false, isDraft: false,
   providerLabels: [], attachments: [], ...over,
 })
 
@@ -34,7 +34,7 @@ describe('deriveThreadPatch', () => {
       id: 'T', account_id: 'A', subject: 'Visite', snippet: 'Bonjour', participants: [{ name: 'Zoé', email: 'zoe@ex.ch' }],
       from_name: 'Zoé', from_email: 'zoe@ex.ch', last_message_at: '2026-09-03T08:00:00.000Z', last_inbound_at: '2026-09-03T08:00:00.000Z',
       last_outbound_at: null, message_count: 1, has_attachments: false, is_read: true, is_starred: false, is_archived: false, is_trashed: false,
-      label_id: null, contact_id: null,
+      is_spam: false, label_id: null, contact_id: null,
     }
     const out = msg({ providerMessageId: 'm2', direction: 'outbound', from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], snippet: 'À demain', sentAt: '2026-09-03T09:00:00.000Z', isRead: true, inInbox: false })
     const p = deriveThreadPatch(existing, out, BOX, true)
@@ -146,6 +146,77 @@ describe('deriveThreadPatch', () => {
   })
 })
 
+describe('le spam (14.09.2026)', () => {
+  it('le dernier entrant au spam met le fil au SPAM — plus en Archivé', () => {
+    const p = deriveThreadPatch(null, msg({ inInbox: false, isSpam: true }), BOX, true)
+    expect(p.is_spam).toBe(true)
+    // Sorti de la Réception par le filtre du fournisseur, il se lisait « archivé ».
+    expect(p.is_archived).toBe(false)
+  })
+  it('remis en Réception, le dernier entrant sort le fil du spam', () => {
+    const p = deriveThreadPatch({ ...fil('T1', null), last_inbound_at: '2026-09-01T00:00:00.000Z', is_spam: true }, msg({ inInbox: true, isSpam: false }), BOX, false)
+    expect(p.is_spam).toBe(false)
+    expect(p.is_archived).toBe(false)
+  })
+  it('⛔ un courrier au spam n est rattaché à PERSONNE et n entre pas au journal', async () => {
+    const { admin, calls, rpcCalls } = fakeAdmin(vide, () => ({ data: ['c1'], error: null }))
+    await ingestMessages(admin, account, [msg({ isSpam: true, inInbox: false })])
+    expect(rpcCalls.filter((r) => r.fn === 'mail_match_contact_by_emails')).toHaveLength(0)
+    expect(calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')?.payload).toMatchObject({ is_spam: true, contact_id: null })
+    expect(calls.find((c) => c.table === 'mail_threads' && c.op === 'insert')?.payload).toMatchObject({ is_spam: true, contact_id: null })
+    expect(calls.filter((c) => c.table === 'activity_events')).toHaveLength(0)
+  })
+  it('contrôle positif : le même courrier hors spam est rattaché ET journalisé', async () => {
+    const { admin, calls, rpcCalls } = fakeAdmin(vide, () => ({ data: ['c1'], error: null }))
+    await ingestMessages(admin, account, [msg()])
+    expect(rpcCalls.filter((r) => r.fn === 'mail_match_contact_by_emails')).toHaveLength(1)
+    expect(calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')?.payload).toMatchObject({ is_spam: false, contact_id: 'c1' })
+    expect(calls.filter((c) => c.table === 'activity_events' && c.op === 'insert')).toHaveLength(1)
+  })
+
+  // ⛔ Un hameconnage qui cite l'échange agent ↔ notaire rejoignait le vrai fil (Gmail et Graph
+  // par leur regroupement, IMAP par `References`) et l'emportait ENTIER au Spam.
+  it('⛔ un spam ne rejoint JAMAIS la conversation que le fournisseur lui prête', async () => {
+    const conversation = { ...fil('T1', 'c1'), last_inbound_at: '2026-09-01T00:00:00.000Z' }
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_threads' && c.op === 'select' && c.filters.some(([k, v]) => k === 'eq:provider_thread_id' && v === 't1')
+        ? { data: conversation, error: null } : vide(c))
+    await ingestMessages(admin, account, [msg({ providerMessageId: 'gm-9', providerThreadId: 't1', isSpam: true, inInbox: false })])
+    const lecture = calls.find((c) => c.table === 'mail_threads' && c.op === 'select')
+    expect(lecture?.filters).toContainEqual(['eq:provider_thread_id', 'spam:gm-9'])
+    expect(calls.find((c) => c.table === 'mail_threads' && c.op === 'insert')?.payload).toMatchObject({ provider_thread_id: 'spam:gm-9', is_spam: true, contact_id: null })
+    expect(calls.some((c) => c.table === 'mail_threads' && c.op === 'update'), 'la conversation n est pas touchée').toBe(false)
+    // Témoin : le même courrier hors spam rejoint bien la conversation.
+    const temoin = fakeAdmin((c) =>
+      c.table === 'mail_threads' && c.op === 'select' && c.filters.some(([k, v]) => k === 'eq:provider_thread_id' && v === 't1')
+        ? { data: conversation, error: null } : vide(c))
+    await ingestMessages(temoin.admin, account, [msg({ providerMessageId: 'gm-9', providerThreadId: 't1' })])
+    expect(temoin.calls.find((c) => c.table === 'mail_threads' && c.op === 'update')?.filters).toEqual([['eq:id', 'T1']])
+  })
+
+  // Le spam est entrant (`sensDuMessage`) ; reste le message d'« Envoyés » que Gmail range AUSSI au spam.
+  it('un fil NÉ d un sortant au spam est au spam — pas dans « Envoyés »', () => {
+    const usurpe = msg({ direction: 'outbound', inSent: true, from: { name: 'G', email: BOX }, isSpam: true, inInbox: false })
+    expect(deriveThreadPatch(null, usurpe, BOX, true).is_spam).toBe(true)
+    expect(deriveThreadPatch(null, { ...usurpe, isSpam: false }, BOX, true).is_spam).toBe(false)
+  })
+
+  // ⛔ Rattaché et journalisé, puis passé au spam : son contact effacé, il se rejournalisait à sa
+  // sortie du spam — une seconde ligne dans un journal append-only.
+  it('rattaché PUIS passé au spam : il garde son contact, et sa sortie ne rejournalise rien', async () => {
+    const connu = (spam: boolean) => (c: FakeCall): Reply =>
+      c.table === 'mail_messages' && c.op === 'select'
+        ? { data: { id: 'M1', thread_id: 'T1', provider_message_id: 'm1', is_spam: spam, contact_id: 'c1' }, error: null }
+        : c.table === 'mail_threads' && c.op === 'select' ? { data: fil('T1', spam ? null : 'c1'), error: null } : vide(c)
+    const aller = fakeAdmin(connu(false))
+    await ingestMessages(aller.admin, account, [msg({ isSpam: true, inInbox: false })])
+    expect(aller.calls.find((c) => c.table === 'mail_messages' && c.op === 'update')?.payload).toMatchObject({ is_spam: true, contact_id: 'c1' })
+    const retour = fakeAdmin(connu(true), () => ({ data: ['c1'], error: null }))
+    await ingestMessages(retour.admin, account, [msg()])
+    expect(retour.calls.filter((c) => c.table === 'activity_events')).toHaveLength(0)
+  })
+})
+
 describe('pickContact', () => {
   it('un seul contact distinct = match ; plusieurs = null', () => {
     expect(pickContact([{ contact_id: 'c1' }, { contact_id: 'c1' }])).toBe('c1')
@@ -221,7 +292,7 @@ const fil = (id: string, contact: string | null): ThreadRow => ({
   id, account_id: 'acc-1', subject: 'Visite', snippet: 's', participants: [{ name: 'Zoé', email: 'zoe@ex.ch' }],
   from_name: null, from_email: null, last_message_at: '2026-09-13T08:00:00.000Z', last_inbound_at: null,
   last_outbound_at: '2026-09-13T08:00:00.000Z', message_count: 1, has_attachments: false, is_read: true,
-  is_starred: false, is_archived: false, is_trashed: false, label_id: null, contact_id: contact,
+  is_starred: false, is_archived: false, is_trashed: false, is_spam: false, label_id: null, contact_id: contact,
 })
 
 describe('ingestMessages : recherche du message déjà connu', () => {
@@ -232,23 +303,55 @@ describe('ingestMessages : recherche du message déjà connu', () => {
   // quelconque de la boîte, et la suite l'écrasait avec le contenu de l'attaquant.
   const PIEGE = '<a),provider_message_id.not.is.null,and(id.not.is.null'
 
+  // La copie « Envoyés » d'un envoi : seule elle peut reprendre un envoi en attente (`pending:`),
+  // donc elle seule fait la seconde lecture — celle qui porte le texte de l'expéditeur.
+  const sortant = (over: Partial<NormalizedMessage> = {}) => msg({ direction: 'outbound', inSent: true, from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], ...over })
+
   it('un Message-ID piégé ne peut désigner aucune autre ligne : deux .eq(), jamais de .or()', async () => {
     const { admin, calls } = fakeAdmin(vide)
-    await ingestMessages(admin, account, [msg({ providerMessageId: 'm-neuf', rfc822MessageId: PIEGE })])
+    await ingestMessages(admin, account, [sortant({ providerMessageId: 'm-neuf', rfc822MessageId: PIEGE })])
 
     expect(calls.some((c) => c.filters.some(([k]) => k === 'or'))).toBe(false)
-    const lookups = calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')
+    const lookups = calls.filter((c) => c.table === 'mail_messages' && c.op === 'select' && c.filters.some(([k]) => k === 'eq:provider_message_id'))
     expect(lookups).toHaveLength(2)
     // Le texte de l'attaquant reste UNE valeur, dans un paramètre à lui.
     expect(lookups[0].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', 'm-neuf']])
     expect(lookups[1].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', `pending:${PIEGE}`]])
     // Et il ne s'échappe nulle part ailleurs : aucune requête ne le porte comme filtre
-    // structurel, seulement comme valeur de `provider_message_id`.
+    // structurel, seulement comme la valeur d'un `.eq()`.
     for (const c of calls) {
       for (const [cle, val] of c.filters) {
-        if (typeof val === 'string' && val.includes(PIEGE)) expect(cle).toBe('eq:provider_message_id')
+        if (typeof val === 'string' && val.includes(PIEGE)) expect(['eq:provider_message_id', 'eq:rfc822_message_id']).toContain(cle)
       }
     }
+  })
+
+  // ⛔ Un destinataire connaît le Message-ID de ce qu'on lui a écrit : sa réponse qui le
+  // reprenait, lue avant la copie « Envoyés », prenait la ligne de l'envoi et la réécrivait —
+  // et il lui suffisait d'écrire l'adresse de la boîte dans `From` pour passer en sortant.
+  it('un ENTRANT ne peut pas prendre la ligne pending: d un envoi du CRM — un spam, ni un sortant hors « Envoyés »', async () => {
+    const MID = '<crm-1@agence.ch>'
+    const pendingRow = { id: 'M', thread_id: 'P', provider_message_id: `pending:${MID}`, is_spam: false, contact_id: 'c1' }
+    const repond = (c: FakeCall): Reply =>
+      c.table === 'mail_messages' && c.op === 'select' && c.filters.some(([k, v]) => k === 'eq:provider_message_id' && v === `pending:${MID}`)
+        ? { data: pendingRow, error: null }
+        // Le recalcul des fils quand la copie change de fil (provisoire → vrai).
+        : c.table === 'mail_messages' && c.op === 'select' && c.filters.some(([k]) => k === 'eq:thread_id') ? { data: [], error: null }
+          : vide(c)
+    for (const m of [
+      msg({ rfc822MessageId: MID }),
+      sortant({ rfc822MessageId: MID, isSpam: true, inInbox: false }),
+      sortant({ rfc822MessageId: MID, inSent: false, inInbox: true }),
+    ]) {
+      const { admin, calls } = fakeAdmin(repond)
+      const r = await ingestMessages(admin, account, [m])
+      expect(r).toMatchObject({ inserted: 1, updated: 0 })
+      expect(calls.some((c) => c.filters.some(([, v]) => v === `pending:${MID}`))).toBe(false)
+      expect(calls.some((c) => c.table === 'mail_messages' && c.op === 'update')).toBe(false)
+    }
+    // Témoin : la vraie copie « Envoyés » la trouve, et la reprend.
+    const { admin } = fakeAdmin(repond)
+    expect(await ingestMessages(admin, account, [sortant({ rfc822MessageId: MID })])).toMatchObject({ inserted: 0, updated: 1 })
   })
 
   it('la boîte est TOUJOURS dans le filtre : un message piégé ne sort pas du compte', async () => {
@@ -310,6 +413,24 @@ describe('recomputeThread', () => {
     expect(calls.some((c) => c.op === 'delete')).toBe(false)
     expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'update')).toHaveLength(1)
   })
+
+  // Un message signalé au milieu d'une conversation : la lecture le tient à part, la liste ne
+  // doit ni compter le fil « non lu » pour lui, ni lui prêter sa pièce jointe.
+  it('un fil HORS spam se résume par ses messages hors spam', async () => {
+    const m = (h: string, o: Record<string, unknown>) => ({ sent_at: `2026-09-03T${h}:00:00.000Z`, direction: 'inbound', is_read: true, has_attachments: false, snippet: h, is_spam: false, ...o })
+    const recalcul = async (msgs: unknown[]) => {
+      const { admin, calls } = fakeAdmin((c) => c.table === 'mail_messages' ? { data: msgs, error: null } : { data: null, error: null })
+      await recomputeThread(admin, 'T1')
+      return calls.find((c) => c.table === 'mail_threads' && c.op === 'update')?.payload
+    }
+    const hamecon = m('09', { is_read: false, has_attachments: true, is_spam: true })
+    expect(await recalcul([m('08', {}), hamecon, m('10', {})])).toMatchObject({ is_spam: false, is_read: true, has_attachments: false, message_count: 3, snippet: '10' })
+    // Au spam, le fil se résume par TOUS ses messages.
+    expect(await recalcul([m('08', {}), { ...hamecon, sent_at: '2026-09-03T11:00:00.000Z' }])).toMatchObject({ is_spam: true, is_read: false, has_attachments: true })
+    // Sans entrant, le fil est au spam si tous ses messages le sont.
+    expect(await recalcul([m('08', { direction: 'outbound', is_spam: true })])).toMatchObject({ is_spam: true })
+    expect(await recalcul([m('08', { direction: 'outbound' })])).toMatchObject({ is_spam: false })
+  })
 })
 
 
@@ -365,12 +486,26 @@ describe('journal : le fait d un courrier, jamais son contenu', () => {
   it('un courrier envoyé hors du CRM (synchro des Envoyés) : email_sent, même neutralité', async () => {
     const { admin, calls } = fakeAdmin(vide, rattache)
     await ingestMessages(admin, account, [msg({
-      direction: 'outbound', subject: `Re: ${OBJET}`, from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], cc: [{ name: null, email: TIERS }],
+      direction: 'outbound', inSent: true, subject: `Re: ${OBJET}`, from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], cc: [{ name: null, email: TIERS }],
     })])
     const lignes = auJournal(calls)
     expect(lignes).toHaveLength(1)
     expect(lignes[0].payload).toEqual(ligneAttendue('email_sent'))
     sansContenu(lignes[0].payload, [OBJET, 'zoe@ex.ch', TIERS, BOX])
+  })
+
+  // ⛔ `From: <la boîte>`, `To: <un client>`, écrit par un TIERS et livré en Réception : il
+  // s'inscrivait au dossier du client comme un courrier que l'agence « avait envoyé ».
+  it('⛔ un sortant HORS « Envoyés » n écrit pas email_sent — ni usurpation, ni copie à soi', async () => {
+    const usurpe = msg({ direction: 'outbound', inSent: false, from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }] })
+    const { admin, calls } = fakeAdmin(vide, rattache)
+    expect(await ingestMessages(admin, account, [usurpe])).toEqual({ inserted: 1, updated: 0, auditFailures: 0 })
+    expect(calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')?.payload, 'le message reste, rattaché').toMatchObject({ contact_id: 'c1', direction: 'outbound' })
+    expect(auJournal(calls)).toEqual([])
+    // Témoin : le même, rangé dans « Envoyés », est l'envoi.
+    const temoin = fakeAdmin(vide, rattache)
+    await ingestMessages(temoin.admin, account, [{ ...usurpe, inSent: true }])
+    expect(auJournal(temoin.calls)).toHaveLength(1)
   })
 
   it('contrôle positif : le contenu reste là où la RLS de la boîte le garde', async () => {
@@ -644,8 +779,9 @@ describe('copie « Envoyés » d un envoi Outlook rapprochée par la synchro', (
   const MID = '<crm-1@agence.ch>'
   const rattache = (): Reply => ({ data: ['c1'], error: null })
   const outlook: MailAccountRow = { ...account, provider: 'outlook' }
-  const copie =(id: string, inInbox: boolean) => msg({
-    providerMessageId: id, providerThreadId: 'conv-1', rfc822MessageId: MID, direction: 'outbound',
+  /** La copie « Envoyés » (`inInbox` faux), ou l'exemplaire qu'Exchange dépose en Réception. */
+  const copie = (id: string, inInbox: boolean) => msg({
+    providerMessageId: id, providerThreadId: 'conv-1', rfc822MessageId: MID, direction: 'outbound', inSent: !inInbox,
     from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], cc: [{ name: 'G', email: BOX }], isRead: true, inInbox,
   })
   const filtres = (c: FakeCall) => Object.fromEntries(c.filters) as Record<string, unknown>
@@ -668,38 +804,55 @@ describe('copie « Envoyés » d un envoi Outlook rapprochée par la synchro', (
     expect(auJournal(calls)).toEqual([])
   })
 
-  it('copie à soi-même (sa propre boîte en Cc) : la copie « Envoyés » ne journalise pas une 2e fois', async () => {
-    // Exchange dépose en Réception une copie au MÊME Message-ID, lue AVANT « Envoyés » :
-    // elle prend la ligne pending:, et la copie « Envoyés » arrive comme un message NEUF.
-    let renomme = false
+  it('copie à soi-même (sa propre boîte en Cc) : l exemplaire de la Réception ne prend pas la ligne pending:', async () => {
+    // Exchange dépose en Réception une copie au MÊME Message-ID, lue AVANT « Envoyés ». Elle
+    // prenait la ligne pending: — `From` = la boîte suffisait. Seule la copie « Envoyés » la reprend.
     const { admin, calls } = fakeAdmin((c) => {
       const f = filtres(c)
       if (c.table === 'mail_messages' && c.op === 'select') {
-        if (f['eq:rfc822_message_id'] === MID) return { data: [{ id: 'M' }], error: null }
-        if (f['eq:provider_message_id'] === `pending:${MID}`) return { data: renomme ? null : { id: 'M', thread_id: 'P', provider_message_id: `pending:${MID}` }, error: null }
+        if (f['eq:provider_message_id'] === `pending:${MID}`) return { data: { id: 'M', thread_id: 'P', provider_message_id: `pending:${MID}` }, error: null }
+        if (f['eq:rfc822_message_id'] === MID) return { data: [{ id: 'M' }, { id: 'M-inbox' }], error: null }
         return { data: null, error: null }
       }
-      if (c.table === 'mail_messages' && c.op === 'update') renomme = true
       if (c.table === 'mail_threads' && c.op === 'select') return { data: fil('P', 'c1'), error: null }
       return vide(c)
     }, rattache)
-    expect(await ingestMessages(admin, outlook, [copie('inbox-1', true)])).toEqual({ inserted: 0, updated: 1, auditFailures: 0 })
-    const r = await ingestMessages(admin, outlook, [copie('sent-1', false)])
-    expect(r.inserted, 'le doublon de MESSAGE est un défaut préexistant, hors de ce test').toBe(1)
+    expect(await ingestMessages(admin, outlook, [copie('inbox-1', true)])).toEqual({ inserted: 1, updated: 0, auditFailures: 0 })
+    expect(calls.some((c) => c.filters.some(([, v]) => v === `pending:${MID}`)), 'l exemplaire de la Réception ne la cherche même pas').toBe(false)
+    expect(await ingestMessages(admin, outlook, [copie('sent-1', false)])).toEqual({ inserted: 0, updated: 1, auditFailures: 0 })
     expect(auJournal(calls), 'un seul envoi, et mail-send l a déjà journalisé').toEqual([])
   })
 
-  it('la même dédup vaut pour un envoi fait DEPUIS Outlook : la 2e copie sortante ne rejournalise pas', async () => {
+  // ⛔ La dédup demandait « une autre copie sortante existe-t-elle ? » : l'exemplaire de la
+  // Réception, lu d'abord et jamais journalisé, privait la copie « Envoyés » de SA ligne.
+  it('envoi fait DEPUIS Outlook, copie à soi-même : la copie « Envoyés » garde sa ligne', async () => {
+    const lectures: FakeCall[] = []
+    const { admin, calls } = fakeAdmin((c) => {
+      const f = filtres(c)
+      if (c.table === 'mail_messages' && c.op === 'select' && f['eq:rfc822_message_id'] === MID) return { data: [{ id: 'M-inbox' }], error: null }
+      if (c.table === 'activity_events' && c.op === 'select') { lectures.push(c); return { data: [], error: null } }
+      return vide(c)
+    }, rattache)
+    await ingestMessages(admin, outlook, [copie('inbox-1', true)])
+    expect(auJournal(calls).filter((c) => c.op === 'insert'), 'l exemplaire de la Réception n est pas l envoi').toEqual([])
+    await ingestMessages(admin, outlook, [copie('sent-1', false)])
+    expect(auJournal(calls).filter((c) => c.op === 'insert')).toHaveLength(1)
+    // Le journal est interrogé dans l'agence, sur l'action et les copies — jamais par `.or()`.
+    expect(lectures.map((c) => c.filters)).toEqual([[['eq:agency_id', 'ag-1'], ['eq:action', 'email_sent'], ['in:metadata->>message_id', ['M-inbox']]]])
+  })
+
+  it('une AUTRE copie a déjà sa ligne (la même copie « Envoyés » revenue sous un autre id) : pas de seconde', async () => {
     const { admin, calls } = fakeAdmin((c) => {
       const f = filtres(c)
       if (c.table === 'mail_messages' && c.op === 'select' && f['eq:rfc822_message_id'] === MID) {
         expect(f['eq:direction']).toBe('outbound')
-        return { data: [{ id: 'M-inbox' }], error: null }
+        return { data: [{ id: 'M-sent-avant' }], error: null }
       }
+      if (c.table === 'activity_events' && c.op === 'select') return { data: [{ id: 'ev-1' }], error: null }
       return vide(c)
     }, rattache)
     await ingestMessages(admin, outlook, [copie('sent-1', false)])
-    expect(auJournal(calls)).toEqual([])
+    expect(auJournal(calls).filter((c) => c.op === 'insert')).toEqual([])
   })
 
   // Évaluée APRÈS l'insertion, une dédup qui levait laissait un message CONNU sans sa ligne :
@@ -724,8 +877,14 @@ describe('copie « Envoyés » d un envoi Outlook rapprochée par la synchro', (
   it('une dédup en erreur est LEVÉE, jamais lue comme « première copie » — et rien n est écrit', async () => {
     const { admin, calls } = fakeAdmin((c) =>
       c.table === 'mail_messages' && c.op === 'select' && filtres(c)['eq:rfc822_message_id'] ? { data: null, error: { message: 'boom' } } : vide(c), rattache)
-    await expect(ingestMessages(admin, outlook, [copie('sent-1', false)])).rejects.toThrow(/copie sortante: boom/)
+    await expect(ingestMessages(admin, outlook, [copie('sent-1', false)])).rejects.toThrow(/copies de l'envoi: boom/)
     expect(calls.filter((c) => c.op !== 'select'), 'la passe suivante doit trouver le message INCONNU').toEqual([])
+    // Même règle pour la lecture du journal.
+    const journal = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select' && filtres(c)['eq:rfc822_message_id'] ? { data: [{ id: 'M-inbox' }], error: null }
+        : c.table === 'activity_events' && c.op === 'select' ? { data: null, error: { message: 'boom' } } : vide(c), rattache)
+    await expect(ingestMessages(journal.admin, outlook, [copie('sent-1', false)])).rejects.toThrow(/journal de l'envoi: boom/)
+    expect(journal.calls.filter((c) => c.op !== 'select')).toEqual([])
   })
 
   it('fil fantôme : la copie rejoint un vrai fil déjà là — le provisoire vide disparaît, le vrai est recompté', async () => {

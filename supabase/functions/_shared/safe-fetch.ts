@@ -60,18 +60,31 @@ export function isBlockedIp(ip: string): boolean {
   return BLOCKED_IP.some((r) => r.test(v))
 }
 
-async function resolveAll(hostname: string): Promise<string[]> {
+async function resolveAll(hostname: string, signal?: AbortSignal): Promise<string[]> {
+  // ⚠ NOM COMPLET, point final compris. Sans lui, un nom qui n'a pas d'enregistrement du
+  // type demandé — l'AAAA d'un site sans IPv6, le cas courant — repart vers le domaine de
+  // recherche du résolveur (`….home`, `….compute.internal`) : mesuré le 14.09.2026, 5 s
+  // perdues par requête sur un résolveur lent, assez pour faire tomber les délais des
+  // appelants. Un nom interne COURT, lui, cesse de résoudre par ce détour : c'est
+  // précisément ce que ce module refuse.
+  //
+  // ⛔ ET SOUS L'ÉCHÉANCE DE L'APPELANT (`signal`) : le délai de `safeFetchResponse` n'annulait
+  // que le `fetch`, et un nom dont les serveurs faisant autorité se taisent tenait la requête
+  // quinze secondes — le délai du résolveur — au lieu de quatre (revue du 15.09.2026).
+  const fqdn = hostname.endsWith('.') ? hostname : `${hostname}.`
+  const opts = signal ? { signal } : undefined
   const [a, aaaa] = await Promise.all([
-    Deno.resolveDns(hostname, 'A').catch(() => [] as string[]),
-    Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]),
+    Deno.resolveDns(fqdn, 'A', opts).catch(() => [] as string[]),
+    Deno.resolveDns(fqdn, 'AAAA', opts).catch(() => [] as string[]),
   ])
+  if (signal?.aborted) throw new Error('fetch: timeout')
   return [...a, ...aaaa]
 }
 
 // Valide qu'une URL fournie par un appelant est publique et https, SANS la fetch.
 // Utile quand l'appelant a besoin de la Response brute (blob/formData) tout en
 // gardant le garde-fou SSRF. Lève une Error `ssrf:` sinon.
-export async function assertPublicUrl(rawUrl: string): Promise<URL> {
+export async function assertPublicUrl(rawUrl: string, signal?: AbortSignal): Promise<URL> {
   let u: URL
   try {
     u = new URL(rawUrl)
@@ -79,10 +92,38 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
     throw new Error('ssrf: invalid_url')
   }
   if (u.protocol !== 'https:') throw new Error('ssrf: https_only')
-  const ips = await resolveAll(u.hostname)
+  const ips = await resolveAll(u.hostname, signal)
   if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
   if (ips.some(isBlockedIp)) throw new Error('ssrf: blocked_ip')
   return u
+}
+
+/**
+ * Valide qu'un NOM D'HÔTE fourni par un appelant ne résout que vers des adresses
+ * PUBLIQUES — pour une connexion TCP qui n'a pas d'URL : le serveur IMAP ou SMTP que
+ * l'agent saisit en ajoutant sa boîte. Sans elle, l'assistant ouvrait une socket vers
+ * l'hôte de son choix : `169.254.169.254:993`, un service interne, un balayage de ports.
+ * Lève une `Error` préfixée `ssrf:` ; même risque résiduel de rebinding que plus haut.
+ *
+ * ⚠ Une adresse IP LITTÉRALE est refusée : un serveur de courrier a un nom, et c'est ce
+ * nom que le certificat TLS atteste.
+ */
+export async function assertPublicHost(hostname: string): Promise<void> {
+  await resolvePublicHost(hostname)
+}
+
+/**
+ * Comme `assertPublicHost`, et rend l'adresse vérifiée (IPv4 d'abord) à laquelle se
+ * connecter : la socket s'ouvre sur ELLE, le nom ne servant plus qu'au certificat. C'est ce
+ * qui ferme, pour une connexion TCP, le rebinding que `fetch` laisse ouvert (cf. l'en-tête).
+ */
+export async function resolvePublicHost(hostname: string): Promise<string> {
+  const h = hostname.trim().toLowerCase().replace(/\.$/, '')
+  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(h)) throw new Error('ssrf: invalid_host')
+  const ips = await resolveAll(h)
+  if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
+  if (ips.some(isBlockedIp)) throw new Error('ssrf: blocked_ip')
+  return ips.find((ip) => !ip.includes(':')) ?? ips[0]
 }
 
 export interface SafeFetchOptions {
@@ -136,7 +177,7 @@ export async function safeFetchResponse(
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    let current = await assertPublicUrl(rawUrl)
+    let current = await assertPublicUrl(rawUrl, ctrl.signal)
     for (let hop = 0; ; hop++) {
       const res = await fetch(current, { redirect: 'manual', signal: ctrl.signal })
 
@@ -154,7 +195,7 @@ export async function safeFetchResponse(
         } catch {
           throw new Error('ssrf: invalid_url')
         }
-        current = await assertPublicUrl(next)
+        current = await assertPublicUrl(next, ctrl.signal)
         continue
       }
 

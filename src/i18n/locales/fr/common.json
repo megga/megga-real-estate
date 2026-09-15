@@ -1,10 +1,13 @@
 {
   "errorBoundary": {
-    "title": "Une erreur est survenue",
-    "body": "Quelque chose s'est mal passé de notre côté. Vous pouvez recharger la page ou revenir à votre tableau de bord.",
-    "reload": "Recharger",
+    "title": "Cette page n'a pas pu s'afficher",
+    "body": "Un incident de notre côté, pas du vôtre. Rechargez la page ; si l'erreur revient, repartez du tableau de bord.",
+    "bodyClient": "Un incident de notre côté, pas du vôtre. Rechargez la page ; si l'erreur revient, prévenez l'agence qui vous a transmis ce lien.",
+    "reload": "Recharger la page",
     "updating": "Mise à jour de l'application en cours…",
-    "dashboard": "Retour au tableau de bord"
+    "dashboard": "Retour au tableau de bord",
+    "reference": "Référence de l'incident : {{id}}",
+    "help": "Centre d'aide"
   },
   "consentGate": {
     "title": "Mise à jour légale",
@@ -451,6 +454,13 @@
       "edge_function_error": "Erreur de fonction serveur",
       "email_received": "E-mail reçu",
       "email_sent": "E-mail envoyé",
+      "mail_account_connected": "Boîte e-mail connectée",
+      "mail_account_connect_failed": "Connexion d'une boîte e-mail refusée",
+      "mail_account_disconnected": "Boîte e-mail déconnectée",
+      "mail_account_updated": "Boîte e-mail modifiée",
+      "calendar_event_created": "Événement planifié",
+      "calendar_event_updated": "Événement modifié",
+      "calendar_event_deleted": "Événement supprimé",
       "extract_property_pdf": "Bien extrait d’un PDF",
       "extract_property_url": "Bien extrait d’une annonce en ligne",
       "idx_feed_pushed": "Flux de diffusion publié",

@@ -153,6 +153,8 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
   const linkContactId = event.contactId ?? null
   const openBien = () => { if (!linkBienId) return; onClose(); navigate(`/dashboard/listings/${linkBienId}`) }
   const openContact = () => { if (!linkContactId) return; onClose(); navigate(`/dashboard/contacts/${linkContactId}`) }
+  // L'e-mail d'où l'événement est né : la Messagerie l'ouvre par son identifiant (`?fil=`).
+  const openMail = () => { if (!event.mailThreadId) return; onClose(); navigate(`/dashboard/messagerie?fil=${event.mailThreadId}`) }
 
   const conflicts = calConflicts(event, allEvents).slice().sort((a, b) => a.start.getTime() - b.start.getTime())
   const multiDay = !sameDay(event.start, event.end)
@@ -338,7 +340,16 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           })()}
 
           {event.notes && (
-            <div style={{ fontSize: 'var(--crm-text-md)', color: SP.inkSoft, fontWeight: 500, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2 }}>{event.notes}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: SP.inkSoft, fontWeight: 500, lineHeight: 1.5, background: SP.cardSubtle, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2, whiteSpace: 'pre-line' }}>{event.notes}</div>
+          )}
+
+          {event.mailThreadId && (
+            <button
+              type="button" onClick={openMail}
+              style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center', background: 'transparent', border: 0, padding: 'var(--crm-space-2xs) 0', cursor: 'pointer', fontFamily: 'inherit', color: SP.accentInk, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}
+            >
+              <CalIcon name="mail" size={15} stroke={SP.accentInk} sw={2} />{t('popover.openMail')}
+            </button>
           )}
         </div>
 

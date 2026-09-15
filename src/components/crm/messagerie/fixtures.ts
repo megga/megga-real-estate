@@ -36,7 +36,9 @@
  * déclenche.
  */
 import { createContext, useContext } from 'react'
-import type { MailAccount } from '@/hooks/useMailAccounts'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import type { ImapDetection, ImapForm, MailAccount } from '@/hooks/useMailAccounts'
+import type { MailInvokeResult } from '@/lib/mail/invoke'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailFolderCounts, MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailMessageRow } from '@/hooks/useMailThread'
@@ -67,7 +69,7 @@ const MAINTENANT = Date.now()
 const ilYA = (jours: number, heures: number, minutes: number) =>
   new Date(MAINTENANT - jours * 86_400_000 - heures * 3_600_000 - minutes * 60_000).toISOString()
 
-export const FX_ACCOUNTS: MailAccount[] = [
+const FX_ACCOUNTS: MailAccount[] = [
   { id: 'fx-a1', agency_id: AG, owner_id: OWNER, provider: 'gmail', email: 'contact@agence-exemple.ch', display_name: 'Boîte générale', visibility: 'agency', status: 'active', last_sync_at: ilYA(0, 0, 4), last_error: null, created_at: ilYA(35, 0, 0) },
   { id: 'fx-a2', agency_id: AG, owner_id: OWNER, provider: 'outlook', email: 'facturation@agence-exemple.ch', display_name: 'Facturation', visibility: 'agency', status: 'active', last_sync_at: ilYA(0, 0, 11), last_error: null, created_at: ilYA(35, 0, 0) },
   // La troisième boîte porte le statut d'échec : sans elle, le banc ne montrerait
@@ -75,6 +77,67 @@ export const FX_ACCOUNTS: MailAccount[] = [
   // endroit où l'agent apprend qu'une boîte a cessé de se synchroniser.
   { id: 'fx-a3', agency_id: AG, owner_id: OWNER, provider: 'imap', email: 'j.exemple@agence-exemple.ch', display_name: 'J. Exemple · personnelle', visibility: 'owner', status: 'reauth_required', last_sync_at: null, last_error: 'invalid_grant', created_at: ilYA(35, 0, 0) },
 ]
+
+/**
+ * Les boîtes déconnectées au banc, le temps de la page — un rechargement les rend.
+ *
+ * ⚠ Sans elles, « Déconnecter » y confirmait un geste que l'écran démentait : la
+ * notification disait la boîte déconnectée, et le sélecteur la montrait encore.
+ */
+const deconnectees = new Set<string>()
+
+/** Déconnecte une boîte du banc (le `mail-oauth disconnect` des fixtures). */
+export function fxDeconnecter(accountId: string): void {
+  deconnectees.add(accountId)
+}
+
+/** Les boîtes ajoutées au banc par l'assistant, le temps de la page. */
+const ajoutees: MailAccount[] = []
+
+/** Les boîtes du banc encore connectées. */
+export function fxBoites(): MailAccount[] {
+  return [...FX_ACCOUNTS, ...ajoutees].filter((a) => !deconnectees.has(a.id))
+}
+
+/** Le temps d'un aller-retour : sans lui, le banc ne montrerait jamais « Recherche… » ni « Test des serveurs… ». */
+const latence = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Le `mail-oauth imap_detect` du banc. ⚠ Aucun vrai fournisseur : les domaines en
+ * `exemple.ch` sont reconnus chez un « Hébergeur Exemple » (`webmail-exemple.ch` chez un
+ * « Webmail Exemple » dont l'IMAP est à activer, comme GMX), les adresses Google et
+ * Microsoft sont renvoyées vers leur connexion — les réponses que l'écran sait montrer.
+ */
+export async function fxDetecterImap(email: string): Promise<MailInvokeResult<ImapDetection>> {
+  await latence(250)
+  const domaine = email.split('@')[1] ?? ''
+  const data: ImapDetection = domaine === 'webmail-exemple.ch'
+    ? { oauth: null, preset: { nom: 'Webmail Exemple', imapHost: 'imap.webmail-exemple.ch', imapPort: 993, smtpHost: 'smtp.webmail-exemple.ch', smtpPort: 465, motDePasseApplication: false, activerImap: true } }
+    : domaine.endsWith('exemple.ch')
+      ? { oauth: null, preset: { nom: 'Hébergeur Exemple', imapHost: 'imap.hebergeur-exemple.ch', imapPort: 993, smtpHost: 'smtp.hebergeur-exemple.ch', smtpPort: 465, motDePasseApplication: false } }
+      : domaine === 'gmail.com'
+        ? { oauth: 'gmail', preset: { nom: 'Google', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465, motDePasseApplication: true } }
+        : domaine === 'outlook.com' ? { oauth: 'outlook', preset: null } : { oauth: null, preset: null }
+  return { data, error: null, status: 200 }
+}
+
+/**
+ * Le `mail-oauth connect_imap` du banc : le mot de passe « faux » est refusé par le serveur
+ * IMAP, une adresse déjà connectée par Google ou Microsoft l'est aussi — le reste connecte.
+ */
+export async function fxConnecterImap(form: ImapForm): Promise<MailInvokeResult<{ account: MailAccount }>> {
+  await latence(600)
+  const email = form.email.trim().toLowerCase()
+  const jumelle = fxBoites().find((a) => a.email === email && a.provider !== 'imap')
+  if (jumelle) return { data: null, error: 'already_connected', detail: jumelle.provider, status: 409 }
+  if (form.password === 'faux') return { data: null, error: 'connection_failed', detail: 'imap_auth', status: 502 }
+  const account: MailAccount = {
+    id: `fx-imap-${ajoutees.length + 1}`, agency_id: AG, owner_id: OWNER, provider: 'imap', email, display_name: null,
+    visibility: form.visibility, status: 'active', last_sync_at: new Date().toISOString(), last_error: null, created_at: new Date().toISOString(),
+  }
+  ajoutees.push(account)
+  return { data: { account }, error: null, status: 200 }
+}
 
 /** Les six libellés semés par le lot 1, transposés (maître §1). */
 export const FX_LABELS: MailLabel[] = [
@@ -96,7 +159,7 @@ const CORRESPONDANTS: { nom: string; email: string; objet: string; extrait: stri
 
 const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
   const c = CORRESPONDANTS[i % CORRESPONDANTS.length]
-  return {
+  const fil: MailThreadRow = {
     id: `fx-t${i}`,
     account_id: 'fx-a1',
     subject: `${c.objet} ${i}`,
@@ -112,17 +175,22 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
     // banc, et un dossier vide ne se distingue pas d'un dossier cassé.
     is_archived: i % 8 === 5,
     is_trashed: false,
+    is_spam: false,
     label_id: FX_LABELS[i % FX_LABELS.length].id,
     contact_id: i % 2 === 0 ? 'fx-c1' : null,
     message_count: 1 + (i % 3),
+    last_inbound_at: null,
     // Écrasé par `fxThreads`, qui connaît le total de la requête servie.
     total: 0,
     ...over,
   }
+  // Tous les fils du banc ont reçu : leur dernier message est un entrant.
+  return 'last_inbound_at' in over ? fil : { ...fil, last_inbound_at: fil.last_message_at }
 }
 
 /**
- * 48 fils : quatre pages de douze, de quoi voir la pagination bouger.
+ * 48 fils : quatre pages de douze, de quoi voir la pagination bouger — plus trois spams,
+ * que seul le dossier « Spam » montre.
  *
  * Les trois premiers sont RÉDIGÉS (README §« Données ») — ce sont eux que la
  * capture montre en haut de liste, et un objet générique en tête de banc ne dit
@@ -131,8 +199,18 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
 export const FX_THREADS: MailThreadRow[] = [
   T(1, { subject: 'Visite de samedi · confirmation', snippet: 'Bonjour, je confirme la visite de samedi à 10h.', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', participants: [{ name: 'Zoé Exemple', email: 'zoe@exemple.ch' }], is_read: false, is_starred: false, has_attachments: false, label_id: 'fx-l4', contact_id: 'fx-c1', message_count: 1, last_message_at: ilYA(0, 1, 12) }),
   T(2, { subject: 'Attestation de financement', snippet: "Veuillez trouver ci-joint l'attestation.", from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', participants: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], is_read: true, is_starred: true, has_attachments: true, label_id: 'fx-l2', contact_id: null, message_count: 2, last_message_at: ilYA(1, 2, 0) }),
-  T(3, { subject: "Projet d'acte · chemin Fictif 7", snippet: "Le projet d'acte est prêt pour relecture.", from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', participants: [{ name: 'Étude Exemple', email: 'etude@notaire-exemple.ch' }], is_read: false, is_starred: false, has_attachments: true, label_id: 'fx-l3', contact_id: 'fx-c1', message_count: 1, last_message_at: ilYA(2, 4, 30) }),
+  T(3, { subject: "Projet d'acte · chemin Fictif 7", snippet: "Le projet d'acte est prêt pour relecture.", from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', participants: [{ name: 'Étude Exemple', email: 'etude@notaire-exemple.ch' }], is_read: false, is_starred: false, has_attachments: true, label_id: 'fx-l3', contact_id: 'fx-c1', message_count: 2, last_message_at: ilYA(2, 4, 30) }),
   ...Array.from({ length: 45 }, (_, k) => T(k + 4)),
+  // Sans eux, le dossier « Spam » serait vide au banc. Des expéditeurs qui n'existent pas,
+  // comme le reste du jeu ; aucun n'est rattaché, aucun ne porte de libellé.
+  ...([
+    [49, 'Votre colis est en attente de livraison', 'Des frais restent à régler pour libérer votre colis.', 'Service Colis Exemple', 'avis@colis-exemple.com', false, ilYA(0, 3, 40)],
+    [50, 'Vous avez été sélectionné', 'Réclamez votre récompense avant minuit.', 'Loterie Exemple', 'gains@loterie-exemple.com', true, ilYA(3, 5, 10)],
+    [51, 'Doublez la visibilité de vos biens', 'Offre réservée aux agences, sans engagement.', 'Offre Exemple', 'promo@offre-exemple.com', true, ilYA(9, 2, 0)],
+  ] as const).map(([i, subject, snippet, nom, email, lu, date]) => T(i, {
+    subject, snippet, from_name: nom, from_email: email, participants: [{ name: nom, email }], is_read: lu, is_starred: false,
+    is_archived: false, is_spam: true, has_attachments: false, label_id: null, contact_id: null, message_count: 1, last_message_at: date,
+  })),
 ]
 
 /** Les quatre messages RÉDIGÉS, ceux des trois fils de tête. */
@@ -143,7 +221,7 @@ const FX_MESSAGES_REDIGES: MailMessageRow[] = [
     snippet: 'Bonjour, je confirme la visite de samedi à 10h.',
     body_text: 'Bonjour,\n\nJe confirme la visite de samedi à 10h. Est-il possible de voir aussi la cave ?\n\nMerci, Zoé',
     body_html: null, body_truncated: false, sent_at: ilYA(0, 1, 12), is_read: false, has_attachments: false,
-    contact_id: 'fx-c1', mail_attachments: [],
+    contact_id: 'fx-c1', is_spam: false, mail_attachments: [],
   },
   {
     id: 'fx-m2', thread_id: 'fx-t2', direction: 'inbound', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch',
@@ -151,22 +229,32 @@ const FX_MESSAGES_REDIGES: MailMessageRow[] = [
     snippet: "Veuillez trouver ci-joint l'attestation.",
     body_text: "Bonjour,\n\nVeuillez trouver ci-joint l'attestation de financement de votre client.\n\nCordialement",
     body_html: "<p>Bonjour,</p><p>Veuillez trouver ci-joint l'attestation de financement de votre client.</p><p>Cordialement</p>",
-    body_truncated: false, sent_at: ilYA(1, 3, 0), is_read: true, has_attachments: true, contact_id: null,
+    body_truncated: false, sent_at: ilYA(1, 3, 0), is_read: true, has_attachments: true, contact_id: null, is_spam: false,
     mail_attachments: [{ id: 'fx-att1', message_id: 'fx-m2', filename: 'attestation-exemple.pdf', mime_type: 'application/pdf', size_bytes: 184_320, is_inline: false, content_id: null, document_id: null }],
   },
   {
     id: 'fx-m3', thread_id: 'fx-t2', direction: 'outbound', from_name: 'Boîte générale', from_email: 'contact@agence-exemple.ch',
     to: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], cc: [], subject: 'Re: Attestation de financement',
     snippet: 'Bien reçu, merci.', body_text: 'Bien reçu, merci.', body_html: null, body_truncated: false,
-    sent_at: ilYA(1, 2, 0), is_read: true, has_attachments: false, contact_id: null, mail_attachments: [],
+    sent_at: ilYA(1, 2, 0), is_read: true, has_attachments: false, contact_id: null, is_spam: false, mail_attachments: [],
   },
   {
     id: 'fx-m4', thread_id: 'fx-t3', direction: 'inbound', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch',
     to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: "Projet d'acte · chemin Fictif 7",
     snippet: "Le projet d'acte est prêt pour relecture.",
     body_text: "Bonjour,\n\nLe projet d'acte est prêt pour relecture. Merci de nous retourner vos remarques avant la signature.\n\nBien à vous",
-    body_html: null, body_truncated: false, sent_at: ilYA(2, 4, 30), is_read: false, has_attachments: true, contact_id: 'fx-c1',
+    body_html: null, body_truncated: false, sent_at: ilYA(2, 4, 30), is_read: false, has_attachments: true, contact_id: 'fx-c1', is_spam: false,
     mail_attachments: [{ id: 'fx-att2', message_id: 'fx-m4', filename: 'projet-acte-exemple.pdf', mime_type: 'application/pdf', size_bytes: 512_000, is_inline: false, content_id: null, document_id: null }],
+  },
+  // Un message SIGNALÉ au milieu d'une vraie conversation : la lecture le tient à part
+  // (`partagerSpam`). Un domaine voisin de celui de l'étude — le cas que la règle vise.
+  {
+    id: 'fx-m5', thread_id: 'fx-t3', direction: 'inbound', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.co',
+    to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: "Re: Projet d'acte · chemin Fictif 7",
+    snippet: 'Nos coordonnées bancaires ont changé.',
+    body_text: "Bonjour,\n\nSuite à un changement de banque, merci d'utiliser désormais les coordonnées ci-jointes pour l'acompte.\n\nBien à vous",
+    body_html: null, body_truncated: false, sent_at: ilYA(2, 3, 0), is_read: true, has_attachments: false, contact_id: null, is_spam: true,
+    mail_attachments: [],
   },
 ]
 
@@ -211,6 +299,7 @@ function messagesDe(t: MailThreadRow): MailMessageRow[] {
       is_read: t.is_read,
       has_attachments: k === 0 && t.has_attachments,
       contact_id: t.contact_id,
+      is_spam: !sortant && t.is_spam,
       mail_attachments: k === 0 && t.has_attachments
         ? [{ id: `fx-att-${t.id}`, message_id: `fx-m-${t.id}-0`, filename: 'piece-jointe-exemple.pdf', mime_type: 'application/pdf', size_bytes: 96_000 + (k + 1) * 4_096, is_inline: false, content_id: null, document_id: null }]
         : [],
@@ -230,16 +319,47 @@ export const FX_MESSAGES: MailMessageRow[] = [
 const AVEC_SORTANT = new Set(FX_MESSAGES.filter((m) => m.direction === 'outbound').map((m) => m.thread_id))
 
 /**
+ * Les gestes faits au banc sur un fil — étoile, lu, archive, corbeille, libellé —, le
+ * temps de la page : un rechargement les efface.
+ *
+ * ⛔ Sans eux, CHAQUE geste se défaisait sous les yeux : l'écran le montrait (mise à jour
+ * optimiste), puis la liste se relisait dans des fixtures inchangées et le reprenait
+ * (Julien, 14.09.2026 : « l'étoile ne reste pas, et c'est pareil pour les autres »). En
+ * production c'est la base que la liste relit, et `mail-actions` l'a écrite.
+ */
+const gestes = new Map<string, Partial<MailThreadRow>>()
+
+/** Répercute un geste sur un fil du banc (le `mail-actions` des fixtures). */
+export function fxAgir(threadId: string, patch: Partial<MailThreadRow>): void {
+  gestes.set(threadId, { ...gestes.get(threadId), ...patch })
+}
+
+/** Les fils du banc, gestes compris — la seule lecture que les hooks doivent faire. */
+function fils(): MailThreadRow[] {
+  return FX_THREADS.map((t) => {
+    const g = gestes.get(t.id)
+    return g ? { ...t, ...g } : t
+  })
+}
+
+/** Un fil du banc par son identifiant, gestes compris — le lien d'un événement du Calendrier. */
+export function fxFil(id: string): MailThreadRow | null {
+  return fils().find((t) => t.id === id) ?? null
+}
+
+/**
  * Non-lus par boîte, tels que le rail les affiche.
  *
  * ⚠ DÉRIVÉ du jeu, jamais écrit à la main : une pastille qui annonce un compte
  * que la liste ne montre pas est le défaut exact que ce banc doit rendre
- * visible, pas reproduire.
+ * visible, pas reproduire. Et recalculé à chaque lecture : un fil ouvert est lu.
  */
-export const FX_UNREAD: Record<string, number> = FX_THREADS.reduce<Record<string, number>>((acc, t) => {
-  if (!t.is_read && !t.is_archived && !t.is_trashed) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
-  return acc
-}, {})
+export function fxNonLus(): Record<string, number> {
+  return fils().reduce<Record<string, number>>((acc, t) => {
+    if (!t.is_read && !t.is_archived && !t.is_trashed && !t.is_spam) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
+    return acc
+  }, {})
+}
 
 /**
  * Le dossier est une REQUÊTE, pas une colonne (maître D8) : le banc rejoue le
@@ -247,6 +367,9 @@ export const FX_UNREAD: Record<string, number> = FX_THREADS.reduce<Record<string
  * mentiraient sur la liste servie à côté.
  */
 function filtreDossier(t: MailThreadRow, folder: MailFolder): boolean {
+  // ⛔ Le spam n'apparaît QUE dans « Spam », comme dans la RPC.
+  if (folder === 'spam') return t.is_spam && !t.is_trashed
+  if (t.is_spam) return false
   switch (folder) {
     case 'in': return !t.is_archived && !t.is_trashed
     case 'arch': return t.is_archived && !t.is_trashed
@@ -271,28 +394,71 @@ export function fxThreads(
 ): { rows: MailThreadRow[]; total: number } {
   if (state !== 'full' || !accountId) return { rows: [], total: 0 }
   const q = f.q.trim().toLowerCase()
-  const tous = FX_THREADS.filter((t) =>
+  const tous = fils().filter((t) =>
     t.account_id === accountId
     && filtreDossier(t, f.folder)
     && (!f.labelId || t.label_id === f.labelId)
     && (!f.unreadOnly || !t.is_read)
     && (!f.attOnly || t.has_attachments)
     && (!q || `${t.subject ?? ''} ${t.from_name ?? ''} ${t.from_email ?? ''}`.toLowerCase().includes(q)),
-  )
+  // L'ordre de la RPC (`last_message_at desc, id desc`) : un fil rendu du spam reprend sa
+  // place dans la Réception, pas la fin du jeu.
+  ).sort((a, b) => b.last_message_at.localeCompare(a.last_message_at) || b.id.localeCompare(a.id))
   const total = tous.length
   return { rows: tous.slice(page * perPage, (page + 1) * perPage).map((r) => ({ ...r, total })), total }
 }
 
-/** Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main. */
+// ─── Logos d'expéditeurs (14.09.2026) ──────────────────────────────────────────
+/** Un logo tel que `mail_sender_logos` le range : son type, ses octets en base64, sa source. */
+export interface FxSenderLogo { source: string; mime: string; data: string }
+
+const marque = (fond: string, encre: string, forme: string) =>
+  btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${fond}"/><g fill="${encre}">${forme}</g></svg>`)
+
+/**
+ * Trois marques FICTIVES pour les trois sociétés fictives du banc — des formes, aucun
+ * logo existant (même règle que les raisons sociales en « Exemple »). Les particuliers
+ * (`@exemple.ch`) n'en ont pas : le banc montre les deux visages de la pastille. Les
+ * couleurs sont des barreaux de la direction, pas des hexadécimaux, et un aplat PÂLE
+ * prend l'encre sombre (CLAUDE.md §3).
+ */
+export const FX_SENDER_LOGOS: Record<string, FxSenderLogo> = {
+  'banque-exemple.ch': {
+    source: 'bimi', mime: 'image/svg+xml',
+    data: marque(MXC_COLOR.accent, MXC_COLOR.n1000, '<path d="M12 26 32 13l20 13z"/><rect x="16" y="29" width="6" height="16"/><rect x="29" y="29" width="6" height="16"/><rect x="42" y="29" width="6" height="16"/><rect x="12" y="48" width="40" height="4"/>'),
+  },
+  'notaire-exemple.ch': {
+    source: 'apple-touch-icon', mime: 'image/svg+xml',
+    data: marque(MXC_SYSTEM.green400, MXC_COLOR.n100, '<circle cx="32" cy="30" r="13"/><path d="M24 40 20 54l12-6 12 6-4-14z"/>'),
+  },
+  'regie-exemple.ch': {
+    source: 'icon', mime: 'image/svg+xml',
+    data: marque(MXC_SYSTEM.yellow400, MXC_COLOR.n100, '<path d="M14 32 32 16l18 16h-5v17H37V38H27v11H19V32z"/>'),
+  },
+}
+
+/** Les logos du banc pour ces domaines — hors « boîte pleine », aucun. */
+export function fxSenderLogos(state: MailFixtureState, domaines: string[]): Record<string, FxSenderLogo> {
+  if (state !== 'full') return {}
+  return Object.fromEntries(domaines.filter((d) => d in FX_SENDER_LOGOS).map((d) => [d, FX_SENDER_LOGOS[d]]))
+}
+
+/**
+ * Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main, et avec les
+ * prédicats de `mail_folder_counts` : sans la corbeille ni le spam, depuis que les gestes
+ * du banc tiennent (un fil supprimé comptait encore parmi les archivés).
+ */
 export function fxCounts(state: MailFixtureState, accountId: string | null): MailFolderCounts {
-  if (state !== 'full' || !accountId) return { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} }
-  const dansLaBoite = FX_THREADS.filter((t) => t.account_id === accountId)
+  if (state !== 'full' || !accountId) return { inbox_unread: 0, archived: 0, drafts: 0, spam: 0, label_counts: {} }
+  const dansLaBoite = fils().filter((t) => t.account_id === accountId && !t.is_trashed)
+  const courrier = dansLaBoite.filter((t) => !t.is_spam)
   const label_counts: Record<string, number> = {}
-  for (const t of dansLaBoite) if (t.label_id) label_counts[t.label_id] = (label_counts[t.label_id] ?? 0) + 1
+  for (const t of courrier) if (t.label_id) label_counts[t.label_id] = (label_counts[t.label_id] ?? 0) + 1
   return {
-    inbox_unread: dansLaBoite.filter((t) => !t.is_read && !t.is_archived).length,
-    archived: dansLaBoite.filter((t) => t.is_archived).length,
+    inbox_unread: courrier.filter((t) => !t.is_read && !t.is_archived).length,
+    archived: courrier.filter((t) => t.is_archived).length,
     drafts: 0,
+    spam: dansLaBoite.filter((t) => t.is_spam).length,
     label_counts,
   }
 }

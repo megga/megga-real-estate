@@ -52,7 +52,7 @@ describe('normalizeGmailMessage', () => {
     expect(n.bodyHtml).toBe('<p>Bonjour &amp; bienvenue</p>')
     expect(n.sentAt).toBe('2025-09-03T00:00:00.000Z')
     expect(n.direction).toBe('inbound')
-    expect(n).toMatchObject({ isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false })
+    expect(n).toMatchObject({ inSent: false, isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false })
     expect(n.attachments).toEqual([
       { providerAttachmentId: 'att-1', filename: 'plan.pdf', mimeType: 'application/pdf', sizeBytes: 1234, isInline: false, contentId: null },
       { providerAttachmentId: 'att-2', filename: 'logo.png', mimeType: 'image/png', sizeBytes: 99, isInline: true, contentId: '<logo@cid>' },
@@ -62,12 +62,48 @@ describe('normalizeGmailMessage', () => {
     const sent: GmailMessage = { ...MSG, labelIds: ['SENT'], payload: { ...MSG.payload, headers: [...MSG.payload.headers!.filter((h) => h.name !== 'From'), { name: 'From', value: 'g@agence.ch' }] } }
     const n = normalizeGmailMessage(sent, 'g@agence.ch')
     expect(n.direction).toBe('outbound')
+    expect(n.inSent).toBe(true)
     expect(n.isRead).toBe(true)
     expect(n.inInbox).toBe(false)
+  })
+  // ⛔ Le sens se lisait sur `From` dès que SENT manquait (revue du 15.09.2026).
+  it('`From` = la boîte SANS le libellé SENT : entrant au spam, entrant avec un Reply-To étranger', () => {
+    const deLaBoite = (labelIds: string[], replyTo: string | null): GmailMessage => ({
+      ...MSG, labelIds,
+      payload: { ...MSG.payload, headers: [...MSG.payload.headers!.filter((h) => h.name !== 'From' && h.name !== 'Reply-To'), { name: 'From', value: 'G <g@agence.ch>' }, ...(replyTo ? [{ name: 'Reply-To', value: replyTo }] : [])] },
+    })
+    // L'arnaque qui usurpe l'adresse de la boîte, rangée au spam.
+    expect(normalizeGmailMessage(deLaBoite(['SPAM', 'UNREAD'], null), 'g@agence.ch')).toMatchObject({ direction: 'inbound', inSent: false, isSpam: true })
+    // Le formulaire d'un site qui écrit au nom de la boîte, `Reply-To` = le prospect.
+    expect(normalizeGmailMessage(deLaBoite(['INBOX', 'UNREAD'], 'prospect@ex.ch'), 'g@agence.ch')).toMatchObject({ direction: 'inbound', inSent: false })
+    // Sans Reply-To étranger, `From` = la boîte reste sortant — mais PAS dans « Envoyés ».
+    expect(normalizeGmailMessage(deLaBoite(['INBOX'], null), 'g@agence.ch')).toMatchObject({ direction: 'outbound', inSent: false })
+    expect(normalizeGmailMessage(deLaBoite(['INBOX'], 'G <G@Agence.ch>'), 'g@agence.ch')).toMatchObject({ direction: 'outbound', inSent: false })
   })
   it('corps HTML seul → texte dérivé ; sans corps → snippet', () => {
     const htmlOnly: GmailMessage = { ...MSG, payload: { mimeType: 'text/html', headers: MSG.payload.headers, body: { data: base64UrlEncodeString('<p>Seul</p>') } } }
     expect(normalizeGmailMessage(htmlOnly, 'g@agence.ch').bodyText).toBe('Seul')
+  })
+})
+
+describe('le libellé SPAM', () => {
+  it('un message au spam est isSpam, hors Réception — sans être pris pour archivé ailleurs', () => {
+    const n = normalizeGmailMessage({ ...MSG, labelIds: ['SPAM', 'UNREAD'] }, 'g@agence.ch')
+    expect(n.isSpam).toBe(true)
+    expect(n.inInbox).toBe(false)
+    expect(normalizeGmailMessage(MSG, 'g@agence.ch').isSpam).toBe(false)
+  })
+  it('l historique traduit SPAM posé / retiré en isSpam', () => {
+    const r = historyToChanges({
+      history: [
+        { id: '1', labelsAdded: [{ message: { id: 'A', threadId: 't' }, labelIds: ['SPAM'] }], labelsRemoved: [{ message: { id: 'A', threadId: 't' }, labelIds: ['INBOX'] }] },
+        { id: '2', labelsRemoved: [{ message: { id: 'B', threadId: 't' }, labelIds: ['SPAM'] }] },
+      ],
+    })
+    expect(r.changes).toEqual([
+      { kind: 'flags', providerMessageId: 'A', isSpam: true, inInbox: false },
+      { kind: 'flags', providerMessageId: 'B', isSpam: false },
+    ])
   })
 })
 
@@ -122,10 +158,12 @@ describe('nextHistoryCursor', () => {
 })
 
 describe('appels HTTP', () => {
-  it('gmailListInitial borne à 90 jours hors spam/corbeille', async () => {
+  it('gmailListInitial : 90 jours, SPAM compris (includeSpamTrash), corbeille et chats exclus', async () => {
     const fetch = vi.fn(async (u: string) => {
       const url = new URL(u)
-      expect(url.searchParams.get('q')).toBe('newer_than:90d -in:spam -in:trash -in:chats')
+      expect(url.searchParams.get('q')).toBe('newer_than:90d -in:trash -in:chats')
+      // Sans lui, messages.list écarte le spam quelle que soit la requête.
+      expect(url.searchParams.get('includeSpamTrash')).toBe('true')
       expect(url.searchParams.get('maxResults')).toBe('50')
       return new Response(JSON.stringify({ messages: [{ id: 'a' }, { id: 'b' }], nextPageToken: 'p2' }), { status: 200 })
     })
@@ -149,6 +187,11 @@ describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () =
     // Rien à faire du tout sur une copie « Envoyés » : mail-actions saute l'appel.
     expect(gmailLabelPatch('unarchive', 'outbound')).toEqual({ add: [], remove: [] })
   })
+  it('spam pose SPAM et retire INBOX ; « pas un spam » rend la Réception au seul courrier reçu', () => {
+    for (const d of ['inbound', 'outbound'] as const) expect(gmailLabelPatch('spam', d), d).toEqual({ add: ['SPAM'], remove: ['INBOX'] })
+    expect(gmailLabelPatch('not_spam', 'inbound')).toEqual({ add: ['INBOX'], remove: ['SPAM'] })
+    expect(gmailLabelPatch('not_spam', 'outbound')).toEqual({ add: [], remove: ['SPAM'] })
+  })
   it('RETIRER un libellé reste indifférencié — c est sans effet sur qui ne l a pas', () => {
     for (const d of ['inbound', 'outbound'] as const) {
       expect(gmailLabelPatch('archive', d), d).toEqual({ add: [], remove: ['INBOX'] })
@@ -160,7 +203,7 @@ describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () =
     }
   })
   it('aucun geste ne pose SENT ni DRAFT — Gmail les refuse (« can be manually applied: no »)', () => {
-    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash'] as const) {
+    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash', 'spam', 'not_spam'] as const) {
       for (const d of ['inbound', 'outbound'] as const) {
         const p = gmailLabelPatch(a, d)
         expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('SENT')

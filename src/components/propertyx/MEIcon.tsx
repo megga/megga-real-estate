@@ -17,7 +17,7 @@ export type MEIconName =
   | 'plus' | 'minus' | 'close' | 'check' | 'menu'
   | 'mail' | 'phone' | 'calendar' | 'clock' | 'lock'
   | 'home' | 'building' | 'key' | 'gallery'
-  | 'sparkle' | 'shield' | 'eye' | 'globe' | 'compass'
+  | 'sparkle' | 'shield' | 'eye' | 'eye-off' | 'globe' | 'compass'
   | 'filter' | 'sort' | 'settings' | 'download' | 'upload'
   | 'user' | 'users' | 'logout' | 'info' | 'help' | 'alert'
   | 'credit-card' | 'bell' | 'bell-ring'
@@ -51,6 +51,9 @@ export type MEIconName =
   // que la police d'icônes est PLEINE : dans le rail, `inbox` et `archive`
   // seraient deux blocs massifs entre `star` et `send`, qui sont des traits.
   | 'inbox' | 'archive' | 'paperclip' | 'file-text'
+  // Le dossier Spam (15.09.2026) : l'octogone de Gmail (« signaler comme spam »), pas le
+  // triangle d'`alert` — le rail l'aurait lu comme un avertissement.
+  | 'spam'
 
 const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -83,6 +86,9 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   sparkle: <path d="m12 3-1.91 5.81a2 2 0 0 1-1.28 1.28L3 12l5.81 1.91a2 2 0 0 1 1.28 1.28L12 21l1.91-5.81a2 2 0 0 1 1.28-1.28L21 12l-5.81-1.91a2 2 0 0 1-1.28-1.28L12 3Z" />,
   shield: <><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></>,
   eye: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
+  // Même tracé que l'œil barré des Réglages (`settings/atoms`) : les deux champs de mot de passe
+  // du CRM montrent le même geste.
+  'eye-off': <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="M2 2l20 20" /></>,
   filter: <path d="M3 6h18M6 12h12M10 18h4" />,
   sort: <path d="M3 6h13M3 12h9M3 18h5M14 14l4 4 4-4M18 4v14" />,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.2-1.3L14 3h-4l-.4 2.4a7 7 0 0 0-2.2 1.3l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.2 1.3L10 21h4l.4-2.4a7 7 0 0 0 2.2-1.3l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.3Z" /></>,
@@ -99,12 +105,16 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
-  compass: <><circle cx="12" cy="12" r="9" /><path d="m15 9-2 6-6 2 2-6 6-2Z" /></>,
+  // Aiguille recentrée le 15.09.2026 : centrée en (11,13), elle penchait hors du cadran.
+  compass: <><circle cx="12" cy="12" r="9" /><path d="m16 8-2 6-6 2 2-6 6-2Z" /></>,
   download: <><path d="M12 3v14" /><path d="m5 12 7 7 7-7" /><path d="M4 21h16" /></>,
   upload: <><path d="M12 21V7" /><path d="m5 12 7-7 7 7" /><path d="M4 3h16" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r="0.6" fill="currentColor" /></>,
   help: <><circle cx="12" cy="12" r="9" /><path d="M9 9a3 3 0 1 1 4.2 2.8c-.8.4-1.2 1-1.2 2" /><circle cx="12" cy="17" r="0.6" fill="currentColor" /></>,
-  alert: <><path d="m12 2 11 19H1L12 2Z" /><path d="M12 10v5" /><circle cx="12" cy="18" r="0.6" fill="currentColor" /></>,
+  // ⚠ Redessiné le 15.09.2026 (Julien : « j'ai l'impression qu'il est buggé ») : tracé bord à
+  // bord, 22 unités de large à sommets vifs, il débordait de sa boîte à 12-16 px et dépassait
+  // ses voisins d'un tiers ; son point, un disque cerclé, pesait deux fois son trait.
+  alert: <><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><path d="M12 9v4" /><path d="M12 17h.01" /></>,
   'credit-card': <><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><path d="M6 15h4" /></>,
   bell: <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" /></>,
   'bell-ring': <><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10 21a2 2 0 0 0 4 0" /><path d="M3 4 2 5" /><path d="m21 4 1 1" /></>,
@@ -145,6 +155,8 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   archive: <><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></>,
   paperclip: <path d="M21.44 11.05 12.25 20.24a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />,
   'file-text': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></>,
+  // Même gabarit que `inbox` et `archive` (2 → 22) : le rail aligne six dossiers.
+  spam: <><path d="M15.31 2a2 2 0 0 1 1.42.59l4.68 4.68A2 2 0 0 1 22 8.69v6.62a2 2 0 0 1-.59 1.42l-4.68 4.68a2 2 0 0 1-1.42.59H8.69a2 2 0 0 1-1.42-.59l-4.68-4.68A2 2 0 0 1 2 15.31V8.69a2 2 0 0 1 .59-1.42l4.68-4.68A2 2 0 0 1 8.69 2Z" /><path d="M12 8v4" /><path d="M12 16h.01" /></>,
 }
 
 const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {

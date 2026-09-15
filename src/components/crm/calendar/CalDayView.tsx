@@ -6,13 +6,14 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useCalPalette } from './data'
 import { CAL_HOUR_END, CAL_HOUR_START, sameDay } from './helpers'
-import { CalAllDayBand, CalDayColumn, CalHourGutter } from './CalGrid'
+import { CalAllDayBand, CalDayColumn, CalFantome, CalHourGutter } from './CalGrid'
+import { useCalDeplacement } from './useCalDeplacement'
 import type { CalViewProps } from './CalWeekView'
 
 const MIN_H = 1680
 
 export function CalDayView({
-  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onCreateAt,
+  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onDragStartEvent, onCreateAt,
 }: CalViewProps) {
   const { t } = useTranslation('calendar')
   const SP = useCalPalette()
@@ -21,6 +22,13 @@ export function CalDayView({
 
   // Au montage, cadrer sur l'heure courante (aujourd'hui) sinon le matin (~7 h).
   const bodyRef = useRef<HTMLDivElement>(null)
+  // Une seule colonne : le glissé n'y change que l'heure. Changer de jour se fait en
+  // vue Semaine ou Mois, ou par la modale.
+  const grilleRef = useRef<HTMLDivElement>(null)
+  const { glisse, saisir } = useCalDeplacement({
+    jours: [currentDate], grilleRef, corpsRef: bodyRef,
+    onUpdate: onUpdateEvent, onCommit: onCommitEvent, onDebut: onDragStartEvent,
+  })
   useEffect(() => {
     let r1 = 0
     let r2 = 0
@@ -52,16 +60,18 @@ export function CalDayView({
 
       {/* Timeline scrollable */}
       <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-md) var(--crm-space-4xl) var(--crm-space-xl)' }}>
-        <div style={{
+        <div ref={grilleRef} style={{
           display: 'grid', gridTemplateColumns: '64px minmax(0,1fr)',
           height: '100%', minHeight: MIN_H, position: 'relative',
         }}>
           <CalHourGutter />
           <CalDayColumn
-            day={currentDate} events={events} now={now} selectedId={selectedId}
+            colIndex={0} day={currentDate} events={events} now={now} selectedId={selectedId}
             onSelect={onSelectEvent} onUpdate={onUpdateEvent} onCommit={onCommitEvent}
+            onMoveStart={saisir} movingId={glisse?.ev.id ?? null}
             onCreateAt={onCreateAt} isToday={isToday} showLocation
           />
+          {glisse && <CalFantome glisse={glisse} />}
         </div>
       </div>
     </div>

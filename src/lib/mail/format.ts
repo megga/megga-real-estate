@@ -45,6 +45,18 @@ export function initialsOf(name: string | null | undefined, email: string): stri
 }
 
 /**
+ * Le domaine d'une adresse, en minuscules — la clé du logo de l'expéditeur
+ * (`mail_sender_logos`). `null` si l'adresse n'en a pas la forme : le serveur, qui
+ * valide la même forme, n'en rendrait rien.
+ */
+export function domaineDe(email: string | null | undefined): string | null {
+  const at = (email ?? '').lastIndexOf('@')
+  if (at < 0) return null
+  const d = (email ?? '').slice(at + 1).trim().toLowerCase().replace(/\.$/, '')
+  return /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(d) ? d : null
+}
+
+/**
  * L'adresse que « Rapprocher l'adresse » apprend au CRM : un correspondant EXTERNE du fil.
  *
  * ⛔ C'était l'expéditeur du dernier message entrant, « ou à défaut du premier » : sur un fil
@@ -70,9 +82,38 @@ export function cibleDeRattachement(
   return participants.find((a) => externe(a.email)) ?? null
 }
 
+/**
+ * Les messages d'un fil tels qu'on les montre : ceux du spam À PART, quand le fil n'y est pas.
+ *
+ * ⛔ UN MESSAGE AU SPAM NE SE LIT PAS PARMI LES AUTRES (15.09.2026). Le spam se jugeait au
+ * niveau du FIL : un message signalé au milieu d'une conversation (dans le webmail, ou par le
+ * filtre du fournisseur) s'y lisait comme les autres, sans marque — un hameçonnage entre deux
+ * vrais messages du notaire, que « Répondre » pouvait même viser. Il reste accessible derrière
+ * un geste, et marqué. Un fil hors spam dont TOUS les messages le sont se montre en entier
+ * (marqués) plutôt que vide.
+ */
+export function partagerSpam<M extends { is_spam: boolean }>(messages: readonly M[], filAuSpam: boolean): { affiches: M[]; auSpam: M[] } {
+  const affiches = filAuSpam ? [] : messages.filter((m) => !m.is_spam)
+  if (affiches.length === 0) return { affiches: [...messages], auSpam: [] }
+  return { affiches, auSpam: messages.filter((m) => m.is_spam) }
+}
+
 /** Ce qu'on montre d'un correspondant : son nom, à défaut son adresse. */
 export function displayAddress(a: MailAddress): string {
   return a.name?.trim() || a.email
+}
+
+/**
+ * L'expéditeur EN ENTIER : « Zoé Exemple <zoe@exemple.ch> », ou l'adresse seule s'il n'a pas
+ * de nom (15.09.2026, Julien : « c'est difficile de voir l'adresse de la personne qui
+ * envoie »). ⚠ Le nom se choisit librement, l'adresse dit qui écrit vraiment : « Banque
+ * Exemple » peut écrire depuis n'importe où.
+ */
+export function expediteurComplet(nom: string | null | undefined, adresse: string | null | undefined): string {
+  const n = nom?.trim() ?? ''
+  const a = adresse?.trim() ?? ''
+  if (!a) return n
+  return n && n.toLowerCase() !== a.toLowerCase() ? `${n} <${a}>` : a
 }
 
 /** Taille lisible d'une pièce jointe (README : « 11px var(--mut) »). */

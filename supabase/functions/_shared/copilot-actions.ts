@@ -12,6 +12,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { canonicalPropertyType } from './whatsapp-lead.ts'
+import { filtreEvenementsDuJour, occurrencesDuJour } from './calendar-events.ts'
 import {
   buildRentStatsIndex, rentPosition, surfaceBand,
   type RentStatsRow, type RentPosition,
@@ -105,25 +106,30 @@ export async function execWebCreateReminder(ctx: WebToolCtx, a: Args): Promise<s
 }
 
 // ─── suggest_priorities_today ────────────────────────────────────────────────
-// File Focus réelle (RPC focus_top_matches, agence dérivée du JWT) + rappels du
-// jour. Sortie compacte JSON : le modèle rédige, il n'invente rien.
+// File Focus réelle (RPC focus_top_matches, agence dérivée du JWT) + rappels et
+// rendez-vous du jour. Sortie compacte JSON : le modèle rédige, il n'invente rien.
 export async function execSuggestPrioritiesToday(ctx: WebToolCtx, a: Args): Promise<string> {
   const limit = Math.min(Math.max(numArg(a.limit) ?? 8, 1), 15)
+  const start = new Date(); start.setHours(0, 0, 0, 0)
+  const end = new Date(); end.setHours(23, 59, 59, 999)
 
-  const [focus, reminders] = await Promise.all([
+  const [focus, reminders, evenements] = await Promise.all([
     ctx.userClient.rpc('focus_top_matches', { p_limit: limit }),
-    (async () => {
-      const start = new Date(); start.setHours(0, 0, 0, 0)
-      const end = new Date(); end.setHours(23, 59, 59, 999)
-      return await ctx.userClient
-        .from('reminders')
-        .select('type, trigger_at, message_template')
-        .eq('status', 'pending')
-        .gte('trigger_at', start.toISOString())
-        .lte('trigger_at', end.toISOString())
-        .order('trigger_at', { ascending: true })
-        .limit(10)
-    })(),
+    ctx.userClient
+      .from('reminders')
+      .select('type, trigger_at, message_template')
+      .eq('status', 'pending')
+      .gte('trigger_at', start.toISOString())
+      .lte('trigger_at', end.toISOString())
+      .order('trigger_at', { ascending: true })
+      .limit(10),
+    // Les rendez-vous du Calendrier (20260915080300) — ils partaient en relance avant cette
+    // table. Le type et l'heure, jamais le titre (l'objet d'un e-mail, parfois).
+    ctx.userClient
+      .from('calendar_events')
+      .select('type, starts_at, status, recurrence')
+      .or(filtreEvenementsDuJour(start.toISOString(), end.toISOString()))
+      .limit(20),
   ])
 
   if (focus.error) return `Erreur priorités: ${focus.error.message}`
@@ -151,14 +157,19 @@ export async function execSuggestPrioritiesToday(ctx: WebToolCtx, a: Args): Prom
   const rappels = (reminders.error ? [] : (reminders.data ?? [])).map((r) => ({
     type: r.type, quand: r.trigger_at, note: r.message_template ?? undefined,
   }))
+  const rendezVous = evenements.error ? [] : occurrencesDuJour(
+    (evenements.data ?? []) as Array<{ type: string; starts_at: string; status: string | null; recurrence: unknown }>,
+    start.toISOString(), end.toISOString(),
+  ).map((e) => ({ type: e.type, quand: e.debut }))
 
-  if (!items.length && !rappels.length) {
-    return 'Aucune priorité calculée aujourd’hui (pas de match actionnable ni de rappel du jour).'
+  if (!items.length && !rappels.length && !rendezVous.length) {
+    return 'Aucune priorité calculée aujourd’hui (pas de match actionnable, de rappel ni de rendez-vous du jour).'
   }
   return JSON.stringify({
     note: 'Scores = estimations internes (matching + engagement), à présenter comme telles.',
     priorites_matches: items,
     rappels_du_jour: rappels,
+    rendez_vous_du_jour: rendezVous,
   })
 }
 

@@ -47,6 +47,32 @@ describe('composeMorningBrief', () => {
     expect(text).toContain('Reply "brief"')
   })
 
+  // ⛔ Un rendez-vous saisi au Calendrier vit dans `calendar_events` depuis le 15.09.2026 : le
+  // brief ne lisait que `reminders`, et la signature chez le notaire sortait de la matinée.
+  it('les rendez-vous du Calendrier : heure, type et contact — jamais le titre', () => {
+    const text = composeMorningBrief({ ...FULL, events: [
+      { startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: 'Paul Dumont' },
+      { startsAt: '2026-07-05T00:00:00Z', allDay: true, type: 'publish', who: null },
+      { startsAt: '2026-07-05T15:00:00Z', allDay: false, type: 'type_futur', who: null },
+    ] }, 'fr')!
+    expect(text).toContain('**Rendez-vous (3)**')
+    expect(text).toContain('- 14:00 · Signature notaire · Paul Dumont')
+    expect(text).toContain('- Journée · Publication')
+    expect(text).toContain('- 17:00 · Rendez-vous')
+    expect(text.indexOf('**Visites')).toBeLessThan(text.indexOf('**Rendez-vous'))
+    const en = composeMorningBrief({ ...FULL, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: null }] }, 'en')!
+    expect(en).toContain('**Appointments (1)**')
+    expect(en).toContain('- 14:00 · Notary signing')
+  })
+
+  it('une journée faite de seuls rendez-vous a son brief ; au plafond de la requête, « 20+ »', () => {
+    const vide = { agentFullName: 'Gregory Lyonnet', visits: [], reminders: [], offers: [], sellerLeads: [] }
+    expect(composeMorningBrief({ ...vide, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'autre', who: null }] })).toContain('**Rendez-vous (1)**')
+    const plein = composeMorningBrief({ ...vide, eventsAtLimit: true, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'autre', who: null }] })!
+    expect(plein).toContain('**Rendez-vous (1+)**')
+    expect(plein).toContain("…et d'autres")
+  })
+
   it('retourne null quand la journée est vide (pas de brief creux)', () => {
     expect(composeMorningBrief({
       agentFullName: 'Gregory Lyonnet', visits: [], reminders: [], offers: [], sellerLeads: [],
@@ -144,6 +170,15 @@ describe('briefItemCount — le {{2}} du template agent_daily_brief', () => {
     const reminders = Array.from({ length: SQL_LIMITS.reminders }, () => ({ type: 'custom', who: null }))
     expect(briefItemCount({ ...FULL, reminders })).toEqual({ count: 2 + SQL_LIMITS.reminders + 1 + 1, atLimit: true })
   })
+
+  // Le push les montre sous « Rendez-vous » : un décompte qui les tairait promettrait moins
+  // que ce que le brief a annoncé.
+  it('compte les rendez-vous du Calendrier, et le plafond de LEUR requête', () => {
+    const events = [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: null }]
+    expect(briefItemCount({ ...FULL, events })).toEqual({ count: 8, atLimit: false })
+    // Une série développée peut rendre moins de lignes que la limite atteinte par la requête.
+    expect(briefItemCount({ ...FULL, events, eventsAtLimit: true })).toEqual({ count: 8, atLimit: true })
+  })
 })
 
 describe('composeBriefDetail — le détail promis par le template du matin', () => {
@@ -173,5 +208,20 @@ describe('composeBriefDetail — le détail promis par le template du matin', ()
 
   it('libellés de relance en anglais quand lang=en', () => {
     expect(composeBriefDetail(FULL, 'en').relances_dues[0].relance).toBe('Visit feedback')
+  })
+
+  it('rend les rendez-vous du jour : heure, type, contact — jamais le titre, et comptés au total', () => {
+    const events = [
+      { startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: 'Anne Dubois' },
+      { startsAt: '2026-07-04T22:00:00Z', allDay: true, type: 'type_inconnu_futur', who: null },
+    ]
+    const d = composeBriefDetail({ ...FULL, events }, 'fr')
+    expect(d.rendez_vous_du_jour).toEqual([
+      { heure: '14:00', rendez_vous: 'Signature notaire', qui: 'Anne Dubois' },
+      { heure: 'journée', rendez_vous: 'Rendez-vous', qui: null },
+    ])
+    expect(d.total).toBe(String(briefItemCount({ ...FULL, events }).count))
+    expect(composeBriefDetail({ ...FULL, events }, 'en').rendez_vous_du_jour[0].rendez_vous).toBe('Notary signing')
+    expect(composeBriefDetail(FULL, 'fr').rendez_vous_du_jour).toEqual([])
   })
 })

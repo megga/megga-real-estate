@@ -6,14 +6,26 @@
  * ⚠ Le bandeau de rattachement ne s'affiche QUE si le fil n'a pas de contact :
  * c'est le seul endroit de l'écran d'où l'agent peut apprendre une adresse au
  * CRM (D11), et il disparaît dès que le rattachement est fait.
+ *
+ * ⛔ JAMAIS SUR UN FIL AU SPAM : le spam n'est rattaché à personne (20260915080200). Son
+ * bandeau à lui dit où il est, et le seul geste qui compte — « Ce n'est pas un spam ». Ni
+ * « Répondre » ni « Transférer » : répondre à un spam confirme à l'expéditeur que
+ * l'adresse est lue.
+ *
+ * ⛔ ET UN MESSAGE AU SPAM DANS UN FIL QUI N'Y EST PAS se tient à part (`partagerSpam`) :
+ * masqué derrière un geste, marqué une fois affiché, jamais visé par « Répondre » ni par le
+ * rattachement, et sans logo — pas de marque accolée à un hameçonnage.
  */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailAttachmentRow, MailMessageRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
-import { cibleDeRattachement, displayAddress, fileSizeLabel, initialsOf, mailDateLabel } from '@/lib/mail/format'
+import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
+import { cibleDeRattachement, displayAddress, domaineDe, expediteurComplet, fileSizeLabel, mailDateLabel, partagerSpam } from '@/lib/mail/format'
 import { MailBodyFrame } from './MailBodyFrame'
+import { MailSenderAvatar } from './MailSenderAvatar'
 import { MailReplyComposer } from './MailReplyComposer'
 import { MailForwardComposer } from './MailForwardComposer'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
@@ -26,6 +38,10 @@ interface Props {
   onSendReply: (text: string, inReplyTo: MailMessageRow) => void
   onSendForward: (to: { name: string | null; email: string }[], note: string, original: MailMessageRow) => void
   onArchive: () => void; onDelete: () => void
+  /** « Signaler comme spam », ou « Ce n'est pas un spam » sur un fil au spam. */
+  onSpam: () => void
+  /** « Planifier » : l'e-mail devient un événement du Calendrier (15.09.2026). */
+  onPlanifier: () => void
   onOpenAttachment: (a: MailAttachmentRow) => void
   onLinkContact: (email: string, name: string | null) => void
 }
@@ -36,12 +52,23 @@ const AVATAR = 38
 export function MailReader(p: Props) {
   const { t } = useTranslation('messages')
   const { ms } = p
-  const first = p.messages[0]
+  const [voirSpam, setVoirSpam] = useState(false)
+  const { affiches, auSpam } = partagerSpam(p.messages, p.thread.is_spam)
+  const lus = voirSpam ? p.messages : affiches
+  const first = lus[0]
+  // Un message au spam dans un fil qui n'y est pas : marqué, une fois affiché.
+  const signale = (m: MailMessageRow) => m.is_spam && !p.thread.is_spam
+  // Avant le retour anticipé plus bas : un hook ne s'appelle pas sous condition. Aucun logo
+  // pour du spam : ce serait résoudre le domaine de l'expéditeur, et accoler une marque à
+  // l'hameçonnage qui l'usurpe.
+  const logos = useMailSenderLogos(p.thread.account_id, first && !p.thread.is_spam && !first.is_spam ? [first.from_email] : [])
   // Répondre et transférer visent le DERNIER message entrant, pas le premier du
-  // fil : sur un échange long, le premier est souvent le nôtre.
-  const inboundLast = [...p.messages].reverse().find((m) => m.direction === 'inbound') ?? first
-  // Rapprocher vise un correspondant EXTERNE — jamais la boîte (cf. `cibleDeRattachement`).
-  const cible = cibleDeRattachement(p.messages, p.thread.participants ?? [], p.boxEmail)
+  // fil : sur un échange long, le premier est souvent le nôtre. Jamais un message au spam.
+  const horsSpam = p.messages.filter((m) => !m.is_spam)
+  const inboundLast = [...horsSpam].reverse().find((m) => m.direction === 'inbound') ?? horsSpam[0] ?? first
+  // Rapprocher vise un correspondant EXTERNE — jamais la boîte (cf. `cibleDeRattachement`), ni
+  // l'expéditeur d'un spam.
+  const cible = cibleDeRattachement(horsSpam, p.thread.participants ?? [], p.boxEmail)
 
   // ⛔ L'AFFORDANCE PRIMAIRE PORTE L'ACCENT AU REPOS (CLAUDE.md §3, décision du
   // 10 août 2026). Elle ne le prenait qu'au SURVOL et affichait l'encre au
@@ -115,6 +142,11 @@ export function MailReader(p: Props) {
   // le temps que la synchronisation le remplisse.
   if (!first) return null
   const senderName = first.from_name || first.from_email || ''
+  const pastilleSpam = (
+    <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, border: `1px solid ${ms.dangerText}`, color: ms.dangerText }}>
+      {t('mail.folders.spam')}
+    </span>
+  )
 
   return (
     <div className="scrollbar-hide" style={{ padding: 'var(--crm-space-6xl) var(--crm-space-7xl) var(--crm-space-7xl)', overflowY: 'auto', minHeight: 0, flex: 1 }}>
@@ -140,7 +172,21 @@ export function MailReader(p: Props) {
         )}
       </div>
 
-      {!p.thread.contact_id && cible && (
+      {p.thread.is_spam && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
+          <MEIcon name="spam" size={13} />
+          {t('mail.read.spam')}
+          <button
+            type="button"
+            onClick={p.onSpam}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accentText, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {t('mail.ctx.notSpam')}
+          </button>
+        </div>
+      )}
+
+      {!p.thread.is_spam && !p.thread.contact_id && cible && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
           {t('mail.read.unlinked', { email: cible.email })}
           <button
@@ -153,12 +199,34 @@ export function MailReader(p: Props) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
-        <div aria-hidden style={{ width: AVATAR, height: AVATAR, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
-          {initialsOf(first.from_name, first.from_email ?? '')}
+      {auSpam.length > 0 && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
+          <MEIcon name="spam" size={13} />
+          {t('mail.read.spamInThread', { count: auSpam.length })}
+          <button
+            type="button"
+            aria-expanded={voirSpam}
+            onClick={() => setVoirSpam(!voirSpam)}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accentText, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {voirSpam ? t('mail.read.spamHide') : t('mail.read.spamShow')}
+          </button>
         </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
+        <MailSenderAvatar ms={ms} nom={first.from_name} adresse={first.from_email} logo={signale(first) ? undefined : logos[domaineDe(first.from_email) ?? '']} taille={AVATAR} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{senderName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-sm)' }}>
+            {signale(first) && pastilleSpam}
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{senderName}</span>
+            {/* L'adresse, TOUJOURS, à côté du nom (15.09.2026) : le nom se choisit librement,
+                l'adresse dit qui écrit vraiment — c'est elle qui trahit une usurpation. */}
+            {first.from_email && first.from_name && (
+              <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.txt3, userSelect: 'all', overflowWrap: 'anywhere' }}>{`<${first.from_email}>`}</span>
+            )}
+            {first.from_email && <CopierAdresse ms={ms} adresse={first.from_email} />}
+          </div>
           <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.read.to', { box: p.boxEmail })}</div>
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>{mailDateLabel(first.sent_at, new Date(), p.lang)}</div>
@@ -167,10 +235,11 @@ export function MailReader(p: Props) {
       <MailBodyFrame ms={ms} html={first.body_html} text={first.body_text} truncated={first.body_truncated} />
       {attachmentChips(first)}
 
-      {p.messages.slice(1).map((m) => (
+      {lus.slice(1).map((m) => (
         <div key={m.id} style={{ borderRadius: 'var(--crm-radius-xl)', background: ms.elev, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 'var(--crm-space-2xl)' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>
-            {m.direction === 'outbound' ? `${t('mail.read.me')} → ${m.to.map(displayAddress).join(', ')}` : (m.from_name || m.from_email)} · {mailDateLabel(m.sent_at, new Date(), p.lang)}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>
+            {signale(m) && pastilleSpam}
+            <span>{m.direction === 'outbound' ? `${t('mail.read.me')} → ${m.to.map(displayAddress).join(', ')}` : expediteurComplet(m.from_name, m.from_email)} · {mailDateLabel(m.sent_at, new Date(), p.lang)}</span>
           </div>
           {m.body_html
             ? <MailBodyFrame ms={ms} html={m.body_html} text={m.body_text} truncated={m.body_truncated} />
@@ -187,11 +256,41 @@ export function MailReader(p: Props) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-7xl)' }}>
-        {btn(t('mail.read.reply'), p.onReply, { primary: true })}
-        {btn(t('mail.read.forward'), p.onForward)}
-        {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
+        {p.thread.is_spam ? btn(t('mail.ctx.notSpam'), p.onSpam, { primary: true }) : (
+          <>
+            {btn(t('mail.read.reply'), p.onReply, { primary: true })}
+            {btn(t('mail.read.forward'), p.onForward)}
+            {btn(t('mail.plan.cta'), p.onPlanifier)}
+            {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
+            {/* Un fil qui n'a rien reçu n'a rien à signaler (`rienASignaler`, mail-actions). */}
+            {p.thread.last_inbound_at && btn(t('mail.ctx.spam'), p.onSpam)}
+          </>
+        )}
         {btn(t('mail.ctx.delete'), p.onDelete, { danger: true, right: true })}
       </div>
     </div>
+  )
+}
+
+/** Copie l'adresse de l'expéditeur ; la coche dit que c'est fait, le temps d'un regard. */
+function CopierAdresse({ ms, adresse }: { ms: MailSurfaces; adresse: string }) {
+  const { t } = useTranslation('messages')
+  const [copiee, setCopiee] = useState(false)
+  const libelle = copiee ? t('mail.read.copied') : t('mail.read.copyAddress')
+  return (
+    <button
+      type="button"
+      title={libelle}
+      aria-label={libelle}
+      onClick={() => {
+        void navigator.clipboard?.writeText(adresse).then(() => {
+          setCopiee(true)
+          setTimeout(() => setCopiee(false), 1500)
+        }, () => {})
+      }}
+      style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, padding: 0, border: 'none', borderRadius: '50%', background: 'transparent', color: copiee ? ms.successText : ms.mut, cursor: 'pointer' }}
+    >
+      <MEIcon name={copiee ? 'check' : 'copy'} size={13} />
+    </button>
   )
 }

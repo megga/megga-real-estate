@@ -7,13 +7,17 @@
 // Gmail : messages.send (+ threadId) puis ingestion immédiate du message rendu.
 // Graph : brouillon → send ; ligne locale provisoire `pending:<Message-ID>` (recordPendingSend,
 //         rattachée au contact dès l'envoi) rapprochée par la synchro « Envoyés » (ingest.ts).
+// IMAP : SMTP (sans l'en-tête Cci) puis dépôt dans « Envoyés » (APPEND) ; même ligne
+//         provisoire que Graph, rapprochée de la même façon quand la synchro relit le dossier.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
+import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, nettoyerMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
 import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
+import { imapPiecesPourTransfert, imapSend } from '../_shared/mail/imap.ts'
 import { ingestMessages, mailAuditEvent, recomputeThread, recordPendingSend } from '../_shared/mail/ingest.ts'
 import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
@@ -91,15 +95,36 @@ serve(async (req: Request) => {
   // Transfert Gmail : on rattache les pièces de l'original (Graph le fait seul via createForward).
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
   const outAtts = attachments.map((a) => ({ filename: String(a.filename).slice(0, 200), mimeType: String(a.mime_type || 'application/octet-stream'), base64: String(a.base64) }))
-  let token: string
-  try { token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook) }
-  catch (e) { return json({ error: 'provider_auth', detail: e instanceof Error ? e.message : String(e) }, 502) }
+  // IMAP n'a pas de jeton : son mot de passe est lu dans Vault au moment d'ouvrir la boîte.
+  let token = ''
+  if (account.provider !== 'imap') {
+    try { token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook) }
+    catch (e) {
+      // ⛔ Le texte d'un refus de jeton porte l'`error_description` du fournisseur (S14) :
+      // journalisé caviardé, un code à l'écran.
+      console.error(`[mail-send] ${account.provider} ${account.id}, jeton: ${redactedErrorMessage(e)}`)
+      return json({ error: 'provider_auth' }, 502)
+    }
+  }
 
   if (kind === 'forward' && original && account.provider === 'gmail') {
     const { data: origAtts } = await admin.from('mail_attachments').select('provider_attachment_id, filename, mime_type').eq('message_id', original.id).eq('is_inline', false)
     for (const a of origAtts ?? []) {
       const bytes = await gmailAttachment(token, original.provider_message_id, a.provider_attachment_id)
       outAtts.push({ filename: a.filename, mimeType: a.mime_type, base64: base64Encode(bytes) })
+    }
+  }
+  // Transfert IMAP : le message d'origine relu UNE fois, ses pièces extraites par leur rang.
+  if (kind === 'forward' && original && account.provider === 'imap') {
+    const { data: origAtts } = await admin.from('mail_attachments').select('provider_attachment_id').eq('message_id', original.id).eq('is_inline', false)
+    const rangs = (origAtts ?? []).map((a: { provider_attachment_id: string }) => Number(a.provider_attachment_id)).filter(Number.isFinite)
+    try {
+      for (const a of await imapPiecesPourTransfert(admin, account, original.provider_message_id, rangs)) {
+        outAtts.push({ filename: a.filename, mimeType: a.mimeType, base64: base64Encode(a.bytes) })
+      }
+    } catch (e) {
+      console.error(`[mail-send] imap ${account.id}, pièces du transfert: ${redactedErrorMessage(e)}`)
+      return json({ error: 'provider_auth' }, 502)
     }
   }
 
@@ -139,14 +164,17 @@ serve(async (req: Request) => {
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
-    inReplyTo: isReply ? (original?.rfc822_message_id ?? null) : null,
-    references: isReply && original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
+    // ⛔ Deux valeurs RELUES EN BASE, venues de l'expéditeur du message d'origine : nettoyées
+    // avant de devenir des en-têtes (et la ligne `pending:` qui les garde), pas seulement dans
+    // `buildMime` — Graph, lui, ne passe pas par `buildMime`.
+    inReplyTo: isReply ? nettoyerMessageId(original?.rfc822_message_id) : null,
+    references: isReply && original ? [nettoyerMessageId(original.in_reply_to), nettoyerMessageId(original.rfc822_message_id)].filter((x): x is string => !!x) : [],
     messageId, attachments: outAtts,
   }
 
   let localMessageId: string | null = null
   let threadId: string | null = original?.thread_id ?? null
-  if (account.provider !== 'gmail' && account.provider !== 'outlook') return json({ error: 'provider_not_supported' }, 501)
+  if (account.provider !== 'gmail' && account.provider !== 'outlook' && account.provider !== 'imap') return json({ error: 'provider_not_supported' }, 501)
 
   /**
    * ⛔ DEUX PHASES, DEUX VERDICTS — et la frontière est l'ACCEPTATION PAR LE
@@ -177,21 +205,29 @@ serve(async (req: Request) => {
       // et le CRM gardait le transfert dans l'ancien fil pendant que Gmail le rangeait
       // ailleurs, les deux boîtes divergeant définitivement. Le fil CRM suit désormais
       // le fournisseur : la ligne relue après ingestion porte le vrai `thread_id`.
-      const providerThreadId = kind === 'forward' ? null : (th?.provider_thread_id ?? null)
+      // ⚠ Ni pour un fil né au spam : sa clé est la nôtre (`cleDeFilSpam`), pas un fil Gmail.
+      const cle = th?.provider_thread_id ?? null
+      const providerThreadId = kind === 'forward' || cle?.startsWith('spam:') ? null : cle
       const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), providerThreadId)
       sentProviderMessageId = sent.id
+    } else if (account.provider === 'imap') {
+      const r = await imapSend(admin, account, buildMime(outgoing), [...to, ...cc, ...bcc].map((a) => a.email))
+      // Le message est parti ; seule sa copie dans « Envoyés » manque — le webmail de l'agent ne
+      // l'aura pas, le CRM garde sa ligne provisoire. Écrit, jamais rendu en échec d'envoi.
+      if (r.appendError) console.error(`[mail-send] imap ${account.id}: envoyé mais NON déposé dans « Envoyés » — ${r.appendError}`)
     } else {
       const mode = original ? { kind: kind as 'reply' | 'forward', providerMessageId: original.provider_message_id } : { kind: 'new' as const }
       await graphSend(token, { subject, html: fullHtml, to, cc, bcc, internetMessageId: messageId, attachments: outAtts }, mode)
     }
   } catch (e) {
-    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+    console.error(`[mail-send] ${account.provider} ${account.id}, envoi refusé: ${redactedErrorMessage(e)}`)
+    return json({ error: 'send_failed' }, 502)
   }
   // L'instant où le fournisseur a ACCEPTÉ : la date du fait au journal (`metadata.sent_at`).
   const acceptedAt = new Date().toISOString()
 
   // ── Le courrier est PARTI. Tout ce qui suit est de la comptabilité locale. ───────
-  let bookkeeping: string | null = null
+  let incomplet = false
   try {
     if (account.provider === 'gmail') {
       // Gmail rend l'id du message envoyé ; sans lui il n'y a rien à réingérer.
@@ -225,8 +261,8 @@ serve(async (req: Request) => {
   } catch (e) {
     // JAMAIS 502 ici : le fournisseur a accepté. Un refus renvoyé à l'agent le ferait
     // renvoyer, et le client recevrait le courrier deux fois.
-    bookkeeping = e instanceof Error ? e.message : String(e)
-    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${bookkeeping}`)
+    incomplet = true
+    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${redactedErrorMessage(e)}`)
   }
 
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
@@ -254,7 +290,7 @@ serve(async (req: Request) => {
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
   // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est
   // incomplète, pour que l'UI l'annonce au lieu d'inviter à renvoyer.
-  return json(bookkeeping
-    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded', detail: bookkeeping.slice(0, 300) }
+  return json(incomplet
+    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded' }
     : { ok: true, message_id: localMessageId, thread_id: threadId })
 })

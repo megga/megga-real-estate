@@ -10,7 +10,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
-import { MXC_COLOR, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -82,6 +82,23 @@ export function eventTypeColors(type: CalEventType, isDark: boolean): CalEventTy
 
 export type CalEventTypeId = keyof typeof CAL_EVENT_TYPES
 
+/**
+ * Les types qu'un événement peut prendre, selon la table qui le porte (`origin`). À la
+ * création, tous : `persistCreate` choisit la table d'après le type. Ensuite le type ne change
+ * plus de table. ⛔ La fiche le laissait faire et rien ne suivait : une tâche passée
+ * « Notaire » revenait « Tâche », un événement passé « Tâche » restait hors des relances, et
+ * passé « Visite » il ouvrait sur téléphone une fiche de visite introuvable (revue du
+ * 15.09.2026).
+ */
+export function calTypesPermis(origin: CalEvent['origin'] | 'creation'): CalEventTypeId[] {
+  const tous = Object.keys(CAL_EVENT_TYPES) as CalEventTypeId[]
+  if (origin === 'visit') return ['visite']
+  if (origin === 'reminder') return ['task']
+  if (origin === 'appointment') return ['kyc']
+  if (origin === 'event') return tous.filter(t => t !== 'visite' && t !== 'task')
+  return tous
+}
+
 /** Palette libre pour le type « Autre » (aplats opaques + texte blanc). */
 export interface CalEventColorOption {
   id: string
@@ -119,6 +136,24 @@ export type CalRecurFreq = 'daily' | 'weekly' | 'biweekly' | 'monthly'
 export interface CalEventRecurrence {
   freq: CalRecurFreq
   until?: string | null
+  /**
+   * Les occurrences RETIRÉES de la série, par leur clé (`AAAA-M-J`, ce qui suit `@` dans leur
+   * id) — l'EXDATE de la RFC 5545.
+   *
+   * ⛔ UNE OCCURRENCE N'EST PAS UNE LIGNE (15.09.2026) : supprimer ou cocher UNE occurrence
+   * écrivait la ligne maîtresse — toute la série effacée d'un clic, sans confirmation, ou
+   * « terminée » d'un coup. Ce qui vaut pour une occurrence se range donc DANS la série,
+   * sous sa clé.
+   */
+  sauf?: string[] | null
+  /** Le statut d'une occurrence, par sa clé : elle seule est faite, ou annulée. */
+  etats?: Record<string, 'done' | 'cancelled'> | null
+}
+
+/** La clé d'une occurrence dans sa série (`AAAA-M-J`) ; `null` pour un événement ponctuel. */
+export function calCleOccurrence(id: string): string | null {
+  const i = id.indexOf('@')
+  return i < 0 ? null : id.slice(i + 1)
 }
 
 /** Le libellé d'un événement, tel que les vues le peignent. */
@@ -148,13 +183,21 @@ export interface CalEvent {
   /**
    * Table d'origine (routage des écritures serveur).
    *
+   * `event` = un ÉVÉNEMENT du calendrier (`calendar_events`, 15.09.2026) : tout ce qui n'est
+   * ni une visite, ni une tâche, ni un rendez-vous KYC — gardé tel qu'on l'a saisi.
+   *
    * `appointment` = RDV de vérification KYC réservé par le CLIENT. Les branches
    * d'écriture de CalendarApp ne le reconnaissent volontairement pas : glisser
    * pour replanifier reste inopérant, parce que déplacer un rendez-vous confirmé
    * sans prévenir le client serait pire que de ne rien faire. Le report passe par
    * les RPC, qui envoient un courriel.
    */
-  origin?: 'visit' | 'reminder' | 'appointment'
+  origin?: 'visit' | 'reminder' | 'appointment' | 'event'
+  /**
+   * L'e-mail d'où l'événement est né (« Planifier » dans la Messagerie, 15.09.2026) : la
+   * bulle offre de le rouvrir. `calendar_events.mail_thread_id` ; nul ailleurs.
+   */
+  mailThreadId?: string | null
   /**
    * Libellé de l'agence posé sur l'événement (UN au plus, comme un fil de la
    * Messagerie). Résolu par `CalendarApp` depuis `useCalendarLabels` : il n'est
@@ -249,6 +292,11 @@ export interface CalPalette {
   line: string
   line2: string
   accent: string
+  /**
+   * L'accent en ENCRE (un lien, un libellé) : l'accent en clair, `blue300` en sombre — l'accent y
+   * rend 3,44:1 sur la bulle, sous l'AA du texte (CLAUDE.md §3, point 3).
+   */
+  accentInk: string
   onAccent: string
   ring: string
   /** @deprecated alias de `accent` (compat composants existants). */
@@ -288,6 +336,7 @@ export const CAL_LIGHT: CalPalette = {
   line: crmVoileEncre(false, 0.06),
   line2: crmVoileEncre(false, 0.10),
   accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.accent,
   onAccent: MXC_COLOR.n1000,
   ring: MXC_COLOR.accent,
   black: MXC_COLOR.accent,
@@ -327,6 +376,7 @@ export const CAL_DARK: CalPalette = {
   line: 'rgba(255,255,255,0.07)',
   line2: 'rgba(255,255,255,0.11)',
   accent: MXC_COLOR.accent,
+  accentInk: MXC_SYSTEM.blue300,
   onAccent: MXC_COLOR.n1000,
   ring: MXC_COLOR.accent,
   black: MXC_COLOR.accent,
@@ -594,7 +644,10 @@ export function calExpandEvents(events: CalEvent[], rangeStart: Date, rangeEnd: 
       if (until && occ > until) break
       const en = new Date(occ.getTime() + durMs)
       const key = `${occ.getFullYear()}-${occ.getMonth() + 1}-${occ.getDate()}`
-      out.push({ ...e, start: occ, end: en, id: `${e.id}@${key}`, masterId: e.id, isOccurrence: true })
+      // Une occurrence retirée n'existe plus ; une autre porte SON statut, pas celui de la série.
+      if (!rec.sauf?.includes(key)) {
+        out.push({ ...e, start: occ, end: en, id: `${e.id}@${key}`, masterId: e.id, isOccurrence: true, status: rec.etats?.[key] })
+      }
       n++
       guard++
     }
@@ -661,9 +714,10 @@ export function calNormalizeDraft(d: CalEvent): CalEvent {
     location: d.location?.trim() || undefined,
     notes: d.notes?.trim() || undefined,
   }
-  // Cohérence des liens CRM : pas de contenu → pas d'id.
-  if (!out.contact) out.contactId = null
-  if (!out.property) out.bienId = null
+  // ⛔ Les liens CRM : l'IDENTIFIANT fait foi, pas le nom affiché. La règle était « pas de
+  // contenu → pas d'id » : un brouillon venu d'un e-mail (« Planifier ») ou une tâche dont le nom
+  // n'a pas été relu ne portent QUE l'identifiant, et perdaient leur contact à l'enregistrement
+  // (revue du 15.09.2026). Retirer un lien (`onClear` de la fiche) vide déjà les deux.
   // Journée entière : 00:00 → 23:59:59 du jour de fin (bornée ≥ début).
   // Sinon (timé, éventuellement multi-jours) : fin toujours ≥ début (+15 min mini).
   out.allDay = !!d.allDay

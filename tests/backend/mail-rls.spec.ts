@@ -387,6 +387,39 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     }
   })
 
+  // Les logos des expéditeurs (14.09.2026). Le cache est PAR BOÎTE : les domaines d'une
+  // boîte PERSONNELLE — la clinique, l'avocat — ne doivent pas se lire au bureau.
+  it('mail_sender_logos : un logo suit la visibilité de sa boîte, et seul le service-role l écrit', async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64')
+    const ligne = (account_id: string, domain: string) => ({ account_id, domain, status: 'found', source: 'bimi', mime: 'image/svg+xml', data: svg })
+    const perso = `perso-${s.stamp}.test`
+    const partage = `partage-${s.stamp}.test`
+    const chezB = `chez-b-${s.stamp}.test`
+    const { error: e0 } = await service.from('mail_sender_logos').insert([ligne(ownerBoxId, perso), ligne(sharedBoxId, partage), ligne(boxBId, chezB)])
+    expect(e0).toBeNull()
+    const lus = async (client: SupabaseClient) =>
+      ((await client.from('mail_sender_logos').select('domain').like('domain', `%-${s.stamp}.test`)).data ?? []).map((r) => r.domain).sort()
+
+    expect(await lus(s.clientA), 'le propriétaire : ses deux boîtes').toEqual([partage, perso].sort())
+    expect(await lus(clientA2), 'le collègue : la boîte partagée seule').toEqual([partage])
+    expect(await lus(s.clientB), 'l autre agence : sa boîte seule').toEqual([chezB])
+    expect(await lus(anonClient()), 'anon : rien').toEqual([])
+
+    // Écritures client refusées — et relues au service-role, une erreur ne prouvant pas
+    // l'absence d'écriture (même règle que les alias plus haut).
+    const ins = await s.clientA.from('mail_sender_logos').insert(ligne(sharedBoxId, `forge-${s.stamp}.test`))
+    expect(ins.error, 'ajout refusé').not.toBeNull()
+    await s.clientA.from('mail_sender_logos').update({ status: 'none', data: null, mime: null, source: null }).eq('account_id', sharedBoxId)
+    await s.clientA.from('mail_sender_logos').delete().eq('account_id', sharedBoxId)
+    const { data: reste } = await service.from('mail_sender_logos').select('domain, status').eq('account_id', sharedBoxId)
+    expect(reste).toEqual([{ domain: partage, status: 'found' }])
+
+    // Un « trouvé » sans ses octets n'existe pas : la contrainte le refuse, même au service-role.
+    const { error: eVide } = await service.from('mail_sender_logos')
+      .insert({ account_id: sharedBoxId, domain: `vide-${s.stamp}.test`, status: 'found', source: 'icon', mime: 'image/png', data: null })
+    expect(eVide?.code).toBe('23514')
+  })
+
   // AJOUT, ET LE DERNIER DE LA LISTE (la suite est sérielle : ce test déplace un profil
   // puis le remet, et l'ordre de déclaration est donc l'ordre d'exécution).
   //
@@ -424,6 +457,79 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
       expect(apresListe.data ?? []).toEqual([])
     } finally {
       await service.from('profiles').update({ agency_id: s.agencyAId }).eq('id', s.agentAId)
+    }
+  })
+
+  // ⛔ Un événement « planifié » depuis un e-mail d'une boîte PERSONNELLE restait intouchable
+  // pour un collègue : le lien au fil était revérifié à CHAQUE écriture, sous sa RLS (42501),
+  // alors qu'il pouvait supprimer l'événement. Le lien se vérifie désormais quand il est POSÉ —
+  // c'est là seulement qu'un agent pourrait citer un fil qu'il ne voit pas (20260915080300).
+  it('calendar_events : un collègue modifie l événement planifié depuis une boîte perso, sans pouvoir y poser le lien', async () => {
+    const heure = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString()
+    const { data: ev, error } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'autre', title: `Signature ${s.stamp}`, starts_at: heure(1), ends_at: heure(2),
+      mail_thread_id: threadOwnerId, created_by: agentA2Id,
+    }).select('id, created_by').single()
+    expect(error).toBeNull()
+    // L'auteur est celui qui crée, quoi qu'on écrive.
+    expect(ev!.created_by).toBe(s.agentAId)
+    try {
+      const { data: maj, error: eMaj } = await clientA2.from('calendar_events')
+        .update({ starts_at: heure(24), ends_at: heure(25), status: 'done', title: 'Signature (déplacée)', created_by: agentA2Id })
+        .eq('id', ev!.id).select('id, created_by')
+      expect(eMaj).toBeNull()
+      expect(maj).toEqual([{ id: ev!.id, created_by: s.agentAId }])
+
+      const { data: autre, error: eAutre } = await clientA2.from('calendar_events').insert({
+        agency_id: s.agencyAId, type: 'notary', title: `Notaire ${s.stamp}`, starts_at: heure(3), ends_at: heure(4),
+      }).select('id').single()
+      expect(eAutre).toBeNull()
+      // Le fil d'une boîte qu'il ne voit pas : refusé.
+      const { error: eLien } = await clientA2.from('calendar_events').update({ mail_thread_id: threadOwnerId }).eq('id', autre!.id)
+      expect(eLien?.code).toBe('42501')
+      // Un contact d'une autre agence : refusé.
+      const { error: eContact } = await clientA2.from('calendar_events').update({ contact_id: contactBId }).eq('id', autre!.id)
+      expect(eContact?.code).toBe('42501')
+      // Témoins : le fil PARTAGÉ et un contact de l'agence se posent.
+      const { error: ePartage } = await clientA2.from('calendar_events').update({ mail_thread_id: threadSharedId, contact_id: contactAId }).eq('id', autre!.id)
+      expect(ePartage).toBeNull()
+    } finally {
+      await service.from('calendar_events').delete().eq('agency_id', s.agencyAId)
+    }
+  })
+
+  // ⛔ Créer, déplacer ou supprimer un événement n'écrivait rien au journal : le rendez-vous d'un
+  // client n'apparaissait jamais sur sa fiche (revue du 15.09.2026). Le fait, jamais le titre.
+  it('calendar_events : chaque geste sur un événement lié à un contact s écrit sur sa fiche — le fait, jamais le titre', async () => {
+    const heure = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString()
+    const journal = async (eventId: string) => {
+      const { data } = await service.from('activity_events')
+        .select('action, actor_id, actor_kind, category, entity_type, entity_id, object_label, metadata')
+        .eq('agency_id', s.agencyAId).eq('metadata->>event_id', eventId).order('created_at')
+      return data ?? []
+    }
+    const { data: ev, error } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'notary', title: `Signature confidentielle ${s.stamp}`, starts_at: heure(1), ends_at: heure(2), contact_id: contactAId,
+    }).select('id').single()
+    expect(error).toBeNull()
+    const { data: perso } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'autre', title: `Dentiste ${s.stamp}`, starts_at: heure(3), ends_at: heure(4),
+    }).select('id').single()
+    try {
+      await s.clientA.from('calendar_events').update({ starts_at: heure(5), ends_at: heure(6) }).eq('id', ev!.id)
+      // Rien ne change (l'horodatage seul) : rien ne s'écrit.
+      await s.clientA.from('calendar_events').update({ title: `Signature confidentielle ${s.stamp}` }).eq('id', ev!.id)
+      await s.clientA.from('calendar_events').delete().eq('id', ev!.id)
+      const lignes = await journal(ev!.id)
+      expect(lignes.map((l) => l.action)).toEqual(['calendar_event_created', 'calendar_event_updated', 'calendar_event_deleted'])
+      for (const l of lignes) {
+        expect(l).toMatchObject({ actor_id: s.agentAId, actor_kind: 'user', category: 'contact', entity_type: 'contact', entity_id: contactAId, object_label: null })
+        expect(JSON.stringify(l.metadata), 'le titre est entré au journal').not.toContain('Signature')
+      }
+      expect(lignes[1].metadata).toMatchObject({ event_id: ev!.id, type: 'notary', changed: ['ends_at', 'starts_at'] })
+      expect(await journal(perso!.id), 'l’agenda personnel de l’agent n’a rien à faire au journal de l’agence').toEqual([])
+    } finally {
+      await service.from('calendar_events').delete().eq('agency_id', s.agencyAId)
     }
   })
 })

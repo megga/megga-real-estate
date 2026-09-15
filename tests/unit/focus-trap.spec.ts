@@ -28,7 +28,7 @@
  * un chemin qui n'existe pas.
  */
 import { describe, it, expect, afterEach } from 'vitest'
-import { createElement, act, type ReactNode } from 'react'
+import { StrictMode, createElement, act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 
@@ -80,6 +80,103 @@ describe('useFocusTrap', () => {
   it('pose le focus sur le premier élément focalisable', () => {
     const { conteneur } = monter(boutons('un', 'deux'))
     expect(document.activeElement).toBe(conteneur.querySelector('button'))
+  })
+
+  /**
+   * ⚠ Un `autoFocus` posé au montage est GARDÉ. Le piège le déplaçait sur le premier
+   * focalisable — la croix de fermeture —, et « Nouveau message » s'ouvrait le curseur
+   * hors du champ « À » (mesuré le 14.09.2026). Le test précédent est son contrôle :
+   * sans `autoFocus`, c'est bien le premier élément qui reçoit le focus.
+   */
+  it('garde le focus qu’un autoFocus a posé DANS le conteneur', () => {
+    const { conteneur } = monter([
+      createElement('button', { key: 'fermer' }, 'Fermer'),
+      createElement('input', { key: 'a', 'aria-label': 'À', autoFocus: true }),
+    ])
+    expect(document.activeElement).toBe(conteneur.querySelector('input'))
+  })
+
+  /**
+   * ⛔ Et c'est le DÉCLENCHEUR qui retrouve le focus à la fermeture. Lu dans l'effet, le
+   * focus « d'avant » était déjà l'`autoFocus` — le champ de la modale, détaché à la
+   * fermeture : le focus tombait sur `body` (revue du 15.09.2026).
+   */
+  it('rend le focus au déclencheur, même quand un autoFocus l’a pris à l’ouverture', () => {
+    const { dehors } = monter(createElement('input', { 'aria-label': 'À', autoFocus: true }))
+    expect(document.activeElement).not.toBe(dehors)
+    act(() => racine!.unmount())
+    racine = null
+    expect(document.activeElement).toBe(dehors)
+  })
+
+  /**
+   * ⛔ Le mode strict démonte puis remonte chaque effet : rendre le focus au déclencheur au
+   * démontage SIMULÉ l'envoyait ensuite sur la croix « Fermer » — « Nouveau message » s'ouvrait
+   * hors du champ « À » (vu au banc le 15.09.2026). Le piège qui se réarme rend le focus là où il était.
+   */
+  it('en mode strict, l’autoFocus reste là où il est — pas sur la croix', () => {
+    const dehors = document.createElement('button')
+    document.body.appendChild(dehors)
+    dehors.focus()
+    const hote = document.createElement('div')
+    document.body.appendChild(hote)
+    racine = createRoot(hote)
+    act(() => racine!.render(createElement(StrictMode, null, createElement(Modale, { enfants: [
+      createElement('button', { key: 'fermer' }, 'Fermer'),
+      createElement('input', { key: 'a', 'aria-label': 'À', autoFocus: true }),
+    ] }))))
+    expect(document.activeElement).toBe(hote.querySelector('input'))
+    act(() => racine!.unmount())
+    racine = null
+    expect(document.activeElement).toBe(dehors)
+  })
+
+  it('une modale qui reste montée et s’ouvre deux fois rend le focus deux fois', () => {
+    function Bascule({ ouvert }: { ouvert: boolean }) {
+      const ref = useFocusTrap(ouvert)
+      return createElement('div', { ref, role: 'dialog' }, ouvert ? createElement('input', { 'aria-label': 'À', autoFocus: true }) : null)
+    }
+    const dehors = document.createElement('button')
+    document.body.appendChild(dehors)
+    const hote = document.createElement('div')
+    document.body.appendChild(hote)
+    racine = createRoot(hote)
+    act(() => racine!.render(createElement(Bascule, { ouvert: false })))
+    for (const tour of [1, 2]) {
+      dehors.focus()
+      act(() => racine!.render(createElement(Bascule, { ouvert: true })))
+      expect(document.activeElement, `ouverture ${tour}`).toBe(hote.querySelector('input'))
+      act(() => racine!.render(createElement(Bascule, { ouvert: false })))
+      expect(document.activeElement, `fermeture ${tour}`).toBe(dehors)
+    }
+  })
+
+  /**
+   * Témoin : deux pièges qui se passent la main (une confirmation, puis « fait »), sans
+   * `autoFocus`. Le second prend le focus de l'instant — celui que le premier vient de rendre
+   * au déclencheur — et non celui de son rendu, resté dans la confirmation qui disparaît.
+   */
+  it('deux pièges en relais rendent le focus au premier déclencheur', () => {
+    function Relais({ fait }: { fait: boolean }) {
+      const refConfirmer = useFocusTrap(!fait)
+      const refFait = useFocusTrap(fait)
+      return createElement('div', null,
+        createElement('div', { ref: refConfirmer, key: 'c' }, fait ? null : createElement('button', null, 'Confirmer')),
+        createElement('div', { ref: refFait, key: 'f' }, fait ? createElement('button', null, 'Fermer') : null))
+    }
+    const dehors = document.createElement('button')
+    document.body.appendChild(dehors)
+    dehors.focus()
+    const hote = document.createElement('div')
+    document.body.appendChild(hote)
+    racine = createRoot(hote)
+    act(() => racine!.render(createElement(Relais, { fait: false })))
+    expect(document.activeElement?.textContent).toBe('Confirmer')
+    act(() => racine!.render(createElement(Relais, { fait: true })))
+    expect(document.activeElement?.textContent).toBe('Fermer')
+    act(() => racine!.unmount())
+    racine = null
+    expect(document.activeElement).toBe(dehors)
   })
 
   /**

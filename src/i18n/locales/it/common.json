@@ -444,6 +444,13 @@
       "edge_function_error": "Errore di funzione server",
       "email_received": "E-mail ricevuta",
       "email_sent": "E-mail inviata",
+      "mail_account_connected": "Casella e-mail collegata",
+      "mail_account_connect_failed": "Collegamento di una casella rifiutato",
+      "mail_account_disconnected": "Casella e-mail scollegata",
+      "mail_account_updated": "Casella e-mail modificata",
+      "calendar_event_created": "Evento pianificato",
+      "calendar_event_updated": "Evento modificato",
+      "calendar_event_deleted": "Evento eliminato",
       "extract_property_pdf": "Immobile estratto da un PDF",
       "extract_property_url": "Immobile estratto da un annuncio online",
       "idx_feed_pushed": "Feed di diffusione pubblicato",
@@ -544,11 +551,14 @@
     "tabLabel": "Registro di audit"
   },
   "errorBoundary": {
-    "title": "Si è verificato un errore",
-    "body": "Qualcosa non ha funzionato dalla nostra parte. Può ricaricare la pagina o tornare alla dashboard.",
-    "reload": "Ricarica",
+    "title": "Impossibile visualizzare questa pagina",
+    "body": "Un problema da parte nostra, non Sua. Ricarichi la pagina; se l'errore si ripresenta, riparta dalla dashboard.",
+    "bodyClient": "Un problema da parte nostra, non Sua. Ricarichi la pagina; se l'errore si ripresenta, avvisi l'agenzia che Le ha inviato questo link.",
+    "reload": "Ricarica la pagina",
     "updating": "Aggiornamento dell'applicazione in corso…",
-    "dashboard": "Torna alla dashboard"
+    "dashboard": "Torna alla dashboard",
+    "reference": "Riferimento dell'incidente: {{id}}",
+    "help": "Centro assistenza"
   },
   "announcements": {
     "dismiss": "Chiudi"

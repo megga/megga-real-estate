@@ -59,6 +59,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'mail-actions',
   'mail-attachment',
   'mail-imap-probe',
+  'mail-logos',
   'mail-oauth',
   'mail-send',
   'mail-sync',

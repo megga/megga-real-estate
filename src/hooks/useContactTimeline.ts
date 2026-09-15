@@ -3,7 +3,8 @@
  * `entity_id` = contactId, datés par `occurred_at` — la date du fait, qui pour un
  * courrier est celle du courrier (`metadata.sent_at`) et non celle de l'enregistrement.
  * Nom de l'acteur joint depuis `profiles`. Repli sans la jointure acteur si la RLS
- * `profiles` la bloque, et [] en dernier recours plutôt que de casser la fiche.
+ * `profiles` la bloque, et [] en dernier recours plutôt que de casser la fiche. Les
+ * courriers signalés comme spam en sont écartés (`sansSpam`).
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -47,6 +48,22 @@ function versEvenement(row: Ligne): TimelineEvent {
     occurred_at: occurredAt({ action: row.action, metadata, created_at: row.created_at }),
     actor_name: (actor as { full_name?: string } | null | undefined)?.full_name ?? null,
   }
+}
+
+/**
+ * ⛔ UN COURRIER SIGNALÉ COMME SPAM QUITTE LA FICHE (14.09.2026). Le spam arrivé comme tel
+ * n'y entre jamais : il n'est rattaché à personne, rien n'est journalisé. Mais un courrier
+ * rattaché PUIS signalé garde sa ligne au journal — append-only, et elle dit vrai. C'est la
+ * lecture qui l'écarte, par `mail_spam_message_ids`, bornée à l'agence (20260915080200).
+ * Une lecture en échec n'écarte rien : mieux vaut un spam affiché qu'un vrai courrier caché.
+ */
+async function sansSpam(courriers: TimelineEvent[]): Promise<TimelineEvent[]> {
+  const ids = [...new Set(courriers.map((e) => e.metadata?.message_id).filter((v): v is string => typeof v === 'string'))]
+  if (ids.length === 0) return courriers
+  const { data, error } = await supabase.rpc('mail_spam_message_ids', { p_ids: ids })
+  if (error || !data?.length) return courriers
+  const spam = new Set<string>(data)
+  return courriers.filter((e) => !spam.has(String(e.metadata?.message_id)))
 }
 
 /** Charge les 50 derniers faits rattachés au contact (repli si la jointure acteur est bloquée par la RLS). */
@@ -109,10 +126,10 @@ export function useContactTimeline(contactId: string | undefined) {
             .limit(LIMITE),
         ])
         if (a.error || c.error) return []
-        return fusionnerTimeline((a.data ?? []).map(versEvenement), (c.data ?? []).map(versEvenement), LIMITE)
+        return fusionnerTimeline((a.data ?? []).map(versEvenement), await sansSpam((c.data ?? []).map(versEvenement)), LIMITE)
       }
 
-      return fusionnerTimeline((autres.data ?? []).map(versEvenement), (courriers.data ?? []).map(versEvenement), LIMITE)
+      return fusionnerTimeline((autres.data ?? []).map(versEvenement), await sansSpam((courriers.data ?? []).map(versEvenement)), LIMITE)
     },
     enabled: !!contactId,
     staleTime: 30_000,

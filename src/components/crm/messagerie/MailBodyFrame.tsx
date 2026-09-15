@@ -115,6 +115,12 @@ export function MailBodyFrame({ ms, html, text, truncated, police }: Props) {
     return () => { el.removeEventListener('load', measure); window.clearInterval(id); window.clearTimeout(stop) }
   }, [doc])
 
+  // Corps ni téléchargé ni analysé (trop lourd, illisible — `corpsNonLu` à la synchro) : la
+  // phrase est dite ICI, dans la langue de l'agent ; la base n'en garde que le fait.
+  if (!doc && truncated && !(text ?? '').trim()) {
+    return <div style={{ maxWidth: 760, fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xl)' }}>{t('mail.read.bodyMissing')}</div>
+  }
+
   // Pas d'HTML : la partie texte, en paragraphes, avec la typographie de l'écran.
   if (!doc) {
     return (

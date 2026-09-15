@@ -1,7 +1,7 @@
 /**
  * Rappels/relances de l'agence (table `reminders`) : liste filtrée aux
  * statuts actifs, création manuelle (dialog Calendrier) et transitions
- * (fait / snooze +3 j / annulé). Migré vers @supabase-cache-helpers.
+ * (fait / snooze +3 j / annulé / replanifié). Migré vers @supabase-cache-helpers.
  */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
@@ -25,6 +25,7 @@ import {
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { messageDeRelance } from '@/lib/calendrierEvenements'
 
 export type ReminderType = 'follow_up_sent_property' | 'post_visit_feedback' | 'dormant_lead' | 'missing_document' | 'price_change' | 'custom' | 'deal_stagnant' | 'match_ignored'
 export type ReminderStatus = 'pending' | 'triggered' | 'done' | 'cancelled' | 'snoozed'
@@ -121,7 +122,7 @@ function rowToReminder(row: ReminderRow): Reminder {
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
-/** Rappels actifs de l'agence + mutateurs (create/markAsDone/snooze/cancel) et sous-listes dérivées (active/triggered/pending). */
+/** Rappels actifs de l'agence + mutateurs (create/markAsDone/snooze/cancel/reschedule) et sous-listes dérivées (active/triggered/pending). */
 export function useReminders() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -169,8 +170,7 @@ export function useReminders() {
       channel?: ReminderChannel
     }) => {
       if (!agencyId) throw new Error('Aucune agence rattachée')
-      const titlePart = input.title ? `[${input.title}] ` : ''
-      const message = `${titlePart}${input.description ?? ''}`.trim()
+      const message = messageDeRelance(input.title, input.description)
       const rows = await insertReminder.mutateAsync([
         {
           agency_id: agencyId,
@@ -182,7 +182,7 @@ export function useReminders() {
           contact_id: input.contactId ?? null,
           property_id: input.propertyId ?? null,
           transaction_id: input.transactionId ?? null,
-          message_template: message || null,
+          message_template: message,
         },
       ])
       return Array.isArray(rows) ? rows[0] : rows
@@ -231,6 +231,46 @@ export function useReminders() {
     [updateReminder]
   )
 
+  /**
+   * Replanifie un rappel à `triggerAt` (glissé dans le Calendrier, date changée dans
+   * sa modale). Rejette en cas d'échec : l'appelant doit pouvoir le dire.
+   *
+   * Un rappel encore OUVERT redevient `pending` : `automation-engine` ne déclenche que
+   * les `pending`, et un rappel déjà `triggered` (ou `snoozed`) replacé à la semaine
+   * prochaine doit sonner à sa nouvelle date — pas rester « à traiter » dès maintenant.
+   * Un rappel CLOS (fait, annulé) ne change que de date : le rouvrir déferait un geste
+   * de l'agent.
+   */
+  const reschedule = useCallback(
+    async (id: string, triggerAt: Date, opts?: { closed?: boolean }) => {
+      await updateReminder.mutateAsync({
+        id,
+        trigger_at: triggerAt.toISOString(),
+        ...(opts?.closed ? {} : { status: 'pending' }),
+      })
+    },
+    [updateReminder]
+  )
+
+  /**
+   * Réécrit une tâche modifiée dans le Calendrier : son titre et ses notes (le message), son
+   * contact, son bien — et son horaire s'il a bougé, qui la rouvre comme `reschedule`. Rejette
+   * en cas d'échec. ⛔ Seul l'horaire s'écrivait : un titre renommé tenait jusqu'au
+   * rechargement, qui relisait l'ancien (revue du 15.09.2026).
+   */
+  const rewrite = useCallback(
+    async (id: string, p: { title: string; notes: string | null; contactId: string | null; propertyId: string | null; triggerAt?: Date; closed?: boolean }) => {
+      await updateReminder.mutateAsync({
+        id,
+        message_template: messageDeRelance(p.title, p.notes),
+        contact_id: p.contactId,
+        property_id: p.propertyId,
+        ...(p.triggerAt ? { trigger_at: p.triggerAt.toISOString(), ...(p.closed ? {} : { status: 'pending' as const }) } : {}),
+      })
+    },
+    [updateReminder]
+  )
+
   const active = useMemo(() => reminders.filter((r) => r.status === 'pending' || r.status === 'triggered'), [reminders])
   const triggered = useMemo(() => reminders.filter((r) => r.status === 'triggered'), [reminders])
   const pending = useMemo(() => reminders.filter((r) => r.status === 'pending'), [reminders])
@@ -245,6 +285,8 @@ export function useReminders() {
     markAsDone,
     snooze,
     cancel,
+    reschedule,
+    rewrite,
     isLoading: remindersQuery.isLoading,
     isError: remindersQuery.isError,
   }

@@ -27,7 +27,8 @@ import { formatCHF } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { useCalendarScreen } from '@/hooks/useCalendarScreen'
 import { usePipelineScreen } from '@/hooks/usePipelineScreen'
-import type { CalEvent } from '@/components/crm/calendar/data'
+import { calCleOccurrence, calMasterId, type CalEvent, type CalEventRecurrence } from '@/components/crm/calendar/data'
+import type { Json } from '@/types/database'
 import type { HlBlockData, HlNewsData } from './dataH'
 
 /** Trou minimal pour proposer une session de relances (handoff §2.3). */
@@ -96,7 +97,7 @@ export interface TodayHBlock extends HlBlockData {
   /** Référence réelle passée à la route (uuid), quand elle existe. */
   navRef?: string
   /** Table d'origine — décide du chemin d'écriture du geste « fait ». */
-  origin?: 'visit' | 'reminder' | 'appointment'
+  origin?: 'visit' | 'reminder' | 'appointment' | 'event'
 }
 
 /**
@@ -109,7 +110,7 @@ export interface TodayHBlock extends HlBlockData {
  * pas ici une porte que le Calendrier ferme.
  */
 export function canMarkDone(b: TodayHBlock): boolean {
-  return b.origin === 'visit' || b.origin === 'reminder'
+  return b.origin === 'visit' || b.origin === 'reminder' || b.origin === 'event'
 }
 
 export interface TodayHDay {
@@ -229,6 +230,26 @@ export async function markBlockDone(b: TodayHBlock, done: boolean): Promise<bool
       .update(done ? { status: 'done', completed_at: now } : { status: 'pending', completed_at: null })
       .eq('id', b.id)
     return !error
+  }
+  // ⚠ AVANT la branche des visites, qui est le repli : un événement du calendrier
+  // (`calendar_events`) y aurait été cherché dans `visits`, et le geste perdu en silence.
+  if (b.origin === 'event') {
+    const cle = calCleOccurrence(b.id)
+    if (!cle) {
+      const { error } = await supabase.from('calendar_events').update({ status: done ? 'done' : null }).eq('id', b.id)
+      return !error
+    }
+    // ⛔ UNE OCCURRENCE porte son état dans sa série, sous sa clé — comme au Calendrier : la
+    // série n'est pas « faite » d'un coup, et `maître@date` n'est l'id d'aucune ligne.
+    const mid = calMasterId(b.id)
+    const { data, error } = await supabase.from('calendar_events').select('recurrence').eq('id', mid).maybeSingle()
+    const serie = (data?.recurrence ?? null) as CalEventRecurrence | null
+    if (error || !serie) return false
+    const etats = { ...(serie.etats ?? {}) }
+    if (done) etats[cle] = 'done'
+    else delete etats[cle]
+    const { error: eMaj } = await supabase.from('calendar_events').update({ recurrence: { ...serie, etats } as unknown as Json }).eq('id', mid)
+    return !eMaj
   }
   // `visits` : le trigger `trg_visit_completed_at` POSE `completed_at` quand le
   // statut passe à 'done' — inutile de le devancer. Mais il ne l'efface JAMAIS :

@@ -2,10 +2,14 @@
  * Le sélecteur de boîte, en tête du rail (README §1a) : la boîte courante, la
  * liste des autres avec leurs non-lus, et l'entrée « Ajouter une boîte ».
  *
- * Une boîte qui n'est pas `active` affiche son MOTIF (autorisation à renouveler,
- * erreur de synchronisation, désactivée) en encre d'alerte plutôt que « non
- * synchronisée » : l'agent doit savoir quoi faire, pas seulement que ça ne va
- * pas.
+ * Une boîte en ordre ne montre que son adresse. Seule une boîte qui n'est pas
+ * `active` porte une seconde ligne : son MOTIF (autorisation à renouveler, erreur
+ * de synchronisation, désactivée), en encre d'alerte — l'agent doit savoir quoi
+ * faire, pas seulement que ça ne va pas.
+ *
+ * ⚠ La ligne « Google Workspace · synchronisée » a été retirée des boîtes en ordre
+ * (Julien, 14.09.2026) : répétée sous chaque adresse, elle ne disait rien, et
+ * noyait la seule qui compte — celle qui demande un geste.
  */
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,17 +31,6 @@ interface Props {
   onDisconnect: (id: string) => void
 }
 
-/**
- * Les noms de fournisseur ne se traduisent pas : ce sont des marques, et
- * `i18next/no-literal-string` ne lit que les nœuds de TEXTE JSX — celles-ci
- * passent par une expression.
- */
-const PROVIDER_LABEL: Record<MailAccount['provider'], string> = {
-  gmail: 'Google Workspace',
-  outlook: 'Outlook / Microsoft 365',
-  imap: 'IMAP',
-}
-
 /** Le bouton de boîte courante et son menu. Se ferme au clic dehors. */
 export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggle, onClose, onSelect, onAdd, onDisconnect }: Props) {
   const { t } = useTranslation('messages')
@@ -50,8 +43,6 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
   }, [open, onClose])
 
   const current = accounts.find((a) => a.id === currentId) ?? null
-  const desc = (a: MailAccount) =>
-    a.status === 'active' ? `${PROVIDER_LABEL[a.provider]} · ${t('mail.box.synced')}` : t(`mail.box.status.${a.status}`)
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
@@ -116,7 +107,9 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
                   <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {a.email}
                   </div>
-                  <div style={{ fontSize: 'var(--crm-text-xs)', color: a.status === 'active' ? ms.mut : ms.dangerText }}>{desc(a)}</div>
+                  {a.status !== 'active' && (
+                    <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{t(`mail.box.status.${a.status}`)}</div>
+                  )}
                 </div>
                 {(unread[a.id] ?? 0) > 0 && (
                   <span

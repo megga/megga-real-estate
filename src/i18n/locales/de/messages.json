@@ -127,10 +127,7 @@
       "title": "Postfach hinzufügen",
       "back": "Zurück",
       "share": "Dieses Postfach mit der ganzen Agentur teilen",
-      "waSub": "Koexistenz · App und Cloud API auf derselben Nummer",
-      "imapSub": "IMAP-/SMTP-Verbindung",
       "other": "Anderes Postfach (IMAP / SMTP)",
-      "otherSub": "Server manuell einrichten",
       "oauth": {
         "subtitle": "Kontofreigabe",
         "addr": "E-Mail-Adresse",
@@ -156,22 +153,43 @@
         }
       },
       "imap": {
-        "subtitle": "IMAP-/SMTP-Verbindung",
         "email": "E-Mail-Adresse",
         "imapHost": "IMAP-Server",
         "smtpHost": "SMTP-Server",
-        "port": "Port",
         "imapPort": "IMAP-Port",
         "smtpPort": "SMTP-Port",
         "user": "Benutzername",
         "password": "Passwort",
-        "encryption": "Verschlüsselung",
-        "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.",
+        "showPassword": "Passwort anzeigen",
+        "hidePassword": "Passwort verbergen",
         "test": "Testen und verbinden",
-        "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
+        "testing": "Server werden getestet…",
+        "detect": {
+          "searching": "Server werden gesucht…",
+          "found": "Server von {{provider}} eingetragen.",
+          "appPassword": "Dieser Anbieter verlangt ein App-Passwort.",
+          "enableImap": "Aktivieren Sie zuerst den IMAP-Zugriff in den Einstellungen von {{provider}}.",
+          "none": "Server nicht erkannt: Tragen Sie die Server Ihres Anbieters ein.",
+          "google": "Google-Adresse: Die Verbindung über Google erspart das App-Passwort.",
+          "microsoft": "Microsoft-Adresse: Microsoft akzeptiert für IMAP kein Passwort mehr.",
+          "useOauth": "Mit {{provider}} verbinden"
+        },
         "err": {
           "invalid": "Adresse, Server und Passwort sind erforderlich.",
-          "starttls": "STARTTLS (Port 587) ist von unseren Servern aus nicht verfügbar. Verwenden Sie SSL/TLS auf Port 465.",
+          "port": "Zulässige Ports: 993 oder 143 für IMAP, 465 oder 587 für SMTP.",
+          "host": "Server nicht gefunden: Prüfen Sie die Namen der IMAP- und SMTP-Server.",
+          "already": "Diese Adresse ist bereits über {{provider}} verbunden.",
+          "colleague": "Diese Adresse ist bereits von einem anderen Mitglied der Agentur verbunden. Nur die Person, der sie gehört, kann sie neu verbinden.",
+          "tooMany": "Zu viele Verbindungsversuche innerhalb einer Stunde. Versuchen Sie es später erneut.",
+          "imapAuth": "Benutzername oder Passwort vom IMAP-Server abgelehnt. Nutzt das Postfach die Bestätigung in zwei Schritten, verwenden Sie ein App-Passwort.",
+          "imapTemporary": "Der Server lehnt die Verbindung vorübergehend ab (zu viele offene Verbindungen oder Dienst nicht verfügbar). Versuchen Sie es in einigen Minuten erneut.",
+          "imapUnreachable": "Der IMAP-Server antwortet nicht: Prüfen Sie Name und Port.",
+          "imapStarttls": "Dieser IMAP-Server akzeptiert STARTTLS auf Port 143 nicht: Wählen Sie 993.",
+          "imapCertificate": "Das Zertifikat des IMAP-Servers gilt nicht für diesen Namen: Verwenden Sie den Servernamen Ihres Anbieters.",
+          "smtpAuth": "Der Postausgangsserver (SMTP) lehnt Benutzername oder Passwort ab.",
+          "smtpUnreachable": "Der Postausgangsserver (SMTP) antwortet nicht: Prüfen Sie Name und Port.",
+          "smtpStarttls": "Der Postausgangsserver akzeptiert STARTTLS auf diesem Port nicht: Wählen Sie 465.",
+          "smtpCertificate": "Das Zertifikat des Postausgangsservers (SMTP) gilt nicht für diesen Namen: Verwenden Sie den Namen Ihres Anbieters.",
           "connection": "Verbindung abgelehnt: Prüfen Sie Benutzername, Passwort (oder App-Passwort) und die Server.",
           "generic": "Die Verbindung ist fehlgeschlagen. Bitte gleich nochmals versuchen."
         }
@@ -181,7 +199,7 @@
         "sync": "Synchronisierung",
         "syncValue": "Letzte 90 Tage",
         "folders": "Importierte Ordner",
-        "foldersValue": "Posteingang, Gesendet",
+        "foldersValue": "Posteingang, Gesendet, Spam",
         "linking": "Zuordnung zu Kontakten",
         "linkingValue": "Aktiv",
         "another": "Weiteres hinzufügen",
@@ -191,19 +209,22 @@
     "box": {
       "label": "Postfach",
       "none": "Kein Postfach",
-      "synced": "synchronisiert",
       "disconnect": "Trennen",
-      "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben erhalten.",
+      "disconnectTitle": "Dieses Postfach trennen?",
+      "disconnectBody": "Seine Nachrichten werden aus dem CRM entfernt. Bereits abgelegte Dokumente bleiben in ihren Dossiers, und das Postfach selbst bleibt beim Anbieter unverändert.",
+      "disconnecting": "Wird getrennt …",
+      "disconnected": "Postfach getrennt",
       "status": {
         "reauth_required": "Berechtigung erneuern",
         "error": "Synchronisierungsfehler",
         "disabled": "Deaktiviert"
-      }
+      },
+      "disconnectError": "Das Postfach konnte nicht getrennt werden. Versuchen Sie es gleich noch einmal."
     },
     "compose": {
       "cta": "Neue Nachricht",
       "to": "Empfänger",
-      "toPlaceholder": "An · Empfänger",
+      "toPlaceholder": "Name oder E-Mail-Adresse",
       "title": "Neue Nachricht",
       "subject": "Betreff",
       "body": "Nachricht",
@@ -211,7 +232,31 @@
       "fromComputer": "Von meinem Computer",
       "agencyDocs": "Dokumente der Agentur",
       "noAgencyDocs": "Kein Dokument verfügbar.",
-      "removeAttachment": "Anhang entfernen"
+      "removeAttachment": "Anhang entfernen",
+      "from": "Von",
+      "toShort": "An",
+      "cc": "Cc",
+      "bcc": "Bcc",
+      "ccField": "Empfänger in Kopie",
+      "bccField": "Empfänger in Blindkopie",
+      "addCc": "Empfänger in Kopie hinzufügen",
+      "addBcc": "Empfänger in Blindkopie hinzufügen",
+      "removeRecipient": "{{address}} entfernen",
+      "invalidAddress": "Ungültige Adresse",
+      "invalidHint_one": "Eine Adresse ist zu korrigieren: zum Bearbeiten doppelklicken.",
+      "invalidHint_other": "{{count}} Adressen sind zu korrigieren: zum Bearbeiten doppelklicken.",
+      "suggestions": "Vorgeschlagene Kontakte"
+    },
+    "sendError": {
+      "generic": "Der Versand ist fehlgeschlagen. Versuchen Sie es gleich noch einmal.",
+      "send_failed": "Der Server des Postfachs hat den Versand abgelehnt. Prüfen Sie die Empfänger und versuchen Sie es erneut.",
+      "provider_auth": "Das Postfach antwortet nicht mehr: Verbinden Sie es in den Einstellungen neu und versuchen Sie es erneut.",
+      "account_not_active": "Dieses Postfach kann nicht senden: Seine Autorisierung muss erneuert werden.",
+      "attachments_too_large": "Die Anhänge überschreiten die zulässige Grösse für einen Versand.",
+      "attachment_too_large_outlook": "Ein Anhang ist grösser als 3 MB, die Grenze von Outlook für einen Versand aus dem CRM.",
+      "recipient_required": "Fügen Sie mindestens einen Empfänger hinzu.",
+      "subject_required": "Fügen Sie der Nachricht einen Betreff hinzu.",
+      "original_not_found": "Die ursprüngliche Nachricht ist nicht auffindbar: Sie wurde möglicherweise gelöscht."
     },
     "folders": {
       "aria": "Ordner",
@@ -219,7 +264,8 @@
       "arch": "Archiviert",
       "star": "Markiert",
       "sent": "Gesendet",
-      "draft": "Entwürfe"
+      "draft": "Entwürfe",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Kategorien",
@@ -261,15 +307,24 @@
       "unstar": "Markierung aufheben",
       "archive": "Archivieren",
       "unarchive": "Aus Archiv holen",
+      "spam": "Als Spam melden",
+      "notSpam": "Kein Spam",
       "delete": "Löschen"
     },
     "delete": {
       "title": "Diese Nachricht löschen?",
-      "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach."
+      "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach.",
+      "legalMany": "Die Nachrichten wandern in den Papierkorb und verlassen die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach.",
+      "titleMany_one": "Diese Nachricht löschen?",
+      "titleMany_other": "Diese {{count}} Nachrichten löschen?",
+      "andMore_one": "und {{count}} weitere",
+      "andMore_other": "und {{count}} weitere"
     },
     "read": {
       "back": "Zurück zur Liste",
       "to": "an {{box}}",
+      "copyAddress": "Adresse kopieren",
+      "copied": "Adresse kopiert",
       "me": "ich",
       "reply": "Antworten",
       "forward": "Weiterleiten",
@@ -280,7 +335,47 @@
       "showImages": "Bilder anzeigen",
       "bodyTitle": "Nachrichtentext",
       "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
-      "unlinked": "Adresse nicht zugeordnet: {{email}}"
+      "bodyMissing": "Der Inhalt dieser Nachricht kann hier nicht angezeigt werden (zu gross oder unlesbar): Öffnen Sie sie in Ihrem Mailprogramm.",
+      "unlinked": "Adresse nicht zugeordnet: {{email}}",
+      "spam": "Im Spam: Diese Nachricht ist keinem Kontakt zugeordnet.",
+      "spamInThread_one": "{{count}} Nachricht dieser Unterhaltung ist im Spam.",
+      "spamInThread_other": "{{count}} Nachrichten dieser Unterhaltung sind im Spam.",
+      "spamShow": "Anzeigen",
+      "spamHide": "Ausblenden"
+    },
+    "spam": {
+      "reported": "Als Spam gemeldet",
+      "restored": "In den Posteingang verschoben"
+    },
+    "select": {
+      "all": "Alle auswählen",
+      "none": "Auswahl aufheben",
+      "row": "Nachricht von {{sender}} auswählen",
+      "count_one": "{{count}} ausgewählt",
+      "count_other": "{{count}} ausgewählt",
+      "bar": "Aktionen für die Auswahl"
+    },
+    "lot": {
+      "archive_one": "{{count}} Nachricht archiviert",
+      "archive_other": "{{count}} Nachrichten archiviert",
+      "unarchive_one": "{{count}} Nachricht aus dem Archiv geholt",
+      "unarchive_other": "{{count}} Nachrichten aus dem Archiv geholt",
+      "trash_one": "{{count}} Nachricht gelöscht",
+      "trash_other": "{{count}} Nachrichten gelöscht",
+      "spam_one": "{{count}} Nachricht als Spam gemeldet",
+      "spam_other": "{{count}} Nachrichten als Spam gemeldet",
+      "not_spam_one": "{{count}} Nachricht zurück im Posteingang",
+      "not_spam_other": "{{count}} Nachrichten zurück im Posteingang",
+      "mark_read_one": "{{count}} Nachricht als gelesen markiert",
+      "mark_read_other": "{{count}} Nachrichten als gelesen markiert",
+      "mark_unread_one": "{{count}} Nachricht als ungelesen markiert",
+      "mark_unread_other": "{{count}} Nachrichten als ungelesen markiert",
+      "partiel": "{{reussis}} von {{total}} erledigt: Versuchen Sie es für die übrigen erneut.",
+      "echec": "Keine der {{total}} Nachrichten konnte verarbeitet werden. Versuchen Sie es erneut."
+    },
+    "plan": {
+      "cta": "Planen",
+      "notes": "E-Mail von {{expediteur}} vom {{date}}"
     },
     "link": {
       "cta": "Zuordnen",
@@ -352,7 +447,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich."
+      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich.",
+      "spamHidden_one": "{{count}} Nachricht im Spam wird hier nicht angezeigt.",
+      "spamHidden_other": "{{count}} Nachrichten im Spam werden hier nicht angezeigt."
     },
     "notice": {
       "sentNotRecorded": "Die Nachricht wurde gesendet. Ihre Kopie konnte hier nicht gespeichert werden: senden Sie sie nicht erneut.",

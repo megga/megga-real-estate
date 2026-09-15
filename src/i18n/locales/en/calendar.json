@@ -346,6 +346,7 @@
   "busy": "Busy",
   "popover": {
     "edit": "Edit",
+    "openMail": "Open the original email",
     "delete": "Delete",
     "close": "Close",
     "statusDone": "Done",
@@ -427,11 +428,15 @@
     "modified": "Modified",
     "deleted": "Deleted",
     "durationChanged": "Duration changed: {{start}} to {{end}}",
-    "moved": "Moved: {{date}}, {{time}}",
+    "moved": "{{date}} at {{time}}",
     "markedDone": "Marked done",
     "markedTodo": "Marked to do",
     "markedCancelled": "Marked cancelled",
-    "reactivated": "Reactivated"
+    "reactivated": "Reactivated",
+    "moveFailed": "Move not saved",
+    "saveFailed": "Change not saved",
+    "createFailed": "Creation not saved",
+    "deleteFailed": "Deletion not saved"
   },
   "onboarding": {
     "connectGoogle": "Connect Google",

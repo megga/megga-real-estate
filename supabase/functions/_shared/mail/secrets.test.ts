@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/secrets.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { needsRefresh, refreshOAuthToken, getValidAccessToken, MailAuthError } from './secrets.ts'
+import { needsRefresh, refreshOAuthToken, getValidAccessToken, MailAuthError, storeAccountSecret } from './secrets.ts'
 import type { MailAccountRow, OAuthSecret } from './types.ts'
 
 const cfg = { clientId: 'cid', clientSecret: 'sec' }
@@ -24,6 +24,19 @@ function fakeAdmin(secret: OAuthSecret | null) {
   const from = vi.fn(() => ({ update: (patch: Record<string, unknown>) => ({ eq: async () => { writes.push(patch); return { error: null } } }) }))
   return { admin: { rpc, from } as never, writes, rpc }
 }
+
+// ⛔ Vault indexe `secrets.name` en UNIQUE : nommé par la seule adresse, un secret orphelin
+// (suppression ratée, même adresse dans une autre agence) interdisait toute reconnexion.
+describe('storeAccountSecret', () => {
+  it('deux secrets de la même adresse portent deux noms — le préfixe reste lisible', async () => {
+    const noms: string[] = []
+    const admin = { rpc: async (_n: string, a: { p_name: string }) => { noms.push(a.p_name); return { data: `v-${noms.length}`, error: null } } } as never
+    expect(await storeAccountSecret(admin, 'mail:imap:g@ex.ch', { password: 'x' })).toBe('v-1')
+    await storeAccountSecret(admin, 'mail:imap:g@ex.ch', { password: 'y' })
+    expect(noms[0]).not.toBe(noms[1])
+    for (const n of noms) expect(n).toMatch(/^mail:imap:g@ex\.ch:[0-9a-f-]{36}$/)
+  })
+})
 
 describe('needsRefresh', () => {
   it('rafraîchit à moins de 5 minutes de l échéance', () => {

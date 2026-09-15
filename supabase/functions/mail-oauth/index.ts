@@ -5,6 +5,10 @@
 //   disconnect → { ok }                    (révocation, Vault effacé, cascade)
 //   update     → { account }               (display_name, visibility, status active⇄disabled
 //                                           — propriétaire seul)
+//   imap_detect  → { oauth, preset }       (les serveurs reconnus d'une adresse : domaine,
+//                                           puis MX — pré-remplit l'assistant)
+//   connect_imap → { account }             (IMAP/SMTP par mot de passe : test des deux
+//                                           serveurs, Vault, 1re synchro en fond — lot 3)
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
 //
 // ⛔ Les échecs rendent un CODE (`error`), et `detail` n'est plus qu'un code lui aussi
@@ -18,10 +22,14 @@ import { deleteAccountSecret, storeAccountSecret } from '../_shared/mail/secrets
 import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 import { loadAgencyAccount, loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
-import type { MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
+import { imapTestConnexion } from '../_shared/mail/imap.ts'
+import { detecterServeurs } from '../_shared/mail/imap-presets.ts'
+import type { ImapConfig, ImapSecret, MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
+import { assertPublicHost } from '../_shared/safe-fetch.ts'
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
+type SupabaseAdmin = Parameters<typeof syncAccount>[0]
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,6 +49,115 @@ const SEED_LABELS: Record<'fr' | 'de' | 'en' | 'it', string[]> = {
 const SEED_COLORS = ['#fe566b', '#8dc1ff', '#efc42c', '#adecbb', '#424bfb', '#686868'] // MXC_SYSTEM + accent + n500
 
 const PUBLIC_COLS = 'id, agency_id, owner_id, provider, email, display_name, visibility, status, last_sync_at, last_error, created_at'
+
+/** Le motif d'adresse de `mail-send` : ce qu'on connecte doit pouvoir envoyer. */
+const ADRESSE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+/**
+ * Les seuls ports qu'une boîte IMAP peut désigner : IMAP chiffré (993) ou à monter (143),
+ * SMTP chiffré (465) ou à monter (587). ⛔ Un port libre ferait de l'assistant un balayeur
+ * de ports tenu par nos serveurs. (25 est de toute façon filtré par l'edge, mesuré en T3.1.)
+ */
+const PORTS_IMAP = new Set([993, 143])
+const PORTS_SMTP = new Set([465, 587])
+
+/**
+ * Les connexions IMAP qu'un agent peut RATER dans l'heure.
+ *
+ * ⛔ `connect_imap` ÉTAIT UN RELAIS DE TEST D'IDENTIFIANTS (revue du 15.09.2026) : il éprouve
+ * des identifiants quelconques contre n'importe quel serveur public et rend un code par étape
+ * (`imap_auth`, `smtp_auth`…). En boucle, un agent faisait du bourrage d'identifiants depuis
+ * l'IP de MEGGA — les verrouillages par IP de la cible contournés, et notre IP livrée aux
+ * listes noires. Au-delà, plus aucun serveur n'est éprouvé. Dix laisse largement la place aux
+ * fautes de frappe d'une vraie connexion. Le compte se lit dans le journal
+ * (`mail_account_connect_failed`), sur l'index `(actor_id, created_at desc)`.
+ */
+const ECHECS_IMAP_PAR_HEURE = 10
+
+/**
+ * Le secret d'une boîte, rangé dans Vault ; `null` si Vault le refuse (déjà journalisé).
+ * ⚠ Rattrapé ici : une levée non rattrapée sortait de l'edge en 500 SANS en-têtes CORS, que
+ * le navigateur rend en « erreur réseau » — l'assistant ne pouvait rien en dire.
+ */
+async function rangerSecret(admin: SupabaseAdmin, nom: string, secret: OAuthSecret | ImapSecret): Promise<string | null> {
+  try {
+    return await storeAccountSecret(admin, nom, secret)
+  } catch (e) {
+    console.error(`[mail-oauth] secret de ${nom} refusé par Vault :`, redactedErrorMessage(e))
+    return null
+  }
+}
+
+/**
+ * La RECONNEXION d'une boîte existante : le nouveau secret d'abord, la ligne qui le désigne
+ * ensuite, l'ancien secret en dernier. ⛔ L'ordre inverse effaçait l'ancien AVANT de ranger le
+ * nouveau : un refus de Vault ou de la ligne laissait la boîte pointer vers un secret
+ * disparu — et, les noms de secret étant alors uniques par adresse, un ancien secret resté
+ * orphelin interdisait toute reconnexion. Rend un code d'échec, ou `null`.
+ */
+async function reconnecter(
+  admin: SupabaseAdmin, compte: { id: string; vault_secret_id: string | null }, nom: string,
+  secret: OAuthSecret | ImapSecret, patch: Record<string, unknown>,
+): Promise<string | null> {
+  const vaultId = await rangerSecret(admin, nom, secret)
+  if (!vaultId) return 'secret_store_failed'
+  const { error } = await admin.from('mail_accounts').update({ ...patch, vault_secret_id: vaultId }).eq('id', compte.id)
+  if (error) {
+    console.error(`[mail-oauth] compte ${compte.id}, reconnexion refusée :`, redactedErrorMessage(error))
+    await deleteAccountSecret(admin, vaultId)
+      .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec de reconnexion :`, redactedErrorMessage(e)))
+    return 'account_update_failed'
+  }
+  if (compte.vault_secret_id) {
+    await deleteAccountSecret(admin, compte.vault_secret_id)
+      .catch((e) => console.error(`[mail-oauth] ancien secret ${compte.vault_secret_id} ORPHELIN (compte ${compte.id}) :`, redactedErrorMessage(e)))
+  }
+  return null
+}
+
+/**
+ * Une ligne au journal pour un geste sur une boîte (« Audit trail : activity_events pour toute
+ * action »). Le FAIT seulement — ni adresse ni serveur : la table est lisible de l'agence.
+ * Un refus d'écriture se dit au journal de la fonction, sans défaire le geste.
+ *
+ * ⛔ Seul `connect_imap` écrivait (revue du 15.09.2026) : brancher une boîte Google ou Outlook,
+ * la déconnecter, la rendre personnelle ou partagée ne laissaient AUCUNE trace — pas même
+ * quand un collègue réautorisait la boîte d'un autre.
+ */
+type GesteSurBoite = 'mail_account_connected' | 'mail_account_connect_failed' | 'mail_account_disconnected' | 'mail_account_updated'
+async function journaliser(admin: SupabaseAdmin, agencyId: string, userId: string, action: GesteSurBoite, severity: 'info' | 'warn', metadata: Record<string, unknown>): Promise<void> {
+  const { error } = await admin.from('activity_events').insert({
+    agency_id: agencyId, actor_id: userId, actor_kind: 'user', action, category: 'messaging', severity,
+    entity_type: 'user', entity_id: userId, object_label: null, metadata,
+  })
+  if (error) console.error(`[mail-oauth] ${action} non journalisé :`, redactedErrorMessage(error))
+}
+
+/** Six libellés à la première boîte de l'agence, dans la langue de l'agent (D12). */
+async function semerLibelles(admin: SupabaseAdmin, agencyId: string, userId: string): Promise<void> {
+  const { count } = await admin.from('mail_labels').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId)
+  if ((count ?? 0) > 0) return
+  const { data: p } = await admin.from('profiles').select('language').eq('id', userId).maybeSingle()
+  const lang = (['fr', 'de', 'en', 'it'] as const).find((l) => l === p?.language) ?? 'fr'
+  await admin.from('mail_labels').insert(SEED_LABELS[lang].map((name, i) => ({ agency_id: agencyId, name, color: SEED_COLORS[i], position: i, is_default: true })))
+}
+
+/**
+ * Première synchro en arrière-plan, puis la ligne publique du compte : l'assistant affiche
+ * « Boîte connectée » sans attendre l'import.
+ *
+ * ⚠ Gardé comme le fait flatfox-sync/index.ts:768-771, et pour une raison précise : à ce
+ * point la ligne mail_accounts EST écrite et le secret EST dans Vault. Un `EdgeRuntime`
+ * absent lèverait un ReferenceError APRÈS le succès — l'assistant verrait un 500 pour une
+ * boîte pourtant connectée.
+ */
+async function lancerEtRendre(admin: SupabaseAdmin, accountId: string, cfg: ReturnType<typeof providerConfigFromEnv>): Promise<Response> {
+  const { data: account } = await admin.from('mail_accounts').select('*').eq('id', accountId).single()
+  if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+    EdgeRuntime.waitUntil(syncAccount(admin, account as MailAccountRow, cfg, 45_000))
+  }
+  const { data: pub } = await admin.from('mail_accounts').select(PUBLIC_COLS).eq('id', accountId).single()
+  return json({ account: pub })
+}
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -135,14 +252,8 @@ serve(async (req: Request) => {
     let accountId: string
     if (existing) {
       // ⚠ Une RÉAUTORISATION n'a pas à échouer parce que l'ANCIEN secret ne s'efface
-      // pas : le nouveau va le remplacer dans la ligne, la boîte doit repartir. Mais
-      // l'ancien devient alors un secret orphelin dans Vault — c'est écrit, ça ne
-      // disparaît plus en silence à chaque reconnexion.
-      if (existing.vault_secret_id) {
-        await deleteAccountSecret(admin, existing.vault_secret_id)
-          .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
-      }
-      const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      // pas : le nouveau le remplace dans la ligne, la boîte doit repartir. Mais l'ancien
+      // devient alors un secret orphelin dans Vault — c'est écrit (`reconnecter`).
       /**
        * ⛔ UNE RÉAUTORISATION NE CHANGE PAS DE MAIN. Le patch écrivait `owner_id: user.id`
        * ET `visibility: st.visibility` : n'importe quel membre de l'agence connaissant le
@@ -163,14 +274,14 @@ serve(async (req: Request) => {
       if (existing.owner_id !== user.id) {
         console.error(`[mail-oauth] compte ${existing.id} réautorisé par ${user.id}, propriétaire ${existing.owner_id} — jeton remplacé, propriété INCHANGÉE`)
       }
-      const { error } = await admin.from('mail_accounts').update({
-        vault_secret_id: vaultId, status: 'active', last_error: null, sync_failures: 0,
-        display_name: identity.name, next_sync_at: new Date().toISOString(),
-      }).eq('id', existing.id)
-      if (error) return json({ error: 'account_update_failed' }, 500)
+      const echec = await reconnecter(admin, existing, `mail:${provider}:${identity.email}`, secret, {
+        status: 'active', last_error: null, sync_failures: 0, display_name: identity.name, next_sync_at: new Date().toISOString(),
+      })
+      if (echec) return json({ error: echec }, 500)
       accountId = existing.id
     } else {
-      const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      const vaultId = await rangerSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      if (!vaultId) return json({ error: 'secret_store_failed' }, 500)
       const { data: ins, error } = await admin.from('mail_accounts').insert({
         agency_id: profile.agency_id, owner_id: user.id, provider, email: identity.email, display_name: identity.name,
         visibility: st.visibility, status: 'active', vault_secret_id: vaultId,
@@ -185,25 +296,127 @@ serve(async (req: Request) => {
       accountId = ins.id
     }
 
-    // Libellés par défaut si l'agence n'en a aucun (langue de correspondance de l'agent).
-    const { count } = await admin.from('mail_labels').select('id', { count: 'exact', head: true }).eq('agency_id', profile.agency_id)
-    if ((count ?? 0) === 0) {
-      const { data: p } = await admin.from('profiles').select('language').eq('id', user.id).maybeSingle()
-      const lang = (['fr', 'de', 'en', 'it'] as const).find((l) => l === p?.language) ?? 'fr'
-      await admin.from('mail_labels').insert(SEED_LABELS[lang].map((name, i) => ({ agency_id: profile.agency_id, name, color: SEED_COLORS[i], position: i, is_default: true })))
+    await journaliser(admin, profile.agency_id, user.id, 'mail_account_connected', 'info', { provider, account_id: accountId, reconnexion: !!existing })
+    await semerLibelles(admin, profile.agency_id, user.id)
+    return lancerEtRendre(admin, accountId, cfg)
+  }
+
+  if (action === 'imap_detect') {
+    // Les serveurs d'une adresse, pour pré-remplir l'assistant (`imap-presets.ts`). Une
+    // requête MX au plus : rien ne s'ouvre vers l'hôte, et un échec vaut « non reconnu ».
+    const email = String(body.email ?? '').trim().toLowerCase()
+    if (!ADRESSE.test(email)) return json({ error: 'invalid_input' }, 400)
+    const detection = await detecterServeurs(email, (domaine) => Promise.race([
+      // ⛔ Nom COMPLET, point final compris (cf. `resolveAll` de safe-fetch) : sans lui, un
+      // domaine sans MX repart vers le domaine de recherche du résolveur, 5 s perdues.
+      Deno.resolveDns(`${domaine}.`, 'MX').then((r) => r.sort((a, b) => a.preference - b.preference).map((x) => x.exchange)),
+      new Promise<string[]>((_, rej) => setTimeout(() => rej(new Error('mx_timeout')), 3_000)),
+    ]))
+    return json(detection)
+  }
+
+  if (action === 'connect_imap') {
+    const email = String(body.email ?? '').trim().toLowerCase()
+    const smtpPort = Number(body.smtp_port ?? 465)
+    const imap: ImapConfig = {
+      imapHost: String(body.imap_host ?? '').trim().toLowerCase(),
+      imapPort: Number(body.imap_port ?? 993),
+      smtpHost: String(body.smtp_host ?? '').trim().toLowerCase(),
+      smtpPort,
+      user: String(body.user ?? '').trim() || email,
+      // Le PORT décide du chiffrement (`smtpSecurite`) ; le champ ne fait que le consigner.
+      encryption: smtpPort === 587 ? 'starttls' : 'ssl',
+    }
+    const password = typeof body.password === 'string' ? body.password : ''
+    if (!ADRESSE.test(email) || !imap.imapHost || !imap.smtpHost || !password || password.length > 1024) return json({ error: 'invalid_input' }, 400)
+    if (!PORTS_IMAP.has(imap.imapPort) || !PORTS_SMTP.has(imap.smtpPort)) return json({ error: 'port_not_allowed' }, 400)
+    /**
+     * ⛔ UNE BOÎTE IMAP DÉJÀ CONNECTÉE NE SE RECONNECTE QUE PAR SON PROPRIÉTAIRE. L'adresse
+     * est un champ LIBRE : rien, en IMAP, ne prouve qu'elle appartient à qui la saisit — OAuth,
+     * lui, l'atteste par `fetchIdentity`. La réautorisation recopiée de l'échange OAuth
+     * remplaçait donc le mot de passe ET les serveurs de la boîte d'un collègue : l'agent B
+     * donnait l'adresse d'Alice avec SES propres serveurs, et les envois d'Alice partaient par
+     * le SMTP de B, qui pouvait aussi injecter du courrier dans ses fiches clients. Et B
+     * pouvait enregistrer l'adresse d'Alice le PREMIER : quand Alice connectait ensuite sa
+     * vraie boîte, son mot de passe se rangeait sous la ligne de B, qui lisait tout son
+     * courrier. Vérifié AVANT le test des serveurs : on n'éprouve pas d'identifiants pour une
+     * boîte qu'on refusera.
+     */
+    const { data: existing, error: eExisting } = await admin.from('mail_accounts').select('id, vault_secret_id, owner_id')
+      .eq('agency_id', profile.agency_id).eq('provider', 'imap').eq('email', email).maybeSingle()
+    if (eExisting) return json({ error: 'account_lookup_failed' }, 500)
+    if (existing && existing.owner_id !== user.id) {
+      console.warn(`[mail-oauth] connect_imap refusé : ${user.id} sur la boîte ${existing.id}, propriétaire ${existing.owner_id}`)
+      return json({ error: 'owned_by_colleague' }, 409)
+    }
+    // ⛔ Au-delà du plafond, plus aucun serveur n'est éprouvé (voir `ECHECS_IMAP_PAR_HEURE`). Lu
+    // AVANT tout réseau, et une lecture en échec ferme la porte au lieu de l'ouvrir.
+    const { data: echecs, error: eEchecs } = await admin.from('activity_events').select('id')
+      .eq('actor_id', user.id).eq('action', 'mail_account_connect_failed')
+      .gte('created_at', new Date(Date.now() - 3_600_000).toISOString()).limit(ECHECS_IMAP_PAR_HEURE)
+    if (eEchecs) return json({ error: 'account_lookup_failed' }, 500)
+    if ((echecs ?? []).length >= ECHECS_IMAP_PAR_HEURE) {
+      console.warn(`[mail-oauth] connect_imap plafonné : ${user.id}, ${ECHECS_IMAP_PAR_HEURE} échecs dans l'heure`)
+      return json({ error: 'too_many_attempts' }, 429)
+    }
+    // ⛔ Deux noms d'hôte SAISIS par l'agent, vers lesquels nos serveurs vont ouvrir une
+    // socket : ils ne doivent désigner que le réseau public (cf. `assertPublicHost`).
+    try {
+      await assertPublicHost(imap.imapHost)
+      await assertPublicHost(imap.smtpHost)
+    } catch (e) {
+      // Le motif (nom invalide, introuvable, adresse privée) va au journal ; l'écran n'a qu'une
+      // chose à dire — « serveur introuvable, vérifiez son nom » (cf. l'en-tête : un CODE).
+      console.warn(`[mail-oauth] connect_imap hôte refusé ${imap.imapHost} / ${imap.smtpHost} :`, redactedErrorMessage(e))
+      return json({ error: 'host_not_allowed' }, 400)
+    }
+    // Une adresse déjà connectée par Google ou Microsoft n'a pas de jumelle IMAP : son
+    // courrier entrerait deux fois, dans deux boîtes que l'agent croirait différentes.
+    const { data: autre, error: eAutre } = await admin.from('mail_accounts').select('provider')
+      .eq('agency_id', profile.agency_id).eq('email', email).neq('provider', 'imap').limit(1)
+    if (eAutre) return json({ error: 'account_lookup_failed' }, 500)
+    if ((autre ?? []).length) return json({ error: 'already_connected', detail: (autre as { provider: string }[])[0].provider }, 409)
+
+    // Les DEUX serveurs sont éprouvés avant toute écriture : une boîte qui lit mais ne peut
+    // pas envoyer ne se découvrirait qu'au premier envoi, devant un client.
+    const test = await imapTestConnexion(imap, password)
+    if (!test.ok) {
+      console.error(`[mail-oauth] connect_imap ${imap.imapHost}:${imap.imapPort} / ${imap.smtpHost}:${imap.smtpPort} en échec (${test.code}) :`, redactedErrorMessage(test.detail))
+      // Le FAIT, jamais l'adresse ni le serveur éprouvés : le journal est lisible de l'agence.
+      // C'est aussi lui que compte le plafond — un échec non écrit n'y compterait pas.
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_connect_failed', 'warn', { provider: 'imap', code: test.code })
+      return json({ error: 'connection_failed', detail: test.code }, 502)
     }
 
-    // Première synchro en arrière-plan : l'assistant affiche « Boîte connectée » sans attendre.
-    const { data: account } = await admin.from('mail_accounts').select('*').eq('id', accountId).single()
-    // ⚠ Gardé comme le fait flatfox-sync/index.ts:768-771, et pour une raison
-    // précise : à ce point la ligne mail_accounts EST écrite et le secret EST dans
-    // Vault. Un `EdgeRuntime` absent lèverait un ReferenceError APRÈS le succès —
-    // l'assistant verrait un 500 pour une boîte pourtant connectée.
-    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-      EdgeRuntime.waitUntil(syncAccount(admin, account as MailAccountRow, cfg, 45_000))
+    const secret: ImapSecret = { password }
+    const visibility = body.visibility === 'agency' ? 'agency' : 'owner'
+    let accountId: string
+    if (existing) {
+      // La reconnexion par son PROPRIÉTAIRE (le seul admis, cf. plus haut) : le mot de passe
+      // et les serveurs changent, la visibilité non — elle se change par `update`.
+      const echec = await reconnecter(admin, existing, `mail:imap:${email}`, secret, {
+        imap_config: imap, status: 'active', last_error: null, sync_failures: 0, next_sync_at: new Date().toISOString(),
+      })
+      if (echec) return json({ error: echec }, 500)
+      accountId = existing.id
+    } else {
+      const vaultId = await rangerSecret(admin, `mail:imap:${email}`, secret)
+      if (!vaultId) return json({ error: 'secret_store_failed' }, 500)
+      const { data: ins, error } = await admin.from('mail_accounts').insert({
+        agency_id: profile.agency_id, owner_id: user.id, provider: 'imap', email, display_name: null,
+        visibility, status: 'active', vault_secret_id: vaultId, imap_config: imap,
+      }).select('id').single()
+      if (error) {
+        console.error('[mail-oauth] insertion du compte IMAP en échec :', redactedErrorMessage(error))
+        await deleteAccountSecret(admin, vaultId)
+          .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec d'insertion:`, e instanceof Error ? e.message : String(e)))
+        return json({ error: 'account_insert_failed' }, 500)
+      }
+      accountId = ins.id
     }
-    const { data: pub } = await admin.from('mail_accounts').select(PUBLIC_COLS).eq('id', accountId).single()
-    return json({ account: pub })
+    await journaliser(admin, profile.agency_id, user.id, 'mail_account_connected', 'info', { provider: 'imap', account_id: accountId, reconnexion: !!existing })
+    await semerLibelles(admin, profile.agency_id, user.id)
+    return lancerEtRendre(admin, accountId, cfg)
   }
 
   if (action === 'disconnect') {
@@ -231,7 +444,10 @@ serve(async (req: Request) => {
      * survit, la déconnexion est réessayable, et la réponse le dit au lieu de mentir.
      */
     const r = await disconnectMailAccount(admin, account)
-    if (r.ok) return json({ ok: true })
+    if (r.ok) {
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_disconnected', 'info', { provider: account.provider, account_id: account.id })
+      return json({ ok: true })
+    }
     if (r.reason === 'secret_unreadable' || r.reason === 'provider_refused') {
       return json({ error: 'revocation_failed', detail: r.reason, account_id: account.id }, 502)
     }
@@ -275,6 +491,14 @@ serve(async (req: Request) => {
     }
     const { data: pub, error } = await admin.from('mail_accounts').update(patch).eq('id', account.id).select(PUBLIC_COLS).single()
     if (error) return json({ error: 'update_failed' }, 500)
+    // Ce qui a changé, et la visibilité ou l'état qu'elle prend — jamais le nom d'affichage lui-même.
+    const champs = Object.keys(patch).filter((k) => k !== 'last_error' && k !== 'sync_failures' && k !== 'next_sync_at')
+    if (champs.length) {
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_updated', 'info', {
+        account_id: account.id, champs,
+        ...(patch.visibility ? { visibility: patch.visibility } : {}), ...(patch.status ? { status: patch.status } : {}),
+      })
+    }
     return json({ account: pub })
   }
 

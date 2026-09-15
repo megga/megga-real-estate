@@ -7,7 +7,7 @@
  * le fuseau suisse, pas dans celui de la machine.
  */
 import { describe, it, expect } from 'vitest'
-import { mailDateLabel, initialsOf, displayAddress } from '@/lib/mail/format'
+import { mailDateLabel, initialsOf, displayAddress, domaineDe } from '@/lib/mail/format'
 
 const NOW = new Date('2026-09-03T14:00:00+02:00')
 describe('mailDateLabel (maquette : 08:29 · Hier · 23.08)', () => {
@@ -32,5 +32,21 @@ describe('initialsOf / displayAddress', () => {
   it('affichage : nom sinon adresse', () => {
     expect(displayAddress({ name: 'Zoé', email: 'zoe@ex.ch' })).toBe('Zoé')
     expect(displayAddress({ name: null, email: 'zoe@ex.ch' })).toBe('zoe@ex.ch')
+  })
+})
+
+// La clé du logo de l'expéditeur : la MÊME forme que celle que le serveur valide
+// (`normaliserDomaine`, _shared/mail/logos.ts) — un domaine qu'il refuserait ne part pas.
+describe('domaineDe', () => {
+  it('le domaine d’une adresse, en minuscules', () => {
+    expect(domaineDe('Credit@Banque-Exemple.CH')).toBe('banque-exemple.ch')
+    expect(domaineDe('a@mail.notaire-exemple.ch.')).toBe('mail.notaire-exemple.ch')
+  })
+
+  it('rien pour ce qui n’est pas une adresse à domaine public', () => {
+    expect(domaineDe(null)).toBeNull()
+    expect(domaineDe('sans-arobase.ch')).toBeNull()
+    expect(domaineDe('x@localhost')).toBeNull()
+    expect(domaineDe('x@192.168.0.1')).toBeNull()
   })
 })

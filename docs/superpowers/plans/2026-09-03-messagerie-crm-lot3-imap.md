@@ -11,6 +11,24 @@
 > déploie une sonde et on lit sa réponse. Si la sonde échoue, T3.9 documente l'arrêt
 > et la voie de repli (Cloudflare Worker) ; rien d'autre n'est écrit.
 
+## État au 14.09.2026 — lire AVANT les tâches
+
+Les cases des tâches décrivent le plan d'origine ; ce bloc dit ce qui est fait, et où le code
+s'en écarte. ⚠ **Rien n'a encore touché une vraie boîte** : tout ce qui suit est éprouvé contre
+un faux serveur IMAP en mémoire et un faux SMTP (`imap.test.ts`), pas contre Infomaniak.
+
+| Tâche | État | Écart au plan |
+|---|---|---|
+| T3.1 spike | ✅ 05.09.2026 | 587 OUVERT (le plan le croyait fermé) ; Bluewin = `imaps.bluewin.ch` |
+| T3.2 client IMAP | ✅ 24 tests | + STARTTLS (143), `AUTHENTICATE PLAIN` hors ASCII, refus du mot de passe en clair, `EXAMINE`, MOVE lu dans `COPYUID`, bannière muette d'Infomaniak |
+| T3.3 SMTP | ✅ 8 tests | 465 **et** 587 + STARTTLS ; `sansCci` (le Cci ne part pas dans l'en-tête) |
+| T3.4 RFC 822 | ✅ 6 tests | `postal-mime@3.0.0`, pièces en base64 pendant la synchro (CPU) |
+| T3.5 adaptateur | ✅ 17 tests | le plan disait « pas de test dédié » : il en a, contre une boîte en mémoire. Import à reculons sur 90 jours, messages déplacés rebaptisés, drapeaux resynchronisés sur 200 messages |
+| T3.6 câblage | ✅ | `connect_imap` + **`imap_detect`** ; hôtes saisis passés à `assertPublicHost`, ports bornés à 993/143 et 465/587 ; codes d'échec par étape (`imap_auth`, `imap_certificate`, `smtp_starttls`…) |
+| T3.7 front | ✅ 7 e2e au banc | ⛔ **plus de tuile Infomaniak ni Bluewin** (Julien, 14.09.2026 : « juste mettre IMAP ») : le fournisseur est reconnu à l'adresse (`imap-presets.ts`, domaine puis MX, ~40 fournisseurs mesurés, 14 tests) ; plus de ligne WhatsApp ; ports en liste, chiffrement déduit du port ; le message « STARTTLS indisponible » du Step 2 est FAUX et n'a pas été écrit |
+| T3.8 épreuve | ☐ | attend une boîte de test — l'agent saisit lui-même son mot de passe |
+| T3.9 sonde, cerveau | ☐ / ✅ | la sonde `mail-imap-probe` est à retirer puis purger APRÈS le merge ; cerveau `megga/messagerie-imap` écrit |
+
 **Goal:** Connecter une boîte par IMAP (lecture, drapeaux, archive, corbeille) et SMTP (envoi avec copie dans « Envoyés ») depuis les edge functions, avec les présélections Infomaniak et Bluewin.
 
 **Architecture:** Un client IMAP minimal écrit à la main sur `Deno.connectTls` (LOGIN, LIST, SELECT, UID SEARCH, UID FETCH, UID STORE, UID MOVE/COPY, APPEND, LOGOUT), un client SMTP implicite TLS (465) tout aussi minimal, `postal-mime` pour parser le RFC 822 reçu, un adaptateur `imap.ts` qui expose la même forme que Gmail/Graph (curseur par dossier `uidValidity + lastUid`), le fil reconstruit par `References`/`In-Reply-To`. Mot de passe dans Vault.
@@ -23,17 +41,17 @@
 
 | Contrainte | Conséquence |
 |---|---|
-| **Ports sortants 25 et 587 interdits** | SMTP en **465 (TLS implicite)** uniquement. STARTTLS impossible depuis l'edge : la puce « STARTTLS » de la maquette reste affichée mais son test échoue avec un message qui dit pourquoi et propose 465. |
+| ~~**Ports sortants 25 et 587 interdits**~~ ⛔ **À MOITIÉ FAUX, remesuré le 05.09.2026** : **25 est fermé** (`timeout_connect` à 8002 ms) mais **587 est OUVERT** (`220 … ESMTP ready` en clair, en 60 ms, depuis le même isolat). La ligne venait de la documentation Supabase ; la sonde T3.1 la départage. | SMTP **465 (TLS implicite)** reste la voie par DÉFAUT, parce qu'elle est la seule éprouvée de bout en bout ici. Mais **587 + STARTTLS est possible** : la puce « STARTTLS » de la maquette peut devenir vivante au lieu d'afficher une excuse. ⚠ La sonde prouve que le port répond et annonce ESMTP — elle n'a pas joué `STARTTLS` ni négocié la montée en TLS. C'est à T3.3 de l'éprouver. |
 | Temps CPU 2 s par requête | le parsing MIME se fait message par message, jamais en lot dans une même requête ; 20 messages par passe IMAP au plus |
 | Wall-clock 400 s (plan payant) | budget de passe 20 s, comme Gmail/Graph |
 | Mémoire 256 Mo | un message de plus de 10 Mo est ingéré **sans corps** (`body_truncated=true`, `body_text` = « message trop volumineux ») |
 
-Présélections (README de la maquette, hôtes vérifiés sur les pages d'aide des fournisseurs le 03.09.2026 — à revérifier au moment de coder, elles bougent) :
+Présélections — ✅ **les quatre hôtes sont désormais MESURÉS depuis la production** (sonde T3.1, 05.09.2026), plus recopiés d'une page d'aide. L'avertissement « à revérifier, elles bougent » a payé : un des quatre était mort.
 
 | Fournisseur | IMAP | SMTP |
 |---|---|---|
-| Infomaniak | `mail.infomaniak.com:993` | `mail.infomaniak.com:465` |
-| Bluewin (Swisscom) | `imap.bluewin.ch:993` | `smtpauths.bluewin.ch:465` |
+| Infomaniak | `mail.infomaniak.com:993` ✅ | `mail.infomaniak.com:465` ✅ |
+| Bluewin (Swisscom) | ~~`imap.bluewin.ch:993`~~ → **`imaps.bluewin.ch:993`** ⛔ l'hôte du plan n'existe pas (`NXDOMAIN`, mesuré le 05.09.2026) ; le vrai pointe sur `imaps.p.bluenet.ch` | `smtpauths.bluewin.ch:465` ✅ |
 | Autre | saisie | saisie |
 
 ---
@@ -168,25 +186,70 @@ un TLS sortant vers les deux ports, chez deux fournisseurs différents, en moins
    réellement filtré aurait rendu `timeout_connect` au bout de 8 s, pas une
    erreur de handshake en 59 ms.
 
-#### Résultat du spike — PASSE 2 (à remplir)
+#### Résultat du spike — PASSE 2, mesurée en production le 05.09.2026 à 20:52 UTC
 
-Corrige les deux points ci-dessus : `imaps.bluewin.ch` au lieu de l'hôte mort, et
-une sonde en CLAIR (`Deno.connect`, TCP nu) sur 587 et 25 pour trancher « fermé »
-contre « ouvert mais sans TLS implicite ».
-
-| Hôte:port | ok | bannière / erreur | ms |
+| Hôte:port | ok | bannière / réponse | ms |
 |---|---|---|---|
-| imaps.bluewin.ch:993 (TLS) | | | |
-| mail.infomaniak.com:587 (CLAIR) | | | |
-| mail.infomaniak.com:25 (CLAIR) | | | |
+| mail.infomaniak.com:993 (TLS) | ✅ | `* OK IMAP4 ready` → `* CAPABILITY IMAP4rev1 UIDPLUS IDLE LITERAL+ QUOTA AUTH=PLAIN AUTH=LOGIN` | 296 |
+| mail.infomaniak.com:465 (TLS) | ✅ | `220 … ESMTP ready` → `250 AUTH PLAIN LOGIN` | 223 |
+| **imaps.bluewin.ch:993 (TLS)** | ✅ | `* OK [CAPABILITY IMAP4rev1 SASL-IR LOGIN-REFERRALS ID ENABLE IDLE LITERAL+ AUTH=PLAIN AUTH=OAUTHBEARER AUTH=XOAUTH2]` | **181** |
+| smtpauths.bluewin.ch:465 (TLS) | ✅ | `220 bluewin.ch mailout-002.p.bluenet.ch Swisscom AG ESMTP server ready` | 197 |
+| mail.infomaniak.com:587 (TLS implicite) | ❌ | `InvalidData: received corrupt message of type InvalidContentType` | 63 |
+| **mail.infomaniak.com:587 (CLAIR)** | ✅ | `220 mail.infomaniak.com ESMTP ready` | **60** |
+| **mail.infomaniak.com:25 (CLAIR)** | ❌ | `Error: timeout_connect` | **8002** |
 
-**Ce que la passe 2 décide** : si 587 répond en clair, la contrainte « STARTTLS
-impossible depuis l'edge » du tableau en tête de ce plan est fausse, et la puce
-STARTTLS de la maquette peut devenir vivante au lieu d'échouer avec un message.
-Si les deux sondes en clair expirent, la contrainte est confirmée et le tableau
-reste tel quel — mais alors il sera MESURÉ, pas recopié d'une documentation.
+**Verdict : ☑ 993 et 465 passent, chez les DEUX fournisseurs. T3.2 peut commencer.**
 
-- [ ] **Step 4 : Commit**
+##### Les deux dernières lignes sont la mesure la plus utile de ce spike
+
+Elles sortent du MÊME isolat, à la MÊME seconde, et elles ne se ressemblent pas :
+
+- **25 → `timeout_connect` à 8002 ms.** Un port filtré : rien ne revient, jamais.
+  Le plan avait raison sur 25.
+- **587 → bannière `220 … ESMTP ready` à 60 ms.** Un port OUVERT, qui parle en
+  clair. Le plan avait tort sur 587.
+
+⛔ **« Ports sortants 25 et 587 interdits » est donc à MOITIÉ FAUX**, et la moitié
+fausse était celle qui gouvernait une décision d'interface. La contrainte venait
+de la documentation Supabase ; c'est la sonde en clair qui la départage. Un
+échec de handshake TLS en 63 ms et un timeout de connexion en 8002 ms se
+ressemblent dans un journal et ne veulent pas dire la même chose : le premier
+dit « ce port ne fait pas de TLS implicite », le second dit « ce port est fermé ».
+
+**Conséquences, à porter dans le tableau des contraintes en tête de ce plan :**
+
+1. **SMTP 587 + STARTTLS est POSSIBLE depuis l'edge.** La puce « STARTTLS » de la
+   maquette n'a plus à échouer avec un message d'excuse : elle peut devenir
+   vivante. ⚠ Ce que la sonde prouve est que le port répond et annonce ESMTP —
+   elle n'a PAS joué `STARTTLS` ni négocié la montée en TLS. C'est mesuré à
+   l'ouverture du port, pas à la poignée de main. Le client SMTP (T3.3) devra
+   l'éprouver, et 465 reste la voie par défaut parce qu'elle est éprouvée ici.
+2. **25 reste fermé**, et il n'y a rien à faire : c'est le port du relais
+   serveur-à-serveur, dont on n'a pas besoin.
+
+##### Ce que les bannières apprennent, et qui n'était pas dans le plan
+
+- **Les deux fournisseurs n'annoncent pas les mêmes capacités.** Infomaniak :
+  `UIDPLUS IDLE LITERAL+ QUOTA AUTH=PLAIN AUTH=LOGIN`. Bluewin : `SASL-IR
+  LOGIN-REFERRALS ID ENABLE IDLE LITERAL+ AUTH=PLAIN AUTH=OAUTHBEARER
+  AUTH=XOAUTH2` — **pas de `UIDPLUS`**.
+  ⚠ L'architecture de ce plan repose sur `UID MOVE` et sur l'`APPENDUID` que
+  rend `APPEND` : ce sont DEUX extensions de `UIDPLUS`. Sans elle, il faut le
+  repli historique — `UID COPY` + `UID STORE +FLAGS \\Deleted` + `EXPUNGE` pour
+  déplacer, et pas de moyen de connaître l'UID du message qu'on vient de classer
+  dans « Envoyés ».
+  ⚠⚠ **MAIS CETTE LISTE EST PRÉ-LOGIN, et Bluewin le DIT** : sa réponse se termine
+  par « post-login capabilities have more ». `UIDPLUS` peut apparaître après
+  authentification. **À vérifier en T3.2 sur une vraie boîte** — ne pas écrire le
+  repli sur la foi d'une bannière pré-login, ni l'omettre sur la foi d'une
+  supposition.
+- **Ni l'un ni l'autre n'annonce `LOGINDISABLED`** : la commande `LOGIN` (celle
+  d'IMAP4rev1, à ne pas confondre avec le mécanisme SASL `AUTH=LOGIN`) est
+  permise sur les deux. C'est ce que T3.2 prévoit d'utiliser.
+- **Bluewin annonce `SASL-IR`**, Infomaniak non : l'argument initial de
+  `AUTHENTICATE` ne peut pas être envoyé sur la même ligne chez Infomaniak.
+
+- [x] **Step 4 : Commit**
 
 ```bash
 git add supabase/functions/mail-imap-probe/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts docs/superpowers/plans/2026-09-03-messagerie-crm-lot3-imap.md
@@ -203,7 +266,7 @@ git commit -m "spike(messagerie): sonde TLS sortant IMAP 993 / SMTP 465 depuis l
 - Test: `supabase/functions/_shared/mail/imap-client.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : `duplex.ts`**
+- [x] **Step 1 : `duplex.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/duplex.ts
@@ -281,7 +344,7 @@ function indexOfCrlf(b: Uint8Array): number {
 }
 ```
 
-- [ ] **Step 2 : Test du client (rouge) avec une connexion scriptée**
+- [x] **Step 2 : Test du client (rouge) avec une connexion scriptée**
 
 ```ts
 // supabase/functions/_shared/mail/imap-client.test.ts
@@ -365,7 +428,7 @@ describe('ImapClient', () => {
 
 Ajouter `'supabase/functions/_shared/mail/imap-client.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
 
-- [ ] **Step 3 : `imap-client.ts`**
+- [x] **Step 3 : `imap-client.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/imap-client.ts
@@ -501,7 +564,7 @@ export class ImapClient {
 }
 ```
 
-- [ ] **Step 4 : Vert, `deno check`, commit**
+- [x] **Step 4 : Vert, `deno check`, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/imap-client.test.ts
@@ -509,7 +572,42 @@ deno check supabase/functions/_shared/mail/imap-client.ts supabase/functions/_sh
 git add supabase/functions/_shared/mail/duplex.ts supabase/functions/_shared/mail/imap-client.ts supabase/functions/_shared/mail/imap-client.test.ts vitest.config.ts
 git commit -m "feat(messagerie): client IMAP minimal (login, list, select, search, fetch, store, move, append)"
 ```
-Attendu : 4 tests PASS.
+Attendu : 4 tests PASS. **Obtenu : 15 tests PASS** (05.09.2026) — les 4 du plan,
+plus 11 qui gardent les six écarts ci-dessous.
+
+##### Six écarts au code de ce plan, nés de la mesure T3.1 ou d'une relecture
+
+| # | Ce que le plan écrivait | Ce qui a été écrit, et pourquoi |
+|---|---|---|
+| 1 | `connect()` vérifie la bannière et la jette | Elle porte souvent `[CAPABILITY …]` — MESURÉ : Bluewin ouvre par `* OK [CAPABILITY IMAP4rev1 SASL-IR … AUTH=PLAIN AUTH=OAUTHBEARER AUTH=XOAUTH2]`, Infomaniak par un simple `* OK IMAP4 ready`. La lire économise un aller-retour par passe. |
+| 2 | `capability()` appelée à la demande | Les capacités PRÉ-LOGIN ne sont pas celles d'APRÈS, et **Bluewin le dit lui-même** (« post-login capabilities have more »). `uidMove` et `append` décident sur `MOVE` et `UIDPLUS` : décider sur la liste pré-login, c'est prendre le repli dégradé alors que le serveur offrait mieux. `login()` relit la ligne taguée et redemande si besoin. |
+| 3 | ⛔ `UID COPY` + `\Deleted` + **`EXPUNGE`** | **`EXPUNGE` sans argument supprime définitivement TOUS les messages `\Deleted` du dossier**, pas seulement le nôtre. Thunderbird et Apple Mail marquent `\Deleted` sans expurger : archiver un fil depuis le CRM aurait détruit tout ce que l'agent avait supprimé sans confirmer, dans sa vraie boîte, sans un mot. Trois voies désormais — `MOVE`, sinon `UID EXPUNGE` (ciblé, UIDPLUS), sinon copie + `\Deleted` et **aucun expunge**. Un doublon visible vaut mieux qu'une destruction non demandée. |
+| 4 | `append()` rend `void` | Elle jetait l'`[APPENDUID <uidvalidity> <uid>]` de la ligne taguée, dont l'architecture a besoin pour rattacher la copie « Envoyés » au fil sans relire le dossier. Rend l'UID, ou **`null`** quand le serveur ne l'annonce pas : l'appelant doit savoir qu'il ne sait pas. |
+| 5 | `SEARCH` lu par `.find` (une ligne) | Un serveur répond couramment sur PLUSIEURS lignes `* SEARCH`. La moitié des UID était perdue **en silence**, et ces messages jamais ingérés. `flatMap` sur toutes les lignes. |
+| 6 | `LineReader.bytes(n)` : `break` sur EOF | Elle rendait un tampon COURT en silence quand le flux se coupait. Un message tronqué aurait été ingéré comme complet, marqué lu, puis jamais relu. Elle LÈVE. |
+
+##### Les tests ne sont pas creux, et c'est vérifié par mutation
+
+Chacun des six correctifs a été rétabli dans sa version « plan », un par un, et la
+suite a rougi les six fois :
+
+| Mutation | Tests en échec |
+|---|---|
+| `uidMove` → `EXPUNGE` nu | 2 |
+| `bytes()` → lecture courte silencieuse | 1 |
+| `SEARCH` → `.find` (première ligne) | 1 |
+| capacités de la bannière ignorées | 1 |
+| `APPENDUID` jeté | 1 |
+| pas de relecture des capacités après LOGIN | 1 |
+
+⚠ Une septième mutation a d'abord semblé non gardée — c'était la MUTATION qui ne
+s'appliquait pas (guillemets imbriqués), pas le test qui était creux. **Une
+mutation qui n'échoue pas ressemble exactement à une mutation qui ne s'est pas
+produite** : vérifier que le fichier a bien changé avant de conclure au test creux.
+
+⚠ Ce que ces 15 tests NE couvrent PAS : l'ouverture de la socket, mesurée
+séparément par la sonde T3.1, et le comportement des VRAIS serveurs — aucune
+boîte n'a encore été connectée.
 
 ---
 

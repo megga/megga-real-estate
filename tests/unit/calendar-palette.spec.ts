@@ -21,6 +21,16 @@ import { readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { buildCalPalette, type CalPalette } from '@/components/crm/calendar/data'
 
+/** Rapport WCAG entre deux couleurs hexadécimales `#rrggbb`. */
+function contraste(a: string, b: string): number {
+  const lum = (hex: string) => [1, 3, 5]
+    .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
+    .reduce((acc, c, i) => acc + [0.2126, 0.7152, 0.0722][i] * c, 0)
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
 /** Les barreaux que la vitrine publie — la seule source de couleur autorisée. */
 const ECHELLE = new Set(
   [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)].map((v) => v.toLowerCase()),
@@ -107,6 +117,13 @@ describe('Calendrier — la palette descend de MEGGA X', () => {
     expect(p.ring).toBe(MXC_COLOR.accent)
     expect(p.black).toBe(MXC_COLOR.accent)
     expect(p.onAccent).toBe(MXC_COLOR.n1000)
+  })
+
+  // ⛔ Le lien « Ouvrir l'e-mail d'origine » écrivait l'accent en ENCRE sur la bulle sombre :
+  // 3,44:1, sous l'AA du texte (revue du 15.09.2026). L'encre d'accent passe l'AA dans les deux thèmes.
+  it.each([false, true])('l’encre d’accent passe l’AA sur la bulle (sombre=%s)', (dark) => {
+    const p: CalPalette = buildCalPalette(dark)
+    expect(contraste(p.accentInk, p.popBg)).toBeGreaterThanOrEqual(4.5)
   })
 
   /**

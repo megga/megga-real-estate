@@ -1,8 +1,9 @@
 // Agenda mobile — view-model + helpers + démo.
 //
-// Le calendrier réel (`useCalendarScreen`) ne produit que deux types d'events :
-// `visite` (table `visits`) et `task` (table `reminders`). On projette les
-// `CalEvent` en `AgEventVM` (présentation pure) ; aucune donnée fabriquée.
+// On projette les `CalEvent` du calendrier réel (`useCalendarScreen`) en `AgEventVM`
+// (présentation pure) ; aucune donnée fabriquée. Deux présentations : `visite` — une ligne
+// `visits`, qui s'ouvre sur sa fiche — et `task` pour tout le reste (relances, événements,
+// rendez-vous KYC).
 
 import type { TFunction } from 'i18next'
 import type { CalEvent } from '@/components/crm/calendar/data'
@@ -53,7 +54,9 @@ export function fmtDur(min: number, t: TFunction): string {
 
 // ─── mapper réel ─────────────────────────────────────────────────────────────
 export function calEventToVM(e: CalEvent): AgEventVM {
-  const type: AgEventType = e.type === 'visite' ? 'visite' : 'task'
+  // Par la TABLE, pas par le type : un événement de type « Visite » n'a pas de fiche de
+  // visite, et « Ouvrir la visite » menait à une page d'erreur (revue du 15.09.2026).
+  const type: AgEventType = e.origin === 'visit' ? 'visite' : 'task'
   const durMin = Math.max(0, Math.round((e.end.getTime() - e.start.getTime()) / 60000))
   return {
     id: e.id,

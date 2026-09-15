@@ -163,7 +163,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                   >
                     <span aria-hidden style={{ width: AVATAR, height: AVATAR, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0 }}>
-                      {initialsOf(`${h.first_name} ${h.last_name}`, h.email)}
+                      {initialsOf(`${h.first_name} ${h.last_name}`, h.email ?? '')}
                     </span>
                     <span style={{ minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}>{h.first_name} {h.last_name}</span>

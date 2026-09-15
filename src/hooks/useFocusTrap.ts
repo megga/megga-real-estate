@@ -2,7 +2,7 @@
  * Hook d'accessibilité : piège le focus clavier dans un conteneur tant que
  * `active` est vrai (modales, panneaux), puis restaure le focus au démontage.
  */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEcranActif } from '@/hooks/useEcranActif'
 
 const FOCUSABLE_SELECTOR =
@@ -40,26 +40,47 @@ const FOCUSABLE_SELECTOR =
  */
 export function useFocusTrap(active: boolean, onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const previousFocusRef = useRef<HTMLElement | null>(null)
   const onEscapeRef = useRef(onEscape)
   useEffect(() => { onEscapeRef.current = onEscape })
   const ecranActif = useEcranActif()
   const arme = active && ecranActif
 
+  // Le focus d'AVANT l'ouverture, lu au RENDU qui ouvre. L'effet arrive trop tard quand le
+  // contenu porte un `autoFocus` : React l'a déjà appliqué, et le piège retenait le champ de
+  // la modale — détaché à la fermeture — au lieu du bouton qui l'avait ouverte (revue du
+  // 15.09.2026 : fermer « Nouveau message » laissait le focus sur `body`).
+  const [avantOuverture, setAvantOuverture] = useState<Element | null>(() => (active ? document.activeElement : null))
+  const [etaitActif, setEtaitActif] = useState(active)
+  if (active !== etaitActif) {
+    setEtaitActif(active)
+    setAvantOuverture(active ? document.activeElement : null)
+  }
+  // Le focus que le piège avait DANS le conteneur quand il s'est levé. Rendre le focus au
+  // déclencheur ne vaut que pour une vraie fermeture : un piège qui se RÉARME — retour sur son
+  // écran, ou le démontage simulé du mode strict — le rend là où il était, pas à la croix.
+  const dernierDedansRef = useRef<HTMLElement | null>(null)
+
   useEffect(() => {
     if (!arme) return
-
-    // Save current focus to restore later
-    previousFocusRef.current = document.activeElement as HTMLElement
-
     const container = containerRef.current
     if (!container) return
 
-    // Focus first focusable element
+    // ⚠ Un focus DÉJÀ posé dans le conteneur est gardé : c'est un `autoFocus`, que React
+    // applique au montage, AVANT cet effet. Le piège le déplaçait sur le premier
+    // focalisable — la croix de fermeture —, et « Nouveau message » s'ouvrait le curseur
+    // hors du champ « À » qu'il désignait (mesuré le 14.09.2026 : focus sur « Fermer »).
     const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-    if (focusable.length > 0) {
+    const dejaDedans = container.contains(document.activeElement)
+    // Sans `autoFocus`, le focus de l'instant reste le bon : deux pièges qui se passent la
+    // main (confirmation, puis « fait ») rendent le focus au premier déclencheur.
+    const precedent = dejaDedans ? avantOuverture : document.activeElement
+    const retour = dernierDedansRef.current
+    dernierDedansRef.current = null
+    if (!dejaDedans && retour?.isConnected && container.contains(retour)) {
+      retour.focus()
+    } else if (!dejaDedans && focusable.length > 0) {
       focusable[0].focus()
-    } else {
+    } else if (!dejaDedans) {
       // ⛔ AUCUN DESCENDANT FOCALISABLE — le cas qui rendait ce hook INOPÉRANT
       // en silence. Sans ce repli, rien n'est focalisé : le focus RESTE sur le
       // déclencheur, donc DEHORS, et la première tabulation part dans la page
@@ -123,10 +144,11 @@ export function useFocusTrap(active: boolean, onEscape?: () => void) {
       // ne répare pas ce cas (le focus retombe sur `body`), il empêche
       // seulement de croire qu'il est réglé. Rendre le focus au DÉCLENCHEUR du
       // menu est le travail du menu, pas du piège.
-      const precedent = previousFocusRef.current
-      if (precedent?.isConnected) precedent.focus()
+      const actif = document.activeElement
+      if (actif instanceof HTMLElement && container.contains(actif)) dernierDedansRef.current = actif
+      if (precedent instanceof HTMLElement && precedent.isConnected) precedent.focus()
     }
-  }, [arme])
+  }, [arme, avantOuverture])
 
   return containerRef
 }

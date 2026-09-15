@@ -346,6 +346,7 @@
   "busy": "Occupato",
   "popover": {
     "edit": "Modifica",
+    "openMail": "Apri l'e-mail d'origine",
     "delete": "Elimina",
     "close": "Chiudi",
     "statusDone": "Completato",
@@ -427,11 +428,15 @@
     "modified": "Modificato",
     "deleted": "Eliminato",
     "durationChanged": "Durata modificata: da {{start}} a {{end}}",
-    "moved": "Spostato: {{date}}, {{time}}",
+    "moved": "{{date}}, ore {{time}}",
     "markedDone": "Segnato come completato",
     "markedTodo": "Segnato da fare",
     "markedCancelled": "Segnato come annullato",
-    "reactivated": "Riattivato"
+    "reactivated": "Riattivato",
+    "moveFailed": "Spostamento non salvato",
+    "saveFailed": "Modifica non salvata",
+    "createFailed": "Creazione non salvata",
+    "deleteFailed": "Eliminazione non salvata"
   },
   "onboarding": {
     "connectGoogle": "Collega Google",

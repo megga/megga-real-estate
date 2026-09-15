@@ -21,7 +21,8 @@ import { useAuth } from '@/hooks/useAuth'
 export interface CalendarLabel { id: string; agency_id: string; name: string; color: string; position: number }
 
 /** Table d'origine d'un événement du Calendrier (`CalEvent.origin`). */
-type CalLabelSource = 'visit' | 'reminder' | 'appointment'
+// `event` : les événements du calendrier (`calendar_events`, 20260915080300).
+type CalLabelSource = 'visit' | 'reminder' | 'appointment' | 'event'
 
 interface Affectation { source: string; event_id: string; label_id: string }
 

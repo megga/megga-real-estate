@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { normalizeGraphMessage, deltaToChanges, graphDelta, graphFolderIds, graphSend, resolveGraphRemoval, GRAPH_ATTACHMENT_MAX_BYTES, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
-const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL' }
+const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL', junkemail: 'F-JUNK' }
 
 const M: GraphMessage = {
   id: 'AAMk1', conversationId: 'CONV1', internetMessageId: '<abc@ex.ch>', subject: 'Visite',
@@ -36,9 +36,21 @@ describe('normalizeGraphMessage', () => {
   it('un message du dossier Envoyés est sortant ; corbeille = trashed ; archive = hors réception', () => {
     const sent = normalizeGraphMessage({ ...M, parentFolderId: 'F-SENT', from: { emailAddress: { name: 'G', address: 'g@agence.ch' } } }, BODY, [], FOLDERS, 'g@agence.ch')
     expect(sent.direction).toBe('outbound')
+    expect(sent.inSent).toBe(true)
     expect(sent.inInbox).toBe(false)
     expect(normalizeGraphMessage({ ...M, parentFolderId: 'F-DEL' }, BODY, [], FOLDERS, 'g@agence.ch').isTrashed).toBe(true)
     expect(normalizeGraphMessage({ ...M, parentFolderId: 'F-ARC' }, BODY, [], FOLDERS, 'g@agence.ch').inInbox).toBe(false)
+  })
+  // ⛔ Le sens se lisait sur `From` hors de « Envoyés » (revue du 15.09.2026).
+  it('`From` = la boîte hors « Envoyés » : entrant au Courrier indésirable, entrant avec un Reply-To étranger', () => {
+    const deLaBoite = (parentFolderId: string, replyTo: string | null) => normalizeGraphMessage({
+      ...M, parentFolderId, from: { emailAddress: { name: 'G', address: 'g@agence.ch' } },
+      replyTo: replyTo ? [{ emailAddress: { name: null, address: replyTo } }] : [],
+    }, BODY, [], FOLDERS, 'g@agence.ch')
+    expect(deLaBoite('F-JUNK', null)).toMatchObject({ direction: 'inbound', inSent: false, isSpam: true })
+    expect(deLaBoite('F-IN', 'prospect@ex.ch')).toMatchObject({ direction: 'inbound', inSent: false })
+    // L'exemplaire qu'Exchange dépose en Réception quand l'agent se met en copie.
+    expect(deLaBoite('F-IN', null)).toMatchObject({ direction: 'outbound', inSent: false })
   })
 })
 
@@ -57,9 +69,16 @@ describe('deltaToChanges', () => {
     expect(r.added.map((m) => m.id)).toEqual(['N1'])
     expect(r.removed).toEqual([{ id: 'GONE', reason: 'deleted' }])
     expect(r.changes).toEqual([
-      { kind: 'flags', providerMessageId: 'K1', isRead: true, isStarred: false, inInbox: false, isTrashed: false },
+      { kind: 'flags', providerMessageId: 'K1', isRead: true, isStarred: false, inInbox: false, isTrashed: false, isSpam: false },
     ])
     expect(r.changes.some((c) => c.kind === 'message_deleted')).toBe(false)
+  })
+
+  it('un message rangé dans le Courrier indésirable est isSpam, hors Réception', () => {
+    const r = deltaToChanges([{ id: 'K1', parentFolderId: 'F-JUNK' }], new Set(['K1']), FOLDERS)
+    expect(r.changes).toEqual([{ kind: 'flags', providerMessageId: 'K1', inInbox: false, isTrashed: false, isSpam: true }])
+    expect(normalizeGraphMessage({ ...M, parentFolderId: 'F-JUNK' }, BODY, [], FOLDERS, 'g@agence.ch')).toMatchObject({ isSpam: true, inInbox: false, direction: 'inbound' })
+    expect(normalizeGraphMessage(M, BODY, [], FOLDERS, 'g@agence.ch').isSpam).toBe(false)
   })
 
   // ⛔ « Updated instances are represented by their id with *at least* the updated
@@ -159,12 +178,17 @@ describe('resolveGraphRemoval', () => {
       return new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-ARC' }), { status: 200 })
     })
     const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
-    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: false })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: false, isSpam: false })
   })
   it('200 dans Éléments supprimés : corbeille, pas destruction', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-DEL' }), { status: 200 }))
     const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
-    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: true })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: true, isSpam: false })
+  })
+  it('200 dans le Courrier indésirable : AU SPAM — ni archivé, ni supprimé', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-JUNK' }), { status: 200 }))
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: false, isSpam: true })
   })
   it('erreur autre que 404 : INDÉTERMINÉ, on ne touche à rien', async () => {
     for (const status of [429, 500]) {
@@ -257,8 +281,8 @@ describe('graphFolderIds — deux dossiers portent la synchro, deux la décorent
   it('un 404 sur Archive dégrade le classement, il n arrête pas la synchro', async () => {
     const fetch = serveur({ archive: 404 })
     const ids = await graphFolderIds('tok', { fetch: F(fetch) })
-    expect(ids).toEqual({ inbox: 'F-inbox', sentitems: 'F-sentitems', deleteditems: 'F-deleteditems' })
-    expect(fetch).toHaveBeenCalledTimes(4) // la boucle va au bout
+    expect(ids).toEqual({ inbox: 'F-inbox', sentitems: 'F-sentitems', deleteditems: 'F-deleteditems', junkemail: 'F-junkemail' })
+    expect(fetch).toHaveBeenCalledTimes(5) // la boucle va au bout
   })
 
   it('la table incomplète ne fait pas d un dossier ABSENT la corbeille', async () => {
@@ -268,6 +292,12 @@ describe('graphFolderIds — deux dossiers portent la synchro, deux la décorent
     const n = normalizeGraphMessage({ ...M, parentFolderId: undefined }, BODY, [], ids, 'g@agence.ch')
     expect(n.isTrashed).toBe(false)
     expect(n.inInbox).toBe(false)
+  })
+
+  it('une boîte sans Courrier indésirable se synchronise quand même — sans dossier Spam', async () => {
+    const ids = await graphFolderIds('tok', { fetch: F(serveur({ junkemail: 404 })) })
+    expect(ids.junkemail).toBeUndefined()
+    expect(normalizeGraphMessage({ ...M, parentFolderId: undefined }, BODY, [], ids, 'g@agence.ch').isSpam).toBe(false)
   })
 
   it('un 404 sur Réception ou Envoyés LÈVE : sans eux il n y a rien à synchroniser', async () => {

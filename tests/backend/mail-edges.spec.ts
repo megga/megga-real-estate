@@ -244,6 +244,56 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     expect(data, 'la boîte de l agence B a été supprimée par l agent A').toBeTruthy()
   })
 
+  // ── Les gestes en LOT (15.09.2026) ────────────────────────────────────────
+  it('mail-actions en lot : une boîte d une autre agence reste introuvable (404)', async () => {
+    const r = await call('mail-actions', { action: 'archive', account_id: boxAinBId, thread_ids: ['00000000-0000-4000-8000-000000000001'] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(404)
+    expect(r.json.error).toBe('not_found')
+  })
+
+  it('mail-actions en lot : un lot mal formé est refusé (400), avant tout fournisseur', async () => {
+    for (const thread_ids of ['x', [], ['pas-un-uuid']]) {
+      const r = await call('mail-actions', { action: 'archive', account_id: boxAId, thread_ids }, jwtA)
+      expect(r.status, JSON.stringify(thread_ids)).toBe(400)
+      expect(r.json.error).toBe('invalid_input')
+    }
+  })
+
+  // ⛔ connect_imap ne reprend jamais la boîte IMAP d'un autre membre : l'adresse y est un
+  // champ libre, rien n'en prouve la possession. Refusé AVANT tout test de serveur — donc
+  // sans réseau ni DNS : c'est la ligne en base qui décide, et elle reste intacte.
+  it('connect_imap : la boîte IMAP d un autre membre est refusée (409) et reste intacte', async () => {
+    const svc = serviceRoleClient()
+    const email = `collegue-${s.stamp}@a.test`
+    const cfg = { imapHost: 'imap.collegue.test', imapPort: 993, smtpHost: 'smtp.collegue.test', smtpPort: 465, user: email, encryption: 'ssl' }
+    const { data: row, error } = await svc.from('mail_accounts')
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentBId, provider: 'imap', email, visibility: 'owner', imap_config: cfg })
+      .select('id').single()
+    if (error) throw new Error(`mail_accounts imap: ${error.message}`)
+    try {
+      const r = await call('mail-oauth', { action: 'connect_imap', email, imap_host: 'imap.gmail.com', smtp_host: 'smtp.gmail.com', password: 'x' }, jwtA)
+      expect(r.status, r.text.slice(0, 200)).toBe(409)
+      expect(r.json.error).toBe('owned_by_colleague')
+      const { data: apres } = await svc.from('mail_accounts').select('owner_id, imap_config, vault_secret_id').eq('id', row.id).single()
+      expect(apres).toMatchObject({ owner_id: s.agentBId, imap_config: cfg, vault_secret_id: null })
+    } finally {
+      await svc.from('mail_accounts').delete().eq('id', row.id)
+    }
+  })
+
+  // ⛔ Un fil d'une AUTRE boîte glissé dans un lot est « introuvable » — et il n'est pas touché.
+  // Sans la borne `account_id`, le lot aurait archivé chez l'agence B un fil que l'agent A
+  // ne voit pas.
+  it('mail-actions en lot : un fil d une autre boîte est introuvable, et reste intact', async () => {
+    const service = serviceRoleClient()
+    const { data: filB } = await service.from('mail_threads').select('id, is_archived').eq('provider_thread_id', `t-b-${s.stamp}`).single()
+    const r = await call('mail-actions', { action: 'archive', account_id: boxAId, thread_ids: [filB!.id] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
+    expect(r.json.results).toEqual([{ thread_id: filB!.id, ok: false, error: 'thread_not_found' }])
+    const { data: apres } = await service.from('mail_threads').select('is_archived').eq('id', filB!.id).single()
+    expect(apres!.is_archived).toBe(filB!.is_archived)
+  })
+
   it('mail-attachment : GET inconnu → 404 ; POST sans action → 400', async () => {
     const g = await fetch(`${FN('mail-attachment')}?id=00000000-0000-0000-0000-000000000000`, {
       headers: { Authorization: `Bearer ${jwtA}` },
@@ -356,6 +406,65 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
   // n'exigeait qu'un « @ » : sur n'importe quel fil visible, un agent réaffectait l'alias
   // d'une adresse qu'il n'avait jamais lue. L'adresse doit désormais être celle d'un
   // correspondant EXTERNE de ce fil — ni la boîte, ni une adresse interne à l'agence.
+  // ⛔ « Spam » sur un fil qui n'a rien reçu : le fil prenait `is_spam` sans qu'un seul de ses
+  // messages le porte, et le premier recalcul le rendait à « Envoyés » (revue du 15.09.2026).
+  it('mail-actions : « Spam » sur un fil sans message reçu est refusé, un par un comme en lot — avant tout fournisseur', async () => {
+    const svc = serviceRoleClient()
+    const maintenant = new Date().toISOString()
+    const { data: th, error: eTh } = await svc.from('mail_threads').insert({
+      account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-envoye-${s.stamp}`, subject: 'Offre', last_outbound_at: maintenant,
+    }).select('id').single()
+    if (eTh) throw new Error(`mail_threads: ${eTh.message}`)
+    const { error: eM } = await svc.from('mail_messages').insert({
+      thread_id: th.id, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-envoye-${s.stamp}`, direction: 'outbound',
+      from_email: `a-${s.stamp}@a.test`, to: [{ name: null, email: `zoe-${s.stamp}@ex.ch` }], sent_at: maintenant,
+    })
+    if (eM) throw new Error(`mail_messages: ${eM.message}`)
+    // Ni jeton ni connexion pour cette boîte de test : un appel au fournisseur rendrait 502.
+    const un = await call('mail-actions', { action: 'spam', account_id: boxAId, thread_id: th.id }, jwtA)
+    expect(un.status, un.text.slice(0, 200)).toBe(409)
+    expect(un.json.error).toBe('nothing_to_flag')
+    const lot = await call('mail-actions', { action: 'spam', account_id: boxAId, thread_ids: [th.id] }, jwtA)
+    expect(lot.status, lot.text.slice(0, 200)).toBe(200)
+    expect(lot.json.results).toEqual([{ thread_id: th.id, ok: false, error: 'nothing_to_flag' }])
+    const { data: apres } = await svc.from('mail_threads').select('is_spam').eq('id', th.id).single()
+    expect(apres!.is_spam).toBe(false)
+    await svc.from('mail_threads').delete().eq('id', th.id)
+  })
+
+  // ⛔ Rendre une boîte partagée, puis la déconnecter, ne laissaient AUCUNE trace au journal
+  // (revue du 15.09.2026). Le fait seulement : l'identifiant et ce qui a changé — jamais le
+  // nom d'affichage. Boîte jetable sans secret Vault : rien à révoquer chez le fournisseur.
+  it('mail-oauth update puis disconnect : chaque geste laisse sa ligne au journal', async () => {
+    const svc = serviceRoleClient()
+    const { data: boite, error } = await svc.from('mail_accounts')
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: `jetable-${s.stamp}@a.test`, visibility: 'owner' })
+      .select('id').single()
+    if (error) throw new Error(`mail_accounts: ${error.message}`)
+    const lignes = async (action: string) => {
+      const { data } = await svc.from('activity_events').select('actor_id, actor_kind, category, object_label, metadata')
+        .eq('agency_id', s.agencyAId).eq('action', action).eq('metadata->>account_id', boite.id)
+      return data ?? []
+    }
+    const maj = await call('mail-oauth', { action: 'update', account_id: boite.id, visibility: 'agency', display_name: 'Secret' }, jwtA)
+    expect(maj.status, maj.text.slice(0, 200)).toBe(200)
+    const [modif, ...enTrop] = await lignes('mail_account_updated')
+    expect(enTrop).toEqual([])
+    expect(modif).toMatchObject({ actor_id: s.agentAId, actor_kind: 'user', category: 'messaging', object_label: null })
+    expect(modif.metadata).toEqual({ account_id: boite.id, champs: ['display_name', 'visibility'], visibility: 'agency' })
+    // Témoin : un réglage qui ne change rien n'écrit rien.
+    await call('mail-oauth', { action: 'update', account_id: boite.id }, jwtA)
+    expect(await lignes('mail_account_updated')).toHaveLength(1)
+
+    const dec = await call('mail-oauth', { action: 'disconnect', account_id: boite.id }, jwtA)
+    expect(dec.status, dec.text.slice(0, 200)).toBe(200)
+    const depart = await lignes('mail_account_disconnected')
+    expect(depart).toHaveLength(1)
+    expect(depart[0]).toMatchObject({ actor_id: s.agentAId, metadata: { provider: 'gmail', account_id: boite.id } })
+    const { data: reste } = await svc.from('mail_accounts').select('id').eq('id', boite.id).maybeSingle()
+    expect(reste).toBeNull()
+  })
+
   describe('link_contact : l’adresse apprise est celle d’un correspondant externe du fil', () => {
     const service = () => serviceRoleClient()
     let threadId: string
@@ -435,5 +544,31 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
       expect(r.json.error).toBe('contact_not_in_agency')
       expect(await alias(notaire())).toBeNull()
     })
+  })
+
+  // ⛔ connect_imap éprouvait des identifiants sans aucune limite de débit : un relais de
+  // bourrage d'identifiants depuis l'IP de MEGGA. Au dixième échec de l'heure, plus aucun
+  // serveur n'est éprouvé. EN DERNIER : les échecs semés ne s'effacent pas (journal append-only).
+  it('connect_imap : au-delà de dix échecs dans l heure, 429 — sans éprouver aucun serveur', async () => {
+    const svc = serviceRoleClient()
+    const semer = async (n: number) => {
+      const { error } = await svc.from('activity_events').insert(Array.from({ length: n }, () => ({
+        agency_id: s.agencyAId, actor_id: s.agentAId, actor_kind: 'user', action: 'mail_account_connect_failed',
+        category: 'messaging', severity: 'warn', entity_type: 'user', entity_id: s.agentAId, object_label: null,
+        metadata: { provider: 'imap', code: 'imap_auth' },
+      })))
+      if (error) throw new Error(`activity_events: ${error.message}`)
+    }
+    const essai = () => call('mail-oauth', {
+      action: 'connect_imap', email: `essai-${s.stamp}@a.test`, imap_host: 'localhost', smtp_host: 'localhost', password: 'x',
+    }, jwtA)
+    await semer(9)
+    // Témoin : sous le plafond, la demande va jusqu'aux serveurs — où `localhost` est refusé.
+    const sous = await essai()
+    expect(sous.json.error, sous.text.slice(0, 200)).toBe('host_not_allowed')
+    await semer(1)
+    const au = await essai()
+    expect(au.status, au.text.slice(0, 200)).toBe(429)
+    expect(au.json.error).toBe('too_many_attempts')
   })
 })

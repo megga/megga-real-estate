@@ -13,31 +13,37 @@
  * modales restantes arrivent aux tâches 2.9-2.11. L'état vide reste honnête —
  * l'écran ne prétend pas afficher des messages qu'il ne sait pas encore lire.
  */
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import EtatVide from '@/components/crm/EtatVide'
 import { useAuth } from '@/hooks/useAuth'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
-import { useMailActions } from '@/hooks/useMailActions'
+import { useMailActions, type MailThreadAction } from '@/hooks/useMailActions'
 import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
-import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
+import { useMailFolderCounts, useMailThreadRow, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
+import { useCrmTabsOptionnel, useTabScopedState } from '@/hooks/useCrmTabs'
+import { brouillonDepuisMail, deposerBrouillonCalendrier } from '@/lib/calendrierEvenements'
+import { expediteurComplet } from '@/lib/mail/format'
+import { codeErreurEnvoi } from '@/lib/mail/compose'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
-import { parseRecipients } from '@/hooks/useMailContactSearch'
-import { MailList } from './MailList'
+import { MailList, type GesteLot } from './MailList'
 import { MailAddAccountModal } from './MailAddAccountModal'
 import { MailAttachmentPreviewModal } from './MailAttachmentPreviewModal'
 import { MailComposeModal } from './MailComposeModal'
 import { MailFileAttachmentModal } from './MailFileAttachmentModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
+import { MailDisconnectModal } from './MailDisconnectModal'
 import { MailLinkContactModal } from './MailLinkContactModal'
+import { MailNotification, type MailNotificationData } from './MailNotification'
+import { MailCadreContext } from './mailCadre'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
@@ -52,7 +58,7 @@ interface Props { dark: boolean; setDark: (v: boolean) => void }
 export function MessagerieApp({ dark, setDark }: Props) {
   const { t, i18n } = useTranslation('messages')
   const queryClient = useQueryClient()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const { profile } = useAuth()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const ms = useMemo(() => mailSurfaces(sp, dark), [sp, dark])
@@ -83,6 +89,10 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * silence ; il lui faut un endroit où se dire.
    */
   const [avis, setAvis] = useState<string | null>(null)
+  /** La confirmation qui suit un geste, en bas du cadre (`MailNotification`). */
+  const [notification, setNotification] = useState<MailNotificationData | null>(null)
+  // Le cadre (le « pager ») où les modales se montent : leur voile l'épouse, lui seul.
+  const [cadre, setCadre] = useState<HTMLDivElement | null>(null)
   /**
    * Le seul lecteur de `MailSendResult.warning`. Les trois chemins d'envoi
    * (réponse, transfert, nouveau message) passent par lui, sans quoi la
@@ -118,7 +128,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * laisserait croire que la panne est réglée.
    */
   const panne =
-    compteurs.error ?? labels.error ?? drafts.error ?? actions.act.error ?? actions.setLabel.error ?? null
+    compteurs.error ?? labels.error ?? drafts.error ?? actions.act.error ?? actions.actLot.error ?? actions.setLabel.error ?? null
 
   /**
    * ⚠ Le fil ouvert doit SURVIVRE à sa page. Un changement de filtre, un passage
@@ -139,7 +149,18 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const filTrouve = threads.rows.find((r) => r.id === state.sel) ?? null
   const [filMemo, setFilMemo] = useState<MailThreadRow | null>(null)
   if (filTrouve && filTrouve !== filMemo) setFilMemo(filTrouve)
-  const filOuvert = filTrouve ?? (filMemo?.id === state.sel ? filMemo : null)
+
+  /**
+   * Un fil demandé par son LIEN (`?fil=…`, l'e-mail d'origine d'un événement du Calendrier,
+   * 15.09.2026). Lu une fois au montage — le paramètre, lui, reste dans l'adresse (voir
+   * l'effet plus bas) — et chargé hors de toute page : il peut vivre dans une autre boîte, un
+   * autre dossier, une page loin.
+   */
+  const [filDemande] = useState(() => params.get('fil'))
+  const filLie = useMailThreadRow(filDemande).data ?? null
+  const filOuvert = filTrouve
+    ?? (filMemo?.id === state.sel ? filMemo : null)
+    ?? (filLie && filLie.id === state.sel ? filLie : null)
 
   // Première boîte visible = boîte courante ; `?account=` (retour de pop-up sans opener) prime.
   useEffect(() => {
@@ -148,10 +169,37 @@ export function MessagerieApp({ dark, setDark }: Props) {
     const first = accounts.list.find((a) => a.id === wanted) ?? accounts.list[0]
     dispatch({ type: 'select-account', accountId: first.id })
   }, [accounts.list, params, state.accountId])
-  // `?add=1` (depuis Réglages) ouvre l'assistant.
+  /**
+   * Le fil lié : sa boîte d'abord (changer de boîte vide l'état), puis le fil lui-même — UNE
+   * fois par lien.
+   *
+   * ⛔ `filLie` change d'IDENTITÉ à chaque relecture de sa requête (retour du focus ou du
+   * réseau, au-delà d'une minute) : l'effet rouvrait alors le fil, même archivé depuis, fermait
+   * le composeur ouvert sur un autre — la réponse en cours perdue — et vidait la sélection.
+   *
+   * ⛔ ET LE PARAMÈTRE RESTE DANS L'ADRESSE, comme `?add=` plus bas. Le retirer la rendait à
+   * `/dashboard/messagerie`, celle d'un onglet Messagerie déjà ouvert, que la barre activait :
+   * l'agent atterrissait sur son ancienne Messagerie, sans le fil, et l'onglet d'où il venait
+   * devenait une Messagerie cachée.
+   */
+  const lienOuvert = useRef<string | null>(null)
   useEffect(() => {
-    if (params.get('add') === '1') { dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }); params.delete('add'); setParams(params, { replace: true }) }
-  }, [params, setParams])
+    if (!filLie || lienOuvert.current === filLie.id) return
+    lienOuvert.current = filLie.id
+    if (state.accountId !== filLie.account_id) dispatch({ type: 'select-account', accountId: filLie.account_id })
+    dispatch({ type: 'open', threadId: filLie.id })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- une fois par lien
+  }, [filLie])
+  // `?add=<jeton>` (depuis Réglages) ouvre l'assistant — une fois par demande : l'écran remonté
+  // (rechargement, onglet évincé puis rouvert) ne le rouvre pas sous l'agent, et la demande
+  // suivante, qui porte un autre jeton, l'ouvre bien. Le jeton traité se range dans l'onglet.
+  const [ajoutDemande] = useState(() => params.get('add'))
+  const [ajoutTraite, setAjoutTraite] = useTabScopedState<string | null>('ajout-boite', null)
+  useEffect(() => {
+    if (!ajoutDemande || ajoutTraite === ajoutDemande) return
+    setAjoutTraite(ajoutDemande)
+    dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } })
+  }, [ajoutDemande, ajoutTraite, setAjoutTraite])
 
   const editLabel = labels.labels.find((l) => l.id === state.editLabelId) ?? null
   /**
@@ -180,10 +228,64 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const idPiece = state.modal.kind === 'preview' || state.modal.kind === 'file' ? state.modal.attachmentId : null
   const piece = idPiece ? thread.data?.flatMap((m) => m.mail_attachments).find((a) => a.id === idPiece) ?? null : null
 
-  const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
-  const filASupprimer = idSuppression
-    ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
-    : null
+  const idsSuppression = state.modal.kind === 'delete' ? state.modal.threadIds : []
+  const filsASupprimer = idsSuppression
+    .map((id) => threads.rows.find((r) => r.id === id) ?? (filOuvert?.id === id ? filOuvert : null))
+    .filter((r): r is MailThreadRow => r !== null)
+
+  /**
+   * La SÉLECTION de la liste (15.09.2026) : les fils cochés que la page MONTRE encore. Un
+   * rafraîchissement (Realtime, synchro) peut en faire sortir un — il n'est alors plus
+   * compté, ni visé par le geste suivant.
+   */
+  const selectionVisible = threads.rows.filter((r) => state.selection.includes(r.id))
+  // Le dernier fil coché à la main : Maj+clic coche la plage qui va de lui au fil cliqué.
+  const [ancre, setAncre] = useState<string | null>(null)
+  const selectionner = (id: string, plage: boolean) => {
+    const de = ancre ? threads.rows.findIndex((r) => r.id === ancre) : -1
+    const a = threads.rows.findIndex((r) => r.id === id)
+    if (plage && de >= 0 && a >= 0) {
+      dispatch({ type: 'select-many', threadIds: threads.rows.slice(Math.min(de, a), Math.max(de, a) + 1).map((r) => r.id), on: true })
+    } else {
+      dispatch({ type: 'select', threadId: id })
+    }
+    setAncre(id)
+  }
+
+  /**
+   * Un geste sur la sélection, puis le compte rendu : combien sont passés. Un lot dont un
+   * fil a été refusé le DIT (notification d'alerte) — la liste, relue, montre lequel.
+   */
+  const agirEnLot = (action: MailThreadAction, ids: string[], apres?: () => void) => {
+    actions.actLot.mutate({ action, threadIds: ids }, {
+      onSuccess: ({ reussis, total }) => {
+        dispatch({ type: 'select-clear' })
+        apres?.()
+        const texte = reussis === total ? t(`mail.lot.${action}`, { count: reussis })
+          : reussis === 0 ? t('mail.lot.echec', { total }) : t('mail.lot.partiel', { reussis, total })
+        setNotification({ id: Date.now(), texte, alerte: reussis < total })
+      },
+    })
+  }
+
+  /** Les gestes de la barre de sélection, selon le dossier ouvert. */
+  const toutLu = selectionVisible.length > 0 && selectionVisible.every((r) => r.is_read)
+  const idsSelection = selectionVisible.map((r) => r.id)
+  const gestesLot: GesteLot[] = [
+    ...(state.folder === 'spam' ? [] : [state.folder === 'arch'
+      ? { cle: 'unarchive', libelle: t('mail.ctx.unarchive'), icone: 'inbox' as const, onClick: () => agirEnLot('unarchive', idsSelection) }
+      : { cle: 'archive', libelle: t('mail.ctx.archive'), icone: 'archive' as const, onClick: () => agirEnLot('archive', idsSelection) }]),
+    ...(state.folder === 'spam'
+      ? [{ cle: 'not_spam', libelle: t('mail.ctx.notSpam'), icone: 'inbox' as const, onClick: () => agirEnLot('not_spam', idsSelection) }]
+      // Rien à signaler dans une sélection qui n'a rien reçu (`rienASignaler`, mail-actions).
+      : selectionVisible.some((r) => r.last_inbound_at)
+        ? [{ cle: 'spam', libelle: t('mail.ctx.spam'), icone: 'spam' as const, onClick: () => agirEnLot('spam', idsSelection) }]
+        : []),
+    toutLu
+      ? { cle: 'mark_unread', libelle: t('mail.ctx.markUnread'), icone: 'mail', onClick: () => agirEnLot('mark_unread', idsSelection) }
+      : { cle: 'mark_read', libelle: t('mail.ctx.markRead'), icone: 'mail', onClick: () => agirEnLot('mark_read', idsSelection) },
+    { cle: 'trash', libelle: t('mail.ctx.delete'), icone: 'trash', danger: true, onClick: () => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: idsSelection, depuisSelection: true } }) },
+  ]
 
   /**
    * Créer, renommer ou recolorer — un seul geste d'écran, trois mutations
@@ -214,27 +316,77 @@ export function MessagerieApp({ dark, setDark }: Props) {
   }, [threads.rows, actions.act])
 
   /**
-   * Déconnexion d'UNE boîte, depuis le sélecteur du rail.
+   * Déconnexion d'UNE boîte, depuis le × du sélecteur du rail : le geste ouvre
+   * « Déconnecter cette boîte ? » (`MailDisconnectModal`), qui seul déconnecte.
    *
-   * ⚠ `window.confirm` et non une modale du dépôt, à dessein et par exception :
-   * le geste part d'un POPOVER, qui se ferme au premier clic dehors — une modale
-   * portée aurait dû survivre à la fermeture de son propre déclencheur, donc
-   * remonter dans l'état de l'écran pour un cas à trois lignes. Le natif bloque,
-   * et il y a un précédent (`ImportLeadPage:153`). À revoir si un second geste
-   * destructeur naît dans ce menu.
-   *
-   * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran doit repartir de
-   * zéro : sans ça il garderait un `accountId` qui n'existe plus et la liste
-   * resterait sur la dernière page servie.
+   * ⚠ La modale vit dans l'état de l'ÉCRAN et non dans le sélecteur : le popover se
+   * ferme au clic qui l'appelle, et une modale portée par lui mourrait avec lui.
    */
-  const deconnecterBoite = useCallback((id: string) => {
-    if (!window.confirm(t('mail.box.disconnectConfirm'))) return
-    accounts.disconnect.mutate(id, {
-      onSuccess: () => { if (state.accountId === id) dispatch({ type: 'select-account', accountId: null }) },
+  /**
+   * « Signaler comme spam » et « Ce n'est pas un spam », d'où qu'ils viennent (menu de la
+   * ligne, lecteur) — et la notification qui dit où le fil est parti : il QUITTE le
+   * dossier courant, et un fil qui disparaît sans un mot se cherche.
+   */
+  const signalerSpam = (fil: MailThreadRow) => {
+    const retour = fil.is_spam
+    actions.act.mutate({ action: retour ? 'not_spam' : 'spam', threadId: fil.id }, {
+      onSuccess: () => setNotification({ id: Date.now(), texte: t(retour ? 'mail.spam.restored' : 'mail.spam.reported') }),
     })
-  }, [accounts.disconnect, state.accountId, t])
+  }
+
+  /**
+   * « Planifier » (15.09.2026, Julien : « que les mails soient connectés avec le
+   * calendrier ») : l'e-mail devient un brouillon d'événement — objet, contact du fil,
+   * expéditeur et extrait en notes, et le lien retour —, déposé EN MÉMOIRE, puis le
+   * Calendrier s'ouvre dans un onglet neuf sur sa création pré-remplie. La Messagerie
+   * reste où elle était.
+   */
+  const tabs = useCrmTabsOptionnel()
+  const navigate = useNavigate()
+  const planifier = (fil: MailThreadRow) => {
+    const jeton = deposerBrouillonCalendrier(brouillonDepuisMail({
+      sujet: fil.subject,
+      extrait: fil.snippet,
+      expediteur: expediteurComplet(fil.from_name, fil.from_email),
+      date: new Date(fil.last_message_at).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      contactId: fil.contact_id,
+      mailThreadId: fil.id,
+      enTete: (o) => t('mail.plan.notes', o),
+    }))
+    if (tabs) tabs.ouvrirDans(`/dashboard/calendar?nouveau=${jeton}`)
+    else navigate(`/dashboard/calendar?nouveau=${jeton}`)
+  }
+
+  const deconnecterBoite = useCallback((id: string) => {
+    accounts.disconnect.reset()
+    dispatch({ type: 'modal', modal: { kind: 'disconnect', accountId: id } })
+  }, [accounts.disconnect])
+
+  const idDeconnexion = state.modal.kind === 'disconnect' ? state.modal.accountId : null
+  const boiteADeconnecter = idDeconnexion ? accounts.list.find((a) => a.id === idDeconnexion) ?? null : null
+  /**
+   * La déconnexion confirmée, puis la notification qui dit qu'elle a eu lieu (Julien,
+   * 14.09.2026) — un geste destructeur qui réussit en silence se refait.
+   *
+   * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran passe à la SUIVANTE,
+   * prise dans la liste d'avant le geste. Repartir de `null` laissait l'effet de
+   * sélection reprendre la première boîte de la liste pas encore rafraîchie — la boîte
+   * même qu'on venait de déconnecter, gardée ensuite comme un `accountId` orphelin.
+   */
+  const confirmerDeconnexion = () => {
+    const b = boiteADeconnecter
+    if (!b) return
+    accounts.disconnect.mutate(b.id, {
+      onSuccess: () => {
+        dispatch({ type: 'modal', modal: { kind: 'none' } })
+        if (state.accountId === b.id) dispatch({ type: 'select-account', accountId: accounts.list.find((a) => a.id !== b.id)?.id ?? null })
+        setNotification({ id: Date.now(), texte: t('mail.box.disconnected') })
+      },
+    })
+  }
 
   return (
+    <MailCadreContext.Provider value={cadre}>
     <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font)', color: sp.ink }}>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="messagerie" helpKey="messagerie" sp={sp} dark={dark} setDark={setDark}>
@@ -246,6 +398,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             carte latérale qu'il est censé border. */}
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div
+            ref={setCadre}
             data-mail-bento
             style={{
               position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden',
@@ -324,6 +477,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
               ) : state.sel && filOuvert ? (
                 thread.data ? (
                 <MailReader
+                  // Un fil, une lecture : ce qu'on y a déplié (le spam tenu à part) ne passe pas au suivant.
+                  key={filOuvert.id}
                   ms={ms}
                   lang={i18n.language.slice(0, 2)}
                   boxEmail={currentAccount?.email ?? ''}
@@ -332,7 +487,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   label={labels.labels.find((l) => l.id === filOuvert.label_id) ?? null}
                   composer={state.composer}
                   sending={send.isPending}
-                  sendError={send.error?.message ?? null}
+                  sendError={send.error ? t(`mail.sendError.${codeErreurEnvoi(send.error.message)}`) : null}
                   onBack={() => dispatch({ type: 'back' })}
                   onReply={() => { send.reset(); dispatch({ type: 'composer', composer: 'reply' }) }}
                   onForward={() => { send.reset(); dispatch({ type: 'composer', composer: 'forward' }) }}
@@ -341,7 +496,9 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
-                  onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: filOuvert.id } })}
+                  onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [filOuvert.id] } })}
+                  onSpam={() => { signalerSpam(filOuvert); dispatch({ type: 'back' }) }}
+                  onPlanifier={() => planifier(filOuvert)}
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
                   onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
                 />
@@ -396,9 +553,14 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onOpenDraft={(id) => { send.reset(); dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } }) }}
                   onStar={(r) => actions.act.mutate({ action: r.is_starred ? 'unstar' : 'star', threadId: r.id })}
                   onContext={(e, r) => dispatch({ type: 'ctx', ctx: { x: e.clientX, y: e.clientY, threadId: r.id } })}
+                  selection={state.selection}
+                  onSelect={selectionner}
+                  onSelectAll={(on) => dispatch(on ? { type: 'select-many', threadIds: threads.rows.map((r) => r.id), on: true } : { type: 'select-clear' })}
+                  gestesLot={gestesLot}
                 />
               )}
             </section>
+            <MailNotification ms={ms} notification={notification} onFin={() => setNotification(null)} />
           </div>
 
           {state.ctx && (() => {
@@ -416,7 +578,9 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onClose={() => dispatch({ type: 'ctx', ctx: null })}
                 onOpen={() => ouvrirFil(fil.id)}
                 onAction={(a) => actions.act.mutate({ action: a, threadId: fil.id })}
-                onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: fil.id } })}
+                onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [fil.id] } })}
+                onSpam={() => signalerSpam(fil)}
+                onPlanifier={() => planifier(fil)}
                 onLabel={(id) => actions.setLabel.mutate({ threadId: fil.id, labelId: id })}
               />
             )
@@ -439,17 +603,33 @@ export function MessagerieApp({ dark, setDark }: Props) {
           {state.modal.kind === 'compose' && (
             <MailComposeModal
               ms={ms}
+              boites={accounts.list}
+              boiteOuverte={state.accountId}
               draft={brouillonCompose}
               sending={send.isPending}
-              error={send.error?.message ?? null}
+              error={send.error ? t(`mail.sendError.${codeErreurEnvoi(send.error.message)}`) : null}
               onClose={(contenu) => {
                 // Fermer sans envoyer n'efface rien : la saisie devient un
-                // brouillon LOCAL (D7), jamais poussé chez le fournisseur.
-                if (contenu) drafts.save.mutate({ id: brouillonCompose?.id, kind: 'new', to: parseRecipients(contenu.to), subject: contenu.subject, body_text: contenu.body })
+                // brouillon LOCAL (D7), jamais poussé chez le fournisseur — rangé
+                // sous la boîte d'envoi choisie.
+                if (contenu) {
+                  drafts.save.mutate({
+                    id: brouillonCompose?.id, kind: 'new', account_id: contenu.accountId ?? undefined,
+                    to: contenu.to, cc: contenu.cc, bcc: contenu.bcc, subject: contenu.subject, body_text: contenu.body,
+                  })
+                }
                 dispatch({ type: 'modal', modal: { kind: 'none' } })
               }}
-              // README : à l'envoi, le message rejoint le dossier « Envoyés ».
-              onSend={(input) => send.mutate(input, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
+              // README : à l'envoi, le message rejoint le dossier « Envoyés » — celui de la
+              // boîte qui a ENVOYÉ, qui devient la boîte ouverte si c'en était une autre.
+              onSend={(input) => send.mutate(input, {
+                onSuccess: (d) => {
+                  apresEnvoi(d)
+                  dispatch({ type: 'modal', modal: { kind: 'none' } })
+                  if (input.account_id && input.account_id !== state.accountId) dispatch({ type: 'select-account', accountId: input.account_id })
+                  dispatch({ type: 'folder', folder: 'sent' })
+                },
+              })}
             />
           )}
 
@@ -513,20 +693,36 @@ export function MessagerieApp({ dark, setDark }: Props) {
             />
           )}
 
+          <MailDisconnectModal
+            ms={ms}
+            boite={boiteADeconnecter}
+            busy={accounts.disconnect.isPending}
+            error={accounts.disconnect.error ? t('mail.box.disconnectError') : null}
+            onCancel={() => { accounts.disconnect.reset(); dispatch({ type: 'modal', modal: { kind: 'none' } }) }}
+            onConfirm={confirmerDeconnexion}
+          />
+
           <MailDeleteModal
             ms={ms}
-            row={filASupprimer}
-            busy={actions.act.isPending}
+            rows={filsASupprimer}
+            busy={actions.act.isPending || actions.actLot.isPending}
             onCancel={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
             // On revient à la liste APRÈS la corbeille : fermer la modale sur la
             // lecture d'un fil qui n'y est plus laisserait un écran sans objet.
-            onConfirm={() => filASupprimer && actions.act.mutate({ action: 'trash', threadId: filASupprimer.id }, {
-              onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
-            })}
+            onConfirm={() => {
+              if (state.modal.kind === 'delete' && state.modal.depuisSelection && filsASupprimer.length > 0) {
+                agirEnLot('trash', filsASupprimer.map((r) => r.id), () => dispatch({ type: 'modal', modal: { kind: 'none' } }))
+              } else if (filsASupprimer.length === 1) {
+                actions.act.mutate({ action: 'trash', threadId: filsASupprimer[0].id }, {
+                  onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
+                })
+              }
+            }}
           />
         </main>
         </CrmWorkspace>
       </div>
     </div>
+    </MailCadreContext.Provider>
   )
 }

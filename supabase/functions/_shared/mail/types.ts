@@ -65,7 +65,14 @@ export interface NormalizedMessage {
   rfc822MessageId: string | null
   inReplyTo: string | null
   references: string[]
+  /** Le sens qui classe et affiche (`sensDuMessage`) — il peut être sortant sans `inSent`. */
   direction: MailDirection
+  /**
+   * Rangé par le fournisseur dans « Envoyés » (libellé `SENT`, Sent Items, dossier `\Sent`) : le
+   * seul FAIT qui dise que la boîte a écrit ce message — `From`, l'expéditeur l'écrit. Le journal
+   * `email_sent` et la reprise d'une ligne `pending:` l'exigent.
+   */
+  inSent: boolean
   from: MailAddress
   to: MailAddress[]
   cc: MailAddress[]
@@ -81,15 +88,20 @@ export interface NormalizedMessage {
   isStarred: boolean
   inInbox: boolean
   isTrashed: boolean
+  /** Rangé au spam par le fournisseur (libellé SPAM, dossier Courrier indésirable, dossier \Junk). */
+  isSpam: boolean
   isDraft: boolean
   providerLabels: string[]
   attachments: NormalizedAttachment[]
+  /** Corps ni téléchargé ni analysé (trop lourd, illisible) : l'écran le dit, `body_truncated` en base. */
+  corpsNonLu?: boolean
 }
 
-/** Les huit gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
+/** Les dix gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
 export type MailThreadAction =
   | 'mark_read' | 'mark_unread' | 'star' | 'unstar'
   | 'archive' | 'unarchive' | 'trash' | 'untrash'
+  | 'spam' | 'not_spam'
 
 /** Changement d'état venu du fournisseur (geste fait dans Gmail/Outlook). */
 export type RemoteChange =
@@ -101,6 +113,7 @@ export type RemoteChange =
       isStarred?: boolean
       inInbox?: boolean
       isTrashed?: boolean
+      isSpam?: boolean
     }
 
 export interface GmailCursor {
@@ -124,14 +137,30 @@ export interface GraphCursor {
   kind: 'outlook'
   inboxDelta: string | null
   sentDelta: string | null
+  /** Delta du Courrier indésirable (dossier Spam). Absent des curseurs écrits avant le 14.09.2026 — lu en `?? null`. */
+  junkDelta?: string | null
   initialDone: boolean
   /** Ids opaques des dossiers connus (inbox, sentitems, archive, deleteditems), résolus une fois. */
   folderIds: Record<string, string> | null
 }
 
+/**
+ * Où en est un dossier IMAP. Deux fronts, parce que l'import initial va du PLUS RÉCENT au
+ * plus ancien — comme Gmail — pendant que le courrier neuf continue d'arriver au-dessus.
+ */
+export interface ImapFolderCursor {
+  uidValidity: number
+  /** Le plus haut UID déjà vu : le courrier neuf commence au-dessus. */
+  lastUid: number
+  /** Import des 90 jours, à reculons : il reste les UID de `floorUid` à `backfillBelow - 1`. `null` = fini. */
+  backfillBelow?: number | null
+  floorUid?: number | null
+}
+
 export interface ImapCursor {
   kind: 'imap'
-  folders: Record<string, { uidValidity: number; lastUid: number }>
+  /** Par NOM de dossier tel que le serveur l'écrit (UTF-7 modifié compris). */
+  folders: Record<string, ImapFolderCursor>
   initialDone: boolean
 }
 

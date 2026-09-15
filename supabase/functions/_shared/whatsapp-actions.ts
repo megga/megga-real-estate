@@ -395,10 +395,10 @@ export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
 }
 
 /**
- * Point du jour : les MÊMES quatre sections que le push de 07h30 (visites, relances dues,
- * offres qui expirent, nouveaux leads vendeurs), lues par le même `loadAgencyData`, plus les
- * leads à compléter. C'est la réponse à « mon point du jour », que le template
- * `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
+ * Point du jour : les MÊMES cinq sections que le push de 07h30 (visites, rendez-vous du
+ * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs), lues par le même
+ * `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du jour », que
+ * le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
  */
 export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY

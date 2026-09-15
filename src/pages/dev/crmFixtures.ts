@@ -382,6 +382,19 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
     },
   ],
+  // Un ÉVÉNEMENT du calendrier (`calendar_events`, 20260915080300) : ni visite ni relance,
+  // gardé tel qu'on l'a saisi — titre, fin, type. Jointures portées par la ligne, comme
+  // les visites (le banc n'applique pas `select`).
+  calendar_events: [
+    {
+      id: 'ce1', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, type: 'notary', title: 'Signature chez le notaire · Champel',
+      starts_at: ilYA(-26), ends_at: ilYA(-27), all_day: false, location: 'Étude Exemple, Genève', notes: null, color: null,
+      recurrence: null, status: null, contact_id: 'c1', property_id: 'p1', mail_thread_id: null, calendar_label_id: null,
+      created_at: ilYA(30), updated_at: ilYA(30),
+      contact: { first_name: 'Camille', last_name: 'Rochat' },
+      property: { id: 'p1', title: 'Appartement 4,5 pièces · Champel', address: 'Avenue de Champel 12', city: 'Genève', price: 1_450_000, surface_m2: 118 },
+    },
+  ],
   // Libellés du Calendrier — des barreaux de la direction, pas des littéraux : la
   // couleur d'un libellé est une donnée saisie, et une fixture qui écrirait des
   // hexadécimaux ferait monter l'inventaire de couleurs du dossier `pages/dev`.
@@ -553,6 +566,18 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  // Les destinataires suggérés du composeur de la Messagerie. Mêmes jetons que la RPC —
+  // minuscules, cinq au plus, TOUS présents, chacun dans le prénom, le nom, l'adresse ou le
+  // téléphone. Sans elle, la saisie « comme Google » ne proposait AUCUN contact au banc.
+  mail_search_contacts: (a: Record<string, unknown>) => {
+    const jetons = String(a.p_q ?? '').toLowerCase().replace(/[,()%*_\\]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 5)
+    if (jetons.length === 0) return []
+    return (CRM_TABLES.contacts as typeof CONTACTS)
+      .filter((c) => jetons.every((j) => [c.first_name, c.last_name, c.email, c.phone].some((v) => (v ?? '').toLowerCase().includes(j))))
+      .sort((x, y) => `${x.last_name} ${x.first_name}`.localeCompare(`${y.last_name} ${y.first_name}`))
+      .slice(0, 10)
+      .map(({ id, first_name, last_name, email, phone }) => ({ id, first_name, last_name, email, phone }))
+  },
   // ⚠ LUES À CHAQUE APPEL, sur les fixtures VIVANTES : un libellé créé ou supprimé
   // dans le rail (`calendar_labels` est écrivable), ou posé par un clic droit,
   // doit se voir au rafraîchissement suivant. Une affectation vers un libellé

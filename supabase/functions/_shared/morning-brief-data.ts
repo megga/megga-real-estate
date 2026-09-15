@@ -1,4 +1,4 @@
-// Lecture des quatre sources du point du jour — partagée par le push de 07h30
+// Lecture des cinq sources du point du jour — partagée par le push de 07h30
 // (`whatsapp-morning-brief`) et l'outil `get_daily_brief` du copilote WhatsApp.
 //
 // POURQUOI UN SEUL LECTEUR. Hors fenêtre 24 h, le push part en template `agent_daily_brief` :
@@ -13,8 +13,9 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   SQL_LIMITS,
-  type BriefAgencyData, type BriefVisitRow, type BriefReminder, type BriefOffer, type BriefSellerLead,
+  type BriefAgencyData, type BriefVisitRow, type BriefEvent, type BriefReminder, type BriefOffer, type BriefSellerLead,
 } from './morning-brief.ts'
+import { filtreEvenementsDuJour, occurrencesDuJour } from './calendar-events.ts'
 
 type NameRow = { first_name: string | null; last_name: string | null } | null
 
@@ -22,7 +23,7 @@ function contactName(c: NameRow): string | null {
   return [c?.first_name, c?.last_name].filter(Boolean).join(' ') || null
 }
 
-// Les 4 sources du brief, scoppées AGENCE (comme le cockpit Aujourd'hui). En service
+// Les 5 sources du brief, scoppées AGENCE (comme le cockpit Aujourd'hui). En service
 // role la RLS est bypassée → le filtre agency_id est OBLIGATOIRE sur chaque requête.
 // (Les RPC du Focus type focus_top_matches dérivent l'agence de auth.uid() et
 // renvoient 0 ligne en service role — d'où des lectures de table directes.)
@@ -33,7 +34,7 @@ export async function loadAgencyData(
 ): Promise<BriefAgencyData | null> {
   const in48h = new Date(now.getTime() + 48 * 3600 * 1000).toISOString()
 
-  const [visitsRes, remindersRes, offersRes, leadsRes] = await Promise.all([
+  const [visitsRes, eventsRes, remindersRes, offersRes, leadsRes] = await Promise.all([
     admin.from('visits')
       .select('scheduled_at, buyer_name, agent_id, contact:contacts(first_name, last_name), property:properties(title, city)')
       .eq('agency_id', agencyId)
@@ -42,6 +43,14 @@ export async function loadAgencyData(
       .lt('scheduled_at', endIso)
       .order('scheduled_at', { ascending: true })
       .limit(SQL_LIMITS.visits),
+    // Les rendez-vous du Calendrier (20260915080300) — ils partaient en relance avant cette
+    // table, et le brief les voyait sous « À relancer » ; séries comprises, développées plus bas.
+    admin.from('calendar_events')
+      .select('type, starts_at, all_day, status, recurrence, contact:contacts(first_name, last_name)')
+      .eq('agency_id', agencyId)
+      .or(filtreEvenementsDuJour(startIso, endIso))
+      .order('starts_at', { ascending: true })
+      .limit(SQL_LIMITS.events),
     // Dues = échéance avant la fin de la journée locale, retard inclus.
     admin.from('reminders')
       .select('type, trigger_at, contact:contacts(first_name, last_name)')
@@ -72,7 +81,7 @@ export async function loadAgencyData(
       .limit(SQL_LIMITS.sellerLeads),
   ])
 
-  for (const res of [visitsRes, remindersRes, offersRes, leadsRes]) {
+  for (const res of [visitsRes, eventsRes, remindersRes, offersRes, leadsRes]) {
     if (res.error) {
       console.error('morning-brief agency query error:', res.error.message)
       return null
@@ -92,6 +101,12 @@ export async function loadAgencyData(
     agentId: v.agent_id,
   }))
 
+  const lignesEvenements = (eventsRes.data ?? []) as unknown as Array<{
+    type: string; starts_at: string; all_day: boolean; status: string | null; recurrence: unknown; contact: NameRow
+  }>
+  const events: BriefEvent[] = occurrencesDuJour(lignesEvenements, startIso, endIso)
+    .map((e) => ({ startsAt: e.debut, allDay: e.all_day, type: e.type, who: contactName(e.contact) }))
+
   const reminders: BriefReminder[] = ((remindersRes.data ?? []) as unknown as Array<{
     type: string; contact: NameRow
   }>).map((r) => ({ type: r.type, who: contactName(r.contact) }))
@@ -108,5 +123,5 @@ export async function loadAgencyData(
     estimationMedian: l.estimation_median,
   }))
 
-  return { visits, reminders, offers, sellerLeads }
+  return { visits, events, eventsAtLimit: lignesEvenements.length >= SQL_LIMITS.events, reminders, offers, sellerLeads }
 }

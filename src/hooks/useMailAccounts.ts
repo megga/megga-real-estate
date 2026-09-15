@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { invokeMail } from '@/lib/mail/invoke'
-import { FX_ACCOUNTS, FX_UNREAD, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { fxBoites, fxConnecterImap, fxDeconnecter, fxDetecterImap, fxNonLus, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { Database } from '@/types/database'
 
 export type MailProviderId = Database['public']['Tables']['mail_accounts']['Row']['provider']
@@ -20,14 +20,20 @@ export interface MailAccount {
   display_name: string | null; visibility: 'owner' | 'agency'; status: 'active' | 'reauth_required' | 'error' | 'disabled'
   last_sync_at: string | null; last_error: string | null; created_at: string
 }
+/** Ce que `connect_imap` reçoit. Pas de champ de chiffrement : le PORT le décide (993/465 d'emblée, 143/587 par STARTTLS). */
 export interface ImapForm {
   email: string; imap_host: string; imap_port: number; smtp_host: string; smtp_port: number
-  user: string; password: string; encryption: 'ssl' | 'starttls'; visibility: 'owner' | 'agency'
+  user: string; password: string; visibility: 'owner' | 'agency'
+}
+/** Les serveurs reconnus d'une adresse (`mail-oauth imap_detect`, `_shared/mail/imap-presets.ts`). */
+export interface ImapDetection {
+  oauth: 'gmail' | 'outlook' | null
+  preset: { nom: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; motDePasseApplication: boolean; activerImap?: boolean } | null
 }
 
 const COLS = 'id, agency_id, owner_id, provider, email, display_name, visibility, status, last_sync_at, last_error, created_at'
 
-/** Les boîtes de l'agent, leurs non-lus, et les quatre gestes de `mail-oauth`. */
+/** Les boîtes de l'agent, leurs non-lus, et les gestes de `mail-oauth`. */
 export function useMailAccounts() {
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -39,7 +45,7 @@ export function useMailAccounts() {
     queryKey: ['mail', 'accounts', fx],
     enabled: !!user || !!fx,
     queryFn: async (): Promise<MailAccount[]> => {
-      if (fx) return fx === 'none' ? [] : FX_ACCOUNTS
+      if (fx) return fx === 'none' ? [] : fxBoites()
       const { data, error } = await supabase.from('mail_accounts').select(COLS).order('created_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as MailAccount[]
@@ -50,7 +56,7 @@ export function useMailAccounts() {
     queryKey: ['mail', 'unread', fx],
     enabled: !!user || !!fx,
     queryFn: async (): Promise<Record<string, number>> => {
-      if (fx) return fx === 'full' ? FX_UNREAD : {}
+      if (fx) return fx === 'full' ? fxNonLus() : {}
       const { data, error } = await supabase.rpc('mail_unread_counts')
       if (error) throw error
       return Object.fromEntries((data ?? []).map((r) => [r.account_id, Number(r.unread)]))
@@ -71,13 +77,20 @@ export function useMailAccounts() {
     if (!r.error) invalidate()
     return r
   }, [invalidate])
+  // Banc : les deux gestes IMAP répondent des fixtures, sans réseau — comme la déconnexion.
+  const detectImap = useCallback(async (email: string) => {
+    if (fx) return fxDetecterImap(email)
+    return invokeMail<ImapDetection>('mail-oauth', { action: 'imap_detect', email })
+  }, [fx])
   const connectImap = useCallback(async (form: ImapForm) => {
-    const r = await invokeMail<{ account: MailAccount }>('mail-oauth', { action: 'connect_imap', ...form })
+    const r = fx ? await fxConnecterImap(form) : await invokeMail<{ account: MailAccount }>('mail-oauth', { action: 'connect_imap', ...form })
     if (!r.error) invalidate()
     return r
-  }, [invalidate])
+  }, [fx, invalidate])
   const disconnect = useMutation({
     mutationFn: async (accountId: string) => {
+      // Banc : la boîte quitte les fixtures, comme les lectures y répondent — sans réseau.
+      if (fx) { fxDeconnecter(accountId); return }
       const r = await invokeMail('mail-oauth', { action: 'disconnect', account_id: accountId })
       if (r.error) throw new Error(r.error)
     },
@@ -102,5 +115,5 @@ export function useMailAccounts() {
   // et l'écran serait passé du blanc au vide sans qu'on sache lequel il montre.
   // En répondant dans la `queryFn` la requête RÉSOUT : le banc emprunte le même
   // chemin que la production, cache et `staleTime` compris.
-  return { list: list.data ?? [], isLoading: list.isPending, unread: unread.data ?? {}, startOAuth, exchange, connectImap, disconnect, update, invalidate }
+  return { list: list.data ?? [], isLoading: list.isPending, unread: unread.data ?? {}, startOAuth, exchange, detectImap, connectImap, disconnect, update, invalidate }
 }

@@ -1,20 +1,22 @@
 // supabase/functions/_shared/mail/sync.ts
 // Une passe de synchronisation d'un compte, bornée par un budget de temps.
 // Curseurs (types.ts) : Gmail = historyId + pageToken de la passe initiale ;
-// Graph = deltaLink/nextLink par dossier + ids de dossiers.
+// Graph = deltaLink/nextLink par dossier + ids de dossiers ; IMAP = UID par dossier
+// (courrier neuf au-dessus de `lastUid`, import des 90 jours à reculons — imap.ts).
 // Échecs : reauth_required ⇒ le compte est déjà marqué (secrets.ts) ; autre
 // erreur ⇒ last_error + backoff 10 min, statut inchangé (transitoire).
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import type { GmailCursor, GraphCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
+import type { GmailCursor, GraphCursor, ImapCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
 import { MailAuthError, getValidAccessToken } from './secrets.ts'
 import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, historyToChanges, nextHistoryCursor, normalizeGmailMessage } from './gmail.ts'
-import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
+import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval, type GraphFolder } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
+import { imapSyncPass, type ImapDeps } from './imap.ts'
 import type { RemoteChange } from './types.ts'
 import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
-export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
+export interface SyncDeps { fetch?: typeof fetch; now?: () => number; dial?: ImapDeps['dial'] }
 export interface SyncOutcome {
   inserted: number
   updated: number
@@ -28,6 +30,8 @@ export interface SyncOutcome {
 }
 
 const INITIAL_WINDOW_DAYS = 90
+/** Le Courrier indésirable, sur 30 jours seulement : ce que Gmail garde de son spam (même règle en IMAP). */
+const SPAM_WINDOW_DAYS = 30
 const NEXT_TICK_MS = 2 * 60_000
 /**
  * Délai d'une passe initiale INACHEVÉE. ⚠ Ce n'était pas un délai mais `0` — un compte en
@@ -63,8 +67,8 @@ const MAX_CONSECUTIVE_FAILURES = 5
 /** Le backoff s'élargit avec les échecs (10, 20, 30… min), plafonné à 1 h. */
 const MAX_BACKOFF_MS = 60 * 60_000
 
-function since(now: number): string {
-  return new Date(now - INITIAL_WINDOW_DAYS * 86_400_000).toISOString()
+function since(now: number, days = INITIAL_WINDOW_DAYS): string {
+  return new Date(now - days * 86_400_000).toISOString()
 }
 
 /**
@@ -117,12 +121,36 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
       out.skipped = 'locked'
       return out
     }
+    /**
+     * ⛔ UNE PASSE TUÉE NE LAISSE PLUS LE COMPTE EN TÊTE DE FILE. Un worker que l'edge abat
+     * (mémoire, 2 s de CPU, limite d'horloge) n'exécute ni la fin de ce `try`, ni le `catch`,
+     * ni le `finally` : `next_sync_at` et `sync_failures` n'étaient jamais écrits, et le
+     * compte — le plus anciennement dû — repassait EN TÊTE de chaque balayage, qui le traitait
+     * en premier et mourait avec lui. Un seul serveur hostile arrêtait ainsi la synchro de
+     * toutes les boîtes du produit. L'échec est désormais PRÉSUMÉ avant le travail — compté,
+     * backoff posé — et effacé par le succès ; le `catch` réécrit la même valeur. Après
+     * MAX_CONSECUTIVE_FAILURES passes mortes sans un mot, le compte quitte le balayage.
+     */
+    const presume = (account.sync_failures ?? 0) + 1
+    if (presume > MAX_CONSECUTIVE_FAILURES) {
+      const msg = 'passes interrompues à répétition'
+      const { error: eStop } = await admin.from('mail_accounts').update({ status: 'error', last_error: msg }).eq('id', account.id)
+      if (eStop) console.error(`[mail-sync] ${account.id}: arrêt non écrit (${eStop.message})`)
+      out.error = msg
+      return out
+    }
+    const { error: eClaim } = await admin.from('mail_accounts').update({
+      sync_failures: presume,
+      next_sync_at: new Date(now() + Math.min(BACKOFF_MS * presume, MAX_BACKOFF_MS)).toISOString(),
+    }).eq('id', account.id)
+    if (eClaim) throw new Error(`claim write: ${eClaim.message}`)
     // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
     // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
     await assertOwnerStillInAgency(admin, account)
     let cursor: SyncCursor
     if (account.provider === 'gmail') cursor = await syncGmail(admin, account, cfg, budgetMs, start, deps, out)
     else if (account.provider === 'outlook') cursor = await syncGraph(admin, account, cfg, budgetMs, start, deps, out)
+    else if (account.provider === 'imap') cursor = await syncImap(admin, account, budgetMs, start, deps, out)
     else throw new Error(`provider ${account.provider} not supported by this build`)
     // ⛔ L'écriture du curseur est VÉRIFIÉE. Muette, elle laissait `{ done: true,
     // error: null }` sur une passe qui n'avait rien mémorisé : la passe initiale
@@ -272,14 +300,18 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   const token = await getValidAccessToken(admin, account, cfg.outlook, deps)
   const c: GraphCursor = (account.sync_cursor as GraphCursor)?.kind === 'outlook'
     ? (account.sync_cursor as GraphCursor)
-    : { kind: 'outlook', inboxDelta: null, sentDelta: null, initialDone: false, folderIds: null }
+    : { kind: 'outlook', inboxDelta: null, sentDelta: null, junkDelta: null, initialDone: false, folderIds: null }
   if (!c.folderIds) c.folderIds = await graphFolderIds(token, deps)
 
-  const folders: { name: 'inbox' | 'sentitems'; key: 'inboxDelta' | 'sentDelta' }[] = [{ name: 'inbox', key: 'inboxDelta' }, { name: 'sentitems', key: 'sentDelta' }]
+  // Le Courrier indésirable seulement s'il existe : c'est un dossier de confort (graphFolderIds).
+  const folders: { name: GraphFolder; key: 'inboxDelta' | 'sentDelta' | 'junkDelta' }[] = [
+    { name: 'inbox', key: 'inboxDelta' }, { name: 'sentitems', key: 'sentDelta' },
+    ...(c.folderIds.junkemail ? [{ name: 'junkemail' as const, key: 'junkDelta' as const }] : []),
+  ]
   let allSettled = true
   for (const f of folders) {
     if (now() - start >= budgetMs) { allSettled = false; break }
-    const d = await graphDelta(token, f.name, c[f.key], since(now()), deps)
+    const d = await graphDelta(token, f.name, c[f.key] ?? null, since(now(), f.name === 'junkemail' ? SPAM_WINDOW_DAYS : INITIAL_WINDOW_DAYS), deps)
     const ids = d.items.filter((i) => !i['@removed']).map((i) => i.id)
     // Une lecture en échec ferait passer TOUS les messages connus pour neufs : autant
     // de GET de corps et de pièces inutiles, et un `update` complet de chaque ligne.
@@ -317,4 +349,14 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   if (allSettled) c.initialDone = true
   out.done = allSettled
   return c
+}
+
+// ── IMAP ──────────────────────────────────────────────────────────────────────
+async function syncImap(admin: SupabaseClient, account: MailAccountRow, budgetMs: number, start: number, deps: SyncDeps, out: SyncOutcome): Promise<ImapCursor> {
+  const now = deps.now ?? Date.now
+  const precedent = (account.sync_cursor as ImapCursor)?.kind === 'imap' ? (account.sync_cursor as ImapCursor) : null
+  const r = await imapSyncPass(admin, account, precedent, Math.max(0, budgetMs - (now() - start)), { dial: deps.dial, now })
+  out.inserted += r.inserted; out.updated += r.updated; out.changes += r.changes; out.auditFailures += r.auditFailures
+  out.done = r.done
+  return r.cursor
 }

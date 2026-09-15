@@ -2,14 +2,15 @@
 // Adaptateur Microsoft Graph v1.0 (délégué, jeton utilisateur). Voir l'en-tête de
 // la tâche 1.7 du plan pour les cinq faits Graph qui décident de ce code.
 import type { NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
-import { htmlToText, snippetOf } from './mime.ts'
+import { htmlToText, nettoyerMessageId, nettoyerReferences, sensDuMessage, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
 const BASE = 'https://graph.microsoft.com/v1.0'
 export const GRAPH_PAGE_SIZE = 50
 const DELTA_SELECT = 'id,conversationId,internetMessageId,subject,bodyPreview,from,toRecipients,ccRecipients,bccRecipients,replyTo,receivedDateTime,sentDateTime,isRead,isDraft,hasAttachments,flag,parentFolderId'
-export const GRAPH_FOLDERS = ['inbox', 'sentitems', 'archive', 'deleteditems'] as const
-export type GraphFolder = 'inbox' | 'sentitems'
+export const GRAPH_FOLDERS = ['inbox', 'sentitems', 'archive', 'deleteditems', 'junkemail'] as const
+/** Les dossiers que le delta parcourt. `junkemail` (Courrier indésirable) depuis le 14.09.2026 : le dossier « Spam » du CRM. */
+export type GraphFolder = 'inbox' | 'sentitems' | 'junkemail'
 
 export interface GraphDeps { fetch?: typeof fetch }
 export interface GraphRecipient { emailAddress: { name: string | null; address: string } }
@@ -114,7 +115,10 @@ async function gcall<T>(token: string, url: string, deps: GraphDeps, init: Reque
 }
 
 /**
- * Ids des quatre dossiers connus, résolus une fois puis persistés dans le curseur.
+ * Ids des dossiers connus, résolus une fois puis persistés dans le curseur.
+ *
+ * ⚠ `junkemail` est un dossier de CONFORT au sens ci-dessous : une boîte sans Courrier
+ * indésirable se synchronise quand même, sans dossier Spam.
  *
  * ⛔ DEUX SONT PORTEURS, DEUX SONT DE CONFORT — et confondre les deux BRIQUAIT le compte.
  * `inbox` et `sentitems` sont les dossiers que le delta parcourt : sans eux il n'y a rien
@@ -213,17 +217,45 @@ export async function graphAttachmentBytes(token: string, messageId: string, att
   return new Uint8Array(await res.arrayBuffer())
 }
 
-export async function graphPatch(token: string, id: string, patch: { isRead?: boolean; flagged?: boolean }, deps: GraphDeps = {}): Promise<void> {
-  const body: Record<string, unknown> = {}
-  if (patch.isRead !== undefined) body.isRead = patch.isRead
-  if (patch.flagged !== undefined) body.flag = { flagStatus: patch.flagged ? 'flagged' : 'notFlagged' }
-  await gcall(token, `/me/messages/${encodeURIComponent(id)}`, deps, { method: 'PATCH', body: JSON.stringify(body) })
-}
+/** Une requête d'un `$batch` Graph, et ce qu'il en a répondu. */
+export interface GraphSousRequete { method: 'PATCH' | 'POST'; url: string; body: Record<string, unknown> }
+export interface GraphSousReponse { status: number; body: Record<string, unknown> | null }
 
-/** Déplace et rend le NOUVEL id. */
-export async function graphMove(token: string, id: string, destination: 'inbox' | 'archive' | 'deleteditems', deps: GraphDeps = {}): Promise<string> {
-  const j = await gcall<{ id: string }>(token, `/me/messages/${encodeURIComponent(id)}/move`, deps, { method: 'POST', body: JSON.stringify({ destinationId: destination }) })
-  return j.id
+/** Le plafond de requêtes par `$batch` (JSON batching, Microsoft Graph). */
+export const GRAPH_BATCH_MAX = 20
+
+/**
+ * Envoie des requêtes par `$batch`, `GRAPH_BATCH_MAX` à la fois, et rend la réponse de CHACUNE,
+ * dans l'ordre — un statut par message, là où `batchModify` de Gmail n'en a qu'un pour tous.
+ * Un `$batch` qui échoue en entier rend son statut à chacune de ses requêtes (0 si le réseau).
+ *
+ * ⚠ Les en-têtes du `$batch` ne descendent PAS dans ses requêtes : `Prefer: IdType="ImmutableId"`
+ * est posé sur chacune, sans quoi un déplacement rendrait un id qui change (cf. `withImmutableId`).
+ */
+export async function graphBatch(token: string, requetes: GraphSousRequete[], deps: GraphDeps = {}): Promise<GraphSousReponse[]> {
+  const out: GraphSousReponse[] = []
+  for (let i = 0; i < requetes.length; i += GRAPH_BATCH_MAX) {
+    const lot = requetes.slice(i, i + GRAPH_BATCH_MAX)
+    const corps = {
+      requests: lot.map((r, n) => ({
+        id: String(n), method: r.method, url: r.url, body: r.body,
+        headers: { 'Content-Type': 'application/json', Prefer: IMMUTABLE_ID_PREFER },
+      })),
+    }
+    let reponses: { id: string; status: number; body?: Record<string, unknown> | null }[]
+    try {
+      reponses = (await gcall<{ responses?: typeof reponses }>(token, '/$batch', deps, { method: 'POST', body: JSON.stringify(corps) }))?.responses ?? []
+    } catch (e) {
+      console.error(`[mail graph] $batch refusé (${lot.length} requêtes): ${e instanceof Error ? e.message : String(e)}`)
+      const statut = e instanceof GraphApiError ? e.status : 0
+      out.push(...lot.map(() => ({ status: statut, body: null })))
+      continue
+    }
+    // Les réponses d'un `$batch` n'arrivent pas dans l'ordre des requêtes : on les range par id.
+    const parId = new Map(reponses.map((r) => [r.id, r]))
+    out.push(...lot.map((_, n) => { const r = parId.get(String(n)); return { status: r?.status ?? 0, body: r?.body ?? null } }))
+  }
+  return out
 }
 
 export interface GraphOutgoing {
@@ -314,7 +346,7 @@ export function normalizeGraphMessage(
 ): NormalizedMessage {
   const from = addr(m.from) ?? { name: null, email: '' }
   const inSent = sameFolder(m.parentFolderId, folderIds.sentitems)
-  const outbound = inSent || from.email === boxEmail.toLowerCase()
+  const replyTo = addr(m.replyTo?.[0])?.email ?? null
   const html = body.body?.contentType?.toLowerCase() === 'html' ? body.body.content : null
   const text = html ? htmlToText(html) : (body.body?.content ?? null)
   const hdr = (n: string) => (body.internetMessageHeaders ?? []).find((h) => h.name.toLowerCase() === n.toLowerCase())?.value ?? ''
@@ -325,15 +357,17 @@ export function normalizeGraphMessage(
   return {
     providerMessageId: m.id,
     providerThreadId: m.conversationId ?? m.id,
-    rfc822MessageId: m.internetMessageId ?? null,
-    inReplyTo: hdr('In-Reply-To') || null,
-    references: hdr('References').split(/\s+/).filter(Boolean),
-    direction: outbound ? 'outbound' : 'inbound',
+    // Texte d'expéditeur, même pour Graph : même nettoyage que Gmail et IMAP (`nettoyerMessageId`).
+    rfc822MessageId: nettoyerMessageId(m.internetMessageId),
+    inReplyTo: nettoyerMessageId(hdr('In-Reply-To')),
+    references: nettoyerReferences(hdr('References')),
+    direction: sensDuMessage({ dansEnvoyes: inSent, spam: sameFolder(m.parentFolderId, folderIds.junkemail), from: from.email, replyTo, boite: boxEmail }),
+    inSent,
     from,
     to: addrs(m.toRecipients),
     cc: addrs(m.ccRecipients),
     bcc: addrs(m.bccRecipients),
-    replyTo: addr(m.replyTo?.[0])?.email ?? null,
+    replyTo,
     subject: m.subject ?? '',
     snippet: snippetOf(m.bodyPreview ?? text ?? ''),
     bodyText: text,
@@ -343,6 +377,7 @@ export function normalizeGraphMessage(
     isStarred: m.flag?.flagStatus === 'flagged',
     inInbox: sameFolder(m.parentFolderId, folderIds.inbox),
     isTrashed: sameFolder(m.parentFolderId, folderIds.deleteditems),
+    isSpam: sameFolder(m.parentFolderId, folderIds.junkemail),
     isDraft: !!m.isDraft,
     providerLabels: m.parentFolderId ? [m.parentFolderId] : [],
     attachments,
@@ -391,6 +426,7 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
     if (it.parentFolderId !== undefined) {
       f.inInbox = sameFolder(it.parentFolderId, folderIds.inbox)
       f.isTrashed = sameFolder(it.parentFolderId, folderIds.deleteditems)
+      f.isSpam = sameFolder(it.parentFolderId, folderIds.junkemail)
     }
     // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
     // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
@@ -431,5 +467,6 @@ export async function resolveGraphRemoval(
     kind: 'flags', providerMessageId: r.id,
     inInbox: sameFolder(parentFolderId, folderIds.inbox),
     isTrashed: sameFolder(parentFolderId, folderIds.deleteditems),
+    isSpam: sameFolder(parentFolderId, folderIds.junkemail),
   }
 }

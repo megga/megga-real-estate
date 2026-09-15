@@ -222,6 +222,18 @@ calendar_labels (id, agency_id, name, color, position, created_at, updated_at)
   --   l'agence de l'appelant — la LECTURE, hors de la requête du Calendrier
   -- RPC calendar_set_event_label(p_source, p_event_id, p_label_id default null) :
   --   l'ÉCRITURE, ne touche QUE la colonne du libellé (omettre p_label_id le retire)
+  --   ; source 'event' (calendar_events) depuis 20260915080300
+
+-- Événements du Calendrier (15.09.2026, 20260915080300) : ni visite, ni relance, ni RDV
+-- KYC — gardés TELS QU'ON LES A SAISIS. Ils partaient en reminders et revenaient « Tâche ».
+calendar_events (id, agency_id, created_by → profiles, type, title, starts_at, ends_at,
+  all_day, location, notes, color, recurrence jsonb, status, contact_id → contacts,
+  property_id → properties, mail_thread_id → mail_threads, calendar_label_id,
+  created_at, updated_at)
+  -- type : CHECK ('visite','mandate','notary','task','publish','kyc','autre') ;
+  --   title 1..200 ; ends_at ≥ starts_at ; color hexa ; status null|'done'|'cancelled'
+  -- mail_thread_id : l'e-mail d'origine (« Planifier » dans la Messagerie), le lien retour
+  -- (calendar_label_id, agency_id) → calendar_labels : même FK composite que les autres
 
 -- Dossiers KYC
 kyc_cases (id, agency_id, transaction_id, contact_id, type, risk_level, status, completion_pct, validated_by, validated_at, created_at)
@@ -295,6 +307,7 @@ mail_threads (
   last_message_at, last_inbound_at, last_outbound_at,
   message_count, has_attachments,
   is_read, is_starred, is_archived, is_trashed,
+  is_spam,           -- 20260915080200 : suit le message ENTRANT le plus récent, comme is_archived
   label_id,          -- FK mail_labels ON DELETE SET NULL
   contact_id,        -- FK contacts ON DELETE SET NULL — rattachement D11
   search_text,       -- GENERATED ALWAYS … STORED : lower(from_name+from_email+subject+snippet)
@@ -302,8 +315,11 @@ mail_threads (
 )
   -- unique (account_id, provider_thread_id)
   -- ⚠ IL N'Y A PAS DE COLONNE « dossier » : les dossiers SONT des requêtes (D8),
-  --   dérivées de is_archived / is_starred / is_trashed / last_inbound_at /
-  --   last_outbound_at par mail_list_threads(p_folder in 'in'|'arch'|'star'|'sent')
+  --   dérivées de is_archived / is_starred / is_trashed / is_spam / last_inbound_at /
+  --   last_outbound_at par mail_list_threads(p_folder in 'in'|'arch'|'star'|'sent'|'spam')
+  -- ⛔ le spam n'apparaît QUE dans 'spam' : les quatre autres dossiers, les non-lus et les
+  --   compteurs de libellés l'excluent (sans quoi un message rangé au spam par le
+  --   fournisseur, sorti de la Réception, se lisait « archivé »)
   -- REPLICA IDENTITY FULL + table publiée dans supabase_realtime : sans elle
   --   l'ancienne ligne d'un DELETE ne porte que la PK, donc pas d'agency_id, et
   --   le filtre serveur du lot 2 jetterait l'événement
@@ -317,8 +333,9 @@ mail_messages (
   subject, snippet,
   body_text, body_html, body_truncated,             -- HTML plafonné à 512 Kio
   sent_at, is_read, has_attachments,
+  is_spam,           -- 20260915080200 : au spam chez le fournisseur (SPAM, junkemail, \Junk)
   provider_labels,   -- text[] : libellés du fournisseur, distincts de mail_labels
-  contact_id, created_at
+  contact_id, created_at   -- contact_id toujours NULL sur un spam : jamais rattaché ni journalisé
 )
   -- unique (account_id, provider_message_id) : l'idempotence de l'ingestion
   -- index (thread_id, sent_at) et (account_id, rfc822_message_id) partiel
@@ -340,10 +357,17 @@ mail_drafts (
   id, account_id, agency_id, author_id,
   kind,              -- 'new' | 'reply' | 'forward'
   thread_id, in_reply_to_message_id,
-  "to", cc, subject, body_text,
+  "to", cc, bcc, subject, body_text,   -- jsonb [{name,email}] ; bcc : 20260915080100
   attachments,       -- jsonb [{name,size,storage_path}] : pièces déjà déposées
   created_at, updated_at
 )
+
+-- Logos des expéditeurs (14.09.2026, 20260915080000) : l'image publique de la société
+-- expéditrice, PAR BOÎTE — jamais par domaine global (voir la RLS plus bas).
+mail_sender_logos (account_id → mail_accounts on delete cascade, domain, status 'found'|'none',
+  source 'bimi'|'apple-touch-icon'|'icon'|'favicon', mime, data (base64 ≤ 96 Kio), checked_at)
+  -- PK (account_id, domain) ; CHECK : un 'found' porte data + mime + source, un 'none' rien
+  -- écrit par l'edge mail-logos (service_role) ; revérifié à 30 jours ('found') / 7 ('none')
 
 -- Alias appris (D11) : « cette adresse est ce contact », mémorisé une fois.
 mail_contact_aliases (id, agency_id, email, contact_id, learned_by, created_at)
@@ -357,10 +381,13 @@ mail_cron_locks (job, locked_until)
 
 -- RPC de lecture (SECURITY INVOKER : la RLS filtre, les totaux sont calculés sur
 -- ce que l'appelant a le droit de voir) : mail_list_threads, mail_unread_counts,
--- mail_folder_counts, mail_search_contacts.
--- mail_match_contact_by_emails(agency_id, emails[]) est la seule SECURITY DEFINER
+-- mail_folder_counts (+ spam depuis 20260915080200), mail_search_contacts.
+-- mail_match_contact_by_emails(agency_id, emails[]) est une SECURITY DEFINER
 -- de lecture : appelée par l'ingestion service-role, qui n'a pas d'auth.uid() —
 -- l'agence vient du compte, jamais du réseau.
+-- mail_spam_message_ids(uuid[]) (20260915080200), SECURITY DEFINER bornée à l'agence : la
+-- fiche du contact demande lesquels de ses courriers sont du spam, pour les écarter —
+-- y compris ceux d'une boîte personnelle dont un collègue voit le FAIT sans lire la boîte.
 
 -- Audit trail
 activity_events (id, agency_id, actor_id, action, entity_type, entity_id, metadata, created_at)
@@ -456,6 +483,10 @@ de récursion) :
   autre agence, qui gouvernerait dès lors le champ).
 - mail_labels / mail_drafts : CRUD client. mail_drafts est restreinte à son auteur
   (author_id = auth.uid()).
+- mail_sender_logos : SELECT client par `mail_account_visible(account_id)`, AUCUNE écriture
+  client. ⛔ Par boîte et non par domaine : une table globale livrerait les correspondants de
+  toutes les agences, et même rangée par agence elle révélerait au bureau les domaines d'une
+  boîte PERSONNELLE. L'edge ne recopie pas un logo d'une boîte à l'autre (oracle de temps).
 - mail_oauth_states / mail_cron_locks / mail_contact_aliases : RLS activée, AUCUNE policy
   → service_role seul. ⛔ mail_contact_aliases était CRUD client jusqu'au 13.09.2026
   (migration 20260913150000) : toute l'agence lisait l'adresse d'un correspondant apprise
@@ -465,6 +496,9 @@ de récursion) :
   contact est de l'agence ET que l'adresse est celle d'un correspondant externe du fil (ni
   la boîte, ni un alias d'envoi — l'expéditeur d'un sortant —, ni une adresse interne) ;
   l'unique lecteur est l'ingestion.
+- calendar_events : CRUD client borné à l'agence (get_my_agency_id()), anon révoqué ; le
+  WITH CHECK n'accepte un mail_thread_id que si le fil est VISIBLE de l'appelant (RLS de
+  mail_threads) — sans ça la clé étrangère laissait citer le fil d'une boîte personnelle.
 - calendar_labels : CRUD client borné à l'agence (get_my_agency_id()), anon révoqué.
   Les deux RPC du Calendrier sont SECURITY DEFINER, search_path vide, fermées à anon :
   la lecture ne rend que des identifiants ; l'écriture ne touche que calendar_label_id

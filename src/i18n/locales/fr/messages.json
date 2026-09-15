@@ -127,10 +127,7 @@
       "title": "Ajouter une boîte",
       "back": "Retour",
       "share": "Partager cette boîte avec toute l'agence",
-      "waSub": "Coexistence · app + Cloud API sur le même numéro",
-      "imapSub": "Connexion IMAP / SMTP",
       "other": "Autre boîte (IMAP / SMTP)",
-      "otherSub": "Configuration manuelle du serveur",
       "oauth": {
         "subtitle": "Autorisation du compte",
         "addr": "Adresse e-mail",
@@ -156,22 +153,43 @@
         }
       },
       "imap": {
-        "subtitle": "Connexion IMAP / SMTP",
         "email": "Adresse e-mail",
         "imapHost": "Serveur IMAP",
         "smtpHost": "Serveur SMTP",
-        "port": "Port",
         "imapPort": "Port IMAP",
         "smtpPort": "Port SMTP",
         "user": "Utilisateur",
         "password": "Mot de passe",
-        "encryption": "Chiffrement",
-        "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.",
+        "showPassword": "Afficher le mot de passe",
+        "hidePassword": "Masquer le mot de passe",
         "test": "Tester et connecter",
-        "unavailable": "La connexion IMAP arrive dans une prochaine version.",
+        "testing": "Test des serveurs…",
+        "detect": {
+          "searching": "Recherche des serveurs…",
+          "found": "Serveurs {{provider}} renseignés.",
+          "appPassword": "Ce fournisseur exige un mot de passe d'application.",
+          "enableImap": "Activez d'abord l'accès IMAP dans les réglages de {{provider}}.",
+          "none": "Serveurs non reconnus : saisissez ceux de votre hébergeur.",
+          "google": "Adresse Google : la connexion par Google évite le mot de passe d'application.",
+          "microsoft": "Adresse Microsoft : Microsoft n'accepte plus de mot de passe en IMAP.",
+          "useOauth": "Connecter avec {{provider}}"
+        },
         "err": {
           "invalid": "Adresse, serveurs et mot de passe sont requis.",
-          "starttls": "STARTTLS (port 587) n'est pas disponible depuis nos serveurs. Utilisez SSL/TLS sur le port 465.",
+          "port": "Ports acceptés : 993 ou 143 pour IMAP, 465 ou 587 pour SMTP.",
+          "host": "Serveur introuvable : vérifiez le nom des serveurs IMAP et SMTP.",
+          "already": "Cette adresse est déjà connectée par {{provider}}.",
+          "colleague": "Cette adresse est déjà connectée par un autre membre de l'agence. Seul son propriétaire peut la reconnecter.",
+          "tooMany": "Trop de tentatives de connexion en une heure. Réessayez plus tard.",
+          "imapAuth": "Identifiant ou mot de passe refusé par le serveur IMAP. Si la boîte a la validation en deux étapes, utilisez un mot de passe d'application.",
+          "imapTemporary": "Le serveur refuse la connexion pour le moment (trop de connexions ouvertes, ou service indisponible). Réessayez dans quelques minutes.",
+          "imapUnreachable": "Le serveur IMAP ne répond pas : vérifiez son nom et son port.",
+          "imapStarttls": "Ce serveur IMAP n'accepte pas STARTTLS sur le port 143 : choisissez 993.",
+          "imapCertificate": "Le certificat du serveur IMAP ne vaut pas pour ce nom : utilisez le nom de serveur donné par votre hébergeur.",
+          "smtpAuth": "Le serveur d'envoi (SMTP) refuse l'identifiant ou le mot de passe.",
+          "smtpUnreachable": "Le serveur d'envoi (SMTP) ne répond pas : vérifiez son nom et son port.",
+          "smtpStarttls": "Le serveur d'envoi n'accepte pas STARTTLS sur ce port : choisissez 465.",
+          "smtpCertificate": "Le certificat du serveur d'envoi (SMTP) ne vaut pas pour ce nom : utilisez le nom donné par votre hébergeur.",
           "connection": "Connexion refusée : vérifiez l'identifiant, le mot de passe (ou mot de passe d'application) et les serveurs.",
           "generic": "La connexion a échoué. Réessayez dans un instant."
         }
@@ -181,7 +199,7 @@
         "sync": "Synchronisation",
         "syncValue": "90 derniers jours",
         "folders": "Dossiers importés",
-        "foldersValue": "Réception, Envoyés",
+        "foldersValue": "Réception, Envoyés, Spam",
         "linking": "Rattachement aux contacts",
         "linkingValue": "Actif",
         "another": "Ajouter une autre",
@@ -191,19 +209,22 @@
     "box": {
       "label": "Boîte",
       "none": "Aucune boîte",
-      "synced": "synchronisée",
       "disconnect": "Déconnecter",
-      "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.",
+      "disconnectTitle": "Déconnecter cette boîte ?",
+      "disconnectBody": "Ses messages seront retirés du CRM. Les documents déjà classés restent dans leurs dossiers, et la boîte elle-même reste intacte chez son fournisseur.",
+      "disconnecting": "Déconnexion…",
+      "disconnected": "Boîte déconnectée",
       "status": {
         "reauth_required": "Autorisation à renouveler",
         "error": "Erreur de synchronisation",
         "disabled": "Désactivée"
-      }
+      },
+      "disconnectError": "La boîte n'a pas pu être déconnectée. Réessayez dans un instant."
     },
     "compose": {
       "cta": "Nouveau message",
       "to": "Destinataire",
-      "toPlaceholder": "À · destinataire",
+      "toPlaceholder": "Nom ou adresse e-mail",
       "title": "Nouveau message",
       "subject": "Objet",
       "body": "Message",
@@ -211,7 +232,31 @@
       "fromComputer": "Depuis mon ordinateur",
       "agencyDocs": "Documents de l'agence",
       "noAgencyDocs": "Aucun document disponible.",
-      "removeAttachment": "Retirer la pièce"
+      "removeAttachment": "Retirer la pièce",
+      "from": "De",
+      "toShort": "À",
+      "cc": "Cc",
+      "bcc": "Cci",
+      "ccField": "Destinataires en copie",
+      "bccField": "Destinataires en copie cachée",
+      "addCc": "Ajouter des destinataires en copie",
+      "addBcc": "Ajouter des destinataires en copie cachée",
+      "removeRecipient": "Retirer {{address}}",
+      "invalidAddress": "Adresse invalide",
+      "invalidHint_one": "Une adresse est à corriger : double-cliquez dessus pour la modifier.",
+      "invalidHint_other": "{{count}} adresses sont à corriger : double-cliquez dessus pour les modifier.",
+      "suggestions": "Contacts suggérés"
+    },
+    "sendError": {
+      "generic": "L'envoi a échoué. Réessayez dans un instant.",
+      "send_failed": "Le serveur de la boîte a refusé l'envoi. Vérifiez les destinataires, puis réessayez.",
+      "provider_auth": "La boîte d'envoi ne répond plus : reconnectez-la depuis les réglages, puis réessayez.",
+      "account_not_active": "Cette boîte ne peut pas envoyer : son autorisation est à renouveler.",
+      "attachments_too_large": "Les pièces jointes dépassent la taille permise pour un envoi.",
+      "attachment_too_large_outlook": "Une pièce jointe dépasse 3 Mo, la limite d'Outlook pour un envoi depuis le CRM.",
+      "recipient_required": "Ajoutez au moins un destinataire.",
+      "subject_required": "Ajoutez un objet au message.",
+      "original_not_found": "Le message d'origine est introuvable : il a peut-être été supprimé."
     },
     "folders": {
       "aria": "Dossiers",
@@ -219,7 +264,8 @@
       "arch": "Archivé",
       "star": "Suivis",
       "sent": "Envoyés",
-      "draft": "Brouillons"
+      "draft": "Brouillons",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Libellés",
@@ -261,15 +307,24 @@
       "unstar": "Ne plus suivre",
       "archive": "Archiver",
       "unarchive": "Désarchiver",
+      "spam": "Signaler comme spam",
+      "notSpam": "Ce n'est pas un spam",
       "delete": "Supprimer"
     },
     "delete": {
       "title": "Supprimer ce message ?",
-      "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte."
+      "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte.",
+      "legalMany": "Les messages partent à la corbeille et quittent la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte.",
+      "titleMany_one": "Supprimer ce message ?",
+      "titleMany_other": "Supprimer ces {{count}} messages ?",
+      "andMore_one": "et {{count}} autre",
+      "andMore_other": "et {{count}} autres"
     },
     "read": {
       "back": "Retour à la liste",
       "to": "à {{box}}",
+      "copyAddress": "Copier l'adresse",
+      "copied": "Adresse copiée",
       "me": "moi",
       "reply": "Répondre",
       "forward": "Transférer",
@@ -280,7 +335,47 @@
       "showImages": "Afficher les images",
       "bodyTitle": "Corps du message",
       "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
-      "unlinked": "Adresse non rattachée : {{email}}"
+      "bodyMissing": "Le contenu de ce message ne peut pas s'afficher ici (trop volumineux, ou illisible) : ouvrez-le dans votre messagerie.",
+      "unlinked": "Adresse non rattachée : {{email}}",
+      "spam": "Dans le spam : ce message n'est rattaché à aucun contact.",
+      "spamInThread_one": "{{count}} message de cette conversation est au spam.",
+      "spamInThread_other": "{{count}} messages de cette conversation sont au spam.",
+      "spamShow": "Afficher",
+      "spamHide": "Masquer"
+    },
+    "spam": {
+      "reported": "Signalé comme spam",
+      "restored": "Rendu à la boîte de réception"
+    },
+    "select": {
+      "all": "Tout sélectionner",
+      "none": "Tout désélectionner",
+      "row": "Sélectionner le message de {{sender}}",
+      "count_one": "{{count}} sélectionné",
+      "count_other": "{{count}} sélectionnés",
+      "bar": "Gestes sur la sélection"
+    },
+    "lot": {
+      "archive_one": "{{count}} message archivé",
+      "archive_other": "{{count}} messages archivés",
+      "unarchive_one": "{{count}} message remis en réception",
+      "unarchive_other": "{{count}} messages remis en réception",
+      "trash_one": "{{count}} message supprimé",
+      "trash_other": "{{count}} messages supprimés",
+      "spam_one": "{{count}} message signalé comme spam",
+      "spam_other": "{{count}} messages signalés comme spam",
+      "not_spam_one": "{{count}} message rendu à la boîte de réception",
+      "not_spam_other": "{{count}} messages rendus à la boîte de réception",
+      "mark_read_one": "{{count}} message marqué comme lu",
+      "mark_read_other": "{{count}} messages marqués comme lus",
+      "mark_unread_one": "{{count}} message marqué comme non lu",
+      "mark_unread_other": "{{count}} messages marqués comme non lus",
+      "partiel": "{{reussis}} sur {{total}} traités : réessayez pour les autres.",
+      "echec": "Aucun des {{total}} messages n'a pu être traité. Réessayez."
+    },
+    "plan": {
+      "cta": "Planifier",
+      "notes": "E-mail de {{expediteur}} du {{date}}"
     },
     "link": {
       "cta": "Rapprocher",
@@ -352,7 +447,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant."
+      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant.",
+      "spamHidden_one": "{{count}} message au spam n'est pas affiché ici.",
+      "spamHidden_other": "{{count}} messages au spam ne sont pas affichés ici."
     },
     "notice": {
       "sentNotRecorded": "Le message est bien parti. Sa copie n'a pas pu être enregistrée ici : ne le renvoyez pas.",

@@ -128,9 +128,11 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
     { tag: 'path', d: 'M7 6h6a2 2 0 0 1 2 2v2' },
     { tag: 'path', d: 'M7 18h6a2 2 0 0 0 2-2v-2' },
   ] },
+  // ⚠ Aiguille recentrée le 15.09.2026 (Julien : « l'icône est buggée ») : ses deux pointes
+  // (15,9) et (7,17) la centraient en (11,13), une unité en bas à gauche du cadran.
   compass: { line: true, kids: [
     { tag: 'circle', cx: 12, cy: 12, r: 9 },
-    { tag: 'path', d: 'm15 9-2 6-6 2 2-6 6-2Z' },
+    { tag: 'path', d: 'm16 8-2 6-6 2 2-6 6-2Z' },
   ] },
   // « Parcours » : trois jalons reliés — le graphe de `share` dit la trajectoire
   // mieux qu'un fanion. MEIcon n'a ni `journey` ni `parcours`.

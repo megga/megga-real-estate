@@ -1,7 +1,11 @@
 /**
  * Le menu d'une ligne, au clic droit (README §2 « Menu contextuel de ligne ») :
- * ouvrir, lu / non lu, suivre, archiver, supprimer, puis le classement par
- * libellé.
+ * ouvrir, lu / non lu, suivre, archiver, signaler comme spam, supprimer, puis le
+ * classement par libellé.
+ *
+ * ⚠ Un fil au spam n'offre que ce qui a un sens pour du spam : le lire, le rendre à la
+ * Réception, le supprimer. Le suivre, l'archiver ou le classer le ferait disparaître de
+ * dossiers qui excluent le spam : le geste semblerait n'avoir rien fait.
  *
  * ⚠ Les libellés sont EXCLUSIFS (un seul par fil, D7) : recliquer celui du fil
  * le retire (`onLabel(null)`) au lieu d'en ajouter un second.
@@ -30,14 +34,18 @@ interface Props {
   onOpen: () => void
   onAction: (a: MailThreadAction) => void
   onDelete: () => void
+  /** « Signaler comme spam » ou « Ce n'est pas un spam », selon le fil. */
+  onSpam: () => void
+  /** « Planifier » : l'e-mail devient un événement du Calendrier. */
+  onPlanifier: () => void
   onLabel: (id: string | null) => void
 }
 
 const LARGEUR = 220
 const MARGE_DROITE = 240
-const MARGE_BAS = 320
+const MARGE_BAS = 352
 
-export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onAction, onDelete, onLabel }: Props) {
+export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onAction, onDelete, onSpam, onPlanifier, onLabel }: Props) {
   const { t } = useTranslation('messages')
   const ref = useRef<HTMLDivElement>(null)
   // Clic dehors et Échap ; armé au tick suivant — voir `useFermetureMenu`.
@@ -78,14 +86,21 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
       >
         {item(t('mail.ctx.open'), onOpen)}
         {item(row.is_read ? t('mail.ctx.markUnread') : t('mail.ctx.markRead'), () => onAction(row.is_read ? 'mark_unread' : 'mark_read'))}
-        {item(row.is_starred ? t('mail.ctx.unstar') : t('mail.ctx.star'), () => onAction(row.is_starred ? 'unstar' : 'star'))}
-        {item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
+        {!row.is_spam && item(row.is_starred ? t('mail.ctx.unstar') : t('mail.ctx.star'), () => onAction(row.is_starred ? 'unstar' : 'star'))}
+        {!row.is_spam && item(t('mail.plan.cta'), onPlanifier)}
+        {!row.is_spam && item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
+        {/* Un fil qui n'a rien reçu n'a rien à signaler (`rienASignaler`, mail-actions). */}
+        {(row.is_spam || row.last_inbound_at) && item(row.is_spam ? t('mail.ctx.notSpam') : t('mail.ctx.spam'), onSpam)}
         {item(t('mail.ctx.delete'), onDelete, { danger: true })}
-        <div style={{ height: 1, background: ms.bord2, margin: 'var(--crm-space-2xs) 0' }} />
-        <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>
-          {t('mail.labels.title')}
-        </div>
-        {labels.map((l) => item(l.name, () => onLabel(row.label_id === l.id ? null : l.id), { dot: l.color }))}
+        {!row.is_spam && (
+          <>
+            <div style={{ height: 1, background: ms.bord2, margin: 'var(--crm-space-2xs) 0' }} />
+            <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>
+              {t('mail.labels.title')}
+            </div>
+            {labels.map((l) => item(l.name, () => onLabel(row.label_id === l.id ? null : l.id), { dot: l.color }))}
+          </>
+        )}
       </div>
     </>,
     document.body,

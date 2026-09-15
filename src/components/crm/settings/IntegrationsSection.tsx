@@ -466,6 +466,9 @@ function IntegrationCard({ item, onClick, onConnect, onDisconnect, connecting, t
 interface CalSyncPrefs { direction: 'in' | 'out' | 'two'; megga: boolean; perso: boolean; holidays: boolean }
 const CAL_SYNC_DEFAULT: CalSyncPrefs = { direction: 'two', megga: true, perso: true, holidays: false }
 
+/** Le jeton d'une demande d'ajout de boîte (`?add=<jeton>`) : la Messagerie n'ouvre qu'une fois chacune. */
+const jetonAjout = () => Date.now().toString(36)
+
 function CalSyncSwitch({ on, onClick }: { on: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{ width: 38, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, background: on ? SET.black : '#D1D5DB', position: 'relative', cursor: 'pointer', transition: 'background .2s', flexShrink: 0 }}>
@@ -980,8 +983,9 @@ export function IntegrationsSection() {
     }
     // La Messagerie n'a pas de branchement DANS les Réglages : connecter une
     // boîte veut dire choisir un fournisseur, autoriser en pop-up et nommer la
-    // boîte — c'est l'assistant de l'écran, et `?add=1` l'ouvre directement.
-    if (item.provider === 'messagerie') { navigate('/dashboard/messagerie?add=1'); return }
+    // boîte — c'est l'assistant de l'écran, et `?add=<jeton>` l'ouvre directement.
+    // Un jeton par demande : l'écran n'ouvre qu'une fois chacune (voir MessagerieApp).
+    if (item.provider === 'messagerie') { navigate(`/dashboard/messagerie?add=${jetonAjout()}`); return }
     if (item.provider === 'whatsapp') setWaPair(true)
     else if (item.provider === 'skribble') setEsignConnect(true)
   }

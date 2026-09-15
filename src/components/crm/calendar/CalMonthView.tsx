@@ -1,12 +1,16 @@
 // MEGGA CRM Sugar — Calendar — Vue Mois (refonte « façon Google »)
 // Grille du mois, pastilles par jour (jusqu'à 3 + « +N autres »). Clic case vide
 // → création à 09:00 ; clic pastille → bulle ; clic n° de jour → vue Jour.
+// Glisser une pastille sur une autre case la change de jour, heure et durée intactes.
 // Externe « Occupé » = pastille creuse (jamais un aplat plein).
 
 import { useContext, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { CalEventMenuContext, calPositionMenu, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { calDays, fmtTime, sameDay } from './helpers'
+import { calDeplacable } from './calDeplacement'
+import { useCalGlisseMois, type CalGlisseMois } from './useCalDeplacement'
 
 interface CalMonthViewProps {
   events: CalEvent[]
@@ -14,6 +18,9 @@ interface CalMonthViewProps {
   now: Date
   selectedId: string | null
   onSelectEvent: (id: string, rect: DOMRect) => void
+  onUpdateEvent: (id: string, start: Date, end: Date) => void
+  onCommitEvent: (id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => void
+  onDragStartEvent?: (id: string) => void
   onDateChange: (d: Date) => void
   onOpenDay: (d: Date) => void
   onCreateAt: (d: Date) => void
@@ -21,8 +28,40 @@ interface CalMonthViewProps {
 
 interface MonthCell { d: Date; mute: boolean }
 
+/**
+ * La pastille qui suit le pointeur pendant un glissé (`useCalGlisseMois`) — portée dans
+ * `<body>` pour survoler toutes les cases ; sa position, le moteur l'écrit lui-même.
+ * Au palier de la bulle du Calendrier (4000) plutôt qu'à une valeur neuve : la bulle se
+ * ferme au départ du glissé, les deux ne coexistent jamais.
+ */
+function FantomeMois({ glisse, refFantome }: { glisse: CalGlisseMois; refFantome: (el: HTMLElement | null) => void }) {
+  const SP = useCalPalette()
+  const ts = calTypeStyle(glisse.ev, SP)
+  const multi = glisse.ev.allDay || !sameDay(glisse.ev.start, glisse.ev.end)
+  return createPortal(
+    <div
+      ref={refFantome}
+      aria-hidden
+      data-cal-fantome=""
+      style={{
+        position: 'fixed', left: 0, top: 0, width: glisse.largeur, zIndex: 4000, pointerEvents: 'none',
+        transform: `translate3d(${glisse.x - glisse.dx}px, ${glisse.y - glisse.dy}px, 0)`,
+        display: 'flex', alignItems: 'center', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xs)',
+        background: ts.bg, color: ts.ink, boxShadow: `0 0 0 2px ${SP.ring}, ${SP.shadowHover}`,
+        fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-xs)', fontWeight: 500, lineHeight: 1.25,
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}
+    >
+      <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {multi ? glisse.ev.title : `${fmtTime(glisse.ev.start)} · ${glisse.ev.title}`}
+      </span>
+    </div>,
+    document.body,
+  )
+}
+
 export function CalMonthView({
-  events, currentDate, now, selectedId, onSelectEvent, onOpenDay, onCreateAt,
+  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onDragStartEvent, onOpenDay, onCreateAt,
 }: CalMonthViewProps) {
   const { t } = useTranslation('calendar')
   const SP = useCalPalette()
@@ -76,6 +115,13 @@ export function CalMonthView({
     return m
   }, [events])
 
+  const joursDesCases = useMemo(() => cells.map(c => c.d), [cells])
+  const { glisse, saisir, fantome } = useCalGlisseMois({
+    jours: joursDesCases, onUpdate: onUpdateEvent, onCommit: onCommitEvent, onDebut: onDragStartEvent,
+  })
+  // La case visée ne s'allume que si le relâché y changerait quelque chose.
+  const caseVisee = glisse && glisse.cible !== glisse.depart ? glisse.cible : null
+
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0,1fr))', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
@@ -93,11 +139,14 @@ export function CalMonthView({
           return (
             <div
               key={i}
+              data-cal-cell={i}
               onClick={() => onCreateAt(new Date(c.d.getFullYear(), c.d.getMonth(), c.d.getDate(), 9, 0))}
               style={{
                 borderTop: `1px solid ${SP.line}`, borderLeft: i % 7 ? `1px solid ${SP.line}` : 0,
                 padding: 'var(--crm-space-sm) var(--crm-space-md) var(--crm-space-md)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)',
-                minWidth: 0, minHeight: 0, opacity: c.mute ? 0.42 : 1, overflow: 'hidden',
+                minWidth: 0, minHeight: 0, opacity: c.mute && caseVisee !== i ? 0.42 : 1, overflow: 'hidden',
+                background: caseVisee === i ? `color-mix(in srgb, ${SP.accent} 7%, transparent)` : 'transparent',
+                boxShadow: caseVisee === i ? `inset 0 0 0 2px ${SP.accent}` : 'none',
               }}
             >
               <button
@@ -119,16 +168,20 @@ export function CalMonthView({
                   const multi = e.allDay || !sameDay(e.start, e.end)
                   const dk = SP.isDark
                   const filled = ext ? false : !dk || multi
+                  const deplacable = calDeplacable(e)
+                  const saisie = glisse?.ev.id === e.id
                   return (
                     <button
                       key={e.id}
+                      onPointerDown={deplacable ? pe => saisir(e, i, pe) : undefined}
                       onClick={ev => { ev.stopPropagation(); onSelectEvent(e.id, ev.currentTarget.getBoundingClientRect()) }}
                       onContextMenu={ouvrirMenu && !ext ? ev => { ev.preventDefault(); ev.stopPropagation(); const [x, y] = calPositionMenu(ev); ouvrirMenu(e.id, x, y) } : undefined}
                       style={{
-                        border: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
+                        border: 0, textAlign: 'left', cursor: deplacable ? 'grab' : 'pointer', fontFamily: 'inherit',
+                        touchAction: deplacable ? 'none' : undefined, userSelect: 'none',
                         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xs)',
                         background: filled ? ts.bg : 'transparent', color: ext ? SP.muted : filled ? ts.ink : SP.ink,
-                        fontSize: 'var(--crm-text-xs)', fontWeight: 500, lineHeight: 1.25, opacity: hasStatus ? 0.55 : 1,
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 500, lineHeight: 1.25, opacity: saisie ? 0.35 : hasStatus ? 0.55 : 1,
                         boxShadow: e.id === selectedId ? `0 0 0 2px ${SP.ring}` : 'none',
                         whiteSpace: 'nowrap', overflow: 'hidden',
                         textDecoration: hasStatus ? 'line-through' : 'none',
@@ -161,6 +214,7 @@ export function CalMonthView({
           )
         })}
       </div>
+      {glisse && <FantomeMois glisse={glisse} refFantome={fantome} />}
     </div>
   )
 }

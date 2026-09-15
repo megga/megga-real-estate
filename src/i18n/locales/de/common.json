@@ -444,6 +444,13 @@
       "edge_function_error": "Fehler in Serverfunktion",
       "email_received": "E-Mail erhalten",
       "email_sent": "E-Mail gesendet",
+      "mail_account_connected": "E-Mail-Postfach verbunden",
+      "mail_account_connect_failed": "Verbindung eines Postfachs abgelehnt",
+      "mail_account_disconnected": "E-Mail-Postfach getrennt",
+      "mail_account_updated": "E-Mail-Postfach geändert",
+      "calendar_event_created": "Termin geplant",
+      "calendar_event_updated": "Termin geändert",
+      "calendar_event_deleted": "Termin gelöscht",
       "extract_property_pdf": "Objekt aus PDF extrahiert",
       "extract_property_url": "Objekt aus Online-Inserat extrahiert",
       "idx_feed_pushed": "Syndication-Feed veröffentlicht",
@@ -544,11 +551,14 @@
     "tabLabel": "Auditprotokoll"
   },
   "errorBoundary": {
-    "title": "Ein Fehler ist aufgetreten",
-    "body": "Auf unserer Seite ist etwas schiefgelaufen. Sie können die Seite neu laden oder zu Ihrem Dashboard zurückkehren.",
-    "reload": "Neu laden",
+    "title": "Diese Seite konnte nicht angezeigt werden",
+    "body": "Ein Fehler auf unserer Seite, nicht auf Ihrer. Laden Sie die Seite neu; tritt der Fehler erneut auf, beginnen Sie wieder beim Dashboard.",
+    "bodyClient": "Ein Fehler auf unserer Seite, nicht auf Ihrer. Laden Sie die Seite neu; tritt der Fehler erneut auf, informieren Sie die Agentur, die Ihnen diesen Link geschickt hat.",
+    "reload": "Seite neu laden",
     "updating": "Die Anwendung wird aktualisiert…",
-    "dashboard": "Zurück zum Dashboard"
+    "dashboard": "Zurück zum Dashboard",
+    "reference": "Referenz des Vorfalls: {{id}}",
+    "help": "Hilfe-Center"
   },
   "announcements": {
     "dismiss": "Schliessen"

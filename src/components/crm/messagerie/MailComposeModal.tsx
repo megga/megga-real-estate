@@ -1,6 +1,12 @@
 /**
- * « Nouveau message » (README §4) : destinataires suggérés depuis les contacts,
+ * « Nouveau message » (README §4) : la boîte d'envoi, les destinataires — À, Cc, Cci —,
  * objet, corps, pièces jointes, et un brouillon LOCAL enregistré à la fermeture.
+ *
+ * Les destinataires se saisissent « comme Google » (Julien, 14.09.2026) : une adresse
+ * validée devient une capsule, on en pose plusieurs, les contacts se proposent pendant la
+ * frappe (`MailRecipientField`). Cc et Cci s'ouvrent depuis le champ « À ». « De » ne
+ * paraît que si l'agent a plusieurs boîtes — ou si la sienne ne peut pas envoyer, pour
+ * dire pourquoi « Envoyer » reste éteint.
  *
  * ⚠ La signature n'est pas ajoutée ici : `mail-send` lit
  * `profiles.email_signature` et la pose en pied du MIME. La recopier la
@@ -17,12 +23,16 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { blobToBase64, documentToBase64, type AgencyDocument } from '@/hooks/useAgencyDocuments'
-import { parseRecipients, useMailContactSearch } from '@/hooks/useMailContactSearch'
+import type { MailAccount } from '@/hooks/useMailAccounts'
 import type { MailDraft } from '@/hooks/useMailDrafts'
 import type { MailSendInput } from '@/hooks/useMailSend'
-import { fileSizeLabel } from '@/lib/mail/format'
+import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
+import { adresseValide, ajouterDestinataires, boiteDEnvoi, decouperDestinataires, peutEnvoyerDepuis } from '@/lib/mail/compose'
+import { fileSizeLabel, type MailAddress } from '@/lib/mail/format'
 import { MailAttachPopover } from './MailAttachPopover'
+import { MailFromField } from './MailFromField'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
+import { MailRecipientField } from './MailRecipientField'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 /** Une pièce en attente d'envoi : soit un fichier local, soit un document du dossier. */
@@ -31,13 +41,24 @@ interface Pending {
   source: { kind: 'file'; file: File } | { kind: 'doc'; doc: AgencyDocument }
 }
 
+/** Ce que la fermeture rend à enregistrer en brouillon — la boîte d'envoi comprise. */
+interface MailComposeDraft {
+  accountId: string | null
+  to: MailAddress[]; cc: MailAddress[]; bcc: MailAddress[]
+  subject: string; body: string
+}
+
 interface Props {
   ms: MailSurfaces
+  /** Les boîtes visibles de l'agent — le « De ». */
+  boites: MailAccount[]
+  /** La boîte ouverte dans la Messagerie : la boîte d'envoi par défaut. */
+  boiteOuverte: string | null
   draft: MailDraft | null
   sending: boolean
   error: string | null
   /** Rend le contenu à enregistrer en brouillon, ou `null` si rien n'a été saisi. */
-  onClose: (draft: { to: string; subject: string; body: string } | null) => void
+  onClose: (draft: MailComposeDraft | null) => void
   onSend: (input: MailSendInput) => void
 }
 
@@ -46,23 +67,30 @@ const LARGEUR = 600
 const CORPS_MIN = 170
 /** Voile plus clair que le défaut : la modale se pose SUR la liste, sans l'effacer. */
 const VOILE = 0.12
-/** Le champ « À » se ferme après le clic sur une suggestion, pas pendant. */
-const DELAI_FERMETURE_SUGGESTIONS = 150
 const NOM_PIECE_MAX = 190
 
-const adresseSaisie = (a: { name: string | null; email: string }) => (a.name ? `${a.name} <${a.email}>` : a.email)
+/** Une liste de destinataires ET ce qui reste tapé dans son champ, pas encore validé. */
+interface Champ { liste: MailAddress[]; texte: string }
+const champ = (liste: MailAddress[] | undefined): Champ => ({ liste: liste ?? [], texte: '' })
+/** Ce qui PARTIRA d'un champ : ses capsules, plus l'adresse tapée qu'on n'a pas validée. */
+const aEnvoyer = (c: Champ) => ajouterDestinataires(c.liste, decouperDestinataires(c.texte))
 
-export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }: Props) {
+export function MailComposeModal({ ms, boites, boiteOuverte, draft, sending, error, onClose, onSend }: Props) {
   const { t } = useTranslation('messages')
-  const [to, setTo] = useState(() => (draft?.to ?? []).map(adresseSaisie).join(', '))
+  /** La boîte choisie dans « De » ; `null` = la boîte par défaut. */
+  const [choix, setChoix] = useState<string | null>(null)
+  const [to, setTo] = useState(() => champ(draft?.to))
+  const [cc, setCc] = useState(() => champ(draft?.cc))
+  const [bcc, setBcc] = useState(() => champ(draft?.bcc))
+  // Un brouillon qui porte des copies les montre : les cacher cacherait des destinataires.
+  const [ccOuvert, setCcOuvert] = useState(() => (draft?.cc?.length ?? 0) > 0)
+  const [bccOuvert, setBccOuvert] = useState(() => (draft?.bcc?.length ?? 0) > 0)
+  /** Le champ de copie que l'agent vient d'ouvrir : il y reçoit le curseur. */
+  const [ouvertA, setOuvertA] = useState<'cc' | 'bcc' | null>(null)
   const [subject, setSubject] = useState(() => draft?.subject ?? '')
   const [body, setBody] = useState(() => draft?.body_text ?? '')
   const [atts, setAtts] = useState<Pending[]>([])
   const [popover, setPopover] = useState(false)
-  const [suggest, setSuggest] = useState(false)
-  const lastTerm = to.split(/[,;]/).pop()?.trim() ?? ''
-  const hits = useMailContactSearch(suggest ? lastTerm : '')
-  const rcpts = useMemo(() => parseRecipients(to), [to])
   // ⛔ `encodage` EXISTE PARCE QUE `sending` ARRIVE TROP TARD. `sending` vaut
   // `send.isPending`, qui ne passe à vrai qu'APRÈS `onSend` — or `submit` lit et
   // encode d'abord les pièces en base64. Sur un PDF de 8 Mo, le bouton restait
@@ -70,7 +98,20 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
   // client recevait le message en double. La fenêtre est proportionnelle au
   // poids des pièces, donc s'ouvrait précisément sur les envois qui comptent.
   const [encodage, setEncodage] = useState(false)
-  const can = rcpts.length > 0 && subject.trim().length > 0 && !sending && !encodage
+
+  // ⚠ Relue à chaque rendu, jamais figée : une boîte déconnectée pendant la rédaction
+  // ne doit pas rester la boîte d'envoi.
+  const de = (choix && boites.some((b) => b.id === choix) ? choix : null) ?? boiteDEnvoi(boites, [draft?.account_id, boiteOuverte])
+  const boite = boites.find((b) => b.id === de) ?? null
+  const envoyable = !boite || peutEnvoyerDepuis(boite)
+  const partants = { to: aEnvoyer(to), cc: aEnvoyer(cc), bcc: aEnvoyer(bcc) }
+  // Les CAPSULES en alerte — elles seules sont annoncées. Un texte en cours de frappe
+  // (« roch ») n'est pas une adresse fausse, c'est une recherche : l'annoncer « à
+  // corriger » pendant qu'on tape serait faux. Il retient seulement « Envoyer ».
+  const invalides = [...to.liste, ...cc.liste, ...bcc.liste].filter((a) => !adresseValide(a.email)).length
+  const enCours = [to, cc, bcc].some((c) => decouperDestinataires(c.texte).some((a) => !adresseValide(a.email)))
+  const can = partants.to.length > 0 && invalides === 0 && !enCours && subject.trim().length > 0 && envoyable && !sending && !encodage
+  const logos = useMailSenderLogos(de, [...to.liste, ...cc.liste, ...bcc.liste].map((a) => a.email))
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' as const }
   // ⚠ Pas de `filter` + cast : `Array.prototype.filter` ne rétrécit pas le type
   // de l'union, et le cast qui compensait affirmait une forme que rien ne
@@ -78,7 +119,7 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
   const docsChoisis = useMemo(() => new Set(atts.flatMap((a) => (a.source.kind === 'doc' ? [a.source.doc.id] : []))), [atts])
 
   const submit = async () => {
-    if (encodage || sending) return
+    if (!can) return
     setEncodage(true)
     try {
       const attachments = await Promise.all(atts.map(async (a) => {
@@ -86,14 +127,28 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
         const d = await documentToBase64(a.source.doc.storage_path)
         return { filename: a.name, mime_type: d.mimeType, base64: d.base64 }
       }))
-      onSend({ kind: 'new', to: rcpts, subject: subject.trim(), body_text: body, attachments, draft_id: draft?.id })
+      onSend({ kind: 'new', account_id: de ?? undefined, ...partants, subject: subject.trim(), body_text: body, attachments, draft_id: draft?.id })
     } finally {
       // Relâché dans tous les cas : un encodage qui échoue (fichier illisible,
       // document retiré du bucket) laisserait sinon le bouton mort pour de bon.
       setEncodage(false)
     }
   }
-  const close = () => onClose(to.trim() || subject.trim() || body.trim() ? { to, subject, body } : null)
+  const vide = !partants.to.length && !partants.cc.length && !partants.bcc.length && !subject.trim() && !body.trim()
+  const close = () => onClose(vide ? null : { accountId: de, ...partants, subject, body })
+
+  const bascule = (libelle: string, titre: string, ouvrir: () => void) => (
+    <button
+      type="button"
+      title={titre}
+      onClick={ouvrir}
+      style={{ background: 'none', border: 'none', padding: '0 var(--crm-space-2xs)', color: ms.txt3, fontSize: 'var(--crm-text-sm)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = ms.ink }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = ms.txt3 }}
+    >
+      {libelle}
+    </button>
+  )
 
   return (
     <MailModalShell ms={ms} open onClose={close} width={LARGEUR} ariaLabel={t('mail.compose.title')} veil={VOILE}>
@@ -104,42 +159,49 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-4xl)' }}>
-        <div style={{ position: 'relative' }}>
-          <input
-            value={to}
-            onChange={(e) => { setTo(e.target.value); setSuggest(true) }}
-            onBlur={() => setTimeout(() => setSuggest(false), DELAI_FERMETURE_SUGGESTIONS)}
-            placeholder={t('mail.compose.toPlaceholder')}
-            aria-label={t('mail.compose.to')}
-            autoFocus
-            style={{ ...field, borderRadius: PILL, padding: 'var(--crm-space-lg) var(--crm-space-3xl)', fontSize: 'var(--crm-text-sm)' }}
-          />
-          {suggest && (hits.data?.length ?? 0) > 0 && (
-            <div role="listbox" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 310, background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xs)', boxShadow: ms.solidShadow }}>
-              {(hits.data ?? []).map((h) => (
-                <button
-                  key={h.id}
-                  type="button"
-                  role="option"
-                  // ⚠ `onMouseDown` et non `onClick` : le `blur` du champ part
-                  // AVANT le clic et démonterait la liste sous le curseur.
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    const parts = to.split(/[,;]/)
-                    parts.pop()
-                    setTo([...parts.map((x) => x.trim()).filter(Boolean), `${h.first_name} ${h.last_name} <${h.email}>`].join(', ') + ', ')
-                    setSuggest(false)
-                  }}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-                >
-                  {h.first_name} {h.last_name} <span style={{ color: ms.mut }}>· {h.email}</span>
-                </button>
-              ))}
-            </div>
+        {(boites.length > 1 || !envoyable) && <MailFromField ms={ms} boites={boites} valeur={de} onChange={setChoix} />}
+
+        <MailRecipientField
+          ms={ms}
+          prefixe={t('mail.compose.toShort')}
+          libelle={t('mail.compose.to')}
+          valeur={to.liste}
+          texte={to.texte}
+          onChange={(liste, texte) => setTo({ liste, texte })}
+          logos={logos}
+          autoFocus
+          placeholder={t('mail.compose.toPlaceholder')}
+          fin={(!ccOuvert || !bccOuvert) && (
+            <>
+              {!ccOuvert && bascule(t('mail.compose.cc'), t('mail.compose.addCc'), () => { setCcOuvert(true); setOuvertA('cc') })}
+              {!bccOuvert && bascule(t('mail.compose.bcc'), t('mail.compose.addBcc'), () => { setBccOuvert(true); setOuvertA('bcc') })}
+            </>
           )}
-        </div>
+        />
+        {ccOuvert && (
+          <MailRecipientField
+            ms={ms}
+            prefixe={t('mail.compose.cc')}
+            libelle={t('mail.compose.ccField')}
+            valeur={cc.liste}
+            texte={cc.texte}
+            onChange={(liste, texte) => setCc({ liste, texte })}
+            logos={logos}
+            autoFocus={ouvertA === 'cc'}
+          />
+        )}
+        {bccOuvert && (
+          <MailRecipientField
+            ms={ms}
+            prefixe={t('mail.compose.bcc')}
+            libelle={t('mail.compose.bccField')}
+            valeur={bcc.liste}
+            texte={bcc.texte}
+            onChange={(liste, texte) => setBcc({ liste, texte })}
+            logos={logos}
+            autoFocus={ouvertA === 'bcc'}
+          />
+        )}
 
         <input
           value={subject}
@@ -174,7 +236,10 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
           </div>
         )}
 
-        {/* Le motif du serveur, tel quel : `attachment_too_large_outlook` dit plus
+        {/* Dit POURQUOI « Envoyer » reste éteint : une capsule en alerte se voit, sa
+            conséquence non. */}
+        {invalides > 0 && <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{t('mail.compose.invalidHint', { count: invalides })}</div>}
+        {/* La phrase du motif (`codeErreurEnvoi`) : `attachment_too_large_outlook` dit plus
             qu'un « échec de l'envoi » qui laisserait chercher la cause. */}
         {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{error}</div>}
       </div>

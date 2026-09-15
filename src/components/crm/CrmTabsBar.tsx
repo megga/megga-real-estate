@@ -284,12 +284,15 @@ interface PuceProps {
   libelle: string
 }
 
-function styleDePuce(actif: boolean, maxW: number, sp: CrmPalette): CSSProperties {
+function styleDePuce(actif: boolean, croix: boolean, maxW: number, sp: CrmPalette): CSSProperties {
   return {
     display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
     height: H_PUCE, maxWidth: maxW,
-    // Asymétrique, comme la maquette : la croix comble la marge de droite.
-    padding: '0 var(--crm-space-xs) 0 var(--crm-space-lg)',
+    // Asymétrique, comme la maquette : la croix comble la marge de droite. ⚠ SANS
+    // croix — l'onglet seul, qui ne se ferme pas ; une puce étroite hors survol —,
+    // la marge redevient symétrique : 12 px à gauche contre 4 à droite poussaient le
+    // libellé de 4 px vers la droite (Julien, 14.09.2026).
+    padding: croix ? '0 var(--crm-space-xs) 0 var(--crm-space-lg)' : '0 var(--crm-space-lg)',
     borderRadius: 'var(--crm-radius-pill)',
     cursor: 'pointer', fontSize: 'var(--crm-text-sm)', fontWeight: 500,
     whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0,
@@ -309,7 +312,11 @@ function Puce({ tb, i, actif, fermable, croixPermanente, maxW, sp, badge, libell
   const [survol, setSurvol] = useState(false)
   const [survolCroix, setSurvolCroix] = useState(false)
 
-  const style = styleDePuce(actif, maxW, sp)
+  // ⚠ Sur une puce étroite, la croix ne se montre que si la puce est ACTIVE ou sous le
+  // curseur — sans quoi elle mange le libellé (voir SEUIL_CROIX). Le libellé se resserre
+  // au survol, comme dans un navigateur.
+  const croix = fermable && (croixPermanente || actif || survol)
+  const style = styleDePuce(actif, croix, maxW, sp)
   if (!actif && survol) style.background = sp.focusSurface
 
   return (
@@ -332,10 +339,7 @@ function Puce({ tb, i, actif, fermable, croixPermanente, maxW, sp, badge, libell
       {badge && badge.n > 0 && (
         <Badge n={badge.n} urgent={badge.urgent} actif={actif} sp={sp} />
       )}
-      {/* ⚠ Sur une puce étroite, la croix ne se montre que si la puce est ACTIVE
-          ou sous le curseur — sans quoi elle mange le libellé (voir SEUIL_CROIX).
-          Le libellé se resserre au survol, comme dans un navigateur. */}
-      {fermable && (croixPermanente || actif || survol) && (
+      {croix && (
         <span
           data-tabc={i}
           role="button"
