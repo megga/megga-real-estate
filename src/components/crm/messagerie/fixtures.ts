@@ -328,6 +328,11 @@ function fils(): MailThreadRow[] {
   })
 }
 
+/** Un fil du banc par son identifiant, gestes compris — le lien d'un événement du Calendrier. */
+export function fxFil(id: string): MailThreadRow | null {
+  return fils().find((t) => t.id === id) ?? null
+}
+
 /**
  * Non-lus par boîte, tels que le rail les affiche.
  *

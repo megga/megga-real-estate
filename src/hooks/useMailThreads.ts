@@ -5,7 +5,7 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { fxCounts, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { fxCounts, fxFil, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailFolder } from '@/components/crm/messagerie/mailState'
 
 export const MAIL_PER_PAGE = 12
@@ -87,6 +87,29 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
     isLoading: q.isPending, isFetching: q.isFetching,
     error: q.error as Error | null, refetch: () => { void q.refetch() },
   }
+}
+
+/**
+ * UN fil par son identifiant, hors de toute page de liste (15.09.2026) : l'e-mail d'origine
+ * d'un événement du Calendrier (`/dashboard/messagerie?fil=…`). La RLS de `mail_threads`
+ * décide : un fil d'une boîte qu'on ne voit pas rend `null`, comme un fil supprimé.
+ */
+export function useMailThreadRow(threadId: string | null) {
+  const fx = useMailFixtures()
+  return useQuery({
+    queryKey: ['mail', 'thread-row', threadId, fx],
+    enabled: !!threadId,
+    queryFn: async (): Promise<MailThreadRow | null> => {
+      if (fx) return threadId ? fxFil(threadId) : null
+      if (!threadId) return null
+      const { data, error } = await supabase.from('mail_threads')
+        .select('id, account_id, subject, snippet, from_name, from_email, participants, last_message_at, has_attachments, is_read, is_starred, is_archived, is_trashed, is_spam, label_id, contact_id, message_count')
+        .eq('id', threadId).maybeSingle()
+      if (error) throw error
+      return data ? ({ ...data, participants: (data.participants ?? []) as unknown as MailAddress[], total: 0 } as MailThreadRow) : null
+    },
+    staleTime: 60_000,
+  })
 }
 
 /** Les compteurs du rail : non lus en réception, archivés, brouillons, spam, et par libellé. */

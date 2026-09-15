@@ -346,6 +346,7 @@
   "busy": "Busy",
   "popover": {
     "edit": "Edit",
+    "openMail": "Open the original email",
     "delete": "Delete",
     "close": "Close",
     "statusDone": "Done",

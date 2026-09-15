@@ -36,6 +36,8 @@ interface Props {
   onDelete: () => void
   /** « Signaler comme spam » ou « Ce n'est pas un spam », selon le fil. */
   onSpam: () => void
+  /** « Planifier » : l'e-mail devient un événement du Calendrier. */
+  onPlanifier: () => void
   onLabel: (id: string | null) => void
 }
 
@@ -43,7 +45,7 @@ const LARGEUR = 220
 const MARGE_DROITE = 240
 const MARGE_BAS = 352
 
-export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onAction, onDelete, onSpam, onLabel }: Props) {
+export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onAction, onDelete, onSpam, onPlanifier, onLabel }: Props) {
   const { t } = useTranslation('messages')
   const ref = useRef<HTMLDivElement>(null)
   // Clic dehors et Échap ; armé au tick suivant — voir `useFermetureMenu`.
@@ -85,6 +87,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
         {item(t('mail.ctx.open'), onOpen)}
         {item(row.is_read ? t('mail.ctx.markUnread') : t('mail.ctx.markRead'), () => onAction(row.is_read ? 'mark_unread' : 'mark_read'))}
         {!row.is_spam && item(row.is_starred ? t('mail.ctx.unstar') : t('mail.ctx.star'), () => onAction(row.is_starred ? 'unstar' : 'star'))}
+        {!row.is_spam && item(t('mail.plan.cta'), onPlanifier)}
         {!row.is_spam && item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
         {item(row.is_spam ? t('mail.ctx.notSpam') : t('mail.ctx.spam'), onSpam)}
         {item(t('mail.ctx.delete'), onDelete, { danger: true })}

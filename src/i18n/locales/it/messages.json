@@ -353,6 +353,10 @@
       "partiel": "{{reussis}} su {{total}} elaborati: riprovi per gli altri.",
       "echec": "Nessuno dei {{total}} messaggi è stato elaborato. Riprovi."
     },
+    "plan": {
+      "cta": "Pianifica",
+      "notes": "E-mail di {{expediteur}} del {{date}}"
+    },
     "link": {
       "cta": "Collega",
       "title": "Collega l'indirizzo",

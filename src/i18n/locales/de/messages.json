@@ -353,6 +353,10 @@
       "partiel": "{{reussis}} von {{total}} erledigt: Versuchen Sie es für die übrigen erneut.",
       "echec": "Keine der {{total}} Nachrichten konnte verarbeitet werden. Versuchen Sie es erneut."
     },
+    "plan": {
+      "cta": "Planen",
+      "notes": "E-Mail von {{expediteur}} vom {{date}}"
+    },
     "link": {
       "cta": "Zuordnen",
       "title": "Adresse zuordnen",

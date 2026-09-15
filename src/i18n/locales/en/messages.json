@@ -353,6 +353,10 @@
       "partiel": "{{reussis}} of {{total}} done: try again for the rest.",
       "echec": "None of the {{total}} messages could be processed. Try again."
     },
+    "plan": {
+      "cta": "Schedule",
+      "notes": "Email from {{expediteur}} on {{date}}"
+    },
     "link": {
       "cta": "Link",
       "title": "Link the address",

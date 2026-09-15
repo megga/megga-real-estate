@@ -1,9 +1,12 @@
 /**
- * Les événements du Calendrier (15.09.2026) — la partie pure : ce qu'on écrit en base, ce
- * qu'on relit d'une tâche.
+ * Les événements du Calendrier et leur pont avec la Messagerie (15.09.2026) — la partie
+ * pure : ce qu'on écrit en base, ce qu'on relit d'une tâche, le brouillon d'un e-mail.
  */
 import { describe, it, expect } from 'vitest'
-import { titreDeRelance, versLigneEvenement } from '@/lib/calendrierEvenements'
+import {
+  brouillonDepuisMail, deposerBrouillonCalendrier, evenementDepuisBrouillon, lireBrouillonCalendrier,
+  oublierBrouillonCalendrier, titreDeRelance, versLigneEvenement,
+} from '@/lib/calendrierEvenements'
 import type { CalEvent } from '@/components/crm/calendar/data'
 
 const ev = (o: Partial<CalEvent> = {}): CalEvent => ({
@@ -36,5 +39,35 @@ describe('titreDeRelance — le titre d’une tâche relu', () => {
   it('un message du système, sans crochets, reste tel quel', () => {
     expect(titreDeRelance('Bonjour, pensez au dossier')).toEqual({ titre: null, reste: 'Bonjour, pensez au dossier' })
     expect(titreDeRelance(null)).toEqual({ titre: null, reste: null })
+  })
+})
+
+describe('le pont Messagerie → Calendrier', () => {
+  const base = { extrait: 'Bonjour,   je confirme\nla visite.', expediteur: 'Zoé <zoe@ex.ch>', date: '15.09.2026', contactId: 'c1', contactNom: null, mailThreadId: 't1', enTete: (o: { expediteur: string; date: string }) => `E-mail de ${o.expediteur} du ${o.date}` }
+  it('le brouillon d’un e-mail : l’objet sans ses « Re : », l’expéditeur, la date et l’extrait en notes', () => {
+    for (const sujet of ['Re: Visite', 'RE : TR : Visite', 'Fwd: Visite', 'AW: Visite']) {
+      expect(brouillonDepuisMail({ ...base, sujet }).titre, sujet).toBe('Visite')
+    }
+    const b = brouillonDepuisMail({ ...base, sujet: 'Visite' })
+    expect(b.notes).toBe('E-mail de Zoé <zoe@ex.ch> du 15.09.2026\n« Bonjour, je confirme la visite. »')
+    expect(b).toMatchObject({ contactId: 'c1', mailThreadId: 't1' })
+  })
+  it('à la prochaine heure pleine — et 09:00 hors des heures de bureau', () => {
+    const b = brouillonDepuisMail({ ...base, sujet: 'Visite' })
+    const a = (iso: string) => evenementDepuisBrouillon(b, new Date(iso))
+    expect(a('2026-09-15T10:20:00').start.getHours()).toBe(11)
+    expect(a('2026-09-15T02:10:00').start.getHours()).toBe(9)
+    const soir = a('2026-09-15T19:40:00')
+    expect([soir.start.getDate(), soir.start.getHours()]).toEqual([16, 9])
+    expect(soir.end.getTime() - soir.start.getTime()).toBe(3_600_000)
+    expect(a('2026-09-15T10:20:00')).toMatchObject({ type: 'autre', title: 'Visite', contactId: 'c1', mailThreadId: 't1' })
+  })
+  it('le brouillon se LIT sans se consommer (mode strict), puis s’oublie', () => {
+    const b = brouillonDepuisMail({ ...base, sujet: 'Visite' })
+    deposerBrouillonCalendrier(b)
+    expect(lireBrouillonCalendrier()).toBe(b)
+    expect(lireBrouillonCalendrier()).toBe(b)
+    oublierBrouillonCalendrier()
+    expect(lireBrouillonCalendrier()).toBeNull()
   })
 })

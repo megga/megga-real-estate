@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
@@ -34,7 +35,7 @@ import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
 import { useCalendarLabels } from '@/hooks/useCalendarLabels'
 import { useCalendarEvents } from '@/hooks/useCalendarEvents'
-import { versLigneEvenement } from '@/lib/calendrierEvenements'
+import { evenementDepuisBrouillon, lireBrouillonCalendrier, oublierBrouillonCalendrier, versLigneEvenement } from '@/lib/calendrierEvenements'
 import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
@@ -246,7 +247,25 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   /** Clic droit sur un événement (ou la ligne « Libellé » de sa bulle). */
   const [eventLabelCtx, setEventLabelCtx] = useState<{ id: string; x: number; y: number } | null>(null)
   const [popover, setPopover] = useState<{ id: string; rect: DOMRect | null } | null>(null)
-  const [editing, setEditing] = useState<CalEditing | null>(null)
+  /**
+   * Un e-mail à planifier (Messagerie, 15.09.2026) : `?nouveau=1` ouvre la création
+   * pré-remplie du brouillon que la Messagerie a déposé EN MÉMOIRE. Lu à l'initialisation,
+   * comme l'`openWizard` du KYC ; l'effet qui suit l'oublie et retire le paramètre — une
+   * relecture de l'écran ne rouvrira pas la modale.
+   */
+  const [params, setParams] = useSearchParams()
+  const [editing, setEditing] = useState<CalEditing | null>(() => {
+    if (params.get('nouveau') !== '1') return null
+    const b = lireBrouillonCalendrier()
+    return b ? { mode: 'create', draft: evenementDepuisBrouillon(b) } : null
+  })
+  useEffect(() => {
+    if (params.get('nouveau') !== '1') return
+    oublierBrouillonCalendrier()
+    const suite = new URLSearchParams(params)
+    suite.delete('nouveau')
+    setParams(suite, { replace: true })
+  }, [params, setParams])
   const [toast, setToast] = useState<ToastData | null>(null)
 
   // Couche interactive optimiste (édition/création/drag + statut + suppression).

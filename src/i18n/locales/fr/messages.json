@@ -353,6 +353,10 @@
       "partiel": "{{reussis}} sur {{total}} traités : réessayez pour les autres.",
       "echec": "Aucun des {{total}} messages n'a pu être traité. Réessayez."
     },
+    "plan": {
+      "cta": "Planifier",
+      "notes": "E-mail de {{expediteur}} du {{date}}"
+    },
     "link": {
       "cta": "Rapprocher",
       "title": "Rapprocher l'adresse",

@@ -36,6 +36,8 @@ interface Props {
   onArchive: () => void; onDelete: () => void
   /** « Signaler comme spam », ou « Ce n'est pas un spam » sur un fil au spam. */
   onSpam: () => void
+  /** « Planifier » : l'e-mail devient un événement du Calendrier (15.09.2026). */
+  onPlanifier: () => void
   onOpenAttachment: (a: MailAttachmentRow) => void
   onLinkContact: (email: string, name: string | null) => void
 }
@@ -223,6 +225,7 @@ export function MailReader(p: Props) {
           <>
             {btn(t('mail.read.reply'), p.onReply, { primary: true })}
             {btn(t('mail.read.forward'), p.onForward)}
+            {btn(t('mail.plan.cta'), p.onPlanifier)}
             {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
             {btn(t('mail.ctx.spam'), p.onSpam)}
           </>

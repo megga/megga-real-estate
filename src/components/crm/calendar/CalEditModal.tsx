@@ -451,10 +451,16 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
     })
   }
 
-  const selContact: LinkItem | null = d.contact && d.contact.name ? {
+  // Un brouillon venu d'ailleurs (un e-mail à planifier) ne connaît que l'IDENTIFIANT du
+  // contact : son nom se lit dans la liste de l'agence.
+  const contactVu = d.contact?.name ? d.contact : (() => {
+    const c = d.contactId ? (contacts || []).find(x => x.id === d.contactId) : null
+    return c ? { name: `${c.first_name} ${c.last_name}`.trim(), role: roleLabel(c.type) } : null
+  })()
+  const selContact: LinkItem | null = contactVu && contactVu.name ? {
     id: d.contactId || 'current',
-    title: d.contact.name,
-    avatarText: d.contact.name.split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase(),
+    title: contactVu.name,
+    avatarText: contactVu.name.split(' ').filter(Boolean).map(s => s[0]).slice(0, 2).join('').toUpperCase(),
     avatarBg: SP.accent,
     search: '',
   } : null

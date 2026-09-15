@@ -7,7 +7,7 @@ export type CalIconName =
   | 'home' | 'signature' | 'stamp' | 'check' | 'upload' | 'chevL' | 'chevR'
   | 'plus' | 'close' | 'sparkle' | 'pin' | 'clock' | 'phone' | 'flame'
   | 'warn' | 'list' | 'grid' | 'map' | 'mic' | 'arrowR' | 'eye' | 'car'
-  | 'user' | 'users' | 'edit' | 'trash' | 'route' | 'grip' | 'calendar' | 'repeat' | 'tag'
+  | 'user' | 'users' | 'edit' | 'trash' | 'route' | 'grip' | 'calendar' | 'repeat' | 'tag' | 'mail'
 
 const PATHS: Record<CalIconName, ReactNode> = {
   home: (
@@ -163,6 +163,13 @@ const PATHS: Record<CalIconName, ReactNode> = {
       <path d="M3 11V9a4 4 0 0 1 4-4h14" />
       <path d="m7 22-4-4 4-4" />
       <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </>
+  ),
+  // L'e-mail d'origine d'un événement planifié depuis la Messagerie (15.09.2026).
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
     </>
   ),
   // Étiquette — la ligne « Libellé » de la bulle d'un événement.

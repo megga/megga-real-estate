@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
@@ -25,7 +25,10 @@ import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { useMailActions, type MailThreadAction } from '@/hooks/useMailActions'
 import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
-import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
+import { useMailFolderCounts, useMailThreadRow, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
+import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
+import { brouillonDepuisMail, deposerBrouillonCalendrier } from '@/lib/calendrierEvenements'
+import { expediteurComplet } from '@/lib/mail/format'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
@@ -145,7 +148,17 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const filTrouve = threads.rows.find((r) => r.id === state.sel) ?? null
   const [filMemo, setFilMemo] = useState<MailThreadRow | null>(null)
   if (filTrouve && filTrouve !== filMemo) setFilMemo(filTrouve)
-  const filOuvert = filTrouve ?? (filMemo?.id === state.sel ? filMemo : null)
+
+  /**
+   * Un fil demandé par son LIEN (`?fil=…`, l'e-mail d'origine d'un événement du Calendrier,
+   * 15.09.2026). Lu une fois au montage — l'effet plus bas retire le paramètre — et chargé
+   * hors de toute page : il peut vivre dans une autre boîte, un autre dossier, une page loin.
+   */
+  const [filDemande] = useState(() => params.get('fil'))
+  const filLie = useMailThreadRow(filDemande).data ?? null
+  const filOuvert = filTrouve
+    ?? (filMemo?.id === state.sel ? filMemo : null)
+    ?? (filLie && filLie.id === state.sel ? filLie : null)
 
   // Première boîte visible = boîte courante ; `?account=` (retour de pop-up sans opener) prime.
   useEffect(() => {
@@ -154,6 +167,18 @@ export function MessagerieApp({ dark, setDark }: Props) {
     const first = accounts.list.find((a) => a.id === wanted) ?? accounts.list[0]
     dispatch({ type: 'select-account', accountId: first.id })
   }, [accounts.list, params, state.accountId])
+  // Le fil lié : sa boîte d'abord (changer de boîte vide l'état), puis le fil lui-même.
+  useEffect(() => {
+    if (!filLie) return
+    if (state.accountId !== filLie.account_id) dispatch({ type: 'select-account', accountId: filLie.account_id })
+    dispatch({ type: 'open', threadId: filLie.id })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- une fois, à l'arrivée du fil
+  }, [filLie])
+  useEffect(() => {
+    if (!params.get('fil')) return
+    params.delete('fil')
+    setParams(params, { replace: true })
+  }, [params, setParams])
   // `?add=1` (depuis Réglages) ouvre l'assistant.
   useEffect(() => {
     if (params.get('add') === '1') { dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }); params.delete('add'); setParams(params, { replace: true }) }
@@ -287,6 +312,30 @@ export function MessagerieApp({ dark, setDark }: Props) {
     actions.act.mutate({ action: retour ? 'not_spam' : 'spam', threadId: fil.id }, {
       onSuccess: () => setNotification({ id: Date.now(), texte: t(retour ? 'mail.spam.restored' : 'mail.spam.reported') }),
     })
+  }
+
+  /**
+   * « Planifier » (15.09.2026, Julien : « que les mails soient connectés avec le
+   * calendrier ») : l'e-mail devient un brouillon d'événement — objet, contact du fil,
+   * expéditeur et extrait en notes, et le lien retour —, déposé EN MÉMOIRE, puis le
+   * Calendrier s'ouvre dans un onglet neuf sur sa création pré-remplie. La Messagerie
+   * reste où elle était.
+   */
+  const tabs = useCrmTabsOptionnel()
+  const navigate = useNavigate()
+  const planifier = (fil: MailThreadRow) => {
+    deposerBrouillonCalendrier(brouillonDepuisMail({
+      sujet: fil.subject,
+      extrait: fil.snippet,
+      expediteur: expediteurComplet(fil.from_name, fil.from_email),
+      date: new Date(fil.last_message_at).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      contactId: fil.contact_id,
+      contactNom: null,
+      mailThreadId: fil.id,
+      enTete: (o) => t('mail.plan.notes', o),
+    }))
+    if (tabs) tabs.ouvrirDans('/dashboard/calendar?nouveau=1')
+    else navigate('/dashboard/calendar?nouveau=1')
   }
 
   const deconnecterBoite = useCallback((id: string) => {
@@ -428,6 +477,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
                   onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [filOuvert.id] } })}
                   onSpam={() => { signalerSpam(filOuvert); dispatch({ type: 'back' }) }}
+                  onPlanifier={() => planifier(filOuvert)}
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
                   onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
                 />
@@ -509,6 +559,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onAction={(a) => actions.act.mutate({ action: a, threadId: fil.id })}
                 onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [fil.id] } })}
                 onSpam={() => signalerSpam(fil)}
+                onPlanifier={() => planifier(fil)}
                 onLabel={(id) => actions.setLabel.mutate({ threadId: fil.id, labelId: id })}
               />
             )
