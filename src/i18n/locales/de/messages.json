@@ -128,7 +128,6 @@
       "back": "Zurück",
       "share": "Dieses Postfach mit der ganzen Agentur teilen",
       "waSub": "Koexistenz · App und Cloud API auf derselben Nummer",
-      "imapSub": "IMAP-/SMTP-Verbindung",
       "other": "Anderes Postfach (IMAP / SMTP)",
       "otherSub": "Server manuell einrichten",
       "oauth": {
@@ -156,7 +155,6 @@
         }
       },
       "imap": {
-        "subtitle": "IMAP-/SMTP-Verbindung",
         "email": "E-Mail-Adresse",
         "imapHost": "IMAP-Server",
         "smtpHost": "SMTP-Server",
@@ -166,7 +164,6 @@
         "user": "Benutzername",
         "password": "Passwort",
         "encryption": "Verschlüsselung",
-        "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.",
         "test": "Testen und verbinden",
         "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
         "err": {

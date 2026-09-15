@@ -128,7 +128,6 @@
       "back": "Back",
       "share": "Share this mailbox with the whole agency",
       "waSub": "Coexistence · app and Cloud API on the same number",
-      "imapSub": "IMAP / SMTP connection",
       "other": "Another mailbox (IMAP / SMTP)",
       "otherSub": "Manual server setup",
       "oauth": {
@@ -156,7 +155,6 @@
         }
       },
       "imap": {
-        "subtitle": "IMAP / SMTP connection",
         "email": "Email address",
         "imapHost": "IMAP server",
         "smtpHost": "SMTP server",
@@ -166,7 +164,6 @@
         "user": "User",
         "password": "Password",
         "encryption": "Encryption",
-        "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.",
         "test": "Test and connect",
         "unavailable": "The IMAP connection is coming in a future version.",
         "err": {

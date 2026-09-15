@@ -128,7 +128,6 @@
       "back": "Indietro",
       "share": "Condividi questa casella con tutta l'agenzia",
       "waSub": "Coesistenza · app e Cloud API sullo stesso numero",
-      "imapSub": "Connessione IMAP / SMTP",
       "other": "Altra casella (IMAP / SMTP)",
       "otherSub": "Configurazione manuale del server",
       "oauth": {
@@ -156,7 +155,6 @@
         }
       },
       "imap": {
-        "subtitle": "Connessione IMAP / SMTP",
         "email": "Indirizzo e-mail",
         "imapHost": "Server IMAP",
         "smtpHost": "Server SMTP",
@@ -166,7 +164,6 @@
         "user": "Utente",
         "password": "Password",
         "encryption": "Cifratura",
-        "note": "Il test verifica IMAP e SMTP prima dell'aggiunta · le credenziali sono cifrate a riposo.",
         "test": "Verifica e collega",
         "unavailable": "La connessione IMAP arriverà in una prossima versione.",
         "err": {
