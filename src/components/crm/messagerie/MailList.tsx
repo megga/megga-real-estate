@@ -8,15 +8,21 @@
  * ont donc leur propre rangée, sur la MÊME grille — la colonne d'étoile reste
  * vide plutôt que d'être supprimée, sans quoi les objets ne s'aligneraient plus
  * avec ceux des autres dossiers.
+ *
+ * La SÉLECTION (15.09.2026) : une case « tout » en tête de la barre coche la page ; dès
+ * qu'un fil est coché, la barre devient celle des gestes en lot — le compte, puis les
+ * gestes que l'écran lui passe (il sait quel dossier est ouvert). Les brouillons, locaux,
+ * n'entrent pas dans la sélection.
  */
 import { useTranslation } from 'react-i18next'
-import MEIcon from '@/components/propertyx/MEIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { MAIL_PER_PAGE, type MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailDraft } from '@/hooks/useMailDrafts'
 import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
 import { domaineDe } from '@/lib/mail/format'
 import { MailListRow } from './MailListRow'
+import { MailCase } from './MailCase'
 import { MailPager } from './MailPager'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
@@ -49,7 +55,20 @@ interface Props {
   onOpenDraft: (id: string) => void
   onStar: (row: MailThreadRow) => void
   onContext: (e: React.MouseEvent, row: MailThreadRow) => void
+  /** Les fils cochés de la page. */
+  selection: string[]
+  onSelect: (id: string, plage: boolean) => void
+  /** Coche toute la page (`true`) ou vide la sélection (`false`). */
+  onSelectAll: (on: boolean) => void
+  /** Les gestes de la barre de sélection, dans l'ordre d'affichage. */
+  gestesLot: GesteLot[]
 }
+
+/** Un geste de la barre de sélection. */
+export interface GesteLot { cle: string; libelle: string; icone: MEIconName; danger?: boolean; onClick: () => void }
+
+/** Diamètre de la case « tout » : celui de la pastille des lignes. */
+const CASE = 24
 
 export function MailList(p: Props) {
   const { t } = useTranslation('messages')
@@ -82,10 +101,56 @@ export function MailList(p: Props) {
     </button>
   )
   const labelOf = (id: string | null) => p.labels.find((l) => l.id === id) ?? null
+  const coches = p.rows.filter((r) => p.selection.includes(r.id)).length
+  const enSelection = !p.drafts && coches > 0
+  const etatTout = coches === 0 ? 'vide' : coches === p.rows.length ? 'cochee' : 'partielle'
+  const caseTout = !p.drafts && p.rows.length > 0 && (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={etatTout === 'cochee' ? true : etatTout === 'partielle' ? 'mixed' : false}
+      aria-label={coches ? t('mail.select.none') : t('mail.select.all')}
+      title={coches ? t('mail.select.none') : t('mail.select.all')}
+      onClick={() => p.onSelectAll(coches === 0)}
+      style={{ width: CASE, height: CASE, padding: 0, border: 'none', background: 'transparent', borderRadius: '50%', cursor: 'pointer', flexShrink: 0, display: 'grid', placeItems: 'center' }}
+    >
+      <MailCase ms={ms} etat={etatTout} taille={CASE} />
+    </button>
+  )
 
   return (
     <>
+      {enSelection ? (
+        <div
+          role="toolbar"
+          aria-label={t('mail.select.bar')}
+          style={{ padding: 'var(--crm-space-4xl) var(--crm-space-7xl) var(--crm-space-lg)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}
+        >
+          {caseTout}
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, marginRight: 'var(--crm-space-sm)' }}>{t('mail.select.count', { count: coches })}</span>
+          {p.gestesLot.map((g) => (
+            <button
+              key={g.cle}
+              type="button"
+              onClick={g.onClick}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+                borderRadius: PILL, padding: 'var(--crm-space-sm) var(--crm-space-2xl)', fontSize: 'var(--crm-text-sm)',
+                fontWeight: 500, border: `1px solid ${ms.bord3}`, background: ms.elev,
+                color: g.danger ? ms.dangerText : ms.txt3, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = g.danger ? ms.dangerText : ms.ink; if (!g.danger) e.currentTarget.style.color = ms.ink }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = ms.bord3; e.currentTarget.style.color = g.danger ? ms.dangerText : ms.txt3 }}
+            >
+              <MEIcon name={g.icone} size={14} /> {g.libelle}
+            </button>
+          ))}
+          {/* Pas de pager ici : changer de page viderait la sélection, et quatre gestes plus le
+              pager ne tiennent pas sur une ligne — la barre passait à la ligne suivante. */}
+        </div>
+      ) : (
       <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-7xl) var(--crm-space-lg)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+        {caseTout}
         <label
           style={{
             flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
@@ -106,6 +171,7 @@ export function MailList(p: Props) {
         {chip(p.attOnly, t('mail.list.attachment'), () => p.onAttOnly(!p.attOnly))}
         <MailPager ms={ms} page={p.page} perPage={MAIL_PER_PAGE} total={p.drafts ? p.drafts.length : p.total} onPage={p.onPage} />
       </div>
+      )}
 
       <div className="scrollbar-hide" style={{ padding: '0 var(--crm-space-2xl) var(--crm-space-3xl)', overflowY: 'auto', minHeight: 0, flex: 1 }}>
         {pageDrafts ? (
@@ -156,6 +222,9 @@ export function MailList(p: Props) {
               onOpen={() => p.onOpen(r.id)}
               onStar={() => p.onStar(r)}
               onContext={(e) => p.onContext(e, r)}
+              selectionne={p.selection.includes(r.id)}
+              enSelection={enSelection}
+              onSelect={(plage) => p.onSelect(r.id, plage)}
             />
           ))
         )}

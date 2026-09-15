@@ -19,8 +19,11 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { PILL, type MailSurfaces } from './mailTokens'
 
-/** Une notification ; un `id` neuf relance le compte à rebours. */
-export interface MailNotificationData { id: number; texte: string }
+/**
+ * Une notification ; un `id` neuf relance le compte à rebours. `alerte` : le geste n'est
+ * passé qu'en partie (un lot dont un fil a été refusé) — une coche verte le dirait réussi.
+ */
+export interface MailNotificationData { id: number; texte: string; alerte?: boolean }
 
 interface Props {
   ms: MailSurfaces
@@ -80,8 +83,8 @@ export function MailNotification({ ms, notification, onFin }: Props) {
               color: ms.ink, fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
             }}
           >
-            <span aria-hidden style={{ width: PASTILLE, height: PASTILLE, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: ms.success, color: ms.successInk }}>
-              <MEIcon name="check" size={14} />
+            <span aria-hidden style={{ width: PASTILLE, height: PASTILLE, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', background: notification.alerte ? ms.warn : ms.success, color: notification.alerte ? ms.warnInk : ms.successInk }}>
+              <MEIcon name={notification.alerte ? 'alert' : 'check'} size={14} />
             </span>
             {notification.texte}
           </motion.div>

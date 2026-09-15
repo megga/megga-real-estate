@@ -244,6 +244,34 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     expect(data, 'la boîte de l agence B a été supprimée par l agent A').toBeTruthy()
   })
 
+  // ── Les gestes en LOT (15.09.2026) ────────────────────────────────────────
+  it('mail-actions en lot : une boîte d une autre agence reste introuvable (404)', async () => {
+    const r = await call('mail-actions', { action: 'archive', account_id: boxAinBId, thread_ids: ['00000000-0000-4000-8000-000000000001'] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(404)
+    expect(r.json.error).toBe('not_found')
+  })
+
+  it('mail-actions en lot : un lot mal formé est refusé (400), avant tout fournisseur', async () => {
+    for (const thread_ids of ['x', [], ['pas-un-uuid']]) {
+      const r = await call('mail-actions', { action: 'archive', account_id: boxAId, thread_ids }, jwtA)
+      expect(r.status, JSON.stringify(thread_ids)).toBe(400)
+      expect(r.json.error).toBe('invalid_input')
+    }
+  })
+
+  // ⛔ Un fil d'une AUTRE boîte glissé dans un lot est « introuvable » — et il n'est pas touché.
+  // Sans la borne `account_id`, le lot aurait archivé chez l'agence B un fil que l'agent A
+  // ne voit pas.
+  it('mail-actions en lot : un fil d une autre boîte est introuvable, et reste intact', async () => {
+    const service = serviceRoleClient()
+    const { data: filB } = await service.from('mail_threads').select('id, is_archived').eq('provider_thread_id', `t-b-${s.stamp}`).single()
+    const r = await call('mail-actions', { action: 'archive', account_id: boxAId, thread_ids: [filB!.id] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
+    expect(r.json.results).toEqual([{ thread_id: filB!.id, ok: false, error: 'thread_not_found' }])
+    const { data: apres } = await service.from('mail_threads').select('is_archived').eq('id', filB!.id).single()
+    expect(apres!.is_archived).toBe(filB!.is_archived)
+  })
+
   it('mail-attachment : GET inconnu → 404 ; POST sans action → 400', async () => {
     const g = await fetch(`${FN('mail-attachment')}?id=00000000-0000-0000-0000-000000000000`, {
       headers: { Authorization: `Bearer ${jwtA}` },

@@ -11,7 +11,7 @@ export default defineConfig({
   // regardless of the real session). Run separately via `npm run test:e2e:kyb`
   // (playwright.kyb.config.ts, its own dev server, no bypass).
   // Les bancs `/dev/*` ont leur propre config, SANS contournement d'auth : `playwright.bancs.config.ts`.
-  testIgnore: ['**/visual-regression.spec.ts', '**/visual-sensibilite.spec.ts', '**/onboarding-identite.spec.ts', '**/auth-handoff.spec.ts', '**/menus-clic-droit.spec.ts', '**/menu-compte.spec.ts', '**/onglet-neuf.spec.ts', '**/cloche.spec.ts', '**/journal-audit.spec.ts', '**/calendrier-deplacement.spec.ts', '**/messagerie-logos.spec.ts', '**/messagerie-cadre.spec.ts', '**/messagerie-destinataires.spec.ts', '**/messagerie-deconnexion.spec.ts', '**/messagerie-ajout-boite.spec.ts', '**/messagerie-gestes.spec.ts', '**/messagerie-liste.spec.ts', '**/messagerie-spam.spec.ts', '**/erreur-application.spec.ts'],
+  testIgnore: ['**/visual-regression.spec.ts', '**/visual-sensibilite.spec.ts', '**/onboarding-identite.spec.ts', '**/auth-handoff.spec.ts', '**/menus-clic-droit.spec.ts', '**/menu-compte.spec.ts', '**/onglet-neuf.spec.ts', '**/cloche.spec.ts', '**/journal-audit.spec.ts', '**/calendrier-deplacement.spec.ts', '**/messagerie-logos.spec.ts', '**/messagerie-cadre.spec.ts', '**/messagerie-destinataires.spec.ts', '**/messagerie-deconnexion.spec.ts', '**/messagerie-ajout-boite.spec.ts', '**/messagerie-gestes.spec.ts', '**/messagerie-liste.spec.ts', '**/messagerie-spam.spec.ts', '**/erreur-application.spec.ts', '**/messagerie-selection.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

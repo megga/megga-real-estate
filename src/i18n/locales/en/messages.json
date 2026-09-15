@@ -298,7 +298,12 @@
     },
     "delete": {
       "title": "Delete this message?",
-      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox."
+      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox.",
+      "legalMany": "The messages go to the bin and leave the list. The ten-year legal retention applies to the case file, not to the mailbox.",
+      "titleMany_one": "Delete this message?",
+      "titleMany_other": "Delete these {{count}} messages?",
+      "andMore_one": "and {{count}} more",
+      "andMore_other": "and {{count}} more"
     },
     "read": {
       "back": "Back to list",
@@ -319,6 +324,32 @@
     "spam": {
       "reported": "Reported as spam",
       "restored": "Moved to the inbox"
+    },
+    "select": {
+      "all": "Select all",
+      "none": "Clear selection",
+      "row": "Select the message from {{sender}}",
+      "count_one": "{{count}} selected",
+      "count_other": "{{count}} selected",
+      "bar": "Actions on the selection"
+    },
+    "lot": {
+      "archive_one": "{{count}} message archived",
+      "archive_other": "{{count}} messages archived",
+      "unarchive_one": "{{count}} message moved out of archive",
+      "unarchive_other": "{{count}} messages moved out of archive",
+      "trash_one": "{{count}} message deleted",
+      "trash_other": "{{count}} messages deleted",
+      "spam_one": "{{count}} message reported as spam",
+      "spam_other": "{{count}} messages reported as spam",
+      "not_spam_one": "{{count}} message moved to the inbox",
+      "not_spam_other": "{{count}} messages moved to the inbox",
+      "mark_read_one": "{{count}} message marked as read",
+      "mark_read_other": "{{count}} messages marked as read",
+      "mark_unread_one": "{{count}} message marked as unread",
+      "mark_unread_other": "{{count}} messages marked as unread",
+      "partiel": "{{reussis}} of {{total}} done: try again for the rest.",
+      "echec": "None of the {{total}} messages could be processed. Try again."
     },
     "link": {
       "cta": "Link",

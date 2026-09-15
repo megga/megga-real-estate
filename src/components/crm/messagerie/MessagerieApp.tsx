@@ -22,14 +22,14 @@ import { crmPalette } from '@/components/crm/tokens'
 import EtatVide from '@/components/crm/EtatVide'
 import { useAuth } from '@/hooks/useAuth'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
-import { useMailActions } from '@/hooks/useMailActions'
+import { useMailActions, type MailThreadAction } from '@/hooks/useMailActions'
 import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
 import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
-import { MailList } from './MailList'
+import { MailList, type GesteLot } from './MailList'
 import { MailAddAccountModal } from './MailAddAccountModal'
 import { MailAttachmentPreviewModal } from './MailAttachmentPreviewModal'
 import { MailComposeModal } from './MailComposeModal'
@@ -124,7 +124,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * laisserait croire que la panne est réglée.
    */
   const panne =
-    compteurs.error ?? labels.error ?? drafts.error ?? actions.act.error ?? actions.setLabel.error ?? null
+    compteurs.error ?? labels.error ?? drafts.error ?? actions.act.error ?? actions.actLot.error ?? actions.setLabel.error ?? null
 
   /**
    * ⚠ Le fil ouvert doit SURVIVRE à sa page. Un changement de filtre, un passage
@@ -186,10 +186,61 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const idPiece = state.modal.kind === 'preview' || state.modal.kind === 'file' ? state.modal.attachmentId : null
   const piece = idPiece ? thread.data?.flatMap((m) => m.mail_attachments).find((a) => a.id === idPiece) ?? null : null
 
-  const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
-  const filASupprimer = idSuppression
-    ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
-    : null
+  const idsSuppression = state.modal.kind === 'delete' ? state.modal.threadIds : []
+  const filsASupprimer = idsSuppression
+    .map((id) => threads.rows.find((r) => r.id === id) ?? (filOuvert?.id === id ? filOuvert : null))
+    .filter((r): r is MailThreadRow => r !== null)
+
+  /**
+   * La SÉLECTION de la liste (15.09.2026) : les fils cochés que la page MONTRE encore. Un
+   * rafraîchissement (Realtime, synchro) peut en faire sortir un — il n'est alors plus
+   * compté, ni visé par le geste suivant.
+   */
+  const selectionVisible = threads.rows.filter((r) => state.selection.includes(r.id))
+  // Le dernier fil coché à la main : Maj+clic coche la plage qui va de lui au fil cliqué.
+  const [ancre, setAncre] = useState<string | null>(null)
+  const selectionner = (id: string, plage: boolean) => {
+    const de = ancre ? threads.rows.findIndex((r) => r.id === ancre) : -1
+    const a = threads.rows.findIndex((r) => r.id === id)
+    if (plage && de >= 0 && a >= 0) {
+      dispatch({ type: 'select-many', threadIds: threads.rows.slice(Math.min(de, a), Math.max(de, a) + 1).map((r) => r.id), on: true })
+    } else {
+      dispatch({ type: 'select', threadId: id })
+    }
+    setAncre(id)
+  }
+
+  /**
+   * Un geste sur la sélection, puis le compte rendu : combien sont passés. Un lot dont un
+   * fil a été refusé le DIT (notification d'alerte) — la liste, relue, montre lequel.
+   */
+  const agirEnLot = (action: MailThreadAction, ids: string[], apres?: () => void) => {
+    actions.actLot.mutate({ action, threadIds: ids }, {
+      onSuccess: ({ reussis, total }) => {
+        dispatch({ type: 'select-clear' })
+        apres?.()
+        const texte = reussis === total ? t(`mail.lot.${action}`, { count: reussis })
+          : reussis === 0 ? t('mail.lot.echec', { total }) : t('mail.lot.partiel', { reussis, total })
+        setNotification({ id: Date.now(), texte, alerte: reussis < total })
+      },
+    })
+  }
+
+  /** Les gestes de la barre de sélection, selon le dossier ouvert. */
+  const toutLu = selectionVisible.length > 0 && selectionVisible.every((r) => r.is_read)
+  const idsSelection = selectionVisible.map((r) => r.id)
+  const gestesLot: GesteLot[] = [
+    ...(state.folder === 'spam' ? [] : [state.folder === 'arch'
+      ? { cle: 'unarchive', libelle: t('mail.ctx.unarchive'), icone: 'inbox' as const, onClick: () => agirEnLot('unarchive', idsSelection) }
+      : { cle: 'archive', libelle: t('mail.ctx.archive'), icone: 'archive' as const, onClick: () => agirEnLot('archive', idsSelection) }]),
+    state.folder === 'spam'
+      ? { cle: 'not_spam', libelle: t('mail.ctx.notSpam'), icone: 'inbox', onClick: () => agirEnLot('not_spam', idsSelection) }
+      : { cle: 'spam', libelle: t('mail.ctx.spam'), icone: 'spam', onClick: () => agirEnLot('spam', idsSelection) },
+    toutLu
+      ? { cle: 'mark_unread', libelle: t('mail.ctx.markUnread'), icone: 'mail', onClick: () => agirEnLot('mark_unread', idsSelection) }
+      : { cle: 'mark_read', libelle: t('mail.ctx.markRead'), icone: 'mail', onClick: () => agirEnLot('mark_read', idsSelection) },
+    { cle: 'trash', libelle: t('mail.ctx.delete'), icone: 'trash', danger: true, onClick: () => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: idsSelection } }) },
+  ]
 
   /**
    * Créer, renommer ou recolorer — un seul geste d'écran, trois mutations
@@ -375,7 +426,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
-                  onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: filOuvert.id } })}
+                  onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [filOuvert.id] } })}
                   onSpam={() => { signalerSpam(filOuvert); dispatch({ type: 'back' }) }}
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
                   onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
@@ -431,6 +482,10 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onOpenDraft={(id) => { send.reset(); dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } }) }}
                   onStar={(r) => actions.act.mutate({ action: r.is_starred ? 'unstar' : 'star', threadId: r.id })}
                   onContext={(e, r) => dispatch({ type: 'ctx', ctx: { x: e.clientX, y: e.clientY, threadId: r.id } })}
+                  selection={state.selection}
+                  onSelect={selectionner}
+                  onSelectAll={(on) => dispatch(on ? { type: 'select-many', threadIds: threads.rows.map((r) => r.id), on: true } : { type: 'select-clear' })}
+                  gestesLot={gestesLot}
                 />
               )}
             </section>
@@ -452,7 +507,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onClose={() => dispatch({ type: 'ctx', ctx: null })}
                 onOpen={() => ouvrirFil(fil.id)}
                 onAction={(a) => actions.act.mutate({ action: a, threadId: fil.id })}
-                onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: fil.id } })}
+                onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: [fil.id] } })}
                 onSpam={() => signalerSpam(fil)}
                 onLabel={(id) => actions.setLabel.mutate({ threadId: fil.id, labelId: id })}
               />
@@ -577,14 +632,20 @@ export function MessagerieApp({ dark, setDark }: Props) {
 
           <MailDeleteModal
             ms={ms}
-            row={filASupprimer}
-            busy={actions.act.isPending}
+            rows={filsASupprimer}
+            busy={actions.act.isPending || actions.actLot.isPending}
             onCancel={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
             // On revient à la liste APRÈS la corbeille : fermer la modale sur la
             // lecture d'un fil qui n'y est plus laisserait un écran sans objet.
-            onConfirm={() => filASupprimer && actions.act.mutate({ action: 'trash', threadId: filASupprimer.id }, {
-              onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
-            })}
+            onConfirm={() => {
+              if (filsASupprimer.length === 1) {
+                actions.act.mutate({ action: 'trash', threadId: filsASupprimer[0].id }, {
+                  onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
+                })
+              } else if (filsASupprimer.length > 1) {
+                agirEnLot('trash', filsASupprimer.map((r) => r.id), () => dispatch({ type: 'modal', modal: { kind: 'none' } }))
+              }
+            }}
           />
         </main>
         </CrmWorkspace>

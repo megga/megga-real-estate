@@ -11,7 +11,13 @@
  * ⚠ L'encre de la pastille se CALCULE (`ms.pillInk` → `encreSur`) : la couleur
  * d'un libellé est libre (D12), donc aucun blanc en dur ne peut être supposé
  * lisible dessus.
+ *
+ * La SÉLECTION (15.09.2026) : la pastille d'expéditeur devient une case au survol, au focus,
+ * et sur toutes les lignes dès qu'une est cochée — comme Spark et Outlook. Même diamètre,
+ * même place : la grille de la maquette ne gagne aucune colonne. Maj+clic coche une plage ;
+ * Espace coche la ligne qui a le focus.
  */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
@@ -19,6 +25,7 @@ import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailSenderLogo } from '@/hooks/useMailSenderLogos'
 import { displayAddress, mailDateLabel } from '@/lib/mail/format'
 import { MailSenderAvatar } from './MailSenderAvatar'
+import { MailCase } from './MailCase'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Props {
@@ -31,13 +38,23 @@ interface Props {
   onOpen: () => void
   onStar: () => void
   onContext: (e: React.MouseEvent) => void
+  /** La ligne est cochée. */
+  selectionne: boolean
+  /** Une ligne au moins est cochée : toutes les pastilles sont des cases. */
+  enSelection: boolean
+  /** Coche ou décoche ; `plage` = Maj enfoncée, du dernier fil coché jusqu'à celui-ci. */
+  onSelect: (plage: boolean) => void
 }
 
 /** Diamètre de la pastille d'expéditeur dans une ligne : la ligne garde sa hauteur. */
 const PASTILLE = 24
 
-export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onContext }: Props) {
+export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onContext, selectionne, enSelection, onSelect }: Props) {
   const { t } = useTranslation('messages')
+  const [survol, setSurvol] = useState(false)
+  const [focus, setFocus] = useState(false)
+  const caseVisible = selectionne || enSelection || survol || focus
+  const fond = selectionne ? ms.elev : 'transparent'
   // ⚠ 600 et non 700 comme la maquette : la grammaire MEGGA X plafonne à 600
   // (cliquet `megga-x-grammar`), et l'écart 500/600 suffit à lire « non lu ».
   const weight = row.is_read ? 500 : 600
@@ -50,14 +67,19 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
       tabIndex={0}
       onClick={onOpen}
       onContextMenu={(e) => { e.preventDefault(); onContext(e) }}
-      onKeyDown={(e) => { if (e.key === 'Enter') onOpen() }}
+      aria-selected={selectionne}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return
+        if (e.key === 'Enter') onOpen()
+        if (e.key === ' ') { e.preventDefault(); onSelect(e.shiftKey) }
+      }}
       style={{
         display: 'grid', gridTemplateColumns: '26px 185px minmax(0,1fr) 16px 58px', gap: 'var(--crm-space-md)',
         alignItems: 'center', padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)',
-        borderBottom: `1px solid ${ms.bord2}`, cursor: 'pointer', color: ms.ink, transition: MAIL_TRANSITION,
+        borderBottom: `1px solid ${ms.bord2}`, cursor: 'pointer', color: ms.ink, transition: MAIL_TRANSITION, background: fond,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover2 }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      onMouseEnter={(e) => { setSurvol(true); if (!selectionne) e.currentTarget.style.background = ms.hover2 }}
+      onMouseLeave={(e) => { setSurvol(false); e.currentTarget.style.background = fond }}
     >
       {/* Pas d'étoile sur un spam : « Suivis » exclut le spam, le geste semblerait sans effet
           (même règle que le menu de la ligne). La cellule reste, la grille aussi. */}
@@ -78,7 +100,26 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
 
       {/* La pastille vit DANS la colonne de l'expéditeur : la grille reste celle de la maquette. */}
       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
-        <MailSenderAvatar ms={ms} nom={row.from_name} adresse={adresse} logo={logo} taille={PASTILLE} />
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selectionne}
+          aria-label={t('mail.select.row', { sender })}
+          onClick={(e) => { e.stopPropagation(); onSelect(e.shiftKey) }}
+          onFocus={() => setFocus(true)}
+          onBlur={() => setFocus(false)}
+          style={{ width: PASTILLE, height: PASTILLE, padding: 0, border: 'none', background: 'transparent', borderRadius: '50%', flexShrink: 0, cursor: 'pointer', display: 'grid', placeItems: 'center' }}
+        >
+          {/* ⛔ `pointer-events: none` : le bouton doit être la CIBLE du clic, pas son contenu.
+              La pastille devient case au survol, et un premier toucher (tablette) ou un clic
+              rapide survole ET appuie dans la foulée : l'appui visait la pastille, que le rendu
+              remplaçait avant le relâchement — et le navigateur ne rendait pas le clic. */}
+          <span style={{ pointerEvents: 'none', display: 'grid', placeItems: 'center' }}>
+            {caseVisible
+              ? <MailCase ms={ms} etat={selectionne ? 'cochee' : 'vide'} taille={PASTILLE} />
+              : <MailSenderAvatar ms={ms} nom={row.from_name} adresse={adresse} logo={logo} taille={PASTILLE} />}
+          </span>
+        </button>
         <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
       </span>
 

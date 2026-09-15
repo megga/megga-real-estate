@@ -52,6 +52,29 @@ export function useMailActions(accountId: string | null) {
     onSettled: settle,
   })
 
+  /**
+   * Un geste sur PLUSIEURS fils (15.09.2026) : un appel, un verdict par fil. L'écran les
+   * patche tous tout de suite ; au retour, la liste relit la base — un fil que le
+   * fournisseur a refusé y reprend donc sa place de lui-même, et le compte rendu dit
+   * combien sont passés.
+   */
+  const actLot = useMutation({
+    mutationFn: async (a: { action: MailThreadAction; threadIds: string[] }): Promise<{ reussis: number; total: number }> => {
+      if (fx) { for (const id of a.threadIds) fxAgir(id, PATCH[a.action]); return { reussis: a.threadIds.length, total: a.threadIds.length } }
+      const r = await invokeMail<{ results: { thread_id: string; ok: boolean }[] }>('mail-actions', { action: a.action, account_id: accountId, thread_ids: a.threadIds })
+      if (r.error) throw new Error(r.error)
+      return { reussis: (r.data?.results ?? []).filter((x) => x.ok).length, total: a.threadIds.length }
+    },
+    onMutate: async (a) => {
+      await qc.cancelQueries({ queryKey: ['mail', 'threads', accountId] })
+      const snapshot = qc.getQueriesData<{ rows: MailThreadRow[]; total: number }>({ queryKey: ['mail', 'threads', accountId] })
+      for (const id of a.threadIds) patchCaches(id, PATCH[a.action])
+      return { snapshot }
+    },
+    onError: (_e, _a, ctx) => { for (const [key, data] of ctx?.snapshot ?? []) qc.setQueryData(key, data) },
+    onSettled: settle,
+  })
+
   const setLabel = useMutation({
     mutationFn: async (a: { threadId: string; labelId: string | null }) => {
       if (fx) { fxAgir(a.threadId, { label_id: a.labelId }); return }
@@ -78,5 +101,5 @@ export function useMailActions(accountId: string | null) {
     onSettled: settle,
   })
 
-  return { act, setLabel, linkContact, syncNow }
+  return { act, actLot, setLabel, linkContact, syncNow }
 }

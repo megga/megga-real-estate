@@ -298,7 +298,12 @@
     },
     "delete": {
       "title": "Eliminare questo messaggio?",
-      "legal": "Il messaggio finisce nel cestino ed esce dall'elenco. La conservazione legale di dieci anni riguarda il dossier, non la casella."
+      "legal": "Il messaggio finisce nel cestino ed esce dall'elenco. La conservazione legale di dieci anni riguarda il dossier, non la casella.",
+      "legalMany": "I messaggi finiscono nel cestino ed escono dall'elenco. La conservazione legale di dieci anni riguarda il dossier, non la casella.",
+      "titleMany_one": "Eliminare questo messaggio?",
+      "titleMany_other": "Eliminare questi {{count}} messaggi?",
+      "andMore_one": "e {{count}} altro",
+      "andMore_other": "e altri {{count}}"
     },
     "read": {
       "back": "Torna all'elenco",
@@ -319,6 +324,32 @@
     "spam": {
       "reported": "Segnalato come spam",
       "restored": "Spostato nella posta in arrivo"
+    },
+    "select": {
+      "all": "Seleziona tutto",
+      "none": "Deseleziona tutto",
+      "row": "Seleziona il messaggio di {{sender}}",
+      "count_one": "{{count}} selezionato",
+      "count_other": "{{count}} selezionati",
+      "bar": "Azioni sulla selezione"
+    },
+    "lot": {
+      "archive_one": "{{count}} messaggio archiviato",
+      "archive_other": "{{count}} messaggi archiviati",
+      "unarchive_one": "{{count}} messaggio tolto dall'archivio",
+      "unarchive_other": "{{count}} messaggi tolti dall'archivio",
+      "trash_one": "{{count}} messaggio eliminato",
+      "trash_other": "{{count}} messaggi eliminati",
+      "spam_one": "{{count}} messaggio segnalato come spam",
+      "spam_other": "{{count}} messaggi segnalati come spam",
+      "not_spam_one": "{{count}} messaggio spostato nella posta in arrivo",
+      "not_spam_other": "{{count}} messaggi spostati nella posta in arrivo",
+      "mark_read_one": "{{count}} messaggio segnato come letto",
+      "mark_read_other": "{{count}} messaggi segnati come letti",
+      "mark_unread_one": "{{count}} messaggio segnato come non letto",
+      "mark_unread_other": "{{count}} messaggi segnati come non letti",
+      "partiel": "{{reussis}} su {{total}} elaborati: riprovi per gli altri.",
+      "echec": "Nessuno dei {{total}} messaggi è stato elaborato. Riprovi."
     },
     "link": {
       "cta": "Collega",
