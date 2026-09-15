@@ -64,13 +64,6 @@ export function nomDePiece(rang: number, mimeType: string | null | undefined): s
   return `ATT${String(rang + 1).padStart(5, '0')}.${ext}`
 }
 
-/** Taille décodée d'un contenu base64 (sans le décoder : c'est tout l'objet du mode base64). */
-function tailleBase64(b64: string): number {
-  const net = b64.replace(/[^A-Za-z0-9+/=]/g, '')
-  const remplissage = net.endsWith('==') ? 2 : net.endsWith('=') ? 1 : 0
-  return Math.max(0, Math.floor((net.length * 3) / 4) - remplissage)
-}
-
 const MOIS: Record<string, number> = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 }
 /** `05-Sep-2026 10:00:00 +0200` (INTERNALDATE, RFC 3501) → ISO 8601 ; `null` si illisible. */
 export function internalDateIso(s: string | null): string | null {
@@ -84,21 +77,21 @@ export function internalDateIso(s: string | null): string | null {
 }
 
 /**
- * Analyse un message brut. Les pièces restent en base64 (`attachmentEncoding`) : la
- * synchro n'a besoin que de leur nom, de leur type et de leur taille, et décoder chaque
- * PDF à chaque passe coûterait le temps CPU que l'edge mesure (2 s par requête).
+ * Analyse un message brut. La synchro ne garde des pièces que leur nom, leur type et leur
+ * taille — lue sur les OCTETS (`arraybuffer`). ⛔ Le mode `base64` n'évitait aucun décodage :
+ * postal-mime décode toujours la pièce, puis la RÉ-ENCODAIT, et la taille se recalculait sur la
+ * chaîne — trois fois le travail, et le triple de mémoire (mesuré le 15.09.2026 : 155 ms contre
+ * 50 ms pour un message de 8 Mo, sous le plafond de 2 s par requête de l'edge).
  */
 export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<NormalizedMessage> {
-  const e = (await PostalMime.parse(raw, { attachmentEncoding: 'base64', ...LIMITES })) as unknown as PmEmail
+  const e = (await PostalMime.parse(raw, { attachmentEncoding: 'arraybuffer', ...LIMITES })) as unknown as PmEmail
   const from = adresse(e.from) ?? { name: null, email: '' }
   const replyTo = adresses(e.replyTo)[0]?.email ?? null
   const attachments: NormalizedAttachment[] = e.attachments.map((a, i) => ({
     providerAttachmentId: String(i),
     filename: a.filename || nomDePiece(i, a.mimeType),
     mimeType: a.mimeType || 'application/octet-stream',
-    sizeBytes: typeof a.content === 'string'
-      ? (a.encoding === 'base64' ? tailleBase64(a.content) : new TextEncoder().encode(a.content).byteLength)
-      : a.content.byteLength,
+    sizeBytes: typeof a.content === 'string' ? new TextEncoder().encode(a.content).byteLength : a.content.byteLength,
     isInline: a.disposition === 'inline' || (!!a.contentId && a.disposition !== 'attachment'),
     contentId: a.contentId ?? null,
   }))
@@ -147,11 +140,18 @@ export async function parseEntetesSeuls(entetes: Uint8Array, ctx: ParseCtx): Pro
   return { ...m, bodyText: null, bodyHtml: null, snippet: '', attachments: [], corpsNonLu: true }
 }
 
-/** Les octets d'une pièce (par son rang, `providerAttachmentId`) dans un message brut. */
-export async function attachmentFromRaw(raw: Uint8Array, index: number): Promise<{ bytes: Uint8Array; mimeType: string; filename: string } | null> {
+/**
+ * Les octets des pièces demandées (par leur rang, `providerAttachmentId`), dans l'ordre demandé,
+ * d'UNE analyse du message brut ; un rang absent est omis. ⛔ Le transfert en analysait le
+ * message entier une fois PAR PIÈCE : 0,5 s de CPU pour un dossier de dix PDF (15.09.2026).
+ */
+export async function piecesDuBrut(raw: Uint8Array, rangs: number[]): Promise<{ rang: number; bytes: Uint8Array; mimeType: string; filename: string }[]> {
+  if (rangs.length === 0) return []
   const e = (await PostalMime.parse(raw, { attachmentEncoding: 'arraybuffer', ...LIMITES })) as unknown as PmEmail
-  const a = e.attachments[index]
-  if (!a) return null
-  const bytes = typeof a.content === 'string' ? new TextEncoder().encode(a.content) : new Uint8Array(a.content)
-  return { bytes, mimeType: a.mimeType || 'application/octet-stream', filename: a.filename || nomDePiece(index, a.mimeType) }
+  return rangs.flatMap((rang) => {
+    const a = e.attachments[rang]
+    if (!a) return []
+    const bytes = typeof a.content === 'string' ? new TextEncoder().encode(a.content) : new Uint8Array(a.content)
+    return [{ rang, bytes, mimeType: a.mimeType || 'application/octet-stream', filename: a.filename || nomDePiece(rang, a.mimeType) }]
+  })
 }

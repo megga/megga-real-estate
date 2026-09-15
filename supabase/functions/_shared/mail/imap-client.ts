@@ -389,8 +389,10 @@ export class ImapClient {
     return literals[0]
   }
 
-  async uidStore(uid: number, flags: string[], mode: 'add' | 'remove'): Promise<void> {
-    await this.cmd(`UID STORE ${uid} ${mode === 'add' ? '+' : '-'}FLAGS.SILENT (${flags.join(' ')})`)
+  /** Un UID, ou un ENSEMBLE d'UID du dossier ouvert : une commande pour tous. */
+  async uidStore(uid: number | number[], flags: string[], mode: 'add' | 'remove'): Promise<void> {
+    const ensemble = Array.isArray(uid) ? uid.join(',') : String(uid)
+    await this.cmd(`UID STORE ${ensemble} ${mode === 'add' ? '+' : '-'}FLAGS.SILENT (${flags.join(' ')})`)
   }
 
   /**

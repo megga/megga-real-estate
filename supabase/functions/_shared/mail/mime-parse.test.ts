@@ -3,8 +3,9 @@
  * casse un analyseur naïf : un nom en RFC 2047, un objet en ISO-8859-1 quoted-printable,
  * un groupe d'adresses, un corps HTML seul, une pièce jointe et une image intégrée.
  */
-import { describe, it, expect } from 'vitest'
-import { attachmentFromRaw, internalDateIso, nomDePiece, parseEntetesSeuls, parseRfc822, type ParseCtx } from './mime-parse.ts'
+import { describe, it, expect, vi } from 'vitest'
+import PostalMime from 'npm:postal-mime@3.0.0'
+import { internalDateIso, nomDePiece, parseEntetesSeuls, parseRfc822, piecesDuBrut, type ParseCtx } from './mime-parse.ts'
 
 const RAW = [
   'From: =?UTF-8?B?Wm/DqSBSb2NoYXQ=?= <Zoe@Ex.ch>',
@@ -111,12 +112,23 @@ describe('parseRfc822', () => {
   })
 })
 
-describe('attachmentFromRaw', () => {
-  it('rend les octets d’une pièce par son rang', async () => {
-    const a = await attachmentFromRaw(octets, 0)
-    expect(a?.filename).toBe('plan.pdf')
-    expect(new TextDecoder().decode(a?.bytes)).toBe('%PDF-1.4\n')
-    expect(await attachmentFromRaw(octets, 9)).toBeNull()
+describe('piecesDuBrut', () => {
+  it('rend les octets des pièces par leur rang, dans l’ordre demandé ; un rang absent est omis', async () => {
+    const [plan, ...reste] = await piecesDuBrut(octets, [0, 9])
+    expect(plan).toMatchObject({ rang: 0, filename: 'plan.pdf', mimeType: 'application/pdf' })
+    expect(new TextDecoder().decode(plan.bytes)).toBe('%PDF-1.4\n')
+    expect(reste).toEqual([])
+    expect((await piecesDuBrut(octets, [1, 0])).map((p) => p.rang)).toEqual([1, 0])
+  })
+  // ⛔ Le transfert analysait le message entier une fois PAR PIÈCE (revue du 15.09.2026).
+  it('une seule analyse du message, quel que soit le nombre de pièces', async () => {
+    const espion = vi.spyOn(PostalMime, 'parse')
+    try {
+      await piecesDuBrut(octets, [0, 1, 0])
+      expect(espion).toHaveBeenCalledTimes(1)
+    } finally {
+      espion.mockRestore()
+    }
   })
 })
 

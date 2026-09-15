@@ -635,48 +635,114 @@ export async function recomputeThread(admin: SupabaseClient, threadId: string): 
   if (eUpd) throw new Error(`recompute update: ${eUpd.message}`)
 }
 
-/** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, spam, suppression). */
+/**
+ * Des identifiants en paquets bornés en NOMBRE et en LONGUEUR : un id Graph dépasse 150
+ * caractères, et une URL PostgREST trop longue est refusée.
+ */
+function paquetsDIds(ids: string[], max = 100, budget = 3000): string[][] {
+  const out: string[][] = []
+  let courant: string[] = []
+  let taille = 0
+  for (const id of ids) {
+    if (courant.length && (courant.length >= max || taille + id.length > budget)) { out.push(courant); courant = []; taille = 0 }
+    courant.push(id)
+    taille += id.length + 3
+  }
+  if (courant.length) out.push(courant)
+  return out
+}
+
+/**
+ * Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, spam, suppression).
+ *
+ * ⛔ PAR LOTS, et chaque fil recalculé UNE fois (revue du 15.09.2026). Deux à cinq allers-retours
+ * par changement, en série, le fil recalculé à chaque message : « tout marquer lu » sur le
+ * téléphone (200 changements) coûtait 800 allers-retours, et la passe débordait jusqu'à perdre le
+ * bail du compte. Désormais une lecture par paquet d'ids, une écriture par patch IDENTIQUE, un
+ * recalcul par fil — l'état final est celui qu'aurait donné l'application un par un, dans l'ordre.
+ */
 export async function applyRemoteChanges(admin: SupabaseClient, account: MailAccountRow, changes: RemoteChange[]): Promise<number> {
+  if (changes.length === 0) return 0
+  type Ligne = { id: string; thread_id: string; direction: string; is_spam: boolean | null }
+  const parPid = new Map<string, Ligne>()
+  for (const paquet of paquetsDIds([...new Set(changes.map((c) => c.providerMessageId))])) {
+    // Une lecture en échec vaudrait « ce message n'existe pas ici » et le changement serait
+    // perdu sans trace : on lève, le backoff de syncAccount rejouera la passe.
+    const { data, error } = await admin.from('mail_messages').select('id, thread_id, direction, is_spam, provider_message_id')
+      .eq('account_id', account.id).in('provider_message_id', paquet)
+    if (error) throw new Error(`remote change lookup: ${error.message}`)
+    for (const r of (data ?? []) as Array<Ligne & { provider_message_id: string }>) parPid.set(r.provider_message_id, r)
+  }
+
+  // Les changements, repliés DANS L'ORDRE : l'état final de chaque message et de chaque fil.
   let applied = 0
+  const supprimes = new Set<string>()
+  const surMessages = new Map<string, Record<string, unknown>>()
+  const surFils = new Map<string, Record<string, unknown>>()
+  const aRecalculer = new Set<string>()
+  // Ceux qu'un changement a SORTIS du spam (l'état d'avant CE changement le dit).
+  const sortisDuSpam = new Set<string>()
   for (const c of changes) {
-    // Une lecture en échec vaudrait « ce message n'existe pas ici » et le changement
-    // serait perdu sans trace : on lève, le backoff de syncAccount rejouera la passe.
-    const { data: msg, error: eMsg } = await admin.from('mail_messages').select('id, thread_id, direction, is_spam')
-      .eq('account_id', account.id).eq('provider_message_id', c.providerMessageId).maybeSingle()
-    if (eMsg) throw new Error(`remote change lookup: ${eMsg.message}`)
-    if (!msg) continue
-    // L'état d'AVANT, lu avant toute écriture : c'est lui qui dit si le message sort du spam.
-    const etaitSpam = !!msg.is_spam
+    const msg = parPid.get(c.providerMessageId)
+    if (!msg || supprimes.has(msg.id)) continue
+    applied++
     if (c.kind === 'message_deleted') {
-      const { error } = await admin.from('mail_messages').delete().eq('id', msg.id)
-      if (error) throw new Error(`remote delete: ${error.message}`)
-      await recomputeThread(admin, msg.thread_id)
-      applied++
+      supprimes.add(msg.id)
+      surMessages.delete(msg.id)
+      aRecalculer.add(msg.thread_id)
       continue
     }
-    const surMessage: Record<string, unknown> = {}
+    const etaitSpam = !!msg.is_spam
+    const surMessage = surMessages.get(msg.id) ?? {}
     if (c.isRead !== undefined) surMessage.is_read = c.isRead
-    if (c.isSpam !== undefined) surMessage.is_spam = c.isSpam
-    if (Object.keys(surMessage).length) {
-      const { error } = await admin.from('mail_messages').update(surMessage).eq('id', msg.id)
-      if (error) throw new Error(`remote message flags: ${error.message}`)
+    if (c.isSpam !== undefined) {
+      if (c.isSpam === false && etaitSpam) sortisDuSpam.add(msg.id)
+      surMessage.is_spam = c.isSpam
+      msg.is_spam = c.isSpam
     }
-    const patch: Record<string, unknown> = {}
+    if (Object.keys(surMessage).length) surMessages.set(msg.id, surMessage)
+    const patch = surFils.get(msg.thread_id) ?? {}
     if (c.isStarred !== undefined) patch.is_starred = c.isStarred
     if (c.isTrashed !== undefined) patch.is_trashed = c.isTrashed
     // Ni la corbeille ni le spam ne sont une archive (cf. `deriveThreadPatch`) ; un changement
     // qui ne dit rien du spam laisse décider l'état du message.
     if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false) && !(c.isSpam ?? etaitSpam)
-    if (Object.keys(patch).length) {
-      const { error } = await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
-      if (error) throw new Error(`remote flags: ${error.message}`)
-    }
+    if (Object.keys(patch).length) surFils.set(msg.thread_id, patch)
     // Lu et spam se lisent sur les MESSAGES du fil (le spam suit son dernier entrant).
-    if (c.isRead !== undefined || c.isSpam !== undefined) await recomputeThread(admin, msg.thread_id)
-    // Sorti du spam dans le webmail : le fil entre dans le CRM comme s'il arrivait.
-    if (c.isSpam === false && etaitSpam) await rattacherApresSpam(admin, account, msg.thread_id, [msg.id])
-    applied++
+    if (c.isRead !== undefined || c.isSpam !== undefined) aRecalculer.add(msg.thread_id)
   }
+
+  /** Une écriture par patch identique, sur des paquets d'ids. */
+  const ecrire = async (table: 'mail_messages' | 'mail_threads', patchs: Map<string, Record<string, unknown>>, quoi: string) => {
+    const parPatch = new Map<string, { patch: Record<string, unknown>; ids: string[] }>()
+    for (const [id, patch] of patchs) {
+      const cle = JSON.stringify(Object.entries(patch).sort(([a], [b]) => a.localeCompare(b)))
+      const g = parPatch.get(cle) ?? { patch, ids: [] }
+      g.ids.push(id)
+      parPatch.set(cle, g)
+    }
+    for (const { patch, ids } of parPatch.values()) {
+      for (const paquet of paquetsDIds(ids)) {
+        const { error } = await admin.from(table).update(patch).in('id', paquet)
+        if (error) throw new Error(`${quoi}: ${error.message}`)
+      }
+    }
+  }
+  for (const paquet of paquetsDIds([...supprimes])) {
+    const { error } = await admin.from('mail_messages').delete().in('id', paquet)
+    if (error) throw new Error(`remote delete: ${error.message}`)
+  }
+  await ecrire('mail_messages', surMessages, 'remote message flags')
+  await ecrire('mail_threads', surFils, 'remote flags')
+  for (const fil of aRecalculer) await recomputeThread(admin, fil)
+  // Sorti du spam dans le webmail : le fil entre dans le CRM comme s'il arrivait — APRÈS son
+  // recalcul, qui dit s'il est encore au spam ; et pas s'il y est retourné dans la même passe.
+  const sortisParFil = new Map<string, string[]>()
+  for (const msg of parPid.values()) {
+    if (!sortisDuSpam.has(msg.id) || supprimes.has(msg.id) || msg.is_spam) continue
+    sortisParFil.set(msg.thread_id, [...(sortisParFil.get(msg.thread_id) ?? []), msg.id])
+  }
+  for (const [fil, sortis] of sortisParFil) await rattacherApresSpam(admin, account, fil, sortis)
   return applied
 }
 

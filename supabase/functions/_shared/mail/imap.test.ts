@@ -101,9 +101,8 @@ function fauxImap(boite: Record<string, Dossier>, caps = 'IMAP4rev1 UIDPLUS MOVE
       } else if (d && (m = cmd.match(/^UID FETCH (\d+) \(BODY\.PEEK\[\]\)$/))) {
         const x = d.messages.find((y) => y.uid === Number(m![1]))!
         dire(`* ${seq(d, x)} FETCH (UID ${x.uid} BODY[] {${enc.encode(x.raw).length}}\r\n${x.raw})\r\n${tag} OK\r\n`)
-      } else if (d && (m = cmd.match(/^UID STORE (\d+) ([+-])FLAGS\.SILENT \((.*)\)$/))) {
-        const x = d.messages.find((y) => y.uid === Number(m![1]))
-        if (x) x.flags = m[2] === '+' ? [...new Set([...x.flags, m[3]])] : x.flags.filter((f) => f !== m![3])
+      } else if (d && (m = cmd.match(/^UID STORE (\S+) ([+-])FLAGS\.SILENT \((.*)\)$/))) {
+        for (const x of ensemble(m[1], d)) x.flags = m[2] === '+' ? [...new Set([...x.flags, m[3]])] : x.flags.filter((f) => f !== m![3])
         dire(`${tag} OK\r\n`)
       } else if (d && (m = cmd.match(/^UID MOVE (\d+) "(.*)"$/))) {
         const x = d.messages.find((y) => y.uid === Number(m![1]))!
@@ -389,6 +388,34 @@ describe('imapApply', () => {
     expect(renomme).toEqual({ renamed: { 'INBOX:7:1': 'Archive:9:1' }, introuvables: [] })
     expect(boite.Archive.messages.map((m) => m.uid)).toEqual([1])
     expect(boite.Sent.messages).toHaveLength(1)
+  })
+
+  // ⛔ Les messages d'un fil alternent Réception et Envoyés : le geste rouvrait le dossier à
+  // chaque message, et posait les drapeaux un par un (revue du 15.09.2026).
+  it('un geste sur un fil alterné ouvre chaque dossier UNE fois, et pose ses drapeaux d’une commande', async () => {
+    const boite = boiteType()
+    const imap = fauxImap(boite)
+    await imapApply(fauxAdmin().admin, compte(), 'mark_unread', [
+      { provider_message_id: 'INBOX:7:1', direction: 'inbound' },
+      { provider_message_id: 'Sent:8:1', direction: 'outbound' },
+      { provider_message_id: 'INBOX:7:2', direction: 'inbound' },
+    ], branche(imap))
+    expect(imap.journal.filter((l) => / SELECT /.test(l)).map((l) => l.replace(/^\S+ /, ''))).toEqual(['SELECT "INBOX"', 'SELECT "Sent"'])
+    expect(imap.journal.filter((l) => /UID STORE/.test(l)).map((l) => l.replace(/^\S+ /, ''))).toEqual([
+      'UID STORE 1,2 -FLAGS.SILENT (\\Seen)', 'UID STORE 1 -FLAGS.SILENT (\\Seen)',
+    ])
+    expect(boite.INBOX.messages.map((m) => m.flags.includes('\\Seen'))).toEqual([false, false, false])
+    expect(boite.Sent.messages[0].flags).not.toContain('\\Seen')
+
+    const imap2 = fauxImap(boite)
+    await imapApply(fauxAdmin().admin, compte(), 'archive', [
+      { provider_message_id: 'INBOX:7:1', direction: 'inbound' },
+      { provider_message_id: 'Sent:8:1', direction: 'outbound' },
+      { provider_message_id: 'INBOX:7:3', direction: 'inbound' },
+    ], branche(imap2))
+    const apresPresence = imap2.journal.slice(imap2.journal.findIndex((l) => /UID SEARCH UID/.test(l)) + 1)
+    expect(apresPresence.filter((l) => / SELECT /.test(l)), 'la Réception n’est pas rouverte entre deux déplacements').toEqual([])
+    expect(imap2.journal.filter((l) => /UID MOVE/.test(l)).map((l) => l.replace(/^\S+ /, ''))).toEqual(['UID MOVE 1 "Archive"', 'UID MOVE 3 "Archive"'])
   })
 
   it('marquer lu pose \\Seen dans la vraie boîte', async () => {
@@ -720,6 +747,51 @@ describe('le dossier Spam', () => {
     // Rejoué, le même changement n'écrit pas une seconde ligne.
     await applyRemoteChanges(admin, compte(), [{ kind: 'flags', providerMessageId: 'Junk:11:1', isSpam: false, inInbox: true }])
     expect(auJournal(tables, ligne(tables, 'Junk:11:1').id)).toHaveLength(1)
+  })
+
+  // ⛔ Deux à cinq allers-retours par changement, en série, le fil recalculé à chaque message :
+  // « tout marquer lu » sur le téléphone faisait déborder la passe (revue du 15.09.2026).
+  it('« tout marquer lu » ailleurs : douze requêtes pour deux cents changements, chaque fil recalculé une fois', async () => {
+    const tables: Record<string, Ligne[]> = { mail_threads: [], mail_messages: [] }
+    for (let f = 0; f < 4; f++) {
+      tables.mail_threads.push({ id: `f${f}`, account_id: 'acc-1', is_read: false })
+      for (let i = 0; i < 50; i++) {
+        tables.mail_messages.push({
+          id: `m${f}-${i}`, thread_id: `f${f}`, account_id: 'acc-1', provider_message_id: `INBOX:7:${f * 50 + i + 1}`,
+          direction: 'inbound', is_read: false, is_spam: false, has_attachments: false, snippet: '', sent_at: `2026-09-10T08:${String(i).padStart(2, '0')}:00Z`,
+        })
+      }
+    }
+    const brut = fauxAdmin(tables).admin as unknown as { from: (t: string) => unknown; rpc: unknown }
+    const appels: string[] = []
+    const admin = { from: (t: string) => { appels.push(t); return brut.from(t) }, rpc: brut.rpc } as never
+    const n = await applyRemoteChanges(admin, compte(), tables.mail_messages.map((m) => ({ kind: 'flags' as const, providerMessageId: String(m.provider_message_id), isRead: true })))
+    expect(n).toBe(200)
+    expect(tables.mail_messages.every((m) => m.is_read)).toBe(true)
+    expect(tables.mail_threads.every((f) => f.is_read)).toBe(true)
+    // Deux lectures (paquets de cent), deux écritures (un même patch), et deux par fil recalculé.
+    expect(appels).toHaveLength(2 + 2 + 4 * 2)
+  })
+
+  it('les changements se replient dans l’ordre : le dernier l’emporte, un message supprimé ne revit pas', async () => {
+    const tables: Record<string, Ligne[]> = {
+      mail_threads: [{ id: 'f1', account_id: 'acc-1', is_read: false, is_starred: false }],
+      mail_messages: [
+        { id: 'a', thread_id: 'f1', account_id: 'acc-1', provider_message_id: 'P:a', direction: 'inbound', is_read: false, is_spam: false, sent_at: '2026-09-10T08:00:00Z' },
+        { id: 'b', thread_id: 'f1', account_id: 'acc-1', provider_message_id: 'P:b', direction: 'inbound', is_read: false, is_spam: false, sent_at: '2026-09-10T09:00:00Z' },
+      ],
+    }
+    const { admin } = fauxAdmin(tables)
+    const n = await applyRemoteChanges(admin, compte(), [
+      { kind: 'flags', providerMessageId: 'P:a', isRead: true },
+      { kind: 'flags', providerMessageId: 'P:a', isRead: false, isStarred: true },
+      { kind: 'message_deleted', providerMessageId: 'P:b' },
+      { kind: 'flags', providerMessageId: 'P:b', isRead: true },
+      { kind: 'flags', providerMessageId: 'P:inconnu', isRead: true },
+    ])
+    expect(n).toBe(3)
+    expect(tables.mail_messages.map((m) => [m.id, m.is_read])).toEqual([['a', false]])
+    expect(tables.mail_threads[0]).toMatchObject({ is_starred: true, is_read: false, message_count: 1 })
   })
 
   it('le Spam n est importé que sur 30 jours — la Réception, elle, sur 90', async () => {

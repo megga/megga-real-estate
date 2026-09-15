@@ -19,7 +19,7 @@ import type {
 import { ImapAuthError, ImapClient, ImapRefusTemporaire, type ImapFolder, type ImapMeta } from './imap-client.ts'
 import { denoTcpDuplex, denoTlsDuplex, type DialOptions, type Duplex } from './duplex.ts'
 import { resolvePublicHost } from '../safe-fetch.ts'
-import { attachmentFromRaw, internalDateIso, parseEntetesSeuls, parseRfc822 } from './mime-parse.ts'
+import { internalDateIso, parseEntetesSeuls, parseRfc822, piecesDuBrut } from './mime-parse.ts'
 import { nettoyerMessageId } from './mime.ts'
 import { MailAuthError, readAccountSecret } from './secrets.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
@@ -719,56 +719,75 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
       for (const v of lot) await viser(v.p)
       for (const uid of await client.uidPresents(lot.map((v) => v.p.uid))) presents.add(providerId(dossier, validite, uid))
     }
-    let archive = folders.archive
-    let junk = folders.junk
+    // Chaque message à sa place — retrouvé ailleurs s'il a bougé depuis un autre client.
+    const places: Array<{ m: ImapMsg; p: { folder: string; uidValidity: number; uid: number } }> = []
     for (const { m, p: stocke } of vises) {
-      let p = stocke
-      if (!drapeaux && !presents.has(m.provider_message_id)) {
-        const ailleurs = [folders.inbox, archive, folders.trash, junk, folders.sent].filter((d) => d !== stocke.folder)
-        const la = await retrouver(client, ouvrir, m, ailleurs)
-        if (!la) {
-          if (VERS_LA_RECEPTION.has(action)) introuvables.push(m.provider_message_id)
-          continue
-        }
-        p = la
-        renamed[m.provider_message_id] = providerId(la.folder, la.uidValidity, la.uid)
-      }
-      if (drapeaux) {
-        await viser(p)
-        const drapeau = action === 'mark_read' || action === 'mark_unread' ? '\\Seen' : '\\Flagged'
-        await client.uidStore(p.uid, [drapeau], action === 'mark_read' || action === 'star' ? 'add' : 'remove')
+      if (drapeaux || presents.has(m.provider_message_id)) { places.push({ m, p: stocke }); continue }
+      const ailleurs = [folders.inbox, folders.archive, folders.trash, folders.junk, folders.sent].filter((d) => d !== stocke.folder)
+      const la = await retrouver(client, ouvrir, m, ailleurs)
+      if (!la) {
+        if (VERS_LA_RECEPTION.has(action)) introuvables.push(m.provider_message_id)
         continue
       }
-      let dest: string | null
-      if (action === 'archive') {
-        // Une boîte sans dossier d'archive en reçoit un — c'est ce que font Thunderbird et
-        // Apple Mail au premier archivage.
-        if (!archive) { archive = `${folders.prefixe}Archive`; await client.create(archive) }
-        dest = archive
-      } else if (action === 'trash') {
-        dest = folders.trash
-        if (!dest) throw new Error('imap: aucun dossier Corbeille sur ce serveur')
-      } else if (action === 'spam') {
-        // Même règle que l'archive : une boîte sans dossier de spam en reçoit un.
-        if (!junk) { junk = `${folders.prefixe}Junk`; await client.create(junk) }
-        dest = junk
-      } else {
-        // unarchive, untrash, not_spam : retour en Réception.
-        dest = folders.inbox
+      renamed[m.provider_message_id] = providerId(la.folder, la.uidValidity, la.uid)
+      places.push({ m, p: la })
+    }
+    // ⛔ Puis DOSSIER PAR DOSSIER : un SELECT par dossier, un STORE par dossier. Les messages
+    // d'un fil alternent Réception et Envoyés, et le geste rouvrait le dossier à chaque message
+    // — 112 commandes dont 49 SELECT pour « Lu » sur douze fils (revue du 15.09.2026).
+    const parPlace = new Map<string, typeof places>()
+    for (const v of places) parPlace.set(v.p.folder, [...(parPlace.get(v.p.folder) ?? []), v])
+    if (drapeaux) {
+      const drapeau = action === 'mark_read' || action === 'mark_unread' ? '\\Seen' : '\\Flagged'
+      const mode = action === 'mark_read' || action === 'star' ? 'add' : 'remove'
+      for (const lot of parPlace.values()) {
+        for (const v of lot) await viser(v.p)
+        await client.uidStore(lot.map((v) => v.p.uid), [drapeau], mode)
       }
-      if (p.folder === dest) continue
-      await viser(p)
-      const arrivee = await client.uidMove(p.uid, dest)
-      if (arrivee.uid !== null && arrivee.uidValidity !== null) {
-        renamed[m.provider_message_id] = providerId(dest, arrivee.uidValidity, arrivee.uid)
-      } else if (nettoyerMessageId(m.rfc822_message_id)) {
-        // Sans UIDPLUS, le serveur ne dit pas où le message a atterri : on le cherche — par
-        // un Message-ID NETTOYÉ, jamais la valeur lue en base telle quelle.
+      return { renamed, introuvables }
+    }
+    if (places.length === 0) return { renamed, introuvables }
+    let dest: string
+    if (action === 'archive') {
+      // Une boîte sans dossier d'archive en reçoit un — c'est ce que font Thunderbird et
+      // Apple Mail au premier archivage.
+      dest = folders.archive ?? `${folders.prefixe}Archive`
+      if (!folders.archive) await client.create(dest)
+    } else if (action === 'trash') {
+      if (!folders.trash) throw new Error('imap: aucun dossier Corbeille sur ce serveur')
+      dest = folders.trash
+    } else if (action === 'spam') {
+      // Même règle que l'archive : une boîte sans dossier de spam en reçoit un.
+      dest = folders.junk ?? `${folders.prefixe}Junk`
+      if (!folders.junk) await client.create(dest)
+    } else {
+      // unarchive, untrash, not_spam : retour en Réception.
+      dest = folders.inbox
+    }
+    for (const [dossier, lot] of parPlace) {
+      if (dossier === dest) continue
+      const aChercher: Array<{ pid: string; messageId: string }> = []
+      for (const { m, p } of lot) {
+        await viser(p)
+        const arrivee = await client.uidMove(p.uid, dest)
+        if (arrivee.uid !== null && arrivee.uidValidity !== null) {
+          renamed[m.provider_message_id] = providerId(dest, arrivee.uidValidity, arrivee.uid)
+        } else {
+          const id = nettoyerMessageId(m.rfc822_message_id)
+          if (id) aChercher.push({ pid: m.provider_message_id, messageId: id })
+        }
+      }
+      // Sans UIDPLUS, le serveur ne dit pas où le message a atterri : on le cherche — par un
+      // Message-ID NETTOYÉ, jamais la valeur lue en base telle quelle —, une fois le lot de ce
+      // dossier déplacé, pour n'ouvrir la destination qu'une fois.
+      if (aChercher.length) {
         const sel = await client.select(dest)
         ouvert = dest
         validite = sel.uidValidity
-        const trouves = await client.uidSearchHeaderMessageId(nettoyerMessageId(m.rfc822_message_id)!)
-        if (trouves.length) renamed[m.provider_message_id] = providerId(dest, sel.uidValidity, Math.max(...trouves))
+        for (const r of aChercher) {
+          const trouves = await client.uidSearchHeaderMessageId(r.messageId)
+          if (trouves.length) renamed[r.pid] = providerId(dest, sel.uidValidity, Math.max(...trouves))
+        }
       }
     }
   } finally {
@@ -828,7 +847,7 @@ async function brut(admin: SupabaseClient, account: MailAccountRow, pid: string,
 
 /** Les octets d'une pièce (`provider_attachment_id` = son rang dans le message). */
 export async function imapAttachment(admin: SupabaseClient, account: MailAccountRow, pid: string, index: number, deps: ImapDeps = {}): Promise<Uint8Array> {
-  const a = await attachmentFromRaw(await brut(admin, account, pid, deps), index)
+  const [a] = await piecesDuBrut(await brut(admin, account, pid, deps), [index])
   if (!a) throw new Error('imap: pièce introuvable')
   return a.bytes
 }
@@ -836,12 +855,7 @@ export async function imapAttachment(admin: SupabaseClient, account: MailAccount
 /** Les pièces d'un message, pour un TRANSFERT (Graph les joint seul ; Gmail et IMAP, non). */
 export async function imapPiecesPourTransfert(admin: SupabaseClient, account: MailAccountRow, pid: string, indices: number[], deps: ImapDeps = {}): Promise<{ filename: string; mimeType: string; bytes: Uint8Array }[]> {
   if (indices.length === 0) return []
-  const raw = await brut(admin, account, pid, deps)
-  const out: { filename: string; mimeType: string; bytes: Uint8Array }[] = []
-  for (const i of indices) {
-    const a = await attachmentFromRaw(raw, i)
-    if (a) out.push({ filename: a.filename, mimeType: a.mimeType, bytes: a.bytes })
-  }
-  return out
+  return (await piecesDuBrut(await brut(admin, account, pid, deps), indices))
+    .map((a) => ({ filename: a.filename, mimeType: a.mimeType, bytes: a.bytes }))
 }
 
