@@ -1,8 +1,7 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
-import { RefreshCw, LayoutDashboard } from 'lucide-react'
-import { Sentry } from '@/lib/sentry'
-import i18n from '@/i18n'
+import { Sentry, sentryEnvoie } from '@/lib/sentry'
+import ErreurApplication from './ErreurApplication'
 import {
   isStaleChunkError, extractChunkUrl, purgeChunkCache,
   shouldAttemptChunkRecovery, markChunkRecoveryAttempted, cacheBustedReloadUrl,
@@ -27,11 +26,11 @@ import {
  * cache-busté ; en cas d'échec (drapeau de session déjà posé), le fallback
  * habituel reprend la main.
  *
- * Notifie Sentry via captureException, puis affiche un fallback sobre au
- * thème CRM dark avec deux issues : recharger la page, ou revenir au
- * dashboard. Class component obligatoire : seuls componentDidCatch /
- * getDerivedStateFromError captent les erreurs de rendu (pas de hook
- * équivalent).
+ * Notifie Sentry via captureException, puis affiche `ErreurApplication` —
+ * plein cadre, hors de la coquille, deux issues : recharger la page, ou
+ * revenir au tableau de bord. Class component obligatoire : seuls
+ * componentDidCatch / getDerivedStateFromError captent les erreurs de rendu
+ * (pas de hook équivalent).
  *
  * Enrouler une fois, au-dessus de <Routes>, dans App.tsx.
  */
@@ -44,21 +43,27 @@ interface State {
   hasError: boolean
   /** Récupération de chunk en cours : écran neutre, jamais le fallback d'erreur. */
   recovering: boolean
+  /** La référence de l'événement Sentry, montrée pour le support — `null` s'il n'est pas parti. */
+  reference: string | null
 }
 
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, recovering: false }
+  state: State = { hasError: false, recovering: false, reference: null }
 
-  static getDerivedStateFromError(error: unknown): State {
+  static getDerivedStateFromError(error: unknown): Partial<State> {
     // Lecture seule du drapeau de session ici (phase de rendu) : la POSE du
     // drapeau attend componentDidCatch, la phase de commit.
     return { hasError: true, recovering: isStaleChunkError(error) && shouldAttemptChunkRecovery() }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    Sentry.captureException(error, {
+    const eventId = Sentry.captureException(error, {
       contexts: { react: { componentStack: info.componentStack } },
     })
+    // ⚠ `captureException` rend un identifiant MÊME quand rien ne part (DSN absent, ou dev
+    // où le client existe mais est désactivé) : on ne montre la référence que si
+    // l'événement est réellement envoyé.
+    if (sentryEnvoie() && eventId) this.setState({ reference: eventId.slice(0, 8) })
     if (this.state.recovering) void this.recoverFromStaleChunk(error)
   }
 
@@ -88,45 +93,6 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.hasError) return this.props.children
-
-    if (this.state.recovering) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-theme-page px-6 text-center">
-          <p className="text-sm text-theme-secondary" role="status" aria-live="polite">
-            {i18n.t('errorBoundary.updating')}
-          </p>
-        </div>
-      )
-    }
-
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-theme-page px-6 text-center">
-        <div className="w-full max-w-md rounded-xl border border-theme-border bg-theme-card p-8">
-          <h1 className="text-lg font-semibold text-theme-primary">
-            {i18n.t('errorBoundary.title')}
-          </h1>
-          <p className="mt-2 text-sm text-theme-secondary">
-            {i18n.t('errorBoundary.body')}
-          </p>
-          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <button
-              type="button"
-              onClick={this.handleReload}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border px-4 py-2 text-sm font-medium text-theme-secondary transition-colors hover:bg-theme-hover"
-            >
-              <RefreshCw className="h-4 w-4" />
-              {i18n.t('errorBoundary.reload')}
-            </button>
-            <a
-              href="/dashboard"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-border px-4 py-2 text-sm font-medium text-theme-secondary transition-colors hover:bg-theme-hover"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              {i18n.t('errorBoundary.dashboard')}
-            </a>
-          </div>
-        </div>
-      </div>
-    )
+    return <ErreurApplication reference={this.state.reference} onRecharger={this.handleReload} miseAJour={this.state.recovering} />
   }
 }

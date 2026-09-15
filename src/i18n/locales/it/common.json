@@ -544,11 +544,13 @@
     "tabLabel": "Registro di audit"
   },
   "errorBoundary": {
-    "title": "Si è verificato un errore",
-    "body": "Qualcosa non ha funzionato dalla nostra parte. Può ricaricare la pagina o tornare alla dashboard.",
-    "reload": "Ricarica",
+    "title": "Impossibile visualizzare questa pagina",
+    "body": "Un problema da parte nostra, non Sua. Ricarichi la pagina; se l'errore si ripresenta, riparta dalla dashboard.",
+    "reload": "Ricarica la pagina",
     "updating": "Aggiornamento dell'applicazione in corso…",
-    "dashboard": "Torna alla dashboard"
+    "dashboard": "Torna alla dashboard",
+    "reference": "Riferimento dell'incidente: {{id}}",
+    "help": "Centro assistenza"
   },
   "announcements": {
     "dismiss": "Chiudi"

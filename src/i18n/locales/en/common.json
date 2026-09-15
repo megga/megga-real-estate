@@ -1,10 +1,12 @@
 {
   "errorBoundary": {
-    "title": "Something went wrong",
-    "body": "Something broke on our side. You can reload the page or go back to your dashboard.",
-    "reload": "Reload",
+    "title": "This page couldn't be displayed",
+    "body": "Something broke on our side, not yours. Reload the page; if the error comes back, start again from your dashboard.",
+    "reload": "Reload the page",
     "updating": "Updating the application…",
-    "dashboard": "Back to dashboard"
+    "dashboard": "Back to dashboard",
+    "reference": "Incident reference: {{id}}",
+    "help": "Help center"
   },
   "consentGate": {
     "title": "Legal update",

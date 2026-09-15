@@ -70,6 +70,15 @@ const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
 // La MÊME instance que l'app : le banc doit montrer le préchargement tel qu'il marche.
 const NewTabPage = NewTabPagePrechargeable
 const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
+
+/**
+ * Lève pendant le rendu : le seul moyen de voir le VRAI repli d'`ErrorBoundary` — le banc
+ * est enroulé dans le même (`BancCrmAgent`, App.tsx). ⚠ Il remplace donc le banc entier,
+ * ses commandes comprises ; « Recharger la page » y ramène.
+ */
+function ErreurDeRendu(): never {
+  throw new Error('banc : erreur de rendu voulue')
+}
 const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
@@ -138,6 +147,8 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   // `/dev/messagerie` la monte sans fournisseur d'onglets, donc sans bande. Ses
   // courriels sont les fixtures de ce banc-là (`MailFixturesContext`, plus bas).
   { id: 'messagerie', chemin: '/dashboard/messagerie', label: 'Messagerie', vague: null },
+  // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
+  { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
@@ -303,6 +314,7 @@ const ROUTES_BANC = (
             autre chose : sans cette route, le 404 réel du CRM n'aurait aucun
             endroit où se regarder. */}
         <Route path="introuvable" element={<DashboardNotFoundPage />} />
+        <Route path="erreur-rendu" element={<ErreurDeRendu />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />

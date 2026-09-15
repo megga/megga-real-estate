@@ -544,11 +544,13 @@
     "tabLabel": "Auditprotokoll"
   },
   "errorBoundary": {
-    "title": "Ein Fehler ist aufgetreten",
-    "body": "Auf unserer Seite ist etwas schiefgelaufen. Sie können die Seite neu laden oder zu Ihrem Dashboard zurückkehren.",
-    "reload": "Neu laden",
+    "title": "Diese Seite konnte nicht angezeigt werden",
+    "body": "Ein Fehler auf unserer Seite, nicht auf Ihrer. Laden Sie die Seite neu; tritt der Fehler erneut auf, beginnen Sie wieder beim Dashboard.",
+    "reload": "Seite neu laden",
     "updating": "Die Anwendung wird aktualisiert…",
-    "dashboard": "Zurück zum Dashboard"
+    "dashboard": "Zurück zum Dashboard",
+    "reference": "Referenz des Vorfalls: {{id}}",
+    "help": "Hilfe-Center"
   },
   "announcements": {
     "dismiss": "Schliessen"

@@ -826,7 +826,6 @@ const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interl
 const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; echelle?: number }>([
   ['src/components/admin/ImpersonateBanner.tsx', { echelle: 1 }],
   ['src/components/auth/FavoritesLoginPrompt.tsx', { echelle: 5 }],
-  ['src/components/layout/ErrorBoundary.tsx', { echelle: 5 }],
   ['src/components/layout/KycLabGuard.tsx', { echelle: 12 }],
   ['src/components/layout/OnboardingCallBanner.tsx', { palette: 2, echelle: 6 }],
   ['src/components/layout/StaleBundleDetector.tsx', { palette: 4, echelle: 3 }],
@@ -1008,7 +1007,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // tous. Une part de ces inventaires est donc du bruit, ici comme dans les autres zones
   // qui portent des classes `mx-`. Corriger le motif suppose de rebaser chaque zone : à
   // faire à part, pas au détour d'un bouton.
-  ['src/components/layout', { hors: 9, total: 109 }],
+  // 109 → 94 (15.09.2026) : l'écran d'erreur refait (`ErreurApplication`) prend ses
+  // espacements et ses rayons dans les jetons ; les quinze classes de l'ancien sont parties.
+  ['src/components/layout', { hors: 9, total: 94 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
   ['src/components/matching-atelier', { hors: 37, total: 50 }],

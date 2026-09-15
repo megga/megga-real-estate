@@ -1,10 +1,12 @@
 {
   "errorBoundary": {
-    "title": "Une erreur est survenue",
-    "body": "Quelque chose s'est mal passé de notre côté. Vous pouvez recharger la page ou revenir à votre tableau de bord.",
-    "reload": "Recharger",
+    "title": "Cette page n'a pas pu s'afficher",
+    "body": "Un incident de notre côté, pas du vôtre. Rechargez la page ; si l'erreur revient, repartez du tableau de bord.",
+    "reload": "Recharger la page",
     "updating": "Mise à jour de l'application en cours…",
-    "dashboard": "Retour au tableau de bord"
+    "dashboard": "Retour au tableau de bord",
+    "reference": "Référence de l'incident : {{id}}",
+    "help": "Centre d'aide"
   },
   "consentGate": {
     "title": "Mise à jour légale",
