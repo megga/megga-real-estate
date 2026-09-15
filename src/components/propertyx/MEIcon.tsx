@@ -105,7 +105,8 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   bookmark: <path d="M6 3h12v18l-6-4-6 4V3Z" />,
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   globe: <><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" /></>,
-  compass: <><circle cx="12" cy="12" r="9" /><path d="m15 9-2 6-6 2 2-6 6-2Z" /></>,
+  // Aiguille recentrée le 15.09.2026 : centrée en (11,13), elle penchait hors du cadran.
+  compass: <><circle cx="12" cy="12" r="9" /><path d="m16 8-2 6-6 2 2-6 6-2Z" /></>,
   download: <><path d="M12 3v14" /><path d="m5 12 7 7 7-7" /><path d="M4 21h16" /></>,
   upload: <><path d="M12 21V7" /><path d="m5 12 7-7 7 7" /><path d="M4 3h16" /></>,
   info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r="0.6" fill="currentColor" /></>,
