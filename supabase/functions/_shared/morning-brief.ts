@@ -209,6 +209,31 @@ export function composeMorningBrief(data: MorningBriefData, lang: WaLang = 'fr')
   return blocks.join('\n\n')
 }
 
+/**
+ * Le DÉTAIL du point du jour, rendu par l'outil `get_daily_brief` : les quatre sections du
+ * push, SANS ses plafonds d'affichage — c'est ici que le push renvoie pour « le détail ».
+ * Valeurs déjà formatées (heure Zurich, CHF à apostrophe, libellé de relance) : le modèle n'a
+ * rien à convertir, donc rien à inventer. `total` reprend `briefItemCount`, pour que le nombre
+ * annoncé par le template du matin se retrouve ici à l'identique.
+ */
+export function composeBriefDetail(data: Omit<MorningBriefData, 'agentFullName'>, lang: WaLang = 'fr') {
+  const labels = REMINDER_LABELS[lang === 'en' ? 'en' : 'fr']
+  const { count, atLimit } = briefItemCount(data)
+  return {
+    total: atLimit ? `${count}+` : String(count),
+    visites_du_jour: data.visits.map((v) => ({
+      heure: timeHHmm(v.scheduledAt), qui: v.who, bien: v.propertyTitle, ville: v.city,
+    })),
+    relances_dues: data.reminders.map((r) => ({ relance: labels[r.type] ?? labels.custom, qui: r.who })),
+    offres_qui_expirent: data.offers.map((o) => ({
+      montant: fmtCHF(o.amount), par: o.byLabel, expire_le: dateDDMM(o.expiresAt),
+    })),
+    nouveaux_leads_vendeurs: data.sellerLeads.map((l) => ({
+      nom: l.contactName, ville: l.city, estimation: l.estimationMedian ? fmtCHF(l.estimationMedian) : null,
+    })),
+  }
+}
+
 function zurichWallParts(now: Date): { y: number; mo: number; d: number; h: number; mi: number; s: number } {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: ZURICH, year: 'numeric', month: '2-digit', day: '2-digit',

@@ -131,7 +131,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_daily_brief',
-      description: "Briefing du jour : visites du jour de l'agent + leads à compléter. Pour « ma journée », « qu'est-ce que je fais aujourd'hui ? ».",
+      description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ».",
       parameters: { type: 'object', properties: {} },
     },
   },
