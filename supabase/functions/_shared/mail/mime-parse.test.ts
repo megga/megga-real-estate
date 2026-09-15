@@ -108,3 +108,29 @@ describe('internalDateIso', () => {
     expect(internalDateIso('n’importe quoi')).toBeNull()
   })
 })
+
+/**
+ * ⛔ postal-mime DÉCODE les mots RFC 2047 des en-têtes d'identifiant : un expéditeur y cache
+ * des CR/LF, qui partaient ensuite dans une commande IMAP et dans les en-têtes d'une réponse.
+ */
+describe('les identifiants de message, texte d’expéditeur', () => {
+  it('un Message-ID encodé qui cache des lignes ressort réduit à son <…>', async () => {
+    const mot = (s: string) => `=?utf-8?B?${btoa(s)}?=`
+    const raw = new TextEncoder().encode([
+      'From: Mallory <m@evil.com>',
+      'To: g@agence.ch',
+      'Subject: Re: Acte',
+      `Message-ID: ${mot('<x@y>\r\nZ1 SELECT INBOX\r\nZ2 UID MOVE 1:* Trash\r\nZ3 DELETE Trash')}`,
+      `In-Reply-To: ${mot('<a@b>\r\nReply-To: m@evil.com')}`,
+      `References: ${mot('<r@y>\r\n\r\n<p>Nouvel IBAN</p>')}`,
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'corps',
+      '',
+    ].join('\r\n'))
+    const m = await parseRfc822(raw, ctx())
+    expect(m.rfc822MessageId).toBe('<x@y>')
+    expect(m.providerThreadId).not.toMatch(/[\r\n\0 ]/)
+    for (const v of [m.rfc822MessageId, m.inReplyTo, ...m.references]) expect(v).not.toMatch(/[\r\n\0 ]/)
+  })
+})

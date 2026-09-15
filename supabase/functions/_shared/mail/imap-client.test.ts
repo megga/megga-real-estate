@@ -7,7 +7,7 @@
  * la socket, mesurée séparément par la sonde T3.1 contre les vrais serveurs.
  */
 import { describe, it, expect } from 'vitest'
-import { ImapClient } from './imap-client.ts'
+import { ImapArgumentError, ImapClient } from './imap-client.ts'
 import { LineReader, type Duplex } from './duplex.ts'
 
 /**
@@ -374,5 +374,77 @@ describe('ImapClient — le mot de passe', () => {
     await c.starttls()
     expect(sent).toEqual(['clair:a1 CAPABILITY', 'clair:a2 STARTTLS', 'tls:a3 CAPABILITY'])
     expect(c.enClair()).toBe(false)
+  })
+})
+
+describe('ImapClient — une commande est UNE ligne', () => {
+  it('⛔ un Message-ID à plusieurs lignes est refusé AVANT d’écrire quoi que ce soit', async () => {
+    const { c, sent } = await ouvrir({ 'SELECT': '* OK [UIDVALIDITY 7] ok\r\n$TAG OK done\r\n' })
+    await c.select('INBOX')
+    const avant = sent.length
+    await expect(c.uidSearchHeaderMessageId('<x@y>\r\nZ1 UID MOVE 1:* Trash\r\nZ2 DELETE Trash')).rejects.toBeInstanceOf(ImapArgumentError)
+    expect(sent.length).toBe(avant)
+    expect(sent.join('\n')).not.toMatch(/MOVE|DELETE/)
+  })
+
+  it('⛔ un nom de dossier porteur d’un LF ou d’un NUL ne part pas non plus', async () => {
+    const { c, sent } = await ouvrir({})
+    await expect(c.select('INBOX\nZ1 DELETE Trash')).rejects.toBeInstanceOf(ImapArgumentError)
+    await expect(c.create(`Archive${String.fromCharCode(0)}`)).rejects.toBeInstanceOf(ImapArgumentError)
+    expect(sent).toEqual([])
+  })
+})
+
+describe('⛔ LineReader — c’est le SERVEUR qui annonce les tailles', () => {
+  const flux = (paquets: (Uint8Array | null)[]): Duplex => ({ async read() { return paquets.length ? paquets.shift()! : null }, async write() {}, close() {} })
+  const enc = new TextEncoder()
+
+  it('un littéral au-delà du plafond est refusé sans rien lire', async () => {
+    let lus = 0
+    const conn: Duplex = { async read() { lus++; return new Uint8Array(1024) }, async write() {}, close() {} }
+    await expect(new LineReader(conn).bytes(2_000_000_000)).rejects.toThrow(/refusé/)
+    expect(lus).toBe(0)
+  })
+
+  it('une ligne sans fin au-delà du plafond est refusée', async () => {
+    const conn: Duplex = { async read() { return new Uint8Array(4096).fill(65) }, async write() {}, close() {} }
+    await expect(new LineReader(conn, { ligne: 64 * 1024, litteral: 1024 }).line()).rejects.toThrow(/ligne de plus/)
+  })
+
+  it('un CRLF coupé entre deux paquets reste une fin de ligne', async () => {
+    const r = new LineReader(flux([enc.encode('a1 OK fin\r'), enc.encode('\nsuite\r\n')]))
+    expect(await r.line()).toBe('a1 OK fin')
+    expect(await r.line()).toBe('suite')
+  })
+
+  it('un littéral de 8 Mo en petits paquets se lit en temps LINÉAIRE, octet pour octet', async () => {
+    const n = 8 * 1024 * 1024
+    const source = new Uint8Array(n + 7)
+    for (let i = 0; i < source.length; i++) source[i] = i % 251
+    const paquets: Uint8Array[] = []
+    for (let i = 0; i < source.length; i += 1448) paquets.push(source.subarray(i, i + 1448))
+    const r = new LineReader(flux(paquets))
+    const t0 = Date.now()
+    const lu = await r.bytes(n)
+    // L'ancien lecteur recopiait tout son tampon à chaque paquet : ~24 Go pour ce cas.
+    expect(Date.now() - t0).toBeLessThan(1500)
+    expect(lu.length).toBe(n)
+    expect(lu[n - 1]).toBe((n - 1) % 251)
+    // Le reste du dernier paquet n'est pas perdu.
+    expect(Array.from(await r.bytes(7))).toEqual(Array.from(source.subarray(n)))
+  })
+
+  it('le plafond d’une commande resserre celui du lecteur : un corps bien plus gros qu’annoncé est refusé', async () => {
+    const { c } = await ouvrir({ 'UID FETCH': '* 1 FETCH (UID 9 BODY[] {20}\r\n01234567890123456789)\r\n$TAG OK\r\n' })
+    await expect(c.uidFetchRaw(9, 10)).rejects.toThrow(/refusé/)
+  })
+})
+
+describe('⛔ la bannière d’un serveur ne remonte jamais', () => {
+  it('IMAP : une bannière inattendue lève sans la recopier', async () => {
+    const f = fake({}, '* BYE service-interne v4.2 prêt\r\n')
+    const e = await new ImapClient(f.conn).connect().catch((x: unknown) => x)
+    expect(e).toBeInstanceOf(Error)
+    expect(String((e as Error).message)).not.toContain('service-interne')
   })
 })

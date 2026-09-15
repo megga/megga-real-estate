@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAddress, parseAddressList, decodeRfc2047, htmlToText, textToHtml, snippetOf,
   base64UrlDecodeToString, base64UrlEncodeString, buildMime, makeMessageId, encodeHeaderWord,
-  attachmentServing, base64ByteLength,
+  attachmentServing, base64ByteLength, nettoyerMessageId, nettoyerReferences,
 } from './mime.ts'
 
 describe('adresses', () => {
@@ -137,5 +137,52 @@ describe('base64ByteLength', () => {
     expect(base64ByteLength(exactly3MB)).toBe(3 * 1024 * 1024)
     expect(Math.ceil(exactly3MB.length * 0.75)).toBe(3 * 1024 * 1024) // l'ancienne formule, ici d'accord
     expect(base64ByteLength('QQ==')).toBeLessThan(Math.ceil('QQ=='.length * 0.75)) // et là non : 1 contre 3
+  })
+})
+
+/**
+ * Les identifiants de message sont du TEXTE D'EXPÉDITEUR, que les décodeurs RFC 2047 peuvent
+ * rendre sur plusieurs lignes : ils ne doivent rouvrir ni une commande IMAP, ni un en-tête.
+ */
+describe('identifiants de message', () => {
+  it('⛔ nettoyerMessageId garde le premier <…> et jette CR, LF, NUL et espaces', () => {
+    expect(nettoyerMessageId('<x@y>\r\nZ1 SELECT INBOX\r\nZ2 DELETE Trash')).toBe('<x@y>')
+    expect(nettoyerMessageId('\r\nReply-To: a@evil.com\r\nX: <y@evil.com>')).toBe('<y@evil.com>')
+    expect(nettoyerMessageId('  <abc@ex.ch>  ')).toBe('<abc@ex.ch>')
+    expect(nettoyerMessageId('abc@def')).toBe('abc@def')
+    expect(nettoyerMessageId('a b\u0000c')).toBe('abc')
+    expect(nettoyerMessageId(' \r\n ')).toBeNull()
+    expect(nettoyerMessageId(null)).toBeNull()
+  })
+
+  it('nettoyerReferences rend chaque <…> dans l’ordre, repliés ou non', () => {
+    expect(nettoyerReferences('<a@x>\r\n <b@y>\t<c@z>')).toEqual(['<a@x>', '<b@y>', '<c@z>'])
+    expect(nettoyerReferences('a@x b@y')).toEqual(['a@x', 'b@y'])
+    expect(nettoyerReferences(undefined)).toEqual([])
+  })
+
+  it('⛔ buildMime n’écrit ni en-tête ni corps injectés par In-Reply-To ou References', () => {
+    const raw = buildMime({
+      from: { name: 'Gregory', email: 'g@agence.ch' }, to: [{ name: null, email: 'zoe@ex.ch' }], cc: [], bcc: [],
+      subject: 'Re: Acte', text: 'Bonjour', html: '<p>Bonjour</p>', messageId: '<m1@agence.ch>', attachments: [],
+      inReplyTo: '<x@y>\r\nReply-To: attaquant@evil.com',
+      references: ['<r@y>\r\n\r\n<p>Nouvel IBAN CH00</p>'],
+    })
+    const entetes = raw.slice(0, raw.indexOf('\r\n\r\n'))
+    expect(entetes).toContain('\r\nIn-Reply-To: <x@y>\r\n')
+    expect(entetes).toContain('\r\nReferences: <r@y>\r\n')
+    expect(entetes).not.toMatch(/^Reply-To:/m)
+    // Le corps n'a pas commencé plus tôt : le type du message est encore dans les en-têtes.
+    expect(entetes).toContain('Content-Type: multipart/alternative')
+    expect(raw).not.toContain('Nouvel IBAN')
+  })
+})
+
+describe('htmlToText — les entités numériques hors Unicode', () => {
+  it('⛔ &#1114112; et &#0; ne font plus lever : U+FFFD à leur place, jamais un NUL', () => {
+    const t = htmlToText('<p>&#1114112; &#0; &#x110000; &#xD800; &#65;&#x42;</p>')
+    expect(t).toContain('AB')
+    expect(t).not.toContain(String.fromCharCode(0))
+    expect(t.split(String.fromCharCode(0xfffd))).toHaveLength(5)
   })
 })

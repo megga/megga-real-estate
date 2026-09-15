@@ -5,7 +5,7 @@
 // expiré côté Google : on repart en passe initiale (jamais une boucle d'erreur).
 // PUR : `fetch` injectable ; aucune écriture en base ici (c'est ingest.ts).
 import type { MailDirection, MailThreadAction, NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
-import { base64UrlDecodeToString, decodeRfc2047, htmlToText, parseAddress, parseAddressList, snippetOf } from './mime.ts'
+import { base64UrlDecodeToString, decodeRfc2047, htmlToText, nettoyerMessageId, nettoyerReferences, parseAddress, parseAddressList, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
 const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
@@ -198,9 +198,10 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
   return {
     providerMessageId: m.id,
     providerThreadId: m.threadId,
-    rfc822MessageId: header(h, 'Message-ID') || null,
-    inReplyTo: header(h, 'In-Reply-To') || null,
-    references: header(h, 'References').split(/\s+/).filter(Boolean),
+    // ⛔ `header()` décode le RFC 2047 : un CR/LF peut y naître (cf. `nettoyerMessageId`).
+    rfc822MessageId: nettoyerMessageId(header(h, 'Message-ID')),
+    inReplyTo: nettoyerMessageId(header(h, 'In-Reply-To')),
+    references: nettoyerReferences(header(h, 'References')),
     direction: outbound ? 'outbound' : 'inbound',
     from,
     to: parseAddressList(header(h, 'To')),

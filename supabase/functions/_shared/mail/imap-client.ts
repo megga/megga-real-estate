@@ -33,7 +33,25 @@ export class ImapCommandError extends Error {
  */
 export class ImapAuthError extends Error {}
 
-const quote = (s: string) => `"${s.replace(/[\\"]/g, (c) => '\\' + c)}"`
+/**
+ * Un argument qu'aucune commande IMAP ne peut porter — refusé AVANT d'écrire quoi que ce
+ * soit sur la connexion.
+ */
+export class ImapArgumentError extends Error {}
+
+/** CR, LF ou NUL : ce qui ferait d'une commande IMAP plusieurs lignes, donc plusieurs commandes. */
+const HORS_LIGNE = /[\r\n\0]/
+
+/**
+ * Une chaîne entre guillemets (RFC 3501 §9 : `\` et `"` s'y échappent, CR et LF n'y ont PAS
+ * de place). ⛔ Elle n'échappait que les deux premiers : un Message-ID reçu à plusieurs
+ * lignes, cité dans `UID SEARCH HEADER Message-ID "…"`, faisait exécuter ses lignes suivantes
+ * dans la vraie boîte de l'agent (`UID MOVE 1:* Trash`, `DELETE Trash`…).
+ */
+const quote = (s: string) => {
+  if (HORS_LIGNE.test(s)) throw new ImapArgumentError('imap: caractère de contrôle dans une chaîne')
+  return `"${s.replace(/[\\"]/g, (c) => '\\' + c)}"`
+}
 
 const MOIS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 /** Date au format IMAP (`5-Sep-2026`), telle que `SEARCH SINCE` l'attend. */
@@ -126,7 +144,10 @@ export class ImapClient {
 
   async connect(): Promise<void> {
     const greeting = await this.reader.line()
-    if (!greeting || !greeting.startsWith('* OK')) throw new Error(`imap: bad greeting ${greeting ?? '(eof)'}`)
+    // ⛔ La bannière n'est JAMAIS recopiée dans l'erreur : elle remontait jusqu'à l'agent
+    // (`last_error`, réponse de `sync_now`) — et, pour un hôte qui aurait mené ailleurs qu'à
+    // un serveur de courrier, c'était la première ligne d'un service interne.
+    if (!greeting || !greeting.startsWith('* OK')) throw new Error(greeting === null ? 'imap: connexion fermée avant la bannière' : 'imap: bannière inattendue')
     // ⚠ ÉCART 1 — la bannière PORTE souvent les capacités, et c'est gratuit.
     // Mesuré le 05.09.2026 : Bluewin ouvre par `* OK [CAPABILITY IMAP4rev1 SASL-IR
     // … AUTH=PLAIN AUTH=OAUTHBEARER AUTH=XOAUTH2] Ser…`, Infomaniak par un simple
@@ -135,15 +156,21 @@ export class ImapClient {
     this.noteCaps(greeting)
   }
 
-  /** Envoie une commande, rend les lignes non taguées, les littéraux et la ligne taguée. Lève sur NO/BAD. */
-  private async cmd(command: string): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
+  /**
+   * Envoie une commande, rend les lignes non taguées, les littéraux et la ligne taguée. Lève sur
+   * NO/BAD. `litteralMax` resserre le plafond des littéraux de CETTE réponse (cf. `LineReader`).
+   */
+  private async cmd(command: string, litteralMax?: number): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
+    // Seconde barrière, pour tout argument qui ne passerait pas par `quote()` : une commande
+    // est UNE ligne, et rien de ce qu'elle porte ne doit pouvoir en ouvrir une autre.
+    if (HORS_LIGNE.test(command)) throw new ImapArgumentError('imap: commande sur plusieurs lignes refusée')
     const tag = `a${++this.n}`
     await this.conn.write(new TextEncoder().encode(`${tag} ${command}\r\n`))
-    return this.attendre(tag)
+    return this.attendre(tag, litteralMax)
   }
 
   /** Lit jusqu'à la réponse taguée `tag`. */
-  private async attendre(tag: string): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
+  private async attendre(tag: string, litteralMax?: number): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
     const untagged: string[] = []
     const literals: Uint8Array[] = []
     for (;;) {
@@ -152,7 +179,7 @@ export class ImapClient {
       // Littéral en fin de ligne : n octets bruts, puis la suite de la ligne.
       let lit = line.match(/\{(\d+)\}$/)
       while (lit) {
-        literals.push(await this.reader.bytes(Number(lit[1])))
+        literals.push(await this.reader.bytes(Number(lit[1]), litteralMax))
         const rest = await this.reader.line()
         line = `${line.slice(0, -lit[0].length)}<literal ${literals.length - 1}>${rest ?? ''}`
         lit = line.match(/\{(\d+)\}$/)
@@ -317,15 +344,16 @@ export class ImapClient {
       .map((f) => ({ uid: f.uid!, flags: f.flags ?? [], size: f.size ?? 0, internalDate: f.internalDate }))
   }
 
-  async uidFetchRaw(uid: number): Promise<Uint8Array> {
-    const { literals } = await this.cmd(`UID FETCH ${uid} (BODY.PEEK[])`)
+  /** Le message entier. `max` : la taille au-delà de laquelle le littéral est refusé (cf. `LineReader.bytes`). */
+  async uidFetchRaw(uid: number, max?: number): Promise<Uint8Array> {
+    const { literals } = await this.cmd(`UID FETCH ${uid} (BODY.PEEK[])`, max)
     if (!literals[0]) throw new Error(`imap: no body for uid ${uid}`)
     return literals[0]
   }
 
   /** Les seuls en-têtes — pour un message trop lourd pour être téléchargé en entier. */
-  async uidFetchHeader(uid: number): Promise<Uint8Array> {
-    const { literals } = await this.cmd(`UID FETCH ${uid} (BODY.PEEK[HEADER])`)
+  async uidFetchHeader(uid: number, max?: number): Promise<Uint8Array> {
+    const { literals } = await this.cmd(`UID FETCH ${uid} (BODY.PEEK[HEADER])`, max)
     if (!literals[0]) throw new Error(`imap: no header for uid ${uid}`)
     return literals[0]
   }

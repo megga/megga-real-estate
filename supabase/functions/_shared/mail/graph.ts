@@ -2,7 +2,7 @@
 // Adaptateur Microsoft Graph v1.0 (délégué, jeton utilisateur). Voir l'en-tête de
 // la tâche 1.7 du plan pour les cinq faits Graph qui décident de ce code.
 import type { NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
-import { htmlToText, snippetOf } from './mime.ts'
+import { htmlToText, nettoyerMessageId, nettoyerReferences, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
 const BASE = 'https://graph.microsoft.com/v1.0'
@@ -329,9 +329,10 @@ export function normalizeGraphMessage(
   return {
     providerMessageId: m.id,
     providerThreadId: m.conversationId ?? m.id,
-    rfc822MessageId: m.internetMessageId ?? null,
-    inReplyTo: hdr('In-Reply-To') || null,
-    references: hdr('References').split(/\s+/).filter(Boolean),
+    // Texte d'expéditeur, même pour Graph : même nettoyage que Gmail et IMAP (`nettoyerMessageId`).
+    rfc822MessageId: nettoyerMessageId(m.internetMessageId),
+    inReplyTo: nettoyerMessageId(hdr('In-Reply-To')),
+    references: nettoyerReferences(hdr('References')),
     direction: outbound ? 'outbound' : 'inbound',
     from,
     to: addrs(m.toRecipients),

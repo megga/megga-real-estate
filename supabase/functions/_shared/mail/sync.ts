@@ -121,6 +121,29 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
       out.skipped = 'locked'
       return out
     }
+    /**
+     * ⛔ UNE PASSE TUÉE NE LAISSE PLUS LE COMPTE EN TÊTE DE FILE. Un worker que l'edge abat
+     * (mémoire, 2 s de CPU, limite d'horloge) n'exécute ni la fin de ce `try`, ni le `catch`,
+     * ni le `finally` : `next_sync_at` et `sync_failures` n'étaient jamais écrits, et le
+     * compte — le plus anciennement dû — repassait EN TÊTE de chaque balayage, qui le traitait
+     * en premier et mourait avec lui. Un seul serveur hostile arrêtait ainsi la synchro de
+     * toutes les boîtes du produit. L'échec est désormais PRÉSUMÉ avant le travail — compté,
+     * backoff posé — et effacé par le succès ; le `catch` réécrit la même valeur. Après
+     * MAX_CONSECUTIVE_FAILURES passes mortes sans un mot, le compte quitte le balayage.
+     */
+    const presume = (account.sync_failures ?? 0) + 1
+    if (presume > MAX_CONSECUTIVE_FAILURES) {
+      const msg = 'passes interrompues à répétition'
+      const { error: eStop } = await admin.from('mail_accounts').update({ status: 'error', last_error: msg }).eq('id', account.id)
+      if (eStop) console.error(`[mail-sync] ${account.id}: arrêt non écrit (${eStop.message})`)
+      out.error = msg
+      return out
+    }
+    const { error: eClaim } = await admin.from('mail_accounts').update({
+      sync_failures: presume,
+      next_sync_at: new Date(now() + Math.min(BACKOFF_MS * presume, MAX_BACKOFF_MS)).toISOString(),
+    }).eq('id', account.id)
+    if (eClaim) throw new Error(`claim write: ${eClaim.message}`)
     // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
     // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
     await assertOwnerStillInAgency(admin, account)

@@ -17,19 +17,43 @@ import type {
   ImapConfig, ImapCursor, ImapFolderCursor, ImapSecret, MailAccountRow, MailThreadAction, NormalizedMessage, RemoteChange,
 } from './types.ts'
 import { ImapAuthError, ImapClient, type ImapFolder, type ImapMeta } from './imap-client.ts'
-import { denoTcpDuplex, denoTlsDuplex, type Duplex } from './duplex.ts'
-import { attachmentFromRaw, parseEntetesSeuls, parseRfc822 } from './mime-parse.ts'
+import { denoTcpDuplex, denoTlsDuplex, type DialOptions, type Duplex } from './duplex.ts'
+import { resolvePublicHost } from '../safe-fetch.ts'
+import { attachmentFromRaw, internalDateIso, parseEntetesSeuls, parseRfc822 } from './mime-parse.ts'
+import { nettoyerMessageId } from './mime.ts'
 import { MailAuthError, readAccountSecret } from './secrets.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
 import { SmtpError, sansCci, smtpProbe, smtpSend, type SmtpSecurity } from './smtp.ts'
 
 export interface ImapDeps {
   /** Ouvre une connexion — `clair` = à monter en TLS (STARTTLS). Remplacée par une fausse dans les tests. */
-  dial?: (host: string, port: number, clair: boolean) => Promise<Duplex>
+  dial?: (host: string, port: number, clair: boolean, opts?: DialOptions) => Promise<Duplex>
   now?: () => number
 }
 
-const dialDefaut = (host: string, port: number, clair: boolean) => (clair ? denoTcpDuplex(host, port) : denoTlsDuplex(host, port))
+/** Une session hors synchro (geste, envoi, pièce) ne dure pas plus : au-delà, c'est un serveur qui retient. */
+const SESSION_MAX_MS = 120_000
+
+/**
+ * Ouvre une connexion vers un serveur de courrier SAISI par l'agent.
+ *
+ * ⛔ L'HÔTE EST REVÉRIFIÉ À CHAQUE CONNEXION, et la socket s'ouvre sur l'IP vérifiée.
+ * `assertPublicHost` ne tournait qu'à `connect_imap` : ensuite, synchro toutes les 2 min,
+ * gestes, envois et pièces rouvraient le NOM, résolu à neuf. Il suffisait à l'agent de
+ * pointer son DNS vers `10.0.0.12` après la connexion pour que nos serveurs y ouvrent une
+ * socket à chaque tick — et la bannière du service interne lui revenait par `last_error`.
+ * Le nom ne sert plus qu'au certificat (`address`, cf. `denoTlsDuplex`).
+ */
+export async function dialVerifie(
+  host: string, port: number, clair: boolean, opts: DialOptions = {},
+  net = { resoudre: resolvePublicHost, tls: denoTlsDuplex, tcp: denoTcpDuplex },
+): Promise<Duplex> {
+  const address = await net.resoudre(host)
+  const o: DialOptions = { deadline: Date.now() + SESSION_MAX_MS, ...opts, address }
+  return clair ? net.tcp(host, port, o) : net.tls(host, port, o)
+}
+
+const dialDefaut = (host: string, port: number, clair: boolean, opts?: DialOptions) => dialVerifie(host, port, clair, opts)
 
 /** IMAP 143 se monte en TLS par STARTTLS ; tout autre port est chiffré d'emblée (993). */
 export const imapSecurite = (port: number): SmtpSecurity => (port === 143 ? 'starttls' : 'tls')
@@ -92,9 +116,9 @@ export const providerId = (folder: string, uidValidity: number, uid: number) => 
 // ── Connexion ─────────────────────────────────────────────────────────────────
 
 /** Connexion, STARTTLS au besoin, authentification, liste des dossiers. Referme sur tout échec. */
-export async function imapOpen(cfg: ImapConfig, password: string, deps: ImapDeps = {}): Promise<{ client: ImapClient; folders: ImapFolders }> {
+export async function imapOpen(cfg: ImapConfig, password: string, deps: ImapDeps = {}, dialOpts: DialOptions = {}): Promise<{ client: ImapClient; folders: ImapFolders }> {
   const securite = imapSecurite(cfg.imapPort)
-  const client = new ImapClient(await (deps.dial ?? dialDefaut)(cfg.imapHost, cfg.imapPort, securite === 'starttls'))
+  const client = new ImapClient(await (deps.dial ?? dialDefaut)(cfg.imapHost, cfg.imapPort, securite === 'starttls', dialOpts))
   try {
     await client.connect()
     if (securite === 'starttls') await client.starttls()
@@ -119,12 +143,12 @@ async function motDePasse(admin: SupabaseClient, account: MailAccountRow): Promi
  * même verdict qu'un jeton OAuth révoqué : le mot de passe a changé, la boîte attend
  * qu'on la reconnecte, et le balayage cesse de la marteler.
  */
-async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps: ImapDeps): Promise<{ client: ImapClient; folders: ImapFolders; password: string }> {
+async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps: ImapDeps, dialOpts: DialOptions = {}): Promise<{ client: ImapClient; folders: ImapFolders; password: string }> {
   const cfg = account.imap_config
   if (!cfg) throw new Error('imap: configuration absente')
   const password = await motDePasse(admin, account)
   try {
-    return { ...(await imapOpen(cfg, password, deps)), password }
+    return { ...(await imapOpen(cfg, password, deps, dialOpts)), password }
   } catch (e) {
     if (e instanceof ImapAuthError) throw new MailAuthError('reauth_required', `imap: identifiants refusés (${e.message.slice(0, 120)})`)
     throw e
@@ -186,6 +210,8 @@ const FENETRE_INITIALE_JOURS = 90
 const FENETRE_SPAM_JOURS = 30
 /** Au-delà, le message est ingéré SANS son corps : l'edge a 256 Mo et 2 s de CPU par requête. */
 const POIDS_MAX = 8 * 1024 * 1024
+/** Les seuls en-têtes d'un message trop lourd : postal-mime n'en lit pas plus de 2 Mo. */
+const ENTETES_MAX = 4 * 1024 * 1024
 /**
  * Plafond par dossier, par front et par passe. Le budget de temps décide d'abord ; ceci
  * borne le CPU — l'edge coupe une requête à 2 s de calcul, et une passe coupée ne sauve
@@ -226,18 +252,30 @@ export async function cleDeFil(admin: SupabaseClient, accountId: string, m: Norm
 
 /**
  * Un message déjà en base sous un AUTRE identifiant (déplacé dans le webmail, dossier
- * recréé) est rebaptisé au lieu d'être dupliqué. Reconnu par son Message-ID et sa
- * direction — un envoi en copie à soi-même garde ses deux exemplaires, entrant et sortant.
+ * recréé) est rebaptisé au lieu d'être dupliqué. Reconnu par son Message-ID, sa direction —
+ * un envoi en copie à soi-même garde ses deux exemplaires, entrant et sortant — et sa DATE
+ * D'ARRIVÉE.
+ *
+ * ⛔ LE MESSAGE-ID SEUL N'EST PAS UNE IDENTITÉ : l'expéditeur l'écrit comme il veut. Un
+ * courrier NEUF qui reprenait celui d'un message connu — un co-destinataire en copie le
+ * connaît — rebaptisait sa ligne, puis l'ingestion l'ÉCRASAIT avec l'expéditeur, le corps
+ * et les pièces du nouveau : l'IBAN de la notaire devenait celui de l'attaquant, sans une
+ * ligne au journal. L'INTERNALDATE, elle, est posée par le serveur de l'agent à l'arrivée ;
+ * un déplacement la garde (RFC 3501 §6.4.7, RFC 6851), un courrier neuf en reçoit une autre.
+ * Sans elle, ou quand elle diffère, on n'identifie rien : un doublon visible vaut mieux
+ * qu'un message réécrit.
  */
-async function reconnaitreDeplace(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<void> {
+async function reconnaitreDeplace(admin: SupabaseClient, accountId: string, m: NormalizedMessage, internalDate: string | null): Promise<void> {
   if (!m.rfc822MessageId) return
-  const { data, error } = await admin.from('mail_messages').select('id, provider_message_id')
-    .eq('account_id', accountId).eq('rfc822_message_id', m.rfc822MessageId).eq('direction', m.direction).limit(2)
+  const arrivee = Date.parse(internalDateIso(internalDate) ?? '')
+  if (Number.isNaN(arrivee)) return
+  const { data, error } = await admin.from('mail_messages').select('id, provider_message_id, sent_at')
+    .eq('account_id', accountId).eq('rfc822_message_id', m.rfc822MessageId).eq('direction', m.direction).limit(5)
   if (error) throw new Error(`message déplacé, recherche: ${error.message}`)
-  const lignes = (data ?? []) as { id: string; provider_message_id: string }[]
+  const lignes = (data ?? []) as { id: string; provider_message_id: string; sent_at: string | null }[]
   if (lignes.some((l) => l.provider_message_id === m.providerMessageId)) return
   // Une ligne `pending:` est l'affaire de l'ingestion (copie « Envoyés » d'un envoi du CRM).
-  const ancien = lignes.find((l) => !l.provider_message_id.startsWith('pending:'))
+  const ancien = lignes.find((l) => !l.provider_message_id.startsWith('pending:') && Date.parse(l.sent_at ?? '') === arrivee)
   if (!ancien) return
   const { error: e2 } = await admin.from('mail_messages').update({ provider_message_id: m.providerMessageId }).eq('id', ancien.id)
   if (e2) throw new Error(`message déplacé, renommage: ${e2.message}`)
@@ -256,7 +294,9 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
     cursor: cursorIn?.kind === 'imap' ? { ...cursorIn, folders: { ...cursorIn.folders } } : { kind: 'imap', folders: {}, initialDone: false },
     inserted: 0, updated: 0, changes: 0, auditFailures: 0, done: true,
   }
-  const { client, folders } = await ouvrirCompte(admin, account, deps)
+  // La session ne survit pas à la passe (et à son bail) : au-delà du budget et d'une marge, un
+  // serveur qui distille ses octets fait lever la lecture en cours au lieu de tenir l'edge.
+  const { client, folders } = await ouvrirCompte(admin, account, deps, { deadline: Date.now() + budgetMs + 15_000 })
   try {
     const dossiers: [string, 'inbox' | 'sent' | 'junk'][] = [[folders.inbox, 'inbox']]
     if (folders.sent) dossiers.push([folders.sent, 'sent'])
@@ -296,9 +336,11 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
             // un message que tous les clients cachent n'entre pas dans le CRM.
             if (!meta || meta.flags.includes('\\Deleted')) continue
             const m = await lire(client, account, nom, sel.uidValidity, role, meta)
-            if (m.isDraft) continue
+            // Illisible jusque dans ses en-têtes : sauté — il reste dans la boîte, et la passe
+            // continue au lieu de buter sur lui à chaque tick (cf. `lire`).
+            if (!m || m.isDraft) continue
             m.providerThreadId = await cleDeFil(admin, account.id, m)
-            await reconnaitreDeplace(admin, account.id, m)
+            await reconnaitreDeplace(admin, account.id, m, meta.internalDate)
             lot.push(m)
           }
           const r = await ingestMessages(admin, account, lot)
@@ -343,13 +385,46 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
   return out
 }
 
-/** Télécharge et analyse un message — ou ses seuls en-têtes quand il est trop lourd. */
-async function lire(client: ImapClient, account: MailAccountRow, dossier: string, uidValidity: number, role: 'inbox' | 'sent' | 'junk', meta: ImapMeta): Promise<NormalizedMessage> {
-  const ctx = { providerMessageId: providerId(dossier, uidValidity, meta.uid), boxEmail: account.email, dossier: role, flags: meta.flags, internalDate: meta.internalDate }
-  if (meta.size > POIDS_MAX) {
-    return parseEntetesSeuls(await client.uidFetchHeader(meta.uid), ctx, `Message de ${Math.round(meta.size / 1024 / 1024)} Mo, trop volumineux pour être affiché ici : ouvrez-le dans votre messagerie.`)
+/** Les octets d'en-tête d'un message brut : tout ce qui précède la première ligne vide. */
+function entetesDe(raw: Uint8Array): Uint8Array {
+  for (let i = 0; i + 3 < raw.length; i++) {
+    if (raw[i] === 13 && raw[i + 1] === 10 && raw[i + 2] === 13 && raw[i + 3] === 10) return raw.subarray(0, i + 2)
   }
-  return parseRfc822(await client.uidFetchRaw(meta.uid), ctx)
+  return raw
+}
+
+/**
+ * Télécharge et analyse un message — ou ses seuls en-têtes quand il est trop lourd, ou quand
+ * l'analyse de son corps échoue. `null` s'il est illisible jusque dans ses en-têtes.
+ *
+ * ⛔ UN COURRIER PIÉGÉ BLOQUAIT LA BOÎTE POUR TOUJOURS. L'analyse n'était isolée de rien :
+ * 51 niveaux de multipart (postal-mime lève), un `&#1114112;` dans un HTML… et c'est la
+ * passe ENTIÈRE qui échouait, avant d'écrire son curseur, au même message à chaque tick,
+ * jusqu'à `status='error'` — que ni `update` ni une reconnexion ne levaient. N'importe quel
+ * expéditeur éteignait ainsi la synchro d'une boîte d'un seul envoi (un spam suffit, le
+ * dossier Spam est synchronisé). Seule l'ANALYSE est isolée : une coupure réseau pendant le
+ * téléchargement fait toujours échouer la passe, qui la rejouera.
+ */
+async function lire(client: ImapClient, account: MailAccountRow, dossier: string, uidValidity: number, role: 'inbox' | 'sent' | 'junk', meta: ImapMeta): Promise<NormalizedMessage | null> {
+  const ctx = { providerMessageId: providerId(dossier, uidValidity, meta.uid), boxEmail: account.email, dossier: role, flags: meta.flags, internalDate: meta.internalDate }
+  const enTetesSeuls = async (entetes: Uint8Array, corps: string): Promise<NormalizedMessage | null> => {
+    try {
+      return await parseEntetesSeuls(entetes, ctx, corps)
+    } catch (e) {
+      console.warn(`[mail-sync] imap ${account.id} : message ${ctx.providerMessageId} illisible, sauté (${e instanceof Error ? e.name : 'erreur'})`)
+      return null
+    }
+  }
+  if (meta.size > POIDS_MAX) {
+    return enTetesSeuls(await client.uidFetchHeader(meta.uid, ENTETES_MAX), `Message de ${Math.round(meta.size / 1024 / 1024)} Mo, trop volumineux pour être affiché ici : ouvrez-le dans votre messagerie.`)
+  }
+  // Le serveur a ANNONCÉ au plus POIDS_MAX : un littéral bien plus gros n'est pas ce message-là.
+  const raw = await client.uidFetchRaw(meta.uid, POIDS_MAX * 2)
+  try {
+    return await parseRfc822(raw, ctx)
+  } catch {
+    return enTetesSeuls(entetesDe(raw), `Ce message n'a pas pu être lu ici : ouvrez-le dans votre messagerie.`)
+  }
 }
 
 /**
@@ -453,7 +528,10 @@ async function resynchroniserSpam(admin: SupabaseClient, account: MailAccountRow
   if (partis.length) {
     const sel = await client.examine(reception)
     for (const c of partis) {
-      const trouves = c.rfc822_message_id ? await client.uidSearchHeaderMessageId(c.rfc822_message_id) : []
+      // Relu en base : une ligne écrite AVANT le nettoyage à l'analyse peut encore porter un
+      // Message-ID à plusieurs lignes — il ne part jamais tel quel vers le serveur.
+      const mid = nettoyerMessageId(c.rfc822_message_id)
+      const trouves = mid ? await client.uidSearchHeaderMessageId(mid) : []
       if (trouves.length === 0) { changes.push({ kind: 'message_deleted', providerMessageId: c.provider_message_id }); continue }
       const nouveau = providerId(reception, sel.uidValidity, Math.max(...trouves))
       const { error: e } = await admin.from('mail_messages').update({ provider_message_id: nouveau })
@@ -518,11 +596,12 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
       const arrivee = await client.uidMove(p.uid, dest)
       if (arrivee.uid !== null && arrivee.uidValidity !== null) {
         renamed[m.provider_message_id] = providerId(dest, arrivee.uidValidity, arrivee.uid)
-      } else if (m.rfc822_message_id) {
-        // Sans UIDPLUS, le serveur ne dit pas où le message a atterri : on le cherche.
+      } else if (nettoyerMessageId(m.rfc822_message_id)) {
+        // Sans UIDPLUS, le serveur ne dit pas où le message a atterri : on le cherche — par
+        // un Message-ID NETTOYÉ, jamais la valeur lue en base telle quelle.
         const sel = await client.select(dest)
         ouvert = dest
-        const trouves = await client.uidSearchHeaderMessageId(m.rfc822_message_id)
+        const trouves = await client.uidSearchHeaderMessageId(nettoyerMessageId(m.rfc822_message_id)!)
         if (trouves.length) renamed[m.provider_message_id] = providerId(dest, sel.uidValidity, Math.max(...trouves))
       }
     }

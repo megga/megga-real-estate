@@ -63,7 +63,10 @@ class Session {
   }
 
   async ouvrir(securite: SmtpSecurity): Promise<void> {
-    await this.reponse([220])
+    // ⛔ La bannière refusée n'est pas recopiée dans l'erreur (cf. `ImapClient.connect`) : elle
+    // remontait à l'agent, et d'un hôte qui mène ailleurs qu'à un serveur de courrier, c'est
+    // la première ligne d'un service interne.
+    try { await this.reponse([220]) } catch (e) { throw e instanceof SmtpError ? new SmtpError(e.code, 'smtp: bannière refusée') : e }
     await this.bonjour()
     if (securite === 'starttls') {
       if (!this.conn.startTls) throw new SmtpError(null, 'smtp: connexion déjà chiffrée')

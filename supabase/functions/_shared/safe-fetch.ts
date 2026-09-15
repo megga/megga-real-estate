@@ -103,11 +103,21 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
  * nom que le certificat TLS atteste.
  */
 export async function assertPublicHost(hostname: string): Promise<void> {
+  await resolvePublicHost(hostname)
+}
+
+/**
+ * Comme `assertPublicHost`, et rend l'adresse vérifiée (IPv4 d'abord) à laquelle se
+ * connecter : la socket s'ouvre sur ELLE, le nom ne servant plus qu'au certificat. C'est ce
+ * qui ferme, pour une connexion TCP, le rebinding que `fetch` laisse ouvert (cf. l'en-tête).
+ */
+export async function resolvePublicHost(hostname: string): Promise<string> {
   const h = hostname.trim().toLowerCase().replace(/\.$/, '')
   if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(h)) throw new Error('ssrf: invalid_host')
   const ips = await resolveAll(h)
   if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
   if (ips.some(isBlockedIp)) throw new Error('ssrf: blocked_ip')
+  return ips.find((ip) => !ip.includes(':')) ?? ips[0]
 }
 
 export interface SafeFetchOptions {

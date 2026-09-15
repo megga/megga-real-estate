@@ -13,7 +13,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
+import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, nettoyerMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
 import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
 import { imapPiecesPourTransfert, imapSend } from '../_shared/mail/imap.ts'
@@ -157,8 +157,11 @@ serve(async (req: Request) => {
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
-    inReplyTo: isReply ? (original?.rfc822_message_id ?? null) : null,
-    references: isReply && original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
+    // ⛔ Deux valeurs RELUES EN BASE, venues de l'expéditeur du message d'origine : nettoyées
+    // avant de devenir des en-têtes (et la ligne `pending:` qui les garde), pas seulement dans
+    // `buildMime` — Graph, lui, ne passe pas par `buildMime`.
+    inReplyTo: isReply ? nettoyerMessageId(original?.rfc822_message_id) : null,
+    references: isReply && original ? [nettoyerMessageId(original.in_reply_to), nettoyerMessageId(original.rfc822_message_id)].filter((x): x is string => !!x) : [],
     messageId, attachments: outAtts,
   }
 

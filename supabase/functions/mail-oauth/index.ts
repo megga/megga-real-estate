@@ -263,6 +263,25 @@ serve(async (req: Request) => {
     const password = typeof body.password === 'string' ? body.password : ''
     if (!ADRESSE.test(email) || !imap.imapHost || !imap.smtpHost || !password || password.length > 1024) return json({ error: 'invalid_input' }, 400)
     if (!PORTS_IMAP.has(imap.imapPort) || !PORTS_SMTP.has(imap.smtpPort)) return json({ error: 'port_not_allowed' }, 400)
+    /**
+     * ⛔ UNE BOÎTE IMAP DÉJÀ CONNECTÉE NE SE RECONNECTE QUE PAR SON PROPRIÉTAIRE. L'adresse
+     * est un champ LIBRE : rien, en IMAP, ne prouve qu'elle appartient à qui la saisit — OAuth,
+     * lui, l'atteste par `fetchIdentity`. La réautorisation recopiée de l'échange OAuth
+     * remplaçait donc le mot de passe ET les serveurs de la boîte d'un collègue : l'agent B
+     * donnait l'adresse d'Alice avec SES propres serveurs, et les envois d'Alice partaient par
+     * le SMTP de B, qui pouvait aussi injecter du courrier dans ses fiches clients. Et B
+     * pouvait enregistrer l'adresse d'Alice le PREMIER : quand Alice connectait ensuite sa
+     * vraie boîte, son mot de passe se rangeait sous la ligne de B, qui lisait tout son
+     * courrier. Vérifié AVANT le test des serveurs : on n'éprouve pas d'identifiants pour une
+     * boîte qu'on refusera.
+     */
+    const { data: existing, error: eExisting } = await admin.from('mail_accounts').select('id, vault_secret_id, owner_id')
+      .eq('agency_id', profile.agency_id).eq('provider', 'imap').eq('email', email).maybeSingle()
+    if (eExisting) return json({ error: 'account_lookup_failed' }, 500)
+    if (existing && existing.owner_id !== user.id) {
+      console.warn(`[mail-oauth] connect_imap refusé : ${user.id} sur la boîte ${existing.id}, propriétaire ${existing.owner_id}`)
+      return json({ error: 'owned_by_colleague' }, 409)
+    }
     // ⛔ Deux noms d'hôte SAISIS par l'agent, vers lesquels nos serveurs vont ouvrir une
     // socket : ils ne doivent désigner que le réseau public (cf. `assertPublicHost`).
     try {
@@ -291,13 +310,10 @@ serve(async (req: Request) => {
 
     const secret: ImapSecret = { password }
     const visibility = body.visibility === 'agency' ? 'agency' : 'owner'
-    const { data: existing, error: eExisting } = await admin.from('mail_accounts').select('id, vault_secret_id, owner_id')
-      .eq('agency_id', profile.agency_id).eq('provider', 'imap').eq('email', email).maybeSingle()
-    if (eExisting) return json({ error: 'account_lookup_failed' }, 500)
     let accountId: string
     if (existing) {
-      // Même règle qu'une réautorisation OAuth : le mot de passe et les serveurs changent,
-      // le PROPRIÉTAIRE et la visibilité non (cf. l'échange plus haut).
+      // La reconnexion par son PROPRIÉTAIRE (le seul admis, cf. plus haut) : le mot de passe
+      // et les serveurs changent, la visibilité non — elle se change par `update`.
       if (existing.vault_secret_id) {
         await deleteAccountSecret(admin, existing.vault_secret_id)
           .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))

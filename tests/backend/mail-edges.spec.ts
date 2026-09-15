@@ -262,6 +262,28 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
   // ⛔ Un fil d'une AUTRE boîte glissé dans un lot est « introuvable » — et il n'est pas touché.
   // Sans la borne `account_id`, le lot aurait archivé chez l'agence B un fil que l'agent A
   // ne voit pas.
+  // ⛔ connect_imap ne reprend jamais la boîte IMAP d'un autre membre : l'adresse y est un
+  // champ libre, rien n'en prouve la possession. Refusé AVANT tout test de serveur — donc
+  // sans réseau ni DNS : c'est la ligne en base qui décide, et elle reste intacte.
+  it('connect_imap : la boîte IMAP d un autre membre est refusée (409) et reste intacte', async () => {
+    const svc = serviceRoleClient()
+    const email = `collegue-${s.stamp}@a.test`
+    const cfg = { imapHost: 'imap.collegue.test', imapPort: 993, smtpHost: 'smtp.collegue.test', smtpPort: 465, user: email, encryption: 'ssl' }
+    const { data: row, error } = await svc.from('mail_accounts')
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentBId, provider: 'imap', email, visibility: 'owner', imap_config: cfg })
+      .select('id').single()
+    if (error) throw new Error(`mail_accounts imap: ${error.message}`)
+    try {
+      const r = await call('mail-oauth', { action: 'connect_imap', email, imap_host: 'imap.gmail.com', smtp_host: 'smtp.gmail.com', password: 'x' }, jwtA)
+      expect(r.status, r.text.slice(0, 200)).toBe(409)
+      expect(r.json.error).toBe('owned_by_colleague')
+      const { data: apres } = await svc.from('mail_accounts').select('owner_id, imap_config, vault_secret_id').eq('id', row.id).single()
+      expect(apres).toMatchObject({ owner_id: s.agentBId, imap_config: cfg, vault_secret_id: null })
+    } finally {
+      await svc.from('mail_accounts').delete().eq('id', row.id)
+    }
+  })
+
   it('mail-actions en lot : un fil d une autre boîte est introuvable, et reste intact', async () => {
     const service = serviceRoleClient()
     const { data: filB } = await service.from('mail_threads').select('id, is_archived').eq('provider_thread_id', `t-b-${s.stamp}`).single()

@@ -63,6 +63,39 @@ export function decodeRfc2047(s: string): string {
   })
 }
 
+// ── Identifiants de message ───────────────────────────────────────────────────
+/** Un `<…>` fait de caractères ASCII visibles, chevrons exclus : la forme d'un Message-ID (RFC 5322 §3.6.4). */
+const MSG_ID = /<[\x21-\x3b\x3d\x3f-\x7e]{1,995}>/g
+
+/**
+ * Un identifiant de message (`Message-ID`, `In-Reply-To`, un élément de `References`)
+ * sous une forme qui peut circuler sans danger : son premier `<…>` en ASCII visible, sinon la
+ * valeur réduite à ses caractères ASCII visibles ; `null` s'il ne reste rien.
+ *
+ * ⛔ CES EN-TÊTES SONT DU TEXTE D'EXPÉDITEUR, et les décodeurs RFC 2047 (postal-mime,
+ * `decodeRfc2047`) y rendent des CR/LF : `Message-ID: =?utf-8?B?…?=` devenait une valeur de
+ * plusieurs lignes, stockée telle quelle. Elle partait ensuite dans une commande IMAP
+ * (`UID SEARCH HEADER Message-ID "…"` — la ligne suivante s'exécutait dans la vraie boîte de
+ * l'agent) et dans `In-Reply-To` / `References` de sa réponse (un en-tête, voire un corps,
+ * injecté dans un courrier signé de son domaine). Un vrai Message-ID n'a ni espace ni
+ * caractère de contrôle : tout ce qui en porte est une forgerie ou un défaut.
+ */
+export function nettoyerMessageId(v: string | null | undefined): string | null {
+  if (!v) return null
+  const m = v.match(MSG_ID)
+  if (m) return m[0]
+  const nu = v.replace(/[^\x21-\x7e]/g, '').slice(0, 998)
+  return nu || null
+}
+
+/** Les identifiants d'un `References` : chaque `<…>` dans l'ordre, ou les mots nettoyés s'il n'y en a aucun. */
+export function nettoyerReferences(v: string | null | undefined): string[] {
+  if (!v) return []
+  const ids = v.match(MSG_ID)
+  if (ids) return ids
+  return v.split(/\s+/).map(nettoyerMessageId).filter((x): x is string => !!x)
+}
+
 /** Encode un mot d'en-tête si non ASCII (`=?UTF-8?B?…?=`), sinon tel quel. */
 export function encodeHeaderWord(s: string): string {
   if (!/[^\x20-\x7e]/.test(s)) return s
@@ -116,10 +149,19 @@ const ENTITIES: Record<string, string> = {
   eacute: 'é', egrave: 'è', ecirc: 'ê', agrave: 'à', acirc: 'â', ccedil: 'ç',
   ocirc: 'ô', ucirc: 'û', ugrave: 'ù', icirc: 'î', iuml: 'ï', euml: 'ë', uuml: 'ü', ouml: 'ö', auml: 'ä',
 }
+/**
+ * Un point de code d'entité numérique, ou U+FFFD s'il n'en est pas un. ⛔ `&#1114112;` (hors
+ * Unicode) faisait LEVER `String.fromCodePoint` — et avec lui l'analyse du message, donc
+ * toute la passe de synchro, au même message, à chaque tick. `&#0;` rendait un NUL, que
+ * Postgres refuse dans un `text`.
+ */
+const pointDeCode = (n: number): string =>
+  Number.isInteger(n) && n > 0 && n <= 0x10ffff && (n < 0xd800 || n > 0xdfff) ? String.fromCodePoint(n) : '�'
+
 function decodeEntities(s: string): string {
   return s
-    .replace(/&#x([0-9a-f]+);/gi, (_m, h: string) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_m, d: string) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_m, h: string) => pointDeCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_m, d: string) => pointDeCode(parseInt(d, 10)))
     .replace(/&([a-z]+);/gi, (m, n: string) => ENTITIES[n.toLowerCase()] ?? m)
 }
 
@@ -248,9 +290,13 @@ export function buildMime(m: OutgoingMessage): string {
   if (m.bcc.length) headers.push(`Bcc: ${m.bcc.map(formatAddress).join(', ')}`)
   headers.push(`Subject: ${encodeHeaderWord(m.subject)}`)
   headers.push(`Date: ${new Date().toUTCString()}`)
-  headers.push(`Message-ID: ${m.messageId}`)
-  if (m.inReplyTo) headers.push(`In-Reply-To: ${m.inReplyTo}`)
-  if (m.references.length) headers.push(`References: ${m.references.join(' ')}`)
+  headers.push(`Message-ID: ${nettoyerMessageId(m.messageId) ?? m.messageId.replace(/[\r\n]/g, '')}`)
+  // ⛔ Recopiés du message d'ORIGINE, donc de son expéditeur : jamais écrits sans passer par
+  // `nettoyerMessageId` (un CR/LF y ouvrait un en-tête de plus, ou le corps).
+  const inReplyTo = nettoyerMessageId(m.inReplyTo)
+  const references = m.references.map(nettoyerMessageId).filter((x): x is string => !!x)
+  if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`)
+  if (references.length) headers.push(`References: ${references.join(' ')}`)
   headers.push('MIME-Version: 1.0')
 
   if (m.attachments.length === 0) {

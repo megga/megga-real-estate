@@ -12,7 +12,7 @@
  */
 import PostalMime from 'npm:postal-mime@3.0.0'
 import type { MailAddress, NormalizedAttachment, NormalizedMessage } from './types.ts'
-import { htmlToText, snippetOf } from './mime.ts'
+import { htmlToText, nettoyerMessageId, nettoyerReferences, snippetOf } from './mime.ts'
 
 export interface ParseCtx {
   providerMessageId: string
@@ -85,13 +85,15 @@ export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<Norma
     contentId: a.contentId ?? null,
   }))
   const bodyText = e.text ?? (e.html ? htmlToText(e.html) : null)
-  const rfc822MessageId = e.messageId?.trim() || null
+  // ⛔ postal-mime DÉCODE les mots RFC 2047 de ces en-têtes : un CR/LF peut y naître
+  // (`nettoyerMessageId` dit pourquoi ça compte — une commande IMAP, un en-tête de réponse).
+  const rfc822MessageId = nettoyerMessageId(e.messageId)
   return {
     providerMessageId: ctx.providerMessageId,
     providerThreadId: rfc822MessageId ?? ctx.providerMessageId,
     rfc822MessageId,
-    inReplyTo: e.inReplyTo?.trim().split(/\s+/)[0] || null,
-    references: (e.references ?? '').split(/\s+/).filter(Boolean),
+    inReplyTo: nettoyerMessageId(e.inReplyTo),
+    references: nettoyerReferences(e.references),
     direction: sortant ? 'outbound' : 'inbound',
     from,
     to: adresses(e.to), cc: adresses(e.cc), bcc: adresses(e.bcc),

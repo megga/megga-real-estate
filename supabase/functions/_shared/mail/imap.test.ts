@@ -12,9 +12,10 @@ import { describe, it, expect } from 'vitest'
 import type { Duplex } from './duplex.ts'
 import type { MailAccountRow } from './types.ts'
 import {
-  cleDeFil, decodeMUtf7, imapApply, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
+  cleDeFil, decodeMUtf7, dialVerifie, imapApply, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
 } from './imap.ts'
 import { applyRemoteChanges } from './ingest.ts'
+import { syncAccount } from './sync.ts'
 
 // ── Une boîte en mémoire ──────────────────────────────────────────────────────
 interface Msg { uid: number; flags: string[]; raw: string; date: string }
@@ -171,8 +172,9 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string
   let seq = 0
   const from = (table: string) => {
     const filtres: ((l: Ligne) => boolean)[] = []
-    let op: 'select' | 'insert' | 'update' | 'delete' = 'select'
+    let op: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select'
     let charge: Ligne | Ligne[] | null = null
+    let conflit: { col: string; ignorer: boolean } | null = null
     let limite = Infinity
     let tri: { col: string; asc: boolean } | null = null
     const applique = () => {
@@ -183,6 +185,13 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string
         return nouvelles
       }
       if (op === 'update') { for (const l of lignes) Object.assign(l, charge); return lignes }
+      if (op === 'upsert') {
+        const l = charge as Ligne
+        const la = conflit ? t(table).find((x) => x[conflit!.col] === l[conflit!.col]) : undefined
+        if (la) { if (!conflit!.ignorer) Object.assign(la, l); return [] }
+        t(table).push({ id: `${table}-${++seq}`, ...l })
+        return []
+      }
       if (op === 'delete') { tables[table] = t(table).filter((l) => !lignes.includes(l)); return lignes }
       if (tri) { const { col, asc } = tri; lignes = [...lignes].sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : 1) * (asc ? 1 : -1)) }
       return lignes.slice(0, limite)
@@ -194,6 +203,10 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string
       delete: () => { op = 'delete'; return b },
       eq: (c: string, v: unknown) => { filtres.push((l) => l[c] === v); return b },
       neq: (c: string, v: unknown) => { filtres.push((l) => l[c] !== v); return b },
+      lt: (c: string, v: unknown) => { filtres.push((l) => String(l[c]) < String(v)); return b },
+      upsert: (l: Ligne, o?: { onConflict?: string; ignoreDuplicates?: boolean }) => {
+        op = 'upsert'; charge = l; conflit = o?.onConflict ? { col: o.onConflict, ignorer: !!o.ignoreDuplicates } : null; return b
+      },
       in: (c: string, v: unknown[]) => { filtres.push((l) => v.includes(l[c])); return b },
       is: (c: string, v: unknown) => { filtres.push((l) => (l[c] ?? null) === v); return b },
       like: (c: string, motif: string) => { const re = likeEnRegex(motif); filtres.push((l) => re.test(String(l[c]))); return b },
@@ -582,3 +595,149 @@ describe('imapTestConnexion', () => {
   })
 })
 
+
+describe('⛔ un Message-ID à plusieurs lignes, relu en base', () => {
+  const CRLF = String.fromCharCode(13, 10)
+  const JUNK = `${String.fromCharCode(92)}Junk`
+
+  it('ne part jamais tel quel vers le serveur : la recherche porte l’identifiant nettoyé', async () => {
+    const boite: Record<string, Dossier> = {
+      ...boiteType(),
+      Junk: {
+        uidValidity: 11, uidNext: 2, attrs: [JUNK], messages: [
+          { uid: 1, flags: [], raw: courrier({ id: '<s1@spam.ex>' }), date: '10-Sep-2026 12:00:00 +0200' },
+        ],
+      },
+    }
+    const { admin, tables } = fauxAdmin()
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    // Une ligne écrite AVANT le nettoyage à l'analyse : son Message-ID porte des lignes.
+    const l = (tables.mail_messages as Ligne[]).find((m) => m.provider_message_id === 'Junk:11:1')!
+    l.rfc822_message_id = `<s1@spam.ex>${CRLF}Z9 DELETE INBOX`
+    boite.Junk.messages = [] // le fournisseur l'a purgé : la passe le cherche en Réception
+    const imap = fauxImap(boite)
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(imap))
+    expect(imap.journal.join('|')).not.toContain('Z9')
+    expect(imap.journal.some((c) => c.endsWith('UID SEARCH HEADER Message-ID "<s1@spam.ex>"'))).toBe(true)
+  })
+})
+
+describe('⛔ un Message-ID repris par un inconnu', () => {
+  it('n’écrase pas le message connu : le nouveau courrier est un message de plus', async () => {
+    const boite = boiteType()
+    const { admin, tables } = fauxAdmin()
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    // Mallory, en copie du courrier de Zoé, en renvoie un au MÊME Message-ID, arrivé plus tard.
+    boite.INBOX.messages.push({ uid: 4, flags: [], raw: courrier({ id: '<m1@ex.ch>', de: 'Zoé <mallory@evil.ch>', corps: 'Nouvel IBAN CH00' }), date: '12-Sep-2026 09:00:00 +0200' })
+    boite.INBOX.uidNext = 5
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    const lignes = tables.mail_messages as Ligne[]
+    const original = lignes.find((l) => l.provider_message_id === 'INBOX:7:1')!
+    expect(original).toMatchObject({ from_email: 'zoe@ex.ch' })
+    expect(String(original.body_text)).not.toContain('IBAN')
+    expect(lignes.find((l) => l.provider_message_id === 'INBOX:7:4')).toMatchObject({ from_email: 'mallory@evil.ch' })
+  })
+})
+
+describe('⛔ un courrier piégé ne bloque plus la boîte', () => {
+  /** n niveaux de multipart imbriqués : postal-mime refuse au-delà de 50. */
+  function gigogne(n: number): string {
+    let corps = 'Content-Type: text/plain\r\n\r\nfond\r\n'
+    for (let i = 0; i < n; i++) corps = `Content-Type: multipart/mixed; boundary="b${i}"\r\n\r\n--b${i}\r\n${corps}--b${i}--\r\n`
+    return ['From: Inconnu <x@evil.com>', 'To: g@agence.ch', 'Subject: Colis', 'Message-ID: <piege@evil.com>', 'Date: Thu, 10 Sep 2026 10:00:00 +0200', corps].join('\r\n')
+  }
+
+  it('l’analyse qui échoue n’arrête pas la passe : le message entre par ses en-têtes, les suivants aussi', async () => {
+    const boite = boiteType()
+    boite.INBOX.messages.push(
+      { uid: 4, flags: [], raw: gigogne(51), date: '11-Sep-2026 10:00:00 +0200' },
+      { uid: 5, flags: [], raw: courrier({ id: '<m5@ex.ch>', objet: 'Après le piège' }), date: '11-Sep-2026 11:00:00 +0200' },
+    )
+    boite.INBOX.uidNext = 6
+    const { admin, tables } = fauxAdmin()
+    const r = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const lignes = tables.mail_messages as Ligne[]
+    const piege = lignes.find((l) => l.provider_message_id === 'INBOX:7:4')!
+    expect(piege).toMatchObject({ subject: 'Colis', from_email: 'x@evil.com' })
+    expect(String(piege.body_text)).toContain('pas pu être lu')
+    expect(lignes.some((l) => l.provider_message_id === 'INBOX:7:5')).toBe(true)
+    expect(r.cursor.folders.INBOX.lastUid).toBe(5)
+  })
+
+  it('un caractère NUL dans l’objet ou le corps n’atteint pas la base', async () => {
+    const NUL = String.fromCharCode(0)
+    const boite = boiteType()
+    boite.INBOX.messages.push({
+      uid: 4, flags: [], date: '11-Sep-2026 10:00:00 +0200',
+      raw: courrier({ id: '<nul@ex.ch>', objet: '=?utf-8?B?aGkAdGhlcmU=?=', corps: 'avant=00apres' }).replace('Content-Type: text/plain; charset=utf-8', 'Content-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: quoted-printable'),
+    })
+    boite.INBOX.uidNext = 5
+    const { admin, tables } = fauxAdmin()
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const l = (tables.mail_messages as Ligne[]).find((x) => x.provider_message_id === 'INBOX:7:4')!
+    expect(l.subject).toBe('hithere')
+    expect(String(l.body_text)).not.toContain(NUL)
+    expect(String(l.snippet)).not.toContain(NUL)
+  })
+})
+
+describe('⛔ dialVerifie : l’hôte saisi est revérifié à CHAQUE connexion', () => {
+  const faux = (resoudre: (h: string) => Promise<string>) => {
+    const appels: { voie: string; host: string; port: number; opts: Record<string, unknown> }[] = []
+    const conn = { async read() { return null }, async write() {}, close() {} }
+    const net = {
+      resoudre,
+      tls: async (host: string, port: number, opts: Record<string, unknown> = {}) => { appels.push({ voie: 'tls', host, port, opts }); return conn },
+      tcp: async (host: string, port: number, opts: Record<string, unknown> = {}) => { appels.push({ voie: 'tcp', host, port, opts }); return conn },
+    }
+    return { net, appels }
+  }
+
+  it('un nom qui résout vers une adresse interne n’ouvre AUCUNE socket', async () => {
+    const { net, appels } = faux(async () => { throw new Error('ssrf: blocked_ip') })
+    await expect(dialVerifie('imap.son-domaine.ch', 993, false, {}, net)).rejects.toThrow(/blocked_ip/)
+    expect(appels).toEqual([])
+  })
+
+  it('la socket s’ouvre sur l’IP vérifiée, le nom ne sert qu’au certificat, et la session a une échéance', async () => {
+    const { net, appels } = faux(async () => '203.0.113.5')
+    await dialVerifie('imap.son-domaine.ch', 993, false, {}, net)
+    await dialVerifie('smtp.son-domaine.ch', 587, true, { deadline: 42 }, net)
+    expect(appels[0]).toMatchObject({ voie: 'tls', host: 'imap.son-domaine.ch', port: 993, opts: { address: '203.0.113.5' } })
+    expect(typeof appels[0].opts.deadline).toBe('number')
+    expect(appels[1]).toMatchObject({ voie: 'tcp', host: 'smtp.son-domaine.ch', port: 587, opts: { address: '203.0.113.5', deadline: 42 } })
+  })
+})
+
+describe('⛔ une passe tuée ne laisse plus le compte en tête de file', () => {
+  const tablesDe = (sync_failures: number) => ({
+    mail_accounts: [{ ...compte(), sync_failures }] as Ligne[],
+    profiles: [{ id: 'u-1', agency_id: 'ag-1' }] as Ligne[],
+    mail_cron_locks: [] as Ligne[],
+  })
+
+  it('l’échec est présumé AVANT le travail — backoff et compte d’échecs posés —, puis effacé par le succès', async () => {
+    const { admin, tables } = fauxAdmin(tablesDe(0))
+    const imap = fauxImap(boiteType())
+    let vuAuDial: Ligne | null = null
+    await syncAccount(admin, { ...compte(), sync_failures: 0 }, {} as never, 20_000, {
+      now: () => MAINTENANT,
+      // Un worker abattu ici n'écrirait plus rien : c'est l'état de la ligne À CET INSTANT qui compte.
+      dial: async () => { vuAuDial = { ...(tables.mail_accounts as Ligne[])[0] }; return imap.duplex },
+    })
+    expect(vuAuDial).toMatchObject({ sync_failures: 1 })
+    expect(Date.parse(String((vuAuDial as unknown as Ligne).next_sync_at))).toBeGreaterThan(MAINTENANT)
+    expect((tables.mail_accounts as Ligne[])[0]).toMatchObject({ sync_failures: 0, last_error: null })
+  })
+
+  it('après cinq passes mortes d’affilée, le compte quitte le balayage sans rouvrir de connexion', async () => {
+    const { admin, tables } = fauxAdmin(tablesDe(5))
+    let dials = 0
+    const r = await syncAccount(admin, { ...compte(), sync_failures: 5 }, {} as never, 20_000, {
+      now: () => MAINTENANT, dial: async () => { dials++; throw new Error('jamais atteint') },
+    })
+    expect(dials).toBe(0)
+    expect(r.error).toMatch(/interrompues/)
+    expect((tables.mail_accounts as Ligne[])[0]).toMatchObject({ status: 'error' })
+  })
+})

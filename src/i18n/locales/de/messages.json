@@ -179,6 +179,7 @@
           "port": "Zulässige Ports: 993 oder 143 für IMAP, 465 oder 587 für SMTP.",
           "host": "Server nicht gefunden: Prüfen Sie die Namen der IMAP- und SMTP-Server.",
           "already": "Diese Adresse ist bereits über {{provider}} verbunden.",
+          "colleague": "Diese Adresse ist bereits von einem anderen Mitglied der Agentur verbunden. Nur die Person, der sie gehört, kann sie neu verbinden.",
           "imapAuth": "Benutzername oder Passwort vom IMAP-Server abgelehnt. Nutzt das Postfach die Bestätigung in zwei Schritten, verwenden Sie ein App-Passwort.",
           "imapUnreachable": "Der IMAP-Server antwortet nicht: Prüfen Sie Name und Port.",
           "imapStarttls": "Dieser IMAP-Server akzeptiert STARTTLS auf Port 143 nicht: Wählen Sie 993.",

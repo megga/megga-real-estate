@@ -294,13 +294,44 @@ async function findKnownMessage(admin: SupabaseClient, accountId: string, m: Nor
   return (byPending as KnownMessageRow | null) ?? null
 }
 
+/**
+ * Ce que Postgres refuse dans un `text` (22P05) : le caractère NUL, et une moitié de paire
+ * UTF-16 orpheline. Le NUL disparaît, la moitié devient U+FFFD.
+ */
+const TEXTE_INVALIDE = /\0|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g
+const texteSur = (s: string): string => s.replace(TEXTE_INVALIDE, (c) => (c === '\0' ? '' : '\uFFFD'))
+const texteSurOuNul = (s: string | null): string | null => (s === null ? null : texteSur(s))
+const adresseSure = (a: MailAddress): MailAddress => ({ name: texteSurOuNul(a.name), email: texteSur(a.email) })
+
+/**
+ * Un message tel que Postgres l'acceptera.
+ *
+ * ⛔ UN SEUL CARACTÈRE NUL BLOQUAIT LA BOÎTE POUR TOUJOURS. `Subject: =?utf-8?B?aGkAdGhlcmU=?=`,
+ * un `=00` en quoted-printable ou un `&#0;` rendent un U+0000, que Postgres refuse : l'insertion
+ * levait, la passe entière échouait avant d'écrire son curseur, et le même message la faisait
+ * échouer à chaque tick jusqu'à `status='error'`. N'importe quel expéditeur éteignait ainsi la
+ * synchro d'une boîte, et le défaut valait pour les trois fournisseurs.
+ */
+function assainirMessage(m: NormalizedMessage): NormalizedMessage {
+  return {
+    ...m,
+    from: adresseSure(m.from), to: m.to.map(adresseSure), cc: m.cc.map(adresseSure), bcc: m.bcc.map(adresseSure),
+    replyTo: texteSurOuNul(m.replyTo),
+    subject: texteSur(m.subject), snippet: texteSur(m.snippet),
+    bodyText: texteSurOuNul(m.bodyText), bodyHtml: texteSurOuNul(m.bodyHtml),
+    providerLabels: m.providerLabels.map(texteSur),
+    attachments: m.attachments.map((a) => ({ ...a, filename: texteSur(a.filename), mimeType: texteSur(a.mimeType), contentId: texteSurOuNul(a.contentId) })),
+  }
+}
+
 /** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
 export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number; auditFailures: number }> {
   let inserted = 0
   let updated = 0
   let auditFailures = 0
-  for (const m of msgs) {
-    if (m.isDraft) continue
+  for (const brut of msgs) {
+    if (brut.isDraft) continue
+    const m = assainirMessage(brut)
 
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
     const known = await findKnownMessage(admin, account.id, m)

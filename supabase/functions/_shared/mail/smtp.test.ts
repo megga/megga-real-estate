@@ -108,3 +108,13 @@ describe('sansCci', () => {
     expect(sansCci(raw)).toBe(raw)
   })
 })
+
+describe('⛔ la bannière refusée ne remonte jamais', () => {
+  it('le code reste, le texte du service ne part pas dans l’erreur', async () => {
+    const { conn } = fake([], { banniere: '554 service-interne v4.2 prêt\r\n' })
+    const e = await smtpProbe(conn, 'tls', { user: 'g@agence.ch', password: 'x' }).catch((x: unknown) => x)
+    expect(e).toBeInstanceOf(SmtpError)
+    expect((e as SmtpError).code).toBe(554)
+    expect((e as SmtpError).message).not.toContain('service-interne')
+  })
+})
