@@ -12,10 +12,13 @@
 // whatsapp_daily_briefs (claim insert-first + re-claim TTL des claims orphelins) :
 // jamais de double envoi, pire cas un brief vers 08h30.
 //
-// Fenêtre 24h Meta : PAS trackée (comme partout) — on envoie, et si l'agent n'a pas
-// écrit au copilote depuis >24h Meta refuse le texte libre (131047) → échec silencieux
-// journalisé + claim relâché. Le teaser template (#795) prendra ce relais une fois
-// l'activation Meta faite.
+// Fenêtre 24h Meta : si l'agent n'a pas écrit au copilote depuis >24h, le texte libre ne
+// peut pas partir (131047 chez Meta, refusé AVANT par la garde). Le brief part alors en
+// template `agent_daily_brief` (approuvé le 14.08.2026) : le DÉCOMPTE du jour, et la
+// consigne de répondre « mon point du jour ». Cette réponse rouvre la fenêtre, et l'outil
+// `get_daily_brief` livre le détail — lu par le même `loadAgencyData`. Sans le secret
+// `WA_TEMPLATE_AGENT_DAILY_BRIEF`, rien ne part hors fenêtre : échec journalisé + claim
+// relâché, comme avant.
 //
 // Gardes : opt-in app_config.whatsapp_morning_brief_enabled='true' (fail-CLOSED,
 // nouveau canal push) + kill-switch global whatsapp_enabled (fail-open) respecté.
@@ -24,13 +27,15 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider } from '../_shared/whatsapp-gateway.ts'
+import { getProvider, type WhatsAppProvider } from '../_shared/whatsapp-gateway.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
+import { buildTemplateMessage } from '../_shared/whatsapp-templates.ts'
 import {
-  composeMorningBrief, zurichHour, zurichDayBoundsUtc, SQL_LIMITS,
-  type BriefVisit, type BriefReminder, type BriefOffer, type BriefSellerLead,
+  composeMorningBrief, zurichHour, zurichDayBoundsUtc, briefVisitsForAgent, briefItemCount,
+  type BriefAgencyData,
 } from '../_shared/morning-brief.ts'
+import { loadAgencyData } from '../_shared/morning-brief-data.ts'
 import type { WaLang } from '../_shared/whatsapp-i18n.ts'
 
 const BUDGET_MS = 60_000
@@ -48,108 +53,41 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-interface AgencyData {
-  // agentId conservé pour filtrer « ta journée » par agent au moment de composer
-  // (visite attribuée à un collègue ≠ ta visite ; non attribuée = visible par tous).
-  visits: Array<BriefVisit & { agentId: string | null }>
-  reminders: BriefReminder[]
-  offers: BriefOffer[]
-  sellerLeads: BriefSellerLead[]
-}
-
-type NameRow = { first_name: string | null; last_name: string | null } | null
-
-function contactName(c: NameRow): string | null {
-  return [c?.first_name, c?.last_name].filter(Boolean).join(' ') || null
-}
-
-// Les 4 sources du brief, scoppées AGENCE (comme le cockpit Aujourd'hui). En service
-// role la RLS est bypassée → le filtre agency_id est OBLIGATOIRE sur chaque requête.
-// (Les RPC du Focus type focus_top_matches dérivent l'agence de auth.uid() et
-// renvoient 0 ligne en service role — d'où des lectures de table directes.)
-// Retourne null si UNE des requêtes échoue : un brief avec une section manquante en
-// silence est mensonger (l'agent croirait sa matinée libre) — mieux vaut aucun brief.
-async function loadAgencyData(
-  admin: SupabaseClient, agencyId: string, startIso: string, endIso: string, now: Date,
-): Promise<AgencyData | null> {
-  const in48h = new Date(now.getTime() + 48 * 3600 * 1000).toISOString()
-
-  const [visitsRes, remindersRes, offersRes, leadsRes] = await Promise.all([
-    admin.from('visits')
-      .select('scheduled_at, buyer_name, agent_id, contact:contacts(first_name, last_name), property:properties(title, city)')
-      .eq('agency_id', agencyId)
-      .in('status', ['planned', 'confirmed'])
-      .gte('scheduled_at', startIso)
-      .lt('scheduled_at', endIso)
-      .order('scheduled_at', { ascending: true })
-      .limit(SQL_LIMITS.visits),
-    // Dues = échéance avant la fin de la journée locale, retard inclus.
-    admin.from('reminders')
-      .select('type, trigger_at, contact:contacts(first_name, last_name)')
-      .eq('agency_id', agencyId)
-      .in('status', ['pending', 'triggered', 'snoozed'])
-      .not('trigger_at', 'is', null)
-      .lt('trigger_at', endIso)
-      .order('trigger_at', { ascending: true })
-      .limit(SQL_LIMITS.reminders),
-    admin.from('crm_offers')
-      .select('amount, by_label, expires_at')
-      .eq('agency_id', agencyId)
-      .eq('status', 'pending')
-      .gt('expires_at', now.toISOString())
-      .lte('expires_at', in48h)
-      .order('expires_at', { ascending: true })
-      .limit(SQL_LIMITS.offers),
-    // Pool partagé (parité RLS front) : leads assignés à l'agence OU non assignés.
-    // Fraîcheur 72 h (couvre le week-end pour le lundi matin) : « nouveaux » doit
-    // rester vrai — un lead jamais traité ne revient pas tous les matins à vie,
-    // le backlog complet vit dans le Focus/CRM.
-    admin.from('seller_leads')
-      .select('contact_name, property_data, estimation_median')
-      .eq('status', 'new')
-      .or(`assigned_agency_id.eq.${agencyId},assigned_agency_id.is.null`)
-      .gte('created_at', new Date(now.getTime() - 72 * 3600 * 1000).toISOString())
-      .order('created_at', { ascending: false })
-      .limit(SQL_LIMITS.sellerLeads),
-  ])
-
-  for (const res of [visitsRes, remindersRes, offersRes, leadsRes]) {
-    if (res.error) {
-      console.error('morning-brief agency query error:', res.error.message)
-      return null
-    }
-  }
-
-  // Casts via unknown : sans types générés, supabase-js type les embeds en tableau
-  // alors que ces FK many-to-one renvoient un objet à l'exécution.
-  const visits: AgencyData['visits'] = ((visitsRes.data ?? []) as unknown as Array<{
-    scheduled_at: string; buyer_name: string | null; agent_id: string | null
-    contact: NameRow; property: { title: string | null; city: string | null } | null
-  }>).map((v) => ({
-    scheduledAt: v.scheduled_at,
-    who: contactName(v.contact) ?? v.buyer_name,
-    propertyTitle: v.property?.title ?? null,
-    city: v.property?.city ?? null,
-    agentId: v.agent_id,
-  }))
-
-  const reminders: BriefReminder[] = ((remindersRes.data ?? []) as unknown as Array<{
-    type: string; contact: NameRow
-  }>).map((r) => ({ type: r.type, who: contactName(r.contact) }))
-
-  const offers: BriefOffer[] = ((offersRes.data ?? []) as Array<{
-    amount: number; by_label: string; expires_at: string
-  }>).map((o) => ({ amount: o.amount, byLabel: o.by_label, expiresAt: o.expires_at }))
-
-  const sellerLeads: BriefSellerLead[] = ((leadsRes.data ?? []) as Array<{
-    contact_name: string; property_data: { city?: string } | null; estimation_median: number | null
-  }>).map((l) => ({
-    contactName: l.contact_name,
-    city: l.property_data?.city ?? null,
-    estimationMedian: l.estimation_median,
-  }))
-
-  return { visits, reminders, offers, sellerLeads }
+/**
+ * Fenêtre 24 h fermée avec l'agent : le brief en texte libre ne peut pas partir. Le template
+ * approuvé `agent_daily_brief` porte le DÉCOMPTE du jour ; sa réponse (« mon point du jour »)
+ * rouvre la fenêtre et `get_daily_brief` livre le détail. Rend `true` si le template est PARTI.
+ *
+ * Sans `WA_TEMPLATE_AGENT_DAILY_BRIEF`, rend `false` sans appel réseau : le brief retombe
+ * dans l'échec d'avant (claim relâché, repris par le tick filet), rien de plus.
+ *
+ * ⚠ Meta a classé ce template MARKETING — c'est le TARIF. La finalité déclarée à la garde
+ * reste `utility` : le destinataire est l'agent, utilisateur du service sous base
+ * contractuelle, et la garde refuse tout `marketing` vers un agent. La catégorie Meta fixe le
+ * prix, pas la base légale.
+ */
+async function sendBriefTeaser(
+  admin: SupabaseClient, provider: WhatsAppProvider,
+  a: {
+    waNumber: string; profileId: string; agencyId: string
+    firstName: string | null; lang: WaLang; count: number; atLimit: boolean
+  },
+): Promise<boolean> {
+  const message = buildTemplateMessage('agent_daily_brief', a.waNumber, {
+    agentFirstName: a.firstName ?? undefined,
+    itemCount: a.count,
+    itemCountAtLimit: a.atLimit,
+    lang: a.lang,
+  }, (k) => Deno.env.get(k))
+  if (!message) return false
+  const r = await sendOutboundGuarded({
+    admin, provider, to: a.waNumber,
+    purpose: 'utility', scope: 'daily_brief',
+    payload: { type: 'template', message, templateKey: 'agent_daily_brief' },
+    profileId: a.profileId, agencyId: a.agencyId,
+    isAutomated: true, // template Meta (boilerplate) : jamais du corpus de voix
+  })
+  return r.ok
 }
 
 serve(async (req) => {
@@ -209,9 +147,9 @@ serve(async (req) => {
   if (capped) console.error('morning-brief: plafond limit(200) atteint sur whatsapp_agent_links — paginer la requête')
 
   const t0 = Date.now()
-  const agencyCache = new Map<string, AgencyData | null>()
+  const agencyCache = new Map<string, BriefAgencyData | null>()
   const drafts: Array<{ profile_id: string; lang: WaLang; text: string }> = []
-  let sent = 0, skippedEmpty = 0, skippedDup = 0, failed = 0, truncated = 0
+  let sent = 0, viaTemplate = 0, skippedEmpty = 0, skippedDup = 0, failed = 0, truncated = 0
 
   const linkRows = (links ?? []) as unknown as Array<{
     profile_id: string; wa_number: string; agency_id: string | null
@@ -247,7 +185,7 @@ serve(async (req) => {
 
     // « Ta journée » = les visites de CET agent (attribuées à lui ou non attribuées) ;
     // celles des collègues n'apparaissent pas comme les siennes (parité get_daily_brief).
-    const visitsForAgent = data.visits.filter((v) => !v.agentId || v.agentId === link.profile_id)
+    const visitsForAgent = briefVisitsForAgent(data.visits, link.profile_id)
     const lang: WaLang = profile.spoken_languages?.[0]?.toLowerCase().startsWith('en') ? 'en' : 'fr'
     const text = composeMorningBrief({ agentFullName: profile.full_name, ...data, visits: visitsForAgent }, lang)
     if (!text) { skippedEmpty++; continue } // journée vide → pas de brief creux
@@ -281,18 +219,27 @@ serve(async (req) => {
     // SITE 10 — `scope:'daily_brief'` est ce qui rend le toggle du brief SIGNIFIANT : sans
     // lui, un agent qui coupe son brief couperait aussi son copilote, son PDF KYC et ses
     // résultats async. Le brief part en TEXTE LIBRE, donc il dépend de la fenêtre 24 h avec
-    // l'agent — hors fenêtre, la garde le refuse AVANT le POST au lieu de le laisser
-    // échouer en 131047 après. Même résultat pour l'agent, mais désormais VISIBLE dans
-    // activity_events : il faut s'attendre à voir apparaître ces refus.
+    // l'agent — hors fenêtre, la garde le refuse AVANT le POST et appelle `onWindowClosed`,
+    // qui envoie le template du décompte. Le refus reste journalisé (`fallback_offered`).
     const briefSent = await sendOutboundGuarded({
       admin, provider, to: link.wa_number,
       purpose: 'service', scope: 'daily_brief',
       payload: { type: 'text', body: text },
       profileId: link.profile_id, agencyId,
       isAutomated: true, // brief quotidien généré (vers l'agent) : jamais du corpus de voix
+      onWindowClosed: () => sendBriefTeaser(admin, provider, {
+        waNumber: link.wa_number, profileId: link.profile_id, agencyId, lang,
+        firstName: (profile.full_name ?? '').trim().split(/\s+/)[0] || null,
+        // Le décompte porte sur CE que `get_daily_brief` rendra : les visites de l'agent,
+        // pas celles de ses collègues.
+        ...briefItemCount({ ...data, visits: visitsForAgent }),
+      }),
     })
-    if (!briefSent.ok) {
-      // Échec (dont 131047 fenêtre 24h fermée) : silencieux côté agent, claim relâché
+    // Texte refusé mais template parti : le brief du jour EST livré (sous forme de décompte).
+    const teaser = !briefSent.ok && briefSent.blocked && briefSent.reason === 'window_closed'
+      && briefSent.fallbackOffered
+    if (!briefSent.ok && !teaser) {
+      // Échec (fenêtre fermée sans template, ou panne) : silencieux côté agent, claim relâché
       // pour que le tick filet ou un déclenchement manuel du jour reste possible.
       await admin.from('whatsapp_daily_briefs').delete()
         .eq('profile_id', link.profile_id).eq('brief_date', dateKey)
@@ -315,15 +262,19 @@ serve(async (req) => {
         entity_type: 'whatsapp_message',
         category: 'ai',
         severity: 'info',
-        metadata: { via: 'whatsapp', profile_id: link.profile_id, brief_date: dateKey },
+        metadata: {
+          via: 'whatsapp', profile_id: link.profile_id, brief_date: dateKey,
+          mode: teaser ? 'template' : 'text',
+        },
       })
     } catch { /* non bloquant */ }
     sent++
+    if (teaser) viaTemplate++
   }
 
   if (truncated > 0) console.error(`morning-brief budget dépassé : ${truncated} agents non traités ce tick (repris par le tick filet)`)
   return json({
-    ok: true, agents: linkRows.length, sent, skippedEmpty, skippedDup, failed, truncated, capped,
+    ok: true, agents: linkRows.length, sent, viaTemplate, skippedEmpty, skippedDup, failed, truncated, capped,
     ...(dryRun ? { dryRun: true, drafts } : {}),
   }, 200)
 })

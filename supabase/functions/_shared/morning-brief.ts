@@ -53,6 +53,42 @@ const CAPS = { visits: 6, reminders: 5, offers: 3, sellerLeads: 3 } as const
 // compte présenté comme exact alors qu'il est plafonné.
 export const SQL_LIMITS = { visits: 12, reminders: 20, offers: 5, sellerLeads: 5 } as const
 
+/** Visite telle que la lit `morning-brief-data.ts` : `agentId` sert à filtrer « ta journée ». */
+export type BriefVisitRow = BriefVisit & { agentId: string | null }
+
+/** Les quatre sources du point du jour, scopées AGENCE (lues par `morning-brief-data.ts`). */
+export interface BriefAgencyData {
+  visits: BriefVisitRow[]
+  reminders: BriefReminder[]
+  offers: BriefOffer[]
+  sellerLeads: BriefSellerLead[]
+}
+
+/**
+ * « Ta journée » = les visites de CET agent, attribuées à lui ou non attribuées ; celles d'un
+ * collègue ne sont pas les siennes. Partagé par le push de 07h30 et l'outil `get_daily_brief` :
+ * deux filtres écrits séparément finiraient par ne plus compter la même chose.
+ */
+export function briefVisitsForAgent<T extends { agentId: string | null }>(visits: T[], profileId: string): T[] {
+  return visits.filter((v) => !v.agentId || v.agentId === profileId)
+}
+
+/**
+ * Nombre d'éléments du point du jour — le {{2}} du template `agent_daily_brief`.
+ * `atLimit` : une section a atteint sa limite SQL, le total réel est inconnu. L'appelant
+ * l'affiche « N+ », jamais comme un compte exact — la règle des en-têtes du brief.
+ */
+export function briefItemCount(
+  data: Pick<MorningBriefData, 'visits' | 'reminders' | 'offers' | 'sellerLeads'>,
+): { count: number; atLimit: boolean } {
+  const { visits, reminders, offers, sellerLeads } = data
+  return {
+    count: visits.length + reminders.length + offers.length + sellerLeads.length,
+    atLimit: visits.length >= SQL_LIMITS.visits || reminders.length >= SQL_LIMITS.reminders
+      || offers.length >= SQL_LIMITS.offers || sellerLeads.length >= SQL_LIMITS.sellerLeads,
+  }
+}
+
 const REMINDER_LABELS: Record<WaLang, Record<string, string>> = {
   fr: {
     follow_up_sent_property: 'Relance après envoi de bien',
@@ -171,6 +207,31 @@ export function composeMorningBrief(data: MorningBriefData, lang: WaLang = 'fr')
     : 'Reply "brief" for details, or ask me about any file.')
 
   return blocks.join('\n\n')
+}
+
+/**
+ * Le DÉTAIL du point du jour, rendu par l'outil `get_daily_brief` : les quatre sections du
+ * push, SANS ses plafonds d'affichage — c'est ici que le push renvoie pour « le détail ».
+ * Valeurs déjà formatées (heure Zurich, CHF à apostrophe, libellé de relance) : le modèle n'a
+ * rien à convertir, donc rien à inventer. `total` reprend `briefItemCount`, pour que le nombre
+ * annoncé par le template du matin se retrouve ici à l'identique.
+ */
+export function composeBriefDetail(data: Omit<MorningBriefData, 'agentFullName'>, lang: WaLang = 'fr') {
+  const labels = REMINDER_LABELS[lang === 'en' ? 'en' : 'fr']
+  const { count, atLimit } = briefItemCount(data)
+  return {
+    total: atLimit ? `${count}+` : String(count),
+    visites_du_jour: data.visits.map((v) => ({
+      heure: timeHHmm(v.scheduledAt), qui: v.who, bien: v.propertyTitle, ville: v.city,
+    })),
+    relances_dues: data.reminders.map((r) => ({ relance: labels[r.type] ?? labels.custom, qui: r.who })),
+    offres_qui_expirent: data.offers.map((o) => ({
+      montant: fmtCHF(o.amount), par: o.byLabel, expire_le: dateDDMM(o.expiresAt),
+    })),
+    nouveaux_leads_vendeurs: data.sellerLeads.map((l) => ({
+      nom: l.contactName, ville: l.city, estimation: l.estimationMedian ? fmtCHF(l.estimationMedian) : null,
+    })),
+  }
 }
 
 function zurichWallParts(now: Date): { y: number; mo: number; d: number; h: number; mi: number; s: number } {

@@ -187,3 +187,22 @@ describe('template d\'AUTHENTIFICATION — le bouton OTP fait partie de l\'envoi
     expect(m?.otpButtonCode).toBeUndefined()
   })
 })
+
+describe('agent_daily_brief — le décompte du point du jour, hors fenêtre 24 h', () => {
+  const env = mkEnv({ WA_TEMPLATE_AGENT_DAILY_BRIEF: 'megga_agent_daily_brief' })
+
+  it('porte le prénom de l’agent et le nombre d’éléments', () => {
+    const m = buildTemplateMessage('agent_daily_brief', '4179', { agentFirstName: 'Gregory', itemCount: 7 }, env)
+    expect(m?.templateName).toBe('megga_agent_daily_brief')
+    expect(m?.bodyParams).toEqual(['Gregory', '7'])
+  })
+
+  it('⛔ « N+ » quand une section du brief a atteint sa limite SQL — jamais un faux compte exact', () => {
+    const m = buildTemplateMessage('agent_daily_brief', '4179', { agentFirstName: 'Gregory', itemCount: 27, itemCountAtLimit: true }, env)
+    expect(m?.bodyParams).toEqual(['Gregory', '27+'])
+  })
+
+  it('sans secret, rien : le brief hors fenêtre retombe dans l’échec d’avant', () => {
+    expect(buildTemplateMessage('agent_daily_brief', '4179', { itemCount: 3 }, mkEnv({}))).toBeNull()
+  })
+})
