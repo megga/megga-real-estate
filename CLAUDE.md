@@ -1045,7 +1045,7 @@ manquants). Il ne peut être supprimé que depuis l'ancien compte.
 l'état qu'avait la voie Google avant ce jour-là : `booking-oauth.ts:64` lit ces deux variables pour
 rafraîchir un jeton Microsoft et tourne avec `client_id: ''`. Même mode d'échec silencieux.
 
-⚠ **Ils ont un SECOND lecteur depuis la PR #1274** — sur branche, pas en production :
+⚠ **Ils ont un SECOND lecteur depuis la PR #1274** — en production depuis sa fusion le 04.09.2026 :
 `_shared/mail/guard.ts::providerConfigFromEnv` les lit pour la messagerie, aux côtés des deux
 secrets Google. Le mode d'échec y est en revanche **bruyant** : un `clientId` vide fait
 court-circuiter `mail-oauth start` en 503 `provider_not_configured`, visible à l'écran. C'est
