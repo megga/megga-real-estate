@@ -553,6 +553,7 @@
   "errorBoundary": {
     "title": "Diese Seite konnte nicht angezeigt werden",
     "body": "Ein Fehler auf unserer Seite, nicht auf Ihrer. Laden Sie die Seite neu; tritt der Fehler erneut auf, beginnen Sie wieder beim Dashboard.",
+    "bodyClient": "Ein Fehler auf unserer Seite, nicht auf Ihrer. Laden Sie die Seite neu; tritt der Fehler erneut auf, informieren Sie die Agentur, die Ihnen diesen Link geschickt hat.",
     "reload": "Seite neu laden",
     "updating": "Die Anwendung wird aktualisiert…",
     "dashboard": "Zurück zum Dashboard",

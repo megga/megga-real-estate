@@ -2,6 +2,7 @@
   "errorBoundary": {
     "title": "Cette page n'a pas pu s'afficher",
     "body": "Un incident de notre côté, pas du vôtre. Rechargez la page ; si l'erreur revient, repartez du tableau de bord.",
+    "bodyClient": "Un incident de notre côté, pas du vôtre. Rechargez la page ; si l'erreur revient, prévenez l'agence qui vous a transmis ce lien.",
     "reload": "Recharger la page",
     "updating": "Mise à jour de l'application en cours…",
     "dashboard": "Retour au tableau de bord",

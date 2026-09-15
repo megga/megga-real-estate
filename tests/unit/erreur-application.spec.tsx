@@ -11,6 +11,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { createElement, act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import i18n from '@/i18n'
+import { CRM_DARK_KEY } from '@/lib/crmDark'
+import { poserStockagesMemoire } from './helpers/stockage-memoire'
 
 const h = vi.hoisted(() => ({ envoie: false }))
 
@@ -36,6 +38,8 @@ async function monter() {
 
 beforeEach(async () => {
   await i18n.changeLanguage('fr')
+  // L'écran lit l'ADRESSE pour savoir s'il parle à un agent ou à un client.
+  window.history.pushState({}, '', '/dashboard/contacts')
   // React journalise l'erreur attrapée : attendu, et bruyant.
   vi.spyOn(console, 'error').mockImplementation(() => {})
   conteneur = document.createElement('div')
@@ -65,5 +69,33 @@ describe('ErreurApplication — la référence d’incident', () => {
     expect(conteneur.querySelector('h1')?.textContent).toBe("Cette page n'a pas pu s'afficher")
     expect(conteneur.textContent).not.toContain('Référence')
     expect(conteneur.textContent).toContain("Centre d'aide")
+  })
+})
+
+// ⛔ La même frontière enveloppe les pages du CLIENT : l'écran y parlait comme au CRM — Inter
+// Tight, le sombre de l'appareil, « Retour au tableau de bord » (revue du 15.09.2026).
+describe('ErreurApplication — la face du client', () => {
+  it('sur un lien client : Manrope, en clair, ni tableau de bord ni centre d’aide des agents', async () => {
+    h.envoie = true
+    poserStockagesMemoire().local.setItem(CRM_DARK_KEY, '1')
+    window.history.pushState({}, '', '/kyc/jeton-du-client')
+    await monter()
+    const ecran = conteneur.firstElementChild as HTMLElement
+    expect(ecran.style.fontFamily).toContain('Manrope')
+    expect(ecran.style.background).toBe('rgb(249, 249, 249)')
+    expect(conteneur.querySelector('a[href="/dashboard"]')).toBeNull()
+    expect(conteneur.textContent).not.toContain("Centre d'aide")
+    expect(conteneur.textContent).toContain("prévenez l'agence qui vous a transmis ce lien")
+    // La référence reste : l'agence peut la transmettre au support.
+    expect(conteneur.textContent).toContain("Référence de l'incident : 9b3ed9db")
+  })
+
+  it('témoin : au CRM, le réglage sombre de l’agent et la police du bureau', async () => {
+    poserStockagesMemoire().local.setItem(CRM_DARK_KEY, '1')
+    await monter()
+    const ecran = conteneur.firstElementChild as HTMLElement
+    expect(ecran.style.fontFamily).toContain('var(--crm-font)')
+    expect(ecran.style.background).not.toBe('rgb(249, 249, 249)')
+    expect(conteneur.querySelector('a[href="/dashboard"]')).not.toBeNull()
   })
 })

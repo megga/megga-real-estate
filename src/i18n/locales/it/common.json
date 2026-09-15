@@ -553,6 +553,7 @@
   "errorBoundary": {
     "title": "Impossibile visualizzare questa pagina",
     "body": "Un problema da parte nostra, non Sua. Ricarichi la pagina; se l'errore si ripresenta, riparta dalla dashboard.",
+    "bodyClient": "Un problema da parte nostra, non Sua. Ricarichi la pagina; se l'errore si ripresenta, avvisi l'agenzia che Le ha inviato questo link.",
     "reload": "Ricarica la pagina",
     "updating": "Aggiornamento dell'applicazione in corso…",
     "dashboard": "Torna alla dashboard",

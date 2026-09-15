@@ -14,13 +14,33 @@
  * §3) : recharger est la sortie qui marche le plus souvent — un déploiement qui bascule, un
  * état passager — ; le tableau de bord reste le recours. La référence, quand l'erreur est
  * bien partie chez Sentry, permet au support de retrouver l'incident sans capture d'écran.
+ *
+ * ⛔ LA MÊME FRONTIÈRE ENVELOPPE LES PAGES DU CLIENT (un lien KYC, une réception, une visite,
+ * une invitation), qui n'en ont pas d'autre. L'écran y parlait comme au CRM — Inter Tight, le
+ * thème sombre de l'appareil, « Retour au tableau de bord » (revue du 15.09.2026). Hors du CRM,
+ * il suit la face publique (CLAUDE.md §3) : Manrope, en clair, sans tableau de bord ni centre
+ * d'aide des agents ; et Manrope aussi pour l'agent sur téléphone.
  */
 import type { CSSProperties } from 'react'
 import i18n from '@/i18n'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { crmPalette } from '@/components/crm/tokens'
+import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
 import { useCrmDark } from '@/lib/crmDark'
 import { HELP_CENTER_URL } from '@/lib/help-articles'
+
+/**
+ * Le CRM (et ses bancs) ou la face du client ? Lu à l'adresse et non au routeur, que l'erreur a
+ * pu emporter. ⚠ `matchMedia` lu sans abonnement et sous garde : un écran d'erreur qui lèverait
+ * lui-même ne laisserait qu'une page blanche.
+ */
+function lecteur(): { client: boolean; mobile: boolean } {
+  if (typeof window === 'undefined') return { client: false, mobile: false }
+  return {
+    client: !/^\/(dashboard|dev|oauth)(\/|$)/.test(window.location.pathname),
+    mobile: window.matchMedia?.('(max-width: 768px)').matches ?? false,
+  }
+}
 
 interface Props {
   /** Les huit premiers caractères de l'événement Sentry, ou `null` s'il n'est pas parti. */
@@ -33,7 +53,9 @@ interface Props {
 export default function ErreurApplication({ reference, onRecharger, miseAJour = false }: Props) {
   // Suivi, pas figé : une bascule faite dans un autre onglet s'applique ici aussi
   // (tests/unit/poussee-dock.spec.ts). Une lecture du stockage refusée retombe sur le clair.
-  const dark = useCrmDark()
+  const reglageSombre = useCrmDark()
+  const { client, mobile } = lecteur()
+  const dark = client ? false : reglageSombre
   const sp = crmPalette(dark)
   const t = (cle: string, o?: Record<string, string>) => i18n.t(`errorBoundary.${cle}`, o)
 
@@ -49,7 +71,7 @@ export default function ErreurApplication({ reference, onRecharger, miseAJour = 
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
-      background: sp.pageBg, color: sp.ink, fontFamily: 'var(--crm-font), system-ui, sans-serif',
+      background: sp.pageBg, color: sp.ink, fontFamily: client || mobile ? MOBILE_FONT : 'var(--crm-font), system-ui, sans-serif',
     }}>
       <header style={{ padding: 'var(--crm-space-5xl) var(--crm-space-6xl) 0' }}>
         {/* Le logo est noir : en sombre il s'inverse, comme dans l'en-tête des pages publiques. */}
@@ -75,7 +97,7 @@ export default function ErreurApplication({ reference, onRecharger, miseAJour = 
               {t('title')}
             </h1>
             <p style={{ margin: 'var(--crm-space-md) 0 0', maxWidth: '40ch', fontSize: 'var(--crm-text-md)', lineHeight: 1.55, color: sp.sub }}>
-              {t('body')}
+              {t(client ? 'bodyClient' : 'body')}
             </p>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-5xl)' }}>
@@ -90,14 +112,16 @@ export default function ErreurApplication({ reference, onRecharger, miseAJour = 
                 {t('reload')}
               </button>
               {/* Un lien et non une navigation du routeur : l'erreur a pu naître au-dessus de lui. */}
-              <a
-                href="/dashboard"
-                style={bouton(false)}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = sp.ink }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = sp.cardBorder }}
-              >
-                {t('dashboard')}
-              </a>
+              {!client && (
+                <a
+                  href="/dashboard"
+                  style={bouton(false)}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = sp.ink }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = sp.cardBorder }}
+                >
+                  {t('dashboard')}
+                </a>
+              )}
             </div>
 
             <p style={{ margin: 'var(--crm-space-5xl) 0 0', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
@@ -105,12 +129,14 @@ export default function ErreurApplication({ reference, onRecharger, miseAJour = 
                 <>
                   {/* Sélectionnable d'un geste : c'est ce que le support demandera. */}
                   <span style={{ userSelect: 'all' }}>{t('reference', { id: reference })}</span>
-                  <span aria-hidden> · </span>
+                  {!client && <span aria-hidden> · </span>}
                 </>
               )}
-              <a href={HELP_CENTER_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
-                {t('help')}
-              </a>
+              {!client && (
+                <a href={HELP_CENTER_URL} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+                  {t('help')}
+                </a>
+              )}
             </p>
           </div>
         )}
