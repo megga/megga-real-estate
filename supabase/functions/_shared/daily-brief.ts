@@ -23,6 +23,7 @@ export interface BriefSnapshot {
   snapshot: string
   itemCount: number
   reminderCount: number
+  eventCount: number
 }
 
 /** Clés d'agrégats connues pour porter des noms → retirées avant sérialisation. */
@@ -53,6 +54,25 @@ function reminderLabel(type: string): string {
   return REMINDER_LABELS[type] ?? 'suivi à faire'
 }
 
+// Rendez-vous du Calendrier (`calendar_events`) : même règle — le TYPE seul, jamais le titre,
+// qui peut être l'objet d'un e-mail (« Planifier ») et nommer un client.
+const EVENT_LABELS: Record<string, string> = {
+  mandate: 'rendez-vous de mandat ou d’estimation',
+  notary: 'signature chez le notaire',
+  publish: 'publication',
+  kyc: 'vérification KYC',
+  autre: 'rendez-vous',
+}
+function eventLabel(type: string): string {
+  return EVENT_LABELS[type] ?? 'rendez-vous'
+}
+
+function compterParLibelle(types: string[], libelle: (t: string) => string): string {
+  const counts = new Map<string, number>()
+  for (const t of types) counts.set(libelle(t), (counts.get(libelle(t)) ?? 0) + 1)
+  return [...counts.entries()].map(([l, n]) => `${n} ${l}`).join(', ')
+}
+
 /** Construit le texte du snapshot pseudonymisé. Le `pseudo` accumule le mapping
  *  jeton→valeur (réutilisé ensuite pour re-substituer les vraies valeurs dans la
  *  réponse). INVARIANT : aucune donnée à texte libre saisie par un humain (nom de
@@ -63,6 +83,8 @@ export function buildBriefSnapshot(params: {
   cockpit: Record<string, unknown> | null | undefined
   objectif: Record<string, unknown> | null | undefined
   reminderTypes: string[]
+  /** Types des rendez-vous du jour (`calendar_events`, séries développées). */
+  eventTypes?: string[]
   pseudo: Pseudonymizer
 }): BriefSnapshot {
   const { pseudo } = params
@@ -84,14 +106,10 @@ export function buildBriefSnapshot(params: {
     return `- ${parts.join(' · ')}`
   })
 
-  // Rappels agrégés par libellé de type (name-free).
+  // Rappels et rendez-vous agrégés par libellé de type (name-free).
   const reminderTypes = params.reminderTypes ?? []
-  const counts = new Map<string, number>()
-  for (const t of reminderTypes) {
-    const l = reminderLabel(t)
-    counts.set(l, (counts.get(l) ?? 0) + 1)
-  }
-  const reminderLine = [...counts.entries()].map(([l, n]) => `${n} ${l}`).join(', ')
+  const eventTypes = params.eventTypes ?? []
+  const reminderLine = compterParLibelle(reminderTypes, reminderLabel)
   const cockpit = stripNameBearing(params.cockpit)
   const objectif = params.objectif ?? {}
 
@@ -102,7 +120,8 @@ export function buildBriefSnapshot(params: {
     `OBJECTIF DU MOIS : ${JSON.stringify(objectif).slice(0, 500)}`,
     `COCKPIT : ${JSON.stringify(cockpit).slice(0, 500)}`,
     reminderTypes.length ? `RAPPELS DU JOUR : ${reminderLine}` : '',
+    eventTypes.length ? `RENDEZ-VOUS DU JOUR : ${compterParLibelle(eventTypes, eventLabel)}` : '',
   ].filter(Boolean).join('\n\n'))
 
-  return { snapshot, itemCount: items.length, reminderCount: reminderTypes.length }
+  return { snapshot, itemCount: items.length, reminderCount: reminderTypes.length, eventCount: eventTypes.length }
 }

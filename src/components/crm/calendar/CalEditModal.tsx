@@ -4,13 +4,13 @@
 // ou « Modifier » depuis la bulle. Sélecteurs date/heure custom + liens CRM réels.
 
 import { crmVoileEncre } from '@/components/crm/tokens'
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { CalIcon, type CalIconName } from './CalIcon'
 import {
-  CAL_EVENT_COLORS, CAL_EVENT_TYPES, CAL_RECUR_LABEL, calNormalizeDraft, calRecurDefaultUntil,
-  eventTypeColors, useCalPalette, type CalEvent, type CalRecurFreq, type CalPalette,
+  CAL_EVENT_COLORS, CAL_EVENT_TYPES, CAL_RECUR_LABEL, calNormalizeDraft, calRecurDefaultUntil, calTypesPermis,
+  eventTypeColors, useCalPalette, type CalEvent, type CalEventTypeId, type CalRecurFreq, type CalPalette,
 } from './data'
 import { calDaysFull, calMonths, calMonthsShort, sameDay } from './helpers'
 import { useContacts } from '@/hooks/useContacts'
@@ -55,14 +55,19 @@ const calInputStyle = (SP: CalPalette): React.CSSProperties => ({
   boxShadow: `inset 0 0 0 1px ${SP.line}`,
 })
 
-function CalField({ label, children }: { label: string; children: React.ReactNode }) {
+/**
+ * Un champ et son libellé. Un GROUPE de boutons (type, couleur, récurrence) n'est pas un champ :
+ * sous un `<label>`, le premier bouton prenait le libellé pour nom — la pastille « Tâche » se
+ * lisait « Type » — et le sien disparaissait des lecteurs d'écran.
+ */
+function CalField({ label, children, groupe }: { label: string; children: React.ReactNode; groupe?: boolean }) {
   const SP = useCalPalette()
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
-      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 400, color: SP.muted }}>{label}</span>
-      {children}
-    </label>
-  )
+  const id = useId()
+  const style = { display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' } as const
+  const titre = <span id={id} style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 400, color: SP.muted }}>{label}</span>
+  return groupe
+    ? <div role="group" aria-labelledby={id} style={style}>{titre}{children}</div>
+    : <label style={style}>{titre}{children}</label>
 }
 
 function CalInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -408,6 +413,9 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
   // sinon elle serait persistée en reminder et rechargerait avec un autre type.
   // (À la création seulement — éditer une visite existante ne l'exige pas.)
   const blockVisitCreate = isCreate && d.type === 'visite' && (!d.contactId || !d.bienId)
+  // Un événement existant garde la table qui le porte ; son type d'origine reste affiché.
+  const permis = calTypesPermis(isCreate ? 'creation' : editing.draft.origin)
+  const typesOfferts = Object.values(CAL_EVENT_TYPES).filter(tp => permis.includes(tp.id as CalEventTypeId) || tp.id === editing.draft.type)
 
   const { contacts } = useContacts()
   const { data: properties = [] } = useAgencyProperties()
@@ -497,9 +505,11 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
     set({ end: ne })
   }
 
-  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`. Posé AVANT la première
+  // image (`useLayoutEffect`) : un Échap pressé dès que la fiche paraît se perdait, l'écouteur
+  // n'arrivant qu'après elle (vu au banc sous charge le 15.09.2026).
   const ecranActif = useEcranActif()
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', onKey)
@@ -550,6 +560,9 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
       <div onClick={onCancel} style={{ position: 'absolute', inset: 0 }} />
       <div
         ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-label={isCreate ? t('modal.newEvent') : t('modal.editEvent')}
         style={{
           position: 'fixed', left: pos.left, top: pos.top, width: 460, maxWidth: 'calc(100vw - 24px)', maxHeight: '88vh',
           background: SP.popBg, borderRadius: 'var(--crm-radius-4xl)', boxShadow: modalShadow,
@@ -573,9 +586,9 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
             {/* Type */}
-            <CalField label={t('modal.type')}>
+            <CalField label={t('modal.type')} groupe>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
-                {Object.values(CAL_EVENT_TYPES).map(tp => {
+                {typesOfferts.map(tp => {
                   const active = d.type === tp.id
                   const dot = tp.id === 'autre' ? (d.color || tp.accent) : eventTypeColors(tp, SP.isDark).accent
                   return (
@@ -592,7 +605,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
             </CalField>
 
             {d.type === 'autre' && (
-              <CalField label={t('modal.color')}>
+              <CalField label={t('modal.color')} groupe>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
                   {CAL_EVENT_COLORS.map(c => {
                     const active = (d.color || '#5B6472') === c.hex
@@ -645,7 +658,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
             </div>
 
             {/* Récurrence */}
-            <CalField label={t('modal.recurrence')}>
+            <CalField label={t('modal.recurrence')} groupe>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
                 {RECUR_OPTS.map(opt => {
                   const active = (d.recurrence?.freq ?? 'none') === opt.id
@@ -655,7 +668,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
             </CalField>
 
             {d.recurrence && d.recurrence.freq && (
-              <CalField label={t('modal.recurEnd')}>
+              <CalField label={t('modal.recurEnd')} groupe>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)', alignItems: 'center' }}>
                   <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
                     <button type="button" onClick={() => set({ recurrence: { ...d.recurrence!, until: null } })} style={recurPill(!d.recurrence.until)}>{t('modal.recurNever')}</button>

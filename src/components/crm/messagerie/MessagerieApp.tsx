@@ -350,7 +350,6 @@ export function MessagerieApp({ dark, setDark }: Props) {
       expediteur: expediteurComplet(fil.from_name, fil.from_email),
       date: new Date(fil.last_message_at).toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit', year: 'numeric' }),
       contactId: fil.contact_id,
-      contactNom: null,
       mailThreadId: fil.id,
       enTete: (o) => t('mail.plan.notes', o),
     }))

@@ -97,10 +97,26 @@ test('⛔ le fil ouvert par son lien ne se rouvre pas seul : une réponse en cou
   await expect(ecran(page).getByRole('textbox', { name: 'Votre réponse' })).toHaveValue('Bonjour Zoé')
 })
 
-test('créé, l’événement garde son titre et son type — et sa bulle ramène à l’e-mail', async ({ page }) => {
+test('créé, l’événement garde son titre, son type et son contact — et sa bulle ramène à l’e-mail', async ({ page }) => {
   await planifier(page)
+  await page.evaluate(() => {
+    const w = window as unknown as { __creations: string[] }
+    w.__creations = []
+    const suivant = window.fetch
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if ((init?.method ?? 'GET').toUpperCase() === 'POST' && url.includes('/rest/v1/calendar_events')) w.__creations.push(String(init?.body ?? ''))
+      return suivant(input, init)
+    }
+  })
   await page.getByRole('button', { name: 'Créer', exact: true }).click()
   await expect(ecran(page).getByText(SUJET).first()).toBeVisible()
+  // ⛔ Le brouillon d'un e-mail ne porte que l'IDENTIFIANT du contact : la fiche le vidait à
+  // l'enregistrement, et l'événement perdait le contact du fil (revue du 15.09.2026).
+  // L'événement paraît avant l'écriture (surcharge optimiste) : on attend la requête elle-même.
+  const creations = () => page.evaluate(() => (window as unknown as { __creations: string[] }).__creations)
+  await expect.poll(async () => (await creations()).length).toBe(1)
+  expect(JSON.parse((await creations())[0])).toMatchObject({ contact_id: 'fx-c1', type: 'autre', title: SUJET })
   // ⛔ Quitter le Calendrier, puis y revenir : l'écran repart de ce que la base a gardé, pas
   // de sa copie optimiste — une création refusée en silence resterait sinon à l'écran.
   await ecran(page).getByRole('link', { name: 'Contacts' }).or(ecran(page).getByRole('button', { name: 'Contacts', exact: true })).first().click()

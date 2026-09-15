@@ -44,6 +44,32 @@ describe('composeMorningBrief', () => {
     expect(text).toContain('Reply "brief"')
   })
 
+  // ⛔ Un rendez-vous saisi au Calendrier vit dans `calendar_events` depuis le 15.09.2026 : le
+  // brief ne lisait que `reminders`, et la signature chez le notaire sortait de la matinée.
+  it('les rendez-vous du Calendrier : heure, type et contact — jamais le titre', () => {
+    const text = composeMorningBrief({ ...FULL, events: [
+      { startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: 'Paul Dumont' },
+      { startsAt: '2026-07-05T00:00:00Z', allDay: true, type: 'publish', who: null },
+      { startsAt: '2026-07-05T15:00:00Z', allDay: false, type: 'type_futur', who: null },
+    ] }, 'fr')!
+    expect(text).toContain('**Rendez-vous (3)**')
+    expect(text).toContain('- 14:00 · Signature notaire · Paul Dumont')
+    expect(text).toContain('- Journée · Publication')
+    expect(text).toContain('- 17:00 · Rendez-vous')
+    expect(text.indexOf('**Visites')).toBeLessThan(text.indexOf('**Rendez-vous'))
+    const en = composeMorningBrief({ ...FULL, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: null }] }, 'en')!
+    expect(en).toContain('**Appointments (1)**')
+    expect(en).toContain('- 14:00 · Notary signing')
+  })
+
+  it('une journée faite de seuls rendez-vous a son brief ; au plafond de la requête, « 20+ »', () => {
+    const vide = { agentFullName: 'Gregory Lyonnet', visits: [], reminders: [], offers: [], sellerLeads: [] }
+    expect(composeMorningBrief({ ...vide, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'autre', who: null }] })).toContain('**Rendez-vous (1)**')
+    const plein = composeMorningBrief({ ...vide, eventsAtLimit: true, events: [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'autre', who: null }] })!
+    expect(plein).toContain('**Rendez-vous (1+)**')
+    expect(plein).toContain("…et d'autres")
+  })
+
   it('retourne null quand la journée est vide (pas de brief creux)', () => {
     expect(composeMorningBrief({
       agentFullName: 'Gregory Lyonnet', visits: [], reminders: [], offers: [], sellerLeads: [],

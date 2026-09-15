@@ -33,16 +33,47 @@ export function versLigneEvenement(d: CalEvent): Omit<LigneEvenement, 'agency_id
   }
 }
 
+/** Le plus long titre de tâche : la borne des titres de `calendar_events`. */
+const TITRE_MAX = 200
+
 /**
- * `createReminder` range le titre saisi dans le calendrier EN TÊTE du message —
- * « [Titre] notes » — et le Calendrier ne le relisait pas : une tâche revenait « Tâche » au
- * rechargement. On le relit ; un message sans crochets (une relance du système) reste tel
- * quel.
+ * Le message d'une tâche : le titre saisi dans le calendrier EN TÊTE — « [Titre] notes » —,
+ * ses crochets et ses barres obliques inverses ÉCHAPPÉS, sur une seule ligne et borné à 200
+ * caractères. ⛔ Écrit tel quel, « Appeler [urgent] M. Dupont » se relisait « Appeler [urgent »,
+ * et un titre de 201 caractères ne se relisait plus du tout (revue du 15.09.2026).
+ */
+export function messageDeRelance(titre: string | null | undefined, notes: string | null | undefined): string | null {
+  const t = (titre ?? '').replace(/\s+/g, ' ').trim().slice(0, TITRE_MAX)
+  const tete = t ? `[${t.replace(/[\\[\]]/g, (c) => `\\${c}`)}] ` : ''
+  return `${tete}${notes ?? ''}`.trim() || null
+}
+
+/**
+ * Le titre et les notes d'une tâche, relus de son message (`messageDeRelance`) — le
+ * Calendrier ne le relisait pas, et une tâche revenait « Tâche » au rechargement. Un message
+ * sans titre en tête (une relance du système) reste tel quel.
+ *
+ * Le titre se ferme au crochet qui répond au PREMIER — les crochets appariés d'un titre écrit
+ * avant l'échappement (« [Appeler [urgent] M. Dupont] ») restent dans le titre ; une barre
+ * oblique inverse n'échappe qu'un crochet ou elle-même (« C:\dossier » garde la sienne).
  */
 export function titreDeRelance(message: string | null): { titre: string | null; reste: string | null } {
-  const m = message?.match(/^\[([^\]\n]{1,200})\]\s*([\s\S]*)$/)
-  if (!m) return { titre: null, reste: message }
-  return { titre: m[1].trim() || null, reste: m[2].trim() || null }
+  const rien = { titre: null, reste: message }
+  if (!message?.startsWith('[')) return rien
+  let titre = ''
+  let profondeur = 0
+  for (let i = 1; i < message.length && titre.length <= TITRE_MAX; i++) {
+    const c = message[i]
+    if (c === '\n') return rien
+    if (c === '\\' && /[\\[\]]/.test(message[i + 1] ?? '')) { titre += message[++i]; continue }
+    if (c === '[') profondeur++
+    if (c === ']' && profondeur-- === 0) {
+      if (!titre.trim()) return rien
+      return { titre: titre.trim(), reste: message.slice(i + 1).trim() || null }
+    }
+    titre += c
+  }
+  return rien
 }
 
 // ─── Le pont Messagerie → Calendrier ──────────────────────────────────────────
@@ -51,8 +82,8 @@ export function titreDeRelance(message: string | null): { titre: string | null; 
 export interface BrouillonCalendrier {
   titre: string
   notes: string
+  /** L'IDENTIFIANT seul : la fiche de l'événement lit le nom dans la liste de l'agence. */
   contactId: string | null
-  contactNom: string | null
   mailThreadId: string
 }
 
@@ -115,7 +146,6 @@ export function evenementDepuisBrouillon(b: BrouillonCalendrier, maintenant = ne
     allDay: false,
     recurrence: null,
     contactId: b.contactId,
-    contact: b.contactNom ? { name: b.contactNom, role: '' } : undefined,
     mailThreadId: b.mailThreadId,
   }
 }
@@ -130,7 +160,7 @@ const PREFIXES = /^\s*((re|tr|fw|fwd|wg|aw|r|i)\s*:\s*)+/i
  */
 export function brouillonDepuisMail(p: {
   sujet: string | null; extrait: string | null; expediteur: string; date: string
-  contactId: string | null; contactNom: string | null; mailThreadId: string
+  contactId: string | null; mailThreadId: string
   /** « E-mail de {{expediteur}} du {{date}} », traduit par l'appelant. */
   enTete: (o: { expediteur: string; date: string }) => string
 }): BrouillonCalendrier {
@@ -139,7 +169,6 @@ export function brouillonDepuisMail(p: {
     titre: (p.sujet ?? '').replace(PREFIXES, '').trim(),
     notes: [p.enTete({ expediteur: p.expediteur, date: p.date }), extrait ? `« ${extrait} »` : ''].filter(Boolean).join('\n'),
     contactId: p.contactId,
-    contactNom: p.contactNom,
     mailThreadId: p.mailThreadId,
   }
 }

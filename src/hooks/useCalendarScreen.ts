@@ -32,8 +32,10 @@ interface ReminderJoin {
   type: string
   trigger_at: string
   message_template: string | null
+  contact_id: string | null
+  property_id: string | null
   contact: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
-  property: { title: string | null; address: string | null } | { title: string | null; address: string | null }[] | null
+  property: { id: string; title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null } | { id: string; title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null }[] | null
 }
 
 /** Une ligne `calendar_events` (20260915080300), contact et bien joints. */
@@ -170,7 +172,18 @@ function reminderToCalEvent(r: ReminderJoin): CalEvent {
     origin: 'reminder',
     type: 'task',
     title: titre ?? (contactName ? `Relance ${contactName}` : 'Tâche'),
+    // Les IDENTIFIANTS aussi : la fiche réécrit la tâche en entier (`rewrite`), et une tâche
+    // relue sans eux perdait son contact et son bien au premier enregistrement.
+    contactId: r.contact_id,
     contact: contactName ? { name: contactName, role: 'Contact' } : undefined,
+    bienId: r.property_id,
+    property: property ? {
+      id: property.id,
+      title: property.title || property.address || 'Bien',
+      area: property.surface_m2 ?? 0,
+      price: property.price ?? null,
+      tone: toneFromId(property.id),
+    } : undefined,
     location: property?.address ?? undefined,
     start,
     end,
@@ -316,7 +329,7 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
       if (!agencyId) return []
       const { data, error } = await supabase
         .from('reminders')
-        .select('id, type, trigger_at, message_template, contact:contacts(first_name, last_name), property:properties(title, address)')
+        .select('id, type, trigger_at, message_template, contact_id, property_id, contact:contacts(first_name, last_name), property:properties(id, title, address, city, price, surface_m2)')
         .eq('agency_id', agencyId)
         .in('status', ['pending', 'triggered', 'snoozed'])
         .gte('trigger_at', range.from)

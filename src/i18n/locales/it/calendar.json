@@ -435,6 +435,7 @@
     "reactivated": "Riattivato",
     "moveFailed": "Spostamento non salvato",
     "saveFailed": "Modifica non salvata",
+    "createFailed": "Creazione non salvata",
     "deleteFailed": "Eliminazione non salvata"
   },
   "onboarding": {

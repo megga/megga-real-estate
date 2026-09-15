@@ -132,6 +132,62 @@ drop trigger if exists calendar_events_liens on public.calendar_events;
 create trigger calendar_events_liens before insert or update on public.calendar_events
   for each row execute function public.calendar_events_verifier_liens();
 
+-- ── 2 ter. Le journal : le FAIT d'un geste, sur la fiche de ce qu'il concerne ──
+-- ⛔ Créer, déplacer, clore ou supprimer un événement n'écrivait rien au journal (revue du
+-- 15.09.2026) : le rendez-vous chez le notaire d'un client n'apparaissait jamais sur sa fiche,
+-- et sa suppression ne laissait aucune trace. Un DÉCLENCHEUR, pas l'écran — même raison que
+-- `agencies_audit_identity_columns` (20260731130000) : il attrape toutes les voies d'écriture
+-- et ne peut pas mentir sur ce qui a changé.
+--
+-- Le FAIT, jamais le contenu (règle du courrier, D11) : ni titre, ni lieu, ni notes — ils
+-- viennent d'un e-mail, parfois d'une boîte personnelle, et `activity_events` est lisible de
+-- toute l'agence, relue par les outils IA et conservée sans purge possible. L'identifiant, le
+-- type, la date et, à la modification, la LISTE des colonnes changées.
+--
+-- ⚠ Seul s'écrit un événement qui CONCERNE quelqu'un : un contact (sa fiche, `contact`), sinon
+-- un bien (`bien`). L'agenda personnel de l'agent — le dentiste — n'a rien à faire dans le
+-- journal de l'agence, et aucune famille de la contrainte ne le décrirait.
+-- ⚠ Une agence qu'on supprime emporte ses événements en cascade : écrire alors une ligne à son
+-- nom violerait la clé étrangère et ferait échouer la suppression de l'agence.
+create or replace function public.calendar_events_journaliser()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  v_ligne public.calendar_events := case when tg_op = 'DELETE' then old else new end;
+  v_changees jsonb;
+  v_acteur uuid := auth.uid();
+begin
+  if v_ligne.contact_id is null and v_ligne.property_id is null then return null; end if;
+  if not exists (select 1 from public.agencies a where a.id = v_ligne.agency_id) then return null; end if;
+  if tg_op = 'UPDATE' then
+    -- Le libellé classe, l'horodatage et l'auteur suivent : aucun n'est un geste sur l'événement.
+    select coalesce(jsonb_agg(k order by k), '[]'::jsonb) into v_changees
+      from jsonb_object_keys(to_jsonb(new)) as k
+     where k not in ('updated_at', 'created_by', 'calendar_label_id')
+       and to_jsonb(new) -> k is distinct from to_jsonb(old) -> k;
+    if jsonb_array_length(v_changees) = 0 then return null; end if;
+  end if;
+  insert into public.activity_events
+    (agency_id, actor_id, actor_kind, action, entity_type, entity_id, category, severity, object_label, metadata)
+  values (
+    v_ligne.agency_id, v_acteur, case when v_acteur is null then 'system' else 'user' end,
+    case tg_op when 'INSERT' then 'calendar_event_created' when 'UPDATE' then 'calendar_event_updated' else 'calendar_event_deleted' end,
+    case when v_ligne.contact_id is not null then 'contact' else 'property' end,
+    coalesce(v_ligne.contact_id, v_ligne.property_id),
+    case when v_ligne.contact_id is not null then 'contact' else 'bien' end,
+    'info', null,
+    jsonb_strip_nulls(jsonb_build_object(
+      'event_id', v_ligne.id,
+      'type', v_ligne.type,
+      'starts_at', to_char(v_ligne.starts_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+      'changed', v_changees)));
+  return null;
+end $$;
+revoke all on function public.calendar_events_journaliser() from public, anon, authenticated;
+
+drop trigger if exists calendar_events_journal on public.calendar_events;
+create trigger calendar_events_journal after insert or update or delete on public.calendar_events
+  for each row execute function public.calendar_events_journaliser();
+
 -- ── 3. Les libellés, étendus à la quatrième source ───────────────────────────
 -- Mêmes signatures que 20260914213550 : un `create or replace` suffit.
 create or replace function public.calendar_label_assignments(p_from timestamptz, p_to timestamptz)

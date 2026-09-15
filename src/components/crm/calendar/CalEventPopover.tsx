@@ -346,9 +346,9 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           {event.mailThreadId && (
             <button
               type="button" onClick={openMail}
-              style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center', background: 'transparent', border: 0, padding: 'var(--crm-space-2xs) 0', cursor: 'pointer', fontFamily: 'inherit', color: SP.accent, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}
+              style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center', background: 'transparent', border: 0, padding: 'var(--crm-space-2xs) 0', cursor: 'pointer', fontFamily: 'inherit', color: SP.accentInk, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}
             >
-              <CalIcon name="mail" size={15} stroke={SP.accent} sw={2} />{t('popover.openMail')}
+              <CalIcon name="mail" size={15} stroke={SP.accentInk} sw={2} />{t('popover.openMail')}
             </button>
           )}
         </div>

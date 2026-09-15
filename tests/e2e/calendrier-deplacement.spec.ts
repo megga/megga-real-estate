@@ -157,3 +157,48 @@ test('en vue Mois, une pastille glissée sur une autre case change de jour — l
   const corps = JSON.parse((await ecritures(page, 'visits'))[0].body)
   expect(new Date(corps.scheduled_at).getTime()).toBe(new Date(2026, 8, 18, 13, 30).getTime())
 })
+
+// ⛔ Renommer une tâche ne s'écrivait pas : seul son horaire partait, et le titre corrigé tenait
+// jusqu'au rechargement (revue du 15.09.2026). Et sa fiche offrait « Notaire », qu'aucune table
+// ne suivait.
+test('renommer une tâche l’enregistre — sans la rouvrir — et sa fiche n’offre qu’un type de tâche', async ({ page }) => {
+  await colonne(page, 1).locator('button', { hasText: 'Tâche' }).first().click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Modifier' }).click()
+  const fiche = page.getByRole('dialog', { name: "Modifier l'événement" })
+  await expect(fiche.getByRole('button', { name: /Tâche \/ Relance/ })).toHaveCount(1)
+  await expect(fiche.getByRole('button', { name: /Signature notaire/ })).toHaveCount(0)
+  await fiche.getByLabel('Titre').fill('Appeler [urgent] la banque')
+  await fiche.getByRole('button', { name: 'Enregistrer' }).click()
+
+  await expect.poll(() => ecritures(page, 'reminders')).toHaveLength(1)
+  const corps = JSON.parse((await ecritures(page, 'reminders'))[0].body)
+  expect(corps.message_template).toBe('[Appeler \\[urgent\\] la banque]')
+  // Réécrite en entier, elle garde son contact : relue sans lui, elle le perdait ici.
+  expect(corps.contact_id).toBe('c1')
+  // L'horaire n'a pas bougé : la tâche n'est ni replanifiée ni rouverte.
+  expect(corps).not.toHaveProperty('trigger_at')
+  expect(corps).not.toHaveProperty('status')
+})
+
+// ⛔ Un échec de création était avalé derrière le toast « créé » : l'événement tenait jusqu'au
+// rechargement, puis disparaissait.
+test('une création refusée par la base le dit, et la fiche se rouvre sur ce qui était saisi', async ({ page }) => {
+  await page.evaluate(() => {
+    const suivant = window.fetch
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if ((init?.method ?? 'GET').toUpperCase() === 'POST' && url.includes('/rest/v1/calendar_events')) {
+        return Promise.resolve(new Response(JSON.stringify({ message: 'refusé', code: '42501' }), { status: 403, headers: { 'Content-Type': 'application/json' } }))
+      }
+      return suivant(input, init)
+    }
+  })
+  await ecran(page).getByRole('button', { name: 'Nouvel événement' }).click()
+  const fiche = page.getByRole('dialog', { name: 'Nouvel événement' })
+  await fiche.getByRole('button', { name: 'Signature notaire', exact: true }).click()
+  await fiche.getByLabel('Titre').fill('Signature Champel')
+  await fiche.getByRole('button', { name: 'Créer', exact: true }).click()
+  await expect(page.getByText('Signature Champel · Création non enregistrée')).toBeVisible()
+  await expect(fiche.getByLabel('Titre')).toHaveValue('Signature Champel')
+  await expect(ecran(page).locator('button', { hasText: 'Signature Champel' })).toHaveCount(0)
+})

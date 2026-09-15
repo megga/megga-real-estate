@@ -90,6 +90,7 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // Agenda
   visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
   onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',
+  calendar_event_created: 'visite', calendar_event_updated: 'visite', calendar_event_deleted: 'visite',
   reminder_created: 'rappel', reminder_resumed: 'rappel', relance: 'rappel', relance_sent: 'rappel',
   // Affaires
   stage_change: 'pipeline', status_change: 'pipeline', deal_lost: 'pipeline', dossier_envoye: 'pipeline',

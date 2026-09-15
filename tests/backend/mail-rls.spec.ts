@@ -497,4 +497,39 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
       await service.from('calendar_events').delete().eq('agency_id', s.agencyAId)
     }
   })
+
+  // ⛔ Créer, déplacer ou supprimer un événement n'écrivait rien au journal : le rendez-vous d'un
+  // client n'apparaissait jamais sur sa fiche (revue du 15.09.2026). Le fait, jamais le titre.
+  it('calendar_events : chaque geste sur un événement lié à un contact s écrit sur sa fiche — le fait, jamais le titre', async () => {
+    const heure = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString()
+    const journal = async (eventId: string) => {
+      const { data } = await service.from('activity_events')
+        .select('action, actor_id, actor_kind, category, entity_type, entity_id, object_label, metadata')
+        .eq('agency_id', s.agencyAId).eq('metadata->>event_id', eventId).order('created_at')
+      return data ?? []
+    }
+    const { data: ev, error } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'notary', title: `Signature confidentielle ${s.stamp}`, starts_at: heure(1), ends_at: heure(2), contact_id: contactAId,
+    }).select('id').single()
+    expect(error).toBeNull()
+    const { data: perso } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'autre', title: `Dentiste ${s.stamp}`, starts_at: heure(3), ends_at: heure(4),
+    }).select('id').single()
+    try {
+      await s.clientA.from('calendar_events').update({ starts_at: heure(5), ends_at: heure(6) }).eq('id', ev!.id)
+      // Rien ne change (l'horodatage seul) : rien ne s'écrit.
+      await s.clientA.from('calendar_events').update({ title: `Signature confidentielle ${s.stamp}` }).eq('id', ev!.id)
+      await s.clientA.from('calendar_events').delete().eq('id', ev!.id)
+      const lignes = await journal(ev!.id)
+      expect(lignes.map((l) => l.action)).toEqual(['calendar_event_created', 'calendar_event_updated', 'calendar_event_deleted'])
+      for (const l of lignes) {
+        expect(l).toMatchObject({ actor_id: s.agentAId, actor_kind: 'user', category: 'contact', entity_type: 'contact', entity_id: contactAId, object_label: null })
+        expect(JSON.stringify(l.metadata), 'le titre est entré au journal').not.toContain('Signature')
+      }
+      expect(lignes[1].metadata).toMatchObject({ event_id: ev!.id, type: 'notary', changed: ['ends_at', 'starts_at'] })
+      expect(await journal(perso!.id), 'l’agenda personnel de l’agent n’a rien à faire au journal de l’agence').toEqual([])
+    } finally {
+      await service.from('calendar_events').delete().eq('agency_id', s.agencyAId)
+    }
+  })
 })

@@ -35,6 +35,7 @@ import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
 import { useCalendarLabels } from '@/hooks/useCalendarLabels'
 import { useCalendarEvents } from '@/hooks/useCalendarEvents'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import { evenementDepuisBrouillon, lireBrouillonCalendrier, oublierBrouillonCalendrier, versLigneEvenement } from '@/lib/calendrierEvenements'
 import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
@@ -233,7 +234,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const { series: events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
   const { createVisit, updateVisit, deleteVisit } = useVisits()
   const evenements = useCalendarEvents()
-  const { createReminder, markAsDone, cancel: cancelReminder, reschedule: rescheduleReminder } = useReminders()
+  const { createReminder, markAsDone, cancel: cancelReminder, reschedule: rescheduleReminder, rewrite: rewriteReminder } = useReminders()
   const calLabels = useCalendarLabels()
   // Le créateur et le menu des libellés sont ceux de la Messagerie : ils se
   // peignent avec ses surfaces, dérivées de la même palette MEGGA X.
@@ -268,6 +269,10 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   })
   useEffect(() => { oublierBrouillonCalendrier(jetonBrouillon) }, [jetonBrouillon])
   const [toast, setToast] = useState<ToastData | null>(null)
+  // ⛔ La fiche est portée dans `<body>` : elle échappe au masquage de son écran. Un Calendrier
+  // ouvert par « Planifier » la peignait AVANT d'être l'écran montré — par-dessus la Messagerie,
+  // sourde à Échap (vu au banc sous charge le 15.09.2026). Elle paraît avec son écran.
+  const ecranActif = useEcranActif()
 
   // Couche interactive optimiste (édition/création/drag + statut + suppression).
   const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
@@ -431,8 +436,20 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           return next
         })
       }
-    } catch { /* échec : on garde l'override (événement visible cette session) */ }
-  }, [createVisit, createReminder, evenements, queryClient, propagateVisit])
+    } catch {
+      // ⛔ L'échec était avalé derrière le toast « créé » : l'événement tenait jusqu'au
+      // rechargement, puis disparaissait — le brouillon d'un e-mail à planifier compris (revue
+      // du 15.09.2026). On le retire, on le dit, et la fiche se rouvre sur ce qui était saisi.
+      setOverrides(prev => {
+        if (!(draft.id in prev)) return prev
+        const next = { ...prev }
+        delete next[draft.id]
+        return next
+      })
+      setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.createFailed')}`, echec: true })
+      setEditing(prev => prev ?? { mode: 'create', draft })
+    }
+  }, [createVisit, createReminder, evenements, queryClient, propagateVisit, t])
 
   /**
    * Enregistre un nouvel horaire ; rend `false` en échec.
@@ -482,22 +499,28 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     setPopover(null)
     setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${isCreate ? t('toast.created') : t('toast.modified')}`, tone: isCreate ? 'success' : 'info', toneColor: eventToneColor(draft) })
     if (isCreate) { void persistCreate(draft); return }
-    // Une tâche n'est réécrite que si son horaire a bougé : la réécrire pour un titre
-    // la rouvrirait (`pending`) sans raison.
-    const src = eventsRef.current.find(e => e.id === calMasterId(draft.id))
-    const horaireChange = !src || src.start.getTime() !== draft.start.getTime()
-    if (draft.origin === 'visit' || (draft.origin === 'reminder' && horaireChange)) {
-      void persistTime(draft, draft.start, draft.end).then(ok => { if (!ok) revertTime(calMasterId(draft.id), draft.title) })
+    const mid = calMasterId(draft.id)
+    const nonEnregistre = () => {
+      setOverrides(prev => { if (!(mid in prev)) return prev; const next = { ...prev }; delete next[mid]; return next })
+      setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.saveFailed')}`, echec: true })
+    }
+    if (draft.origin === 'visit') {
+      void persistTime(draft, draft.start, draft.end).then(ok => { if (!ok) revertTime(mid, draft.title) })
+    } else if (draft.origin === 'reminder') {
+      // Une tâche se réécrit en entier — titre, notes, contact, bien —, mais ne se rouvre
+      // (`pending`) que si son horaire a bougé : un titre corrigé ne la remet pas à traiter.
+      const src = eventsRef.current.find(e => e.id === mid)
+      const horaireChange = !src || src.start.getTime() !== draft.start.getTime()
+      void rewriteReminder(mid, {
+        title: draft.title, notes: draft.notes?.trim() || null, contactId: draft.contactId ?? null, propertyId: draft.bienId ?? null,
+        ...(horaireChange ? { triggerAt: draft.start, closed: !!statusesRef.current[draft.id] } : {}),
+      }).then(() => queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] }), nonEnregistre)
     } else if (draft.origin === 'event') {
       // Un événement se réécrit EN ENTIER : titre, type, lieu, notes, récurrence — pas
-      // seulement son horaire, comme une visite ou une tâche.
-      const mid = calMasterId(draft.id)
-      void evenements.modifier(mid, versLigneEvenement(draft)).catch(() => {
-        setOverrides(prev => { if (!(mid in prev)) return prev; const next = { ...prev }; delete next[mid]; return next })
-        setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.saveFailed')}`, echec: true })
-      })
+      // seulement son horaire, comme une visite.
+      void evenements.modifier(mid, versLigneEvenement(draft)).catch(nonEnregistre)
     }
-  }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime, evenements])
+  }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime, evenements, rewriteReminder, queryClient])
 
   /**
    * Réécrit la récurrence d'une série d'ÉVÉNEMENTS : ce qui vaut pour une occurrence (retirée,
@@ -835,7 +858,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           />
         )}
 
-        {editing && (
+        {editing && ecranActif && (
           <CalEditModal editing={editing} onSave={saveEdit} onCancel={cancelEdit} onDelete={deleteEvent} />
         )}
 

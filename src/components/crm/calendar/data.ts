@@ -10,7 +10,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
-import { MXC_COLOR, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -81,6 +81,23 @@ export function eventTypeColors(type: CalEventType, isDark: boolean): CalEventTy
 }
 
 export type CalEventTypeId = keyof typeof CAL_EVENT_TYPES
+
+/**
+ * Les types qu'un événement peut prendre, selon la table qui le porte (`origin`). À la
+ * création, tous : `persistCreate` choisit la table d'après le type. Ensuite le type ne change
+ * plus de table. ⛔ La fiche le laissait faire et rien ne suivait : une tâche passée
+ * « Notaire » revenait « Tâche », un événement passé « Tâche » restait hors des relances, et
+ * passé « Visite » il ouvrait sur téléphone une fiche de visite introuvable (revue du
+ * 15.09.2026).
+ */
+export function calTypesPermis(origin: CalEvent['origin'] | 'creation'): CalEventTypeId[] {
+  const tous = Object.keys(CAL_EVENT_TYPES) as CalEventTypeId[]
+  if (origin === 'visit') return ['visite']
+  if (origin === 'reminder') return ['task']
+  if (origin === 'appointment') return ['kyc']
+  if (origin === 'event') return tous.filter(t => t !== 'visite' && t !== 'task')
+  return tous
+}
 
 /** Palette libre pour le type « Autre » (aplats opaques + texte blanc). */
 export interface CalEventColorOption {
@@ -275,6 +292,11 @@ export interface CalPalette {
   line: string
   line2: string
   accent: string
+  /**
+   * L'accent en ENCRE (un lien, un libellé) : l'accent en clair, `blue300` en sombre — l'accent y
+   * rend 3,44:1 sur la bulle, sous l'AA du texte (CLAUDE.md §3, point 3).
+   */
+  accentInk: string
   onAccent: string
   ring: string
   /** @deprecated alias de `accent` (compat composants existants). */
@@ -314,6 +336,7 @@ export const CAL_LIGHT: CalPalette = {
   line: crmVoileEncre(false, 0.06),
   line2: crmVoileEncre(false, 0.10),
   accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.accent,
   onAccent: MXC_COLOR.n1000,
   ring: MXC_COLOR.accent,
   black: MXC_COLOR.accent,
@@ -353,6 +376,7 @@ export const CAL_DARK: CalPalette = {
   line: 'rgba(255,255,255,0.07)',
   line2: 'rgba(255,255,255,0.11)',
   accent: MXC_COLOR.accent,
+  accentInk: MXC_SYSTEM.blue300,
   onAccent: MXC_COLOR.n1000,
   ring: MXC_COLOR.accent,
   black: MXC_COLOR.accent,
@@ -690,9 +714,10 @@ export function calNormalizeDraft(d: CalEvent): CalEvent {
     location: d.location?.trim() || undefined,
     notes: d.notes?.trim() || undefined,
   }
-  // Cohérence des liens CRM : pas de contenu → pas d'id.
-  if (!out.contact) out.contactId = null
-  if (!out.property) out.bienId = null
+  // ⛔ Les liens CRM : l'IDENTIFIANT fait foi, pas le nom affiché. La règle était « pas de
+  // contenu → pas d'id » : un brouillon venu d'un e-mail (« Planifier ») ou une tâche dont le nom
+  // n'a pas été relu ne portent QUE l'identifiant, et perdaient leur contact à l'enregistrement
+  // (revue du 15.09.2026). Retirer un lien (`onClear` de la fiche) vide déjà les deux.
   // Journée entière : 00:00 → 23:59:59 du jour de fin (bornée ≥ début).
   // Sinon (timé, éventuellement multi-jours) : fin toujours ≥ début (+15 min mini).
   out.allDay = !!d.allDay

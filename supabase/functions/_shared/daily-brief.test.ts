@@ -75,6 +75,18 @@ describe('buildBriefSnapshot — invariant PII', () => {
     expect(snapshot).toContain('1 suivi à faire')
   })
 
+  // ⛔ Un rendez-vous du Calendrier vit dans `calendar_events` depuis le 15.09.2026 : le
+  // briefing ne lisait que `reminders`, et la signature chez le notaire en sortait.
+  it('les rendez-vous du jour : agrégés par TYPE, comptés, et un briefing à eux seuls', () => {
+    const pseudo = createPseudonymizer()
+    const { snapshot, eventCount, itemCount, reminderCount } = buildBriefSnapshot({
+      focus: [], cockpit: {}, objectif: {}, reminderTypes: [],
+      eventTypes: ['notary', 'autre', 'notary', 'type_futur'], pseudo,
+    })
+    expect([itemCount, reminderCount, eventCount]).toEqual([0, 0, 4])
+    expect(snapshot).toContain('RENDEZ-VOUS DU JOUR : 2 signature chez le notaire, 2 rendez-vous')
+  })
+
   it('compte les priorités', () => {
     const pseudo = createPseudonymizer()
     const r = buildBriefSnapshot({

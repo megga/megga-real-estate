@@ -5,9 +5,9 @@
 import { describe, it, expect } from 'vitest'
 import {
   brouillonDepuisMail, deposerBrouillonCalendrier, evenementDepuisBrouillon, lireBrouillonCalendrier,
-  oublierBrouillonCalendrier, titreDeRelance, versLigneEvenement,
+  messageDeRelance, oublierBrouillonCalendrier, titreDeRelance, versLigneEvenement,
 } from '@/lib/calendrierEvenements'
-import type { CalEvent } from '@/components/crm/calendar/data'
+import { calTypesPermis, type CalEvent } from '@/components/crm/calendar/data'
 
 const ev = (o: Partial<CalEvent> = {}): CalEvent => ({
   id: 'e1', type: 'notary', title: 'Signature', start: new Date('2026-09-18T12:00:00Z'), end: new Date('2026-09-18T13:30:00Z'), ...o,
@@ -39,11 +39,43 @@ describe('titreDeRelance — le titre d’une tâche relu', () => {
   it('un message du système, sans crochets, reste tel quel', () => {
     expect(titreDeRelance('Bonjour, pensez au dossier')).toEqual({ titre: null, reste: 'Bonjour, pensez au dossier' })
     expect(titreDeRelance(null)).toEqual({ titre: null, reste: null })
+    expect(titreDeRelance('[]')).toEqual({ titre: null, reste: '[]' })
+    expect(titreDeRelance('[sans fin\nsur deux lignes]')).toEqual({ titre: null, reste: '[sans fin\nsur deux lignes]' })
+  })
+  // ⛔ Le titre était écrit sans échappement et relu jusqu'au PREMIER « ] » (revue du 15.09.2026).
+  it('un titre à crochets, à barre oblique inverse ou très long fait l’aller-retour', () => {
+    for (const titre of ['Appeler [urgent] M. Dupont', 'Dossier A]', '[x', 'C:\\dossier\\', 'a\\]b', 'x'.repeat(200)]) {
+      expect(titreDeRelance(messageDeRelance(titre, 'dossier Champel')), titre).toEqual({ titre, reste: 'dossier Champel' })
+    }
+    expect(titreDeRelance(messageDeRelance('x'.repeat(250), null)).titre).toBe('x'.repeat(200))
+    expect(messageDeRelance('Deux\nlignes', null)).toBe('[Deux lignes]')
+    expect(messageDeRelance('  ', 'notes seules')).toBe('notes seules')
+    expect(messageDeRelance(null, null)).toBeNull()
+  })
+  it('un titre écrit AVANT l’échappement garde ses crochets appariés, et sa barre oblique', () => {
+    expect(titreDeRelance('[Appeler [urgent] M. Dupont] dossier Champel')).toEqual({ titre: 'Appeler [urgent] M. Dupont', reste: 'dossier Champel' })
+    expect(titreDeRelance('[C:\\dossier] notes')).toEqual({ titre: 'C:\\dossier', reste: 'notes' })
+  })
+})
+
+// ⛔ La fiche changeait le type sans que la table suive : une tâche passée « Notaire »
+// revenait « Tâche », un événement passé « Visite » ouvrait une fiche introuvable.
+describe('calTypesPermis — un événement existant garde sa table', () => {
+  it('à la création, tous les types : la table se choisit d’après le type', () => {
+    expect(calTypesPermis('creation')).toEqual(['visite', 'mandate', 'notary', 'task', 'publish', 'kyc', 'autre'])
+  })
+  it('une visite reste une visite, une tâche une relance, un RDV KYC un RDV KYC', () => {
+    expect(calTypesPermis('visit')).toEqual(['visite'])
+    expect(calTypesPermis('reminder')).toEqual(['task'])
+    expect(calTypesPermis('appointment')).toEqual(['kyc'])
+  })
+  it('un événement ne devient ni une visite ni une tâche', () => {
+    expect(calTypesPermis('event')).toEqual(['mandate', 'notary', 'publish', 'kyc', 'autre'])
   })
 })
 
 describe('le pont Messagerie → Calendrier', () => {
-  const base = { extrait: 'Bonjour,   je confirme\nla visite.', expediteur: 'Zoé <zoe@ex.ch>', date: '15.09.2026', contactId: 'c1', contactNom: null, mailThreadId: 't1', enTete: (o: { expediteur: string; date: string }) => `E-mail de ${o.expediteur} du ${o.date}` }
+  const base = { extrait: 'Bonjour,   je confirme\nla visite.', expediteur: 'Zoé <zoe@ex.ch>', date: '15.09.2026', contactId: 'c1', mailThreadId: 't1', enTete: (o: { expediteur: string; date: string }) => `E-mail de ${o.expediteur} du ${o.date}` }
   it('le brouillon d’un e-mail : l’objet sans ses « Re : », l’expéditeur, la date et l’extrait en notes', () => {
     for (const sujet of ['Re: Visite', 'RE : TR : Visite', 'Fwd: Visite', 'AW: Visite']) {
       expect(brouillonDepuisMail({ ...base, sujet }).titre, sujet).toBe('Visite')
