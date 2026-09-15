@@ -8,6 +8,8 @@
 //   ('holding') et Shield ('shield'), et c'est cet attribut qui y trie les conversations.
 // - JAMAIS identifié pendant une impersonation super-admin (sinon pollution Intercom
 //   + faux contact facturé + fuite d'identité). cf. useImpersonate.
+// - Au boot identifié, rattrape les jalons d'activation pas encore envoyés
+//   (`syncIntercomMilestones`, un envoi par agent).
 //
 // No-op complet si `VITE_INTERCOM_APP_ID` est absent (cf. src/lib/intercom.ts).
 import { useEffect, useRef } from 'react'
@@ -15,6 +17,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { supabase } from '@/lib/supabase'
 import { bootIntercom, shutdownIntercom, updateIntercom, isIntercomEnabled } from '@/lib/intercom'
+import { syncIntercomMilestones } from '@/lib/intercom-milestones'
 import { isTokenBearingPath } from '@/lib/sentry'
 
 // Le JWT « Messenger Security » expire après 1h (cf. edge `intercom-identity`).
@@ -99,6 +102,9 @@ export default function IntercomMessenger() {
           canton: profile.canton ?? undefined,
           produit: 'crm',
         })
+        // Jalons franchis hors de la vue de l'app (WhatsApp, autre appareil, avant ce
+        // câblage) : constatés en base et envoyés une seule fois (intercom-milestones).
+        if (profile.agency_id) void syncIntercomMilestones(profile.agency_id)
       } else {
         shutdownIntercom()
         bootIntercom({ produit: 'crm' }) // anonyme

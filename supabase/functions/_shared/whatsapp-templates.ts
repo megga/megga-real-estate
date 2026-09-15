@@ -44,6 +44,8 @@ export interface WaTemplateContext {
   extra?: string             // availability : objet du créneau (ex. « une visite »)
   agentFirstName?: string    // agent_daily_brief : prénom de l'AGENT destinataire ({{1}})
   itemCount?: number         // agent_daily_brief : nombre d'éléments à traiter ({{2}})
+  /** agent_daily_brief : une section a atteint sa limite SQL, le total réel est inconnu → « N+ ». */
+  itemCountAtLimit?: boolean
   verificationCode?: string  // number_verification : le code à 6 chiffres ({{1}}, seule variable)
   /** Langue du DESTINATAIRE. Prime sur la surcharge d'env. Valeur inconnue = ignorée. */
   lang?: string
@@ -188,7 +190,8 @@ const REGISTRY: Record<WaTemplateKey, WaTemplateDef> = {
       nonEmpty(c.agentFirstName, FALLBACK[l].person),
       // Meta rejette un paramètre vide, et un décompte à 0 n'a aucune raison
       // d'être poussé : l'appelant ne doit pas déclencher le template dans ce cas.
-      String(Math.max(1, c.itemCount ?? 1)),
+      // « N+ » quand une section est plafonnée : même honnêteté que les en-têtes du brief.
+      `${Math.max(1, c.itemCount ?? 1)}${c.itemCountAtLimit ? '+' : ''}`,
     ],
   },
 

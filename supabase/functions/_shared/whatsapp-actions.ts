@@ -37,6 +37,8 @@ import { redactPII } from './pii-redaction.ts'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 import { urlFonction } from './function-url.ts'
 import { sendRelanceEmail } from './relance-email-send.ts'
+import { composeBriefDetail, briefVisitsForAgent, zurichDayBoundsUtc } from './morning-brief.ts'
+import { loadAgencyData } from './morning-brief-data.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -392,21 +394,28 @@ export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
   return JSON.stringify({ biens })
 }
 
-/** Briefing du jour : visites du jour de l'agent + nombre de leads à compléter. */
+/**
+ * Point du jour : les MÊMES cinq sections que le push de 07h30 (visites, rendez-vous du
+ * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs), lues par le même
+ * `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du jour », que
+ * le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
+ */
 export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
-  const start = new Date(); start.setUTCHours(0, 0, 0, 0)
-  const end = new Date(); end.setUTCHours(23, 59, 59, 999)
-  const { data: visits } = await ctx.supabase
-    .from('visits').select(VISIT_EMBED_SELECT)
-    .eq('agency_id', ctx.agencyId).eq('agent_id', ctx.profileId)
-    .gte('scheduled_at', start.toISOString()).lte('scheduled_at', end.toISOString())
-    .order('scheduled_at', { ascending: true }).limit(20)
-  const { data: followups } = await ctx.supabase
-    .from('contacts').select('id, first_name, last_name')
-    .eq('agency_id', ctx.agencyId).contains('tags', ['à_compléter']).limit(10)
+  const agencyId = ctx.agencyId as string // garanti par hasAgency
+  const now = new Date()
+  // Journée LOCALE Zurich, comme le push : l'ancienne borne UTC décalait la journée de 2 h.
+  const { startIso, endIso } = zurichDayBoundsUtc(now)
+  const [data, { data: followups }] = await Promise.all([
+    loadAgencyData(ctx.supabase, agencyId, startIso, endIso, now),
+    ctx.supabase
+      .from('contacts').select('id, first_name, last_name')
+      .eq('agency_id', agencyId).contains('tags', ['à_compléter']).limit(10),
+  ])
+  // Une section manquante en silence ferait croire la journée libre : on le dit.
+  if (!data) return 'Erreur: point du jour momentanément indisponible (lecture du CRM en échec), réessaie dans un instant.'
   return JSON.stringify({
-    visites_du_jour: ((visits ?? []) as unknown as VisitEmbedRow[]).map(formatAgendaVisit),
+    ...composeBriefDetail({ ...data, visits: briefVisitsForAgent(data.visits, ctx.profileId) }, ctx.lang ?? 'fr'),
     leads_a_completer: followups ?? [],
   })
 }

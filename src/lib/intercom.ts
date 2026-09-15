@@ -51,6 +51,11 @@ export interface IntercomBootArgs {
 }
 
 let booted = false
+// Agent de la session, seulement si son identité est VÉRIFIÉE (user_id ET JWT).
+// Sans JWT, un espace qui exige l'identité vérifiée refuse la session : un événement
+// qui y partirait se perdrait sans bruit. Et en impersonation le boot est anonyme,
+// donc un événement y serait attribué à un visiteur au lieu de l'agent.
+let identifiedUserId: string | null = null
 
 /**
  * Boote (ou re-boote) le Messenger. Anonyme si aucun argument utilisateur.
@@ -60,6 +65,7 @@ export function bootIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || typeof window === 'undefined') return
   Intercom({ app_id: APP_ID, region: 'us', ...guardArgs(args) } as Parameters<typeof Intercom>[0])
   booted = true
+  identifiedUserId = args.user_id && args.intercom_user_jwt ? args.user_id : null
 }
 
 export function updateIntercom(args: IntercomBootArgs = {}) {
@@ -72,17 +78,23 @@ export function shutdownIntercom() {
   if (!APP_ID) return
   sdkShutdown()
   booted = false
+  identifiedUserId = null
+}
+
+/** Id de l'agent dont le Messenger porte l'identité vérifiée ; `null` si anonyme ou non booté. */
+export function getIntercomUserId(): string | null {
+  return APP_ID && booted ? identifiedUserId : null
 }
 
 /** Espaces du Messenger Intercom. */
 export type IntercomSpace = 'home' | 'messages' | 'help' | 'news' | 'tasks' | 'tickets'
 
-// ⚠ Les deux ouvertures ci-dessous rendent un BOOLÉEN, contrairement au reste du
-// module. Ce sont les seules dont l'appel naît d'un CLIC : `booted` est faux
+// ⚠ Les deux ouvertures ci-dessous rendent un BOOLÉEN, comme `trackIntercomEvent`
+// plus bas. Ce sont les seules dont l'appel naît d'un CLIC : `booted` est faux
 // pendant le démarrage du Messenger, et un clic sur « ? » à cet instant sortait
 // sans rien faire — ni fenêtre, ni erreur, ni message. L'appelant a besoin de
 // savoir que rien ne s'est ouvert pour proposer le centre d'aide public à la
-// place ; les no-op silencieux (`update`, `track`) n'ont, eux, aucun spectateur.
+// place. `update` reste un no-op silencieux : il n'a aucun spectateur.
 
 /** Ouvre un espace précis du Messenger (ex. 'help' pour le Help Center, 'news' pour les Actualités).
  *  Rend `false` si le Messenger ne peut pas répondre (App ID absent, ou pas encore booté). */
@@ -102,6 +114,8 @@ export function showIntercomArticle(articleId: string): boolean {
 
 /** Registre central des events produit MEGGA → Intercom (Fin / Series / Outbound / ciblage).
  *  Tout nouvel event passe par ici : évite les typos et garde le ciblage cohérent.
+ *  Les `first_*` et `profile_completed` sont des jalons envoyés UNE fois par agent :
+ *  ils passent par `intercom-milestones.ts`, jamais directement par `trackIntercomEvent`.
  *  ⚠️ Un event custom ne devient ciblable dans Intercom qu'après réception d'un VRAI user en prod. */
 export const INTERCOM_EVENTS = {
   PROFILE_COMPLETED: 'profile_completed',
@@ -116,10 +130,13 @@ export const INTERCOM_EVENTS = {
 export type IntercomEventName = (typeof INTERCOM_EVENTS)[keyof typeof INTERCOM_EVENTS]
 
 /** Envoie un event produit → alimente Fin / Series / Outbound.
+ *  Rend `false` si rien n'est parti (App ID absent, Messenger non booté, ou agent non
+ *  identifié) : la garde des jalons ne retient un envoi que s'il a eu lieu.
  *  ⚠️ LPD : ne JAMAIS mettre de PII client dans `metadata` — uniquement un signal d'activation agent. */
-export function trackIntercomEvent(event: IntercomEventName, metadata?: Record<string, unknown>) {
-  if (!APP_ID || !booted) return
+export function trackIntercomEvent(event: IntercomEventName, metadata?: Record<string, unknown>): boolean {
+  if (!APP_ID || !booted || !identifiedUserId) return false
   sdkTrackEvent(event, metadata)
+  return true
 }
 
 /** True si un App ID est configuré (sinon tout est no-op). */

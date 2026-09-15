@@ -76,7 +76,7 @@ serve(async (req) => {
       })
     }
 
-    const [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, mailAccounts] =
+    const [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, agentCard, mailAccounts] =
       await Promise.all([
         supabase.from('user_consents')
           .select('consent_type, version, accepted_at, ip_hash')
@@ -108,6 +108,11 @@ serve(async (req) => {
           .select('id, agency_id, host_display_name, scheduled_at, duration_minutes, status, attendee_phone, attendee_note, cancel_reason, created_at')
           .eq('booked_by', targetId)
           .order('scheduled_at', { ascending: false }),
+        // Fiche de l'agent (Réglages ▸ Profil) : ce qu'il a écrit sur lui-même. Liste de
+        // colonnes fermée : ni le slug, ni le jeton ou les compteurs de l'ancien annuaire.
+        supabase.from('agent_profiles')
+          .select('first_name, last_name, bio, languages, specialties, website_url, linkedin_url, phone, email, photo_url, canton, city, created_at, updated_at')
+          .eq('profile_id', targetId),
         // Boîtes connectées (Messagerie, registre activité n°7) : la connexion est un
         // réglage du compte de l'agent chez MEGGA, comme son profil. Elle manquait à
         // l'export alors que `delete-account` l'efface (étape 5c) — l'écart était déclaré
@@ -117,7 +122,7 @@ serve(async (req) => {
           .eq('owner_id', targetId)
           .order('created_at', { ascending: true }),
       ])
-    for (const res of [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, mailAccounts]) {
+    for (const res of [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, agentCard, mailAccounts]) {
       if (res.error) throw res.error
     }
 
@@ -157,6 +162,7 @@ serve(async (req) => {
           onboarding_calls: onboardingCalls.data?.length ?? 0,
           id_document_purges: purges.data?.length ?? 0,
           mail_accounts: mailAccounts.data?.length ?? 0,
+          agent_profile: agentCard.data?.length ?? 0,
         },
       },
     })
@@ -176,12 +182,13 @@ serve(async (req) => {
         onboarding_calls: onboardingCalls.data ?? [],
         id_document_purges: purges.data ?? [],
         mail_accounts: mailAccounts.data ?? [],
+        agent_profile: agentCard.data ?? [],
       },
       notes: {
         scope:
           'Traitements dont MEGGA est RESPONSABLE (nLPD art. 25) : compte, consentements, ' +
           'appareils, sécurité, activité, identité KYB du dirigeant, appel d\'accueil, preuve ' +
-          'de destruction des pièces d\'identité, et boîtes mail connectées.',
+          'de destruction des pièces d\'identité, boîtes mail connectées et fiche de profil.',
         mail_accounts:
           'Pour chaque boîte connectée à la Messagerie : l\'adresse, le fournisseur, la visibilité ' +
           '(personnelle ou partagée avec l\'agence), le statut et les dates de connexion et de ' +

@@ -70,8 +70,9 @@ export default class ErrorBoundary extends Component<Props, State> {
   /**
    * Purge le chunk fautif et ses dépendances du cache HTTP puis recharge. La
    * purge est un mieux, jamais une condition : sans URL dans le message
-   * (Safari) ou sur un échec réseau, le rechargement cache-busté part quand
-   * même — il suffit au cas « bundle périmé », le plus fréquent.
+   * (échec réseau de Safari, variante MIME de Safari ≤ 26), le rechargement
+   * cache-busté part quand même — il suffit au cas « bundle périmé », le plus
+   * fréquent.
    */
   private recoverFromStaleChunk = async (error: unknown) => {
     markChunkRecoveryAttempted()

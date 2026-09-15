@@ -1060,8 +1060,7 @@
       "saveError": "Salvataggio non riuscito. Riprova.",
       "sessionExpired": "Sessione scaduta, accedi di nuovo per salvare.",
       "agencyNotLoaded": "Agenzia non caricata, accedi di nuovo per salvare.",
-      "logoUploadError": "Impossibile caricare il logo.",
-      "directoryMissing": "La tua scheda di rubrica non è ancora creata, contatta il tuo amministratore per compilarla."
+      "logoUploadError": "Impossibile caricare il logo."
     }
   }
 }

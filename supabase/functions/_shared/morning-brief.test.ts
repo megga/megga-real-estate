@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { composeMorningBrief, zurichHour, zurichDayBoundsUtc, type MorningBriefData } from './morning-brief'
+import {
+  composeMorningBrief, composeBriefDetail, briefItemCount, briefVisitsForAgent,
+  zurichHour, zurichDayBoundsUtc, SQL_LIMITS, type MorningBriefData,
+} from './morning-brief'
 
 const FULL: MorningBriefData = {
   agentFullName: 'Gregory Lyonnet',
@@ -142,5 +145,83 @@ describe('zurichDayBoundsUtc', () => {
   it('rattache un début de soirée UTC au lendemain local (23:30 Zurich = même jour, 23:30 UTC = lendemain)', () => {
     const b = zurichDayBoundsUtc(new Date('2026-07-04T23:30:00Z')) // 01:30 le 5 juillet à Zurich
     expect(b.dateKey).toBe('2026-07-05')
+  })
+})
+
+describe('briefVisitsForAgent — « ta journée », partagé par le push et get_daily_brief', () => {
+  it('garde les visites de l’agent et les non attribuées, jamais celles d’un collègue', () => {
+    const rows = [
+      { scheduledAt: '2026-07-05T08:00:00Z', agentId: 'moi' },
+      { scheduledAt: '2026-07-05T09:00:00Z', agentId: null },
+      { scheduledAt: '2026-07-05T10:00:00Z', agentId: 'collegue' },
+    ]
+    expect(briefVisitsForAgent(rows, 'moi').map((v) => v.scheduledAt))
+      .toEqual(['2026-07-05T08:00:00Z', '2026-07-05T09:00:00Z'])
+  })
+})
+
+describe('briefItemCount — le {{2}} du template agent_daily_brief', () => {
+  it('additionne les quatre sections', () => {
+    // FULL : 2 visites + 3 relances + 1 offre + 1 lead vendeur
+    expect(briefItemCount(FULL)).toEqual({ count: 7, atLimit: false })
+  })
+
+  it('⛔ signale le plafond SQL : 20 relances lues ne veulent pas dire 20 relances dues', () => {
+    const reminders = Array.from({ length: SQL_LIMITS.reminders }, () => ({ type: 'custom', who: null }))
+    expect(briefItemCount({ ...FULL, reminders })).toEqual({ count: 2 + SQL_LIMITS.reminders + 1 + 1, atLimit: true })
+  })
+
+  // Le push les montre sous « Rendez-vous » : un décompte qui les tairait promettrait moins
+  // que ce que le brief a annoncé.
+  it('compte les rendez-vous du Calendrier, et le plafond de LEUR requête', () => {
+    const events = [{ startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: null }]
+    expect(briefItemCount({ ...FULL, events })).toEqual({ count: 8, atLimit: false })
+    // Une série développée peut rendre moins de lignes que la limite atteinte par la requête.
+    expect(briefItemCount({ ...FULL, events, eventsAtLimit: true })).toEqual({ count: 8, atLimit: true })
+  })
+})
+
+describe('composeBriefDetail — le détail promis par le template du matin', () => {
+  it('rend le MÊME total que le décompte du template, et les quatre sections formatées', () => {
+    const d = composeBriefDetail(FULL, 'fr')
+    expect(d.total).toBe(String(briefItemCount(FULL).count))
+    // 08:00 UTC en juillet = 10:00 à Zurich (CEST)
+    expect(d.visites_du_jour[0]).toEqual({ heure: '10:00', qui: 'Anne Dubois', bien: 'Les Vergers', ville: 'Meyrin' })
+    expect(d.relances_dues[0]).toEqual({ relance: 'Retour de visite', qui: 'Jean Martin' })
+    // Type inconnu : le libellé générique, jamais la clé technique.
+    expect(d.relances_dues[2].relance).toBe('Rappel')
+    expect(d.offres_qui_expirent[0]).toEqual({ montant: "CHF 1'450'000", par: 'M. Keller', expire_le: '07.07' })
+    expect(d.nouveaux_leads_vendeurs[0]).toEqual({ nom: 'Marie Curie', ville: 'Carouge', estimation: "CHF 1'250'000" })
+  })
+
+  it('ne plafonne PAS l’affichage : le push renvoie ici justement pour la liste entière', () => {
+    const visits = Array.from({ length: 8 }, (_, i) => ({
+      scheduledAt: `2026-07-05T0${i}:00:00Z`, who: `V${i}`, propertyTitle: null, city: null,
+    }))
+    expect(composeBriefDetail({ ...FULL, visits }, 'fr').visites_du_jour).toHaveLength(8)
+  })
+
+  it('« N+ » quand une section a atteint sa limite SQL', () => {
+    const offers = Array.from({ length: SQL_LIMITS.offers }, () => FULL.offers[0])
+    expect(composeBriefDetail({ ...FULL, offers }, 'fr').total).toBe(`${2 + 3 + SQL_LIMITS.offers + 1}+`)
+  })
+
+  it('libellés de relance en anglais quand lang=en', () => {
+    expect(composeBriefDetail(FULL, 'en').relances_dues[0].relance).toBe('Visit feedback')
+  })
+
+  it('rend les rendez-vous du jour : heure, type, contact — jamais le titre, et comptés au total', () => {
+    const events = [
+      { startsAt: '2026-07-05T12:00:00Z', allDay: false, type: 'notary', who: 'Anne Dubois' },
+      { startsAt: '2026-07-04T22:00:00Z', allDay: true, type: 'type_inconnu_futur', who: null },
+    ]
+    const d = composeBriefDetail({ ...FULL, events }, 'fr')
+    expect(d.rendez_vous_du_jour).toEqual([
+      { heure: '14:00', rendez_vous: 'Signature notaire', qui: 'Anne Dubois' },
+      { heure: 'journée', rendez_vous: 'Rendez-vous', qui: null },
+    ])
+    expect(d.total).toBe(String(briefItemCount({ ...FULL, events }).count))
+    expect(composeBriefDetail({ ...FULL, events }, 'en').rendez_vous_du_jour[0].rendez_vous).toBe('Notary signing')
+    expect(composeBriefDetail(FULL, 'fr').rendez_vous_du_jour).toEqual([])
   })
 })
