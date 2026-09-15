@@ -182,6 +182,7 @@
           "colleague": "Diese Adresse ist bereits von einem anderen Mitglied der Agentur verbunden. Nur die Person, der sie gehört, kann sie neu verbinden.",
           "tooMany": "Zu viele Verbindungsversuche innerhalb einer Stunde. Versuchen Sie es später erneut.",
           "imapAuth": "Benutzername oder Passwort vom IMAP-Server abgelehnt. Nutzt das Postfach die Bestätigung in zwei Schritten, verwenden Sie ein App-Passwort.",
+          "imapTemporary": "Der Server lehnt die Verbindung vorübergehend ab (zu viele offene Verbindungen oder Dienst nicht verfügbar). Versuchen Sie es in einigen Minuten erneut.",
           "imapUnreachable": "Der IMAP-Server antwortet nicht: Prüfen Sie Name und Port.",
           "imapStarttls": "Dieser IMAP-Server akzeptiert STARTTLS auf Port 143 nicht: Wählen Sie 993.",
           "imapCertificate": "Das Zertifikat des IMAP-Servers gilt nicht für diesen Namen: Verwenden Sie den Servernamen Ihres Anbieters.",

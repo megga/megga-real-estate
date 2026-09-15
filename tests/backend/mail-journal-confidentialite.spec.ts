@@ -38,10 +38,10 @@ describe.skipIf(!HAS_KEYS)('Messagerie — le journal ne reçoit pas le contenu 
 
   const courrier = (box: string, id: string): NormalizedMessage => ({
     providerMessageId: `m-${id}`, providerThreadId: `t-${id}`, rfc822MessageId: `<${id}@ex.ch>`, inReplyTo: null, references: [],
-    direction: 'inbound', from: { name: 'Zoé Témoin', email: EXPEDITEUR },
+    direction: 'inbound', inSent: false, from: { name: 'Zoé Témoin', email: EXPEDITEUR },
     to: [{ name: null, email: box }, { name: 'Me Tiers', email: TIERS }], cc: [], bcc: [],
     replyTo: null, subject: OBJET, snippet: 'Voici notre offre', bodyText: 'Voici notre offre', bodyHtml: null,
-    sentAt: new Date().toISOString(), isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false,
+    sentAt: new Date().toISOString(), isRead: false, isStarred: false, inInbox: true, isTrashed: false, isSpam: false, isDraft: false,
     providerLabels: ['INBOX'], attachments: [],
   })
 

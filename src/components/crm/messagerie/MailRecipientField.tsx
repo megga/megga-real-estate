@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailContactSearch, type MailContactHit } from '@/hooks/useMailContactSearch'
 import type { MailSenderLogo } from '@/hooks/useMailSenderLogos'
-import { adresseValide, ajouterDestinataires, decouperDestinataires, scinderSaisie } from '@/lib/mail/compose'
+import { adresseValide, ajouterDestinataires, decouperDestinataires, ecrireDestinataire, scinderSaisie } from '@/lib/mail/compose'
 import { displayAddress, domaineDe, type MailAddress } from '@/lib/mail/format'
 import { MailSenderAvatar } from './MailSenderAvatar'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
@@ -104,7 +104,7 @@ export function MailRecipientField({ ms, prefixe, libelle, valeur, texte, onChan
   const editer = (i: number) => {
     const a = valeur[i]
     const reste = ajouterDestinataires(valeur.filter((_, j) => j !== i), decouperDestinataires(texte))
-    onChange(reste, a.name ? `${a.name} <${a.email}>` : a.email)
+    onChange(reste, ecrireDestinataire(a))
     setArmee(null)
     saisie.current?.focus()
   }

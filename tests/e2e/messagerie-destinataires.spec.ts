@@ -107,6 +107,21 @@ test.describe('« Nouveau message »', () => {
     await expect(avis).toHaveCount(0)
   })
 
+  // ⛔ Rouverte, une capsule « Rochat, Camille » se réécrivait sans guillemets : la virgule la
+  // coupait en deux à la validation suivante, « Rochat » en alerte.
+  test('une capsule à nom « Nom, Prénom » rouverte puis revalidée reste UNE capsule', async ({ page }) => {
+    const a = champA(page)
+    await a.fill('"Rochat, Camille" <camille@exemple.ch>')
+    await a.press('Enter')
+    await expect(capsules(page)).toHaveCount(1)
+    await capsules(page).first().dblclick()
+    await expect(a).toHaveValue('"Rochat, Camille" <camille@exemple.ch>')
+    await a.press('Enter')
+    await expect(capsules(page)).toHaveCount(1)
+    await expect(capsules(page).first()).toHaveAttribute('title', 'Rochat, Camille <camille@exemple.ch>')
+    await expect(capsules(page).first()).not.toHaveAttribute('data-invalide', '')
+  })
+
   test('les contacts se proposent pendant la frappe, et Entrée prend le premier', async ({ page }) => {
     const a = champA(page)
     await a.pressSequentially('roch')

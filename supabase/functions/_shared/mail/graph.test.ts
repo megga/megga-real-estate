@@ -36,9 +36,21 @@ describe('normalizeGraphMessage', () => {
   it('un message du dossier Envoyés est sortant ; corbeille = trashed ; archive = hors réception', () => {
     const sent = normalizeGraphMessage({ ...M, parentFolderId: 'F-SENT', from: { emailAddress: { name: 'G', address: 'g@agence.ch' } } }, BODY, [], FOLDERS, 'g@agence.ch')
     expect(sent.direction).toBe('outbound')
+    expect(sent.inSent).toBe(true)
     expect(sent.inInbox).toBe(false)
     expect(normalizeGraphMessage({ ...M, parentFolderId: 'F-DEL' }, BODY, [], FOLDERS, 'g@agence.ch').isTrashed).toBe(true)
     expect(normalizeGraphMessage({ ...M, parentFolderId: 'F-ARC' }, BODY, [], FOLDERS, 'g@agence.ch').inInbox).toBe(false)
+  })
+  // ⛔ Le sens se lisait sur `From` hors de « Envoyés » (revue du 15.09.2026).
+  it('`From` = la boîte hors « Envoyés » : entrant au Courrier indésirable, entrant avec un Reply-To étranger', () => {
+    const deLaBoite = (parentFolderId: string, replyTo: string | null) => normalizeGraphMessage({
+      ...M, parentFolderId, from: { emailAddress: { name: 'G', address: 'g@agence.ch' } },
+      replyTo: replyTo ? [{ emailAddress: { name: null, address: replyTo } }] : [],
+    }, BODY, [], FOLDERS, 'g@agence.ch')
+    expect(deLaBoite('F-JUNK', null)).toMatchObject({ direction: 'inbound', inSent: false, isSpam: true })
+    expect(deLaBoite('F-IN', 'prospect@ex.ch')).toMatchObject({ direction: 'inbound', inSent: false })
+    // L'exemplaire qu'Exchange dépose en Réception quand l'agent se met en copie.
+    expect(deLaBoite('F-IN', null)).toMatchObject({ direction: 'outbound', inSent: false })
   })
 })
 

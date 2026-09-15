@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  adresseValide, ajouterDestinataires, boiteDEnvoi, decouperDestinataires, lireDestinataire, peutEnvoyerDepuis, scinderSaisie,
+  adresseValide, ajouterDestinataires, boiteDEnvoi, decouperDestinataires, ecrireDestinataire, lireDestinataire, peutEnvoyerDepuis, scinderSaisie,
 } from '@/lib/mail/compose'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 
@@ -46,6 +46,23 @@ describe('decouperDestinataires', () => {
   })
   it('garde un nom à espaces d’un seul tenant', () => {
     expect(decouperDestinataires('Camille Rochat')).toEqual([{ name: null, email: 'Camille Rochat' }])
+  })
+})
+
+// ⛔ Une capsule rouverte se réécrivait « Rochat, Camille <c@…> » : à la validation suivante,
+// la virgule la coupait en deux — « Rochat » en alerte, « Camille <c@…> ».
+describe('ecrireDestinataire — une capsule rouverte se revalide en UNE capsule', () => {
+  it.each([
+    [{ name: 'Rochat, Camille', email: 'c@exemple.ch' }, '"Rochat, Camille" <c@exemple.ch>'],
+    [{ name: 'Jean "JD" Dupont', email: 'j@exemple.ch' }, '"Jean \\"JD\\" Dupont" <j@exemple.ch>'],
+    [{ name: 'Camille Rochat', email: 'c@exemple.ch' }, 'Camille Rochat <c@exemple.ch>'],
+    [{ name: null, email: 'c@exemple.ch' }, 'c@exemple.ch'],
+  ])('%j', (a, texte) => {
+    expect(ecrireDestinataire(a)).toBe(texte)
+    expect(decouperDestinataires(ecrireDestinataire(a))).toEqual([a])
+  })
+  it('un \\" ne ferme pas les guillemets pendant la frappe', () => {
+    expect(scinderSaisie('"Jean \\"JD, Dupont" <j@exemple.ch>, z')).toEqual({ complets: [{ name: 'Jean "JD, Dupont', email: 'j@exemple.ch' }], reste: 'z' })
   })
 })
 

@@ -65,7 +65,14 @@ export interface NormalizedMessage {
   rfc822MessageId: string | null
   inReplyTo: string | null
   references: string[]
+  /** Le sens qui classe et affiche (`sensDuMessage`) — il peut être sortant sans `inSent`. */
   direction: MailDirection
+  /**
+   * Rangé par le fournisseur dans « Envoyés » (libellé `SENT`, Sent Items, dossier `\Sent`) : le
+   * seul FAIT qui dise que la boîte a écrit ce message — `From`, l'expéditeur l'écrit. Le journal
+   * `email_sent` et la reprise d'une ligne `pending:` l'exigent.
+   */
+  inSent: boolean
   from: MailAddress
   to: MailAddress[]
   cc: MailAddress[]

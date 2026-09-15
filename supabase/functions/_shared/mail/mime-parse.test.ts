@@ -62,6 +62,7 @@ describe('parseRfc822', () => {
     expect(n.bodyHtml).toContain('bienvenue à tous')
     expect(n.bodyText).toContain('Bonjour & bienvenue à tous')
     expect(n.direction).toBe('inbound')
+    expect(n.inSent).toBe(false)
     expect(n.isRead).toBe(true)
     expect(n.inInbox).toBe(true)
     expect(n.sentAt).toBe('2026-09-03T08:00:00.000Z')
@@ -71,9 +72,20 @@ describe('parseRfc822', () => {
     ])
   })
 
-  it('« Envoyés » et l’adresse de la boîte font un message SORTANT', async () => {
-    expect((await parseRfc822(octets, ctx({ dossier: 'sent' }))).direction).toBe('outbound')
-    expect((await parseRfc822(octets, ctx({ boxEmail: 'ZOE@ex.ch' }))).direction).toBe('outbound')
+  // ⛔ Le sens se décidait sur `From`, que l'expéditeur écrit : l'arnaque qui usurpe l'adresse
+  // de la boîte, rangée au Spam, sortait « envoyée par l'agent » (revue du 15.09.2026).
+  it('le rangement fait le sens : « Envoyés » est sortant, le Spam entrant, quel que soit `From`', async () => {
+    expect(await parseRfc822(octets, ctx({ dossier: 'sent' }))).toMatchObject({ direction: 'outbound', inSent: true })
+    expect(await parseRfc822(octets, ctx({ dossier: 'junk', boxEmail: 'ZOE@ex.ch' }))).toMatchObject({ direction: 'inbound', inSent: false, isSpam: true })
+  })
+
+  it('hors « Envoyés », `From` = la boîte reste sortant — sauf un `Reply-To` qui renvoie ailleurs', async () => {
+    // La copie qu'un serveur dépose en Réception quand l'agent se met en copie : sortante, mais
+    // pas « Envoyés » — ni journal `email_sent`, ni ligne `pending:` reprise (`inSent`).
+    const copie = new TextEncoder().encode(RAW.replace(/^Reply-To:.*\r\n/m, ''))
+    expect(await parseRfc822(copie, ctx({ boxEmail: 'ZOE@ex.ch' }))).toMatchObject({ direction: 'outbound', inSent: false, replyTo: null })
+    // RAW répond à `zoe.perso@ex.ch` : le formulaire d'un site qui écrit au nom de la boîte.
+    expect(await parseRfc822(octets, ctx({ boxEmail: 'ZOE@ex.ch' }))).toMatchObject({ direction: 'inbound', inSent: false })
   })
 
   it('la date d’ARRIVÉE (INTERNALDATE) prime sur l’en-tête Date, comme chez Gmail', async () => {

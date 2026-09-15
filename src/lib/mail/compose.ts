@@ -35,9 +35,31 @@ export function lireDestinataire(brut: string): MailAddress | null {
   const s = brut.trim().replace(/^mailto:/i, '')
   if (!s) return null
   const m = s.match(/^(.*?)<([^<>]*)>$/)
-  const nom = m ? m[1].trim().replace(/^"(.*)"$/, '$1').trim() : ''
+  const brutNom = m ? m[1].trim() : ''
+  // Entre guillemets, `\"` et `\\` sont des échappements (`ecrireDestinataire`).
+  const cite = brutNom.match(/^"((?:[^"\\]|\\.)*)"$/)
+  const nom = (cite ? cite[1].replace(/\\(.)/g, '$1') : brutNom.replace(/^"(.*)"$/, '$1')).trim()
   const adresse = (m ? m[2] : s).trim()
   return { name: nom || null, email: adresseValide(adresse.toLowerCase()) ? adresse.toLowerCase() : adresse }
+}
+
+/** Ce qui impose de citer un nom retapé : un séparateur, un chevron, un guillemet, une barre inverse. */
+const A_CITER = /[,;"<>\\]/
+/** Ce qui s'échappe entre guillemets. */
+const A_ECHAPPER = /["\\]/g
+
+/**
+ * Un destinataire tel qu'on le RETAPE (une capsule rouverte) : « "Rochat, Camille" <c@ex.ch> ».
+ *
+ * ⛔ Il se réécrivait « Rochat, Camille <c@ex.ch> » : à la validation suivante, la virgule le
+ * coupait en deux capsules, « Rochat » en alerte et « Camille <c@ex.ch> ». Un nom qui porte un
+ * séparateur, un chevron ou un guillemet se cite, guillemets et barres inverses échappés — la
+ * forme que `decouperDestinataires` relit en UNE capsule.
+ */
+export function ecrireDestinataire(a: MailAddress): string {
+  if (!a.name) return a.email
+  const nom = A_CITER.test(a.name) ? `"${a.name.replace(A_ECHAPPER, (c) => `\\${c}`)}"` : a.name
+  return `${nom} <${a.email}>`
 }
 
 /**
@@ -70,13 +92,19 @@ export function scinderSaisie(saisie: string): { complets: MailAddress[]; reste:
   return { complets: decouperDestinataires(m.slice(0, -1).join('\n')), reste: m[m.length - 1].trimStart() }
 }
 
-/** Les morceaux d'une saisie, coupés aux séparateurs qui ne sont ni entre guillemets ni entre chevrons. */
+/**
+ * Les morceaux d'une saisie, coupés aux séparateurs qui ne sont ni entre guillemets ni entre
+ * chevrons. Entre guillemets, `\` échappe le caractère suivant : un `\"` ne les ferme pas.
+ */
 function morceaux(saisie: string): string[] {
   const out: string[] = []
   let courant = ''
   let guillemets = false
   let chevrons = false
+  let echappe = false
   for (const c of saisie) {
+    if (echappe) { echappe = false; courant += c; continue }
+    if (c === '\\' && guillemets) { echappe = true; courant += c; continue }
     if (c === '"' && !chevrons) guillemets = !guillemets
     else if (c === '<' && !guillemets) chevrons = true
     else if (c === '>' && !guillemets) chevrons = false

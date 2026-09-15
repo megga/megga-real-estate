@@ -7,7 +7,7 @@
  * la socket, mesurée séparément par la sonde T3.1 contre les vrais serveurs.
  */
 import { describe, it, expect } from 'vitest'
-import { ImapArgumentError, ImapClient } from './imap-client.ts'
+import { ImapArgumentError, ImapAuthError, ImapClient, ImapRefusTemporaire } from './imap-client.ts'
 import { LineReader, type Duplex } from './duplex.ts'
 
 /**
@@ -55,6 +55,33 @@ const ouvrir = async (script: Record<string, string>, greeting?: string) => {
   await c.connect()
   return { c, ...f }
 }
+
+// ⛔ Tout NO au LOGIN était pris pour un mot de passe refusé : un « trop de connexions »
+// passager mettait la boîte en « autorisation à renouveler » dès le premier refus.
+describe('ImapClient — un refus au LOGIN : le mot de passe, ou un refus qui passera', () => {
+  const refus = async (reponse: string) => {
+    const { c } = await ouvrir({ LOGIN: `$TAG ${reponse}\r\n` })
+    return c.login('u', 'p').then(() => null, (e: unknown) => e)
+  }
+  it.each([
+    'NO [UNAVAILABLE] Temporary authentication failure',
+    'NO [INUSE] Mailbox is locked by another session',
+    'NO [LIMIT] Too many connections from your IP',
+    'NO [SERVERBUG] Internal error occurred',
+    'NO [ALERT] Too many simultaneous connections. (Failure)',
+    'NO Server busy, try again later',
+  ])('temporaire : %s', async (r) => {
+    expect(await refus(r)).toBeInstanceOf(ImapRefusTemporaire)
+  })
+  it.each([
+    'NO [AUTHENTICATIONFAILED] Invalid credentials (Failure)',
+    'NO [AUTHENTICATIONFAILED] Authentication failed, try again later.',
+    'NO [EXPIRED] Password expired',
+    'NO LOGIN failed.',
+  ])('identifiants : %s', async (r) => {
+    expect(await refus(r)).toBeInstanceOf(ImapAuthError)
+  })
+})
 
 describe('ImapClient — grammaire', () => {
   it('login + select lit UIDVALIDITY / UIDNEXT, et cite le mot de passe', async () => {

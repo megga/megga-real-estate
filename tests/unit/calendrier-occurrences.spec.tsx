@@ -55,7 +55,9 @@ const h = vi.hoisted(() => {
 vi.mock('@/hooks/useCalendarScreen', () => ({
   useCalendarScreen: () => {
     const events = useSyncExternalStore(h.subscribe, h.get)
-    return { events, hotBuyers: [], isLoading: false, isError: false, refetch: () => {} }
+    // Le Calendrier lit les SÉRIES (il les développe après ses surcharges) ; `events`, les
+    // occurrences des autres écrans, lui est vide ici — le lire n'afficherait rien.
+    return { events: [], series: events, hotBuyers: [], isLoading: false, isError: false, refetch: () => {} }
   },
 }))
 vi.mock('@/hooks/useCalendarEvents', () => ({ useCalendarEvents: () => ({ creer: h.creer, modifier: h.modifier, supprimer: h.supprimer }) }))

@@ -52,7 +52,7 @@ describe('normalizeGmailMessage', () => {
     expect(n.bodyHtml).toBe('<p>Bonjour &amp; bienvenue</p>')
     expect(n.sentAt).toBe('2025-09-03T00:00:00.000Z')
     expect(n.direction).toBe('inbound')
-    expect(n).toMatchObject({ isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false })
+    expect(n).toMatchObject({ inSent: false, isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false })
     expect(n.attachments).toEqual([
       { providerAttachmentId: 'att-1', filename: 'plan.pdf', mimeType: 'application/pdf', sizeBytes: 1234, isInline: false, contentId: null },
       { providerAttachmentId: 'att-2', filename: 'logo.png', mimeType: 'image/png', sizeBytes: 99, isInline: true, contentId: '<logo@cid>' },
@@ -62,8 +62,23 @@ describe('normalizeGmailMessage', () => {
     const sent: GmailMessage = { ...MSG, labelIds: ['SENT'], payload: { ...MSG.payload, headers: [...MSG.payload.headers!.filter((h) => h.name !== 'From'), { name: 'From', value: 'g@agence.ch' }] } }
     const n = normalizeGmailMessage(sent, 'g@agence.ch')
     expect(n.direction).toBe('outbound')
+    expect(n.inSent).toBe(true)
     expect(n.isRead).toBe(true)
     expect(n.inInbox).toBe(false)
+  })
+  // ⛔ Le sens se lisait sur `From` dès que SENT manquait (revue du 15.09.2026).
+  it('`From` = la boîte SANS le libellé SENT : entrant au spam, entrant avec un Reply-To étranger', () => {
+    const deLaBoite = (labelIds: string[], replyTo: string | null): GmailMessage => ({
+      ...MSG, labelIds,
+      payload: { ...MSG.payload, headers: [...MSG.payload.headers!.filter((h) => h.name !== 'From' && h.name !== 'Reply-To'), { name: 'From', value: 'G <g@agence.ch>' }, ...(replyTo ? [{ name: 'Reply-To', value: replyTo }] : [])] },
+    })
+    // L'arnaque qui usurpe l'adresse de la boîte, rangée au spam.
+    expect(normalizeGmailMessage(deLaBoite(['SPAM', 'UNREAD'], null), 'g@agence.ch')).toMatchObject({ direction: 'inbound', inSent: false, isSpam: true })
+    // Le formulaire d'un site qui écrit au nom de la boîte, `Reply-To` = le prospect.
+    expect(normalizeGmailMessage(deLaBoite(['INBOX', 'UNREAD'], 'prospect@ex.ch'), 'g@agence.ch')).toMatchObject({ direction: 'inbound', inSent: false })
+    // Sans Reply-To étranger, `From` = la boîte reste sortant — mais PAS dans « Envoyés ».
+    expect(normalizeGmailMessage(deLaBoite(['INBOX'], null), 'g@agence.ch')).toMatchObject({ direction: 'outbound', inSent: false })
+    expect(normalizeGmailMessage(deLaBoite(['INBOX'], 'G <G@Agence.ch>'), 'g@agence.ch')).toMatchObject({ direction: 'outbound', inSent: false })
   })
   it('corps HTML seul → texte dérivé ; sans corps → snippet', () => {
     const htmlOnly: GmailMessage = { ...MSG, payload: { mimeType: 'text/html', headers: MSG.payload.headers, body: { data: base64UrlEncodeString('<p>Seul</p>') } } }

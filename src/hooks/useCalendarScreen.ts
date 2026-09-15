@@ -13,7 +13,7 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { CAL_EVENT_TYPES, type CalEvent, type CalEventRecurrence, type CalEventTypeId, type CalHotBuyer } from '@/components/crm/calendar/data'
+import { CAL_EVENT_TYPES, calExpandEvents, type CalEvent, type CalEventRecurrence, type CalEventTypeId, type CalHotBuyer } from '@/components/crm/calendar/data'
 import { titreDeRelance } from '@/lib/calendrierEvenements'
 
 interface VisitJoin {
@@ -215,7 +215,20 @@ function evenementToCalEvent(e: EvenementJoin): CalEvent {
 }
 
 export interface UseCalendarScreenReturn {
+  /**
+   * Ce que montre un écran : les séries DÉVELOPPÉES en occurrences sur la fenêtre lue (±60 j),
+   * chacune avec son état (`sauf`, `etats`) — `id` = `maître@AAAA-M-J`.
+   *
+   * ⛔ Elles sortaient telles quelles, et seul le Calendrier de bureau les développait : une
+   * série hebdomadaire n'apparaissait dans « Aujourd'hui » (bureau et mobile) et dans l'agenda
+   * mobile qu'à sa PREMIÈRE date (revue du 15.09.2026). Le développement est donc le défaut.
+   */
   events: CalEvent[]
+  /**
+   * Les lignes telles qu'enregistrées, séries NON développées — pour le Calendrier seul, qui
+   * pose ses surcharges optimistes sur le maître avant de développer autour de la date affichée.
+   */
+  series: CalEvent[]
   hotBuyers: CalHotBuyer[]
   isLoading: boolean
   /** true si l'une des 4 queries (visits/reminders/appointments/hotBuyers) a échoué. */
@@ -362,7 +375,7 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
     staleTime: 60_000,
   })
 
-  const events = useMemo<CalEvent[]>(() => {
+  const series = useMemo<CalEvent[]>(() => {
     const out: CalEvent[] = []
     for (const v of visits) out.push(visitToCalEvent(v))
     for (const r of reminders) out.push(reminderToCalEvent(r))
@@ -370,6 +383,10 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
     for (const e of evenements) out.push(evenementToCalEvent(e))
     return out.sort((a, b) => a.start.getTime() - b.start.getTime())
   }, [visits, reminders, appointments, evenements])
+  const events = useMemo<CalEvent[]>(
+    () => calExpandEvents(series, new Date(range.from), new Date(range.to)).sort((a, b) => a.start.getTime() - b.start.getTime()),
+    [series, range],
+  )
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
   // top 5 acheteurs chauds (exposés pour d'éventuels consommateurs — Today/mobile).
@@ -405,6 +422,7 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
 
   return {
     events,
+    series,
     hotBuyers,
     isLoading: visitsLoading || remindersLoading || apptLoading || eventsLoading || hotLoading,
     isError: visitsError || remindersError || apptError || eventsError || hotError,

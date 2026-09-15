@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAddress, parseAddressList, decodeRfc2047, htmlToText, textToHtml, snippetOf,
   base64UrlDecodeToString, base64UrlEncodeString, buildMime, makeMessageId, encodeHeaderWord,
-  attachmentServing, base64ByteLength, nettoyerMessageId, nettoyerReferences,
+  attachmentServing, base64ByteLength, nettoyerMessageId, nettoyerReferences, formatAddress, sensDuMessage,
 } from './mime.ts'
 
 describe('adresses', () => {
@@ -21,6 +21,47 @@ describe('adresses', () => {
     expect(decodeRfc2047('=?UTF-8?B?Wm/DqSBSb2NoYXQ=?= <zoe@ex.ch>')).toBe('Zoé Rochat <zoe@ex.ch>')
     expect(decodeRfc2047('=?utf-8?Q?Zo=C3=A9_Rochat?=')).toBe('Zoé Rochat')
     expect(decodeRfc2047('plain')).toBe('plain')
+  })
+
+  // ⛔ « Rochat, Camille » (la forme d'Exchange) s'écrivait sans guillemets : `To: Rochat,
+  // Camille <c@…>` se lit comme DEUX adresses — un faux destinataire en SMTP.
+  it('un nom à caractère spécial part entre guillemets, et se relit en UNE adresse', () => {
+    expect(formatAddress({ name: 'Rochat, Camille', email: 'c@ex.ch' })).toBe('"Rochat, Camille" <c@ex.ch>')
+    expect(formatAddress({ name: 'Jean "JD" Dupont', email: 'j@ex.ch' })).toBe('"Jean \\"JD\\" Dupont" <j@ex.ch>')
+    expect(formatAddress({ name: 'Zoé Rochat', email: 'z@ex.ch' })).toBe('=?UTF-8?B?Wm/DqSBSb2NoYXQ=?= <z@ex.ch>')
+    expect(formatAddress({ name: 'Zoé Exemple', email: 'z@ex.ch' })).toMatch(/^=\?UTF-8\?B\?/)
+    expect(formatAddress({ name: 'Alice Martin', email: 'a@ex.ch' })).toBe('Alice Martin <a@ex.ch>')
+    expect(formatAddress({ name: null, email: 'a@ex.ch' })).toBe('a@ex.ch')
+    const liste = [{ name: 'Rochat, Camille', email: 'c@ex.ch' }, { name: 'Jean "JD" Dupont', email: 'j@ex.ch' }, { name: 'B\\S', email: 'b@ex.ch' }]
+    expect(parseAddressList(liste.map(formatAddress).join(', '))).toEqual(liste)
+  })
+  it('un nom entre guillemets garde ses échappements à la lecture', () => {
+    expect(parseAddress('"Jean \\"JD\\" Dupont" <j@ex.ch>')).toEqual({ name: 'Jean "JD" Dupont', email: 'j@ex.ch' })
+    expect(parseAddress('<a@ex.ch>')).toEqual({ name: null, email: 'a@ex.ch' })
+  })
+  it('le To d’une réponse à « Rochat, Camille » ne porte qu’UNE adresse', () => {
+    const raw = buildMime({
+      from: { name: 'Agence', email: 'g@agence.ch' }, to: [{ name: 'Rochat, Camille', email: 'c@ex.ch' }], cc: [], bcc: [],
+      subject: 'Re: Visite', text: 'Bonjour', html: '<p>Bonjour</p>', inReplyTo: null, references: [], messageId: '<m@agence.ch>', attachments: [],
+    })
+    const to = raw.split('\r\n').find((l) => l.startsWith('To: '))!
+    expect(parseAddressList(to.slice(4))).toEqual([{ name: 'Rochat, Camille', email: 'c@ex.ch' }])
+  })
+})
+
+// ⛔ Le sens se décidait sur `From`, que l'expéditeur écrit (revue du 15.09.2026).
+describe('sensDuMessage — le rangement du fournisseur fait foi, pas `From`', () => {
+  const BOITE = 'g@agence.ch'
+  it.each([
+    ['« Envoyés », quel que soit From', { dansEnvoyes: true, spam: false, from: 'alias@agence.ch', replyTo: null }, 'outbound'],
+    ['« Envoyés » ET spam (un envoi que Gmail range aussi au spam) : c est un envoi', { dansEnvoyes: true, spam: true, from: BOITE, replyTo: null }, 'outbound'],
+    ['au spam, From = la boîte : l arnaque qui usurpe son adresse', { dansEnvoyes: false, spam: true, from: BOITE, replyTo: null }, 'inbound'],
+    ['From = la boîte, Reply-To ailleurs : un formulaire de site', { dansEnvoyes: false, spam: false, from: BOITE, replyTo: 'prospect@ex.ch' }, 'inbound'],
+    ['From = la boîte, Reply-To = la boîte (casse près)', { dansEnvoyes: false, spam: false, from: BOITE, replyTo: 'G@Agence.CH' }, 'outbound'],
+    ['From = la boîte, sans Reply-To : la copie déposée en Réception', { dansEnvoyes: false, spam: false, from: 'G@AGENCE.ch', replyTo: null }, 'outbound'],
+    ['un tiers', { dansEnvoyes: false, spam: false, from: 'zoe@ex.ch', replyTo: null }, 'inbound'],
+  ] as const)('%s', (_nom, p, sens) => {
+    expect(sensDuMessage({ ...p, boite: BOITE })).toBe(sens)
   })
 })
 

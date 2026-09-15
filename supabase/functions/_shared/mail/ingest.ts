@@ -115,8 +115,9 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     // se lit, comme l'archive, sur le message entrant le plus récent.
     is_archived: newestInbound ? (!m.inInbox && !m.isTrashed && !m.isSpam) : (existing?.is_archived ?? false),
     is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
-    // Un fil NÉ d'un sortant au spam (un spam qui usurpe l'adresse de la boîte) est au spam :
-    // sans entrant pour décider, il se rangeait dans « Envoyés ».
+    // Un fil NÉ d'un sortant au spam est au spam : sans entrant pour décider, il se rangeait
+    // dans « Envoyés ». Le spam est entrant (`sensDuMessage`) — sauf un message d'« Envoyés »
+    // que Gmail range AUSSI au spam.
     is_spam: newestInbound ? m.isSpam : (existing ? existing.is_spam : m.isSpam),
   }
 }
@@ -304,11 +305,11 @@ async function findKnownMessage(admin: SupabaseClient, accountId: string, m: Nor
   const { data: byProvider, error: e1 } = await base().eq('provider_message_id', m.providerMessageId).maybeSingle()
   if (e1) throw new Error(`message lookup: ${e1.message}`)
   if (byProvider) return byProvider as KnownMessageRow
-  // ⛔ Une ligne `pending:` est un ENVOI du CRM : seul un sortant hors spam peut en être la
-  // copie. Un destinataire connaît le Message-ID de ce qu'on lui a écrit ; sa réponse qui le
-  // reprenait, lue avant la copie « Envoyés », prenait la ligne de l'envoi et la réécrivait —
-  // et un spam qui usurpe l'adresse de la boîte passe pour un sortant.
-  if (!m.rfc822MessageId || m.direction !== 'outbound' || m.isSpam) return null
+  // ⛔ Une ligne `pending:` est un ENVOI du CRM : seule sa copie « Envoyés » la reprend. Un
+  // destinataire connaît le Message-ID de ce qu'on lui a écrit ; sa réponse qui le reprenait,
+  // lue avant la copie « Envoyés », prenait la ligne de l'envoi et la réécrivait — et un sortant
+  // ne suffisait pas : `From` = la boîte, l'expéditeur l'écrit (`sensDuMessage`).
+  if (!m.rfc822MessageId || !m.inSent || m.isSpam) return null
   const { data: byPending, error: e2 } = await base().eq('provider_message_id', `pending:${m.rfc822MessageId}`).maybeSingle()
   if (e2) throw new Error(`message lookup (pending): ${e2.message}`)
   return (byPending as KnownMessageRow | null) ?? null
@@ -362,9 +363,10 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     // reçoit maintenant, comme s'il arrivait. Un message rattaché PUIS envoyé au spam l'a déjà.
     // Lu AVANT toute écriture : c'est l'état d'avant qui décide.
     const sortDuSpam = !!known && known.is_spam && !m.isSpam && !known.contact_id
+    const action = actionAuJournal(m)
     // Évalué AVANT toute écriture : s'il lève, rien n'est écrit et la passe suivante rejoue le
     // message. Après l'insertion, une levée laissait un message CONNU sans sa ligne de journal.
-    const dejaJournalise = isNew && !opts.skipAudit && await autreCopieSortante(admin, account.id, m)
+    const dejaJournalise = (isNew || sortDuSpam) && action === 'email_sent' && !opts.skipAudit && await envoiDejaJournalise(admin, account, m)
 
     if (known && known.provider_message_id.startsWith('pending:')) {
       // Copie « Envoyés » d'un envoi CRM (Graph) : le fil provisoire prend l'id de
@@ -455,31 +457,56 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       await recomputeThread(admin, threadId)
     }
 
-    if ((isNew || sortDuSpam) && contactId && !m.isSpam && !opts.skipAudit && !dejaJournalise) {
-      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m.sentAt)) auditFailures++
+    if ((isNew || sortDuSpam) && action && contactId && !m.isSpam && !opts.skipAudit && !dejaJournalise) {
+      if (!await audit(admin, account, action, threadId, messageId, contactId, m.sentAt)) auditFailures++
     }
   }
   return { inserted, updated, auditFailures }
 }
 
 /**
- * Ce courrier SORTANT a-t-il déjà une autre copie dans la boîte — donc déjà sa ligne de journal ?
+ * Ce qu'un message inscrit au journal : `email_received` s'il est entrant, `email_sent` s'il est
+ * dans « Envoyés » — rien pour un sortant AILLEURS.
  *
- * ⛔ UN ENVOI, UNE LIGNE. L'agent qui se met lui-même en Cc (ou en Cci) reçoit chez Exchange
- * une copie en Réception au MÊME Message-ID, lue AVANT « Envoyés » : pour un envoi du CRM,
- * elle prend la ligne `pending:` ; la copie « Envoyés » arrive ensuite comme un message NEUF
- * et se journalisait — une seconde ligne, append-only, pour un seul envoi. Même doublon pour
- * un envoi fait depuis Outlook. Appelé AVANT l'insertion du message : toute copie trouvée est
- * donc une AUTRE. Les valeurs passent par `.eq()`, jamais par `.or()` (le Message-ID est du
- * texte d'expéditeur, cf. `findKnownMessage`), et l'erreur est LEVÉE : « je n'ai pas pu
- * vérifier » n'est pas « première copie ».
+ * ⛔ UN « E-MAIL ENVOYÉ » QUE PERSONNE N'AVAIT ENVOYÉ (revue du 15.09.2026). Le journal suivait le
+ * sens, et le sens suivait `From` : un tiers qui écrivait à la boîte `From: <la boîte>`,
+ * `To: <un client>` faisait inscrire au dossier du client, en append-only, un courrier que
+ * l'agence « avait envoyé ». Un sortant hors « Envoyés » est une COPIE — l'exemplaire qu'Exchange
+ * dépose en Réception quand l'agent se met en copie — ou une usurpation : ni l'une ni l'autre
+ * n'est l'envoi, dont la copie « Envoyés » porte la ligne.
  */
-async function autreCopieSortante(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<boolean> {
-  if (m.direction !== 'outbound' || !m.rfc822MessageId) return false
-  const { data, error } = await admin.from('mail_messages').select('id').eq('account_id', accountId)
-    .eq('rfc822_message_id', m.rfc822MessageId).eq('direction', 'outbound').limit(1)
-  if (error) throw new Error(`copie sortante: ${error.message}`)
-  return ((data ?? []) as unknown[]).length > 0
+function actionAuJournal(m: NormalizedMessage): MailAuditAction | null {
+  if (m.direction === 'inbound') return 'email_received'
+  return m.inSent ? 'email_sent' : null
+}
+
+/** Bien plus que les copies d'un envoi (« Envoyés », la Réception d'une copie à soi) ; la liste part dans une URL. */
+const COPIES_MAX = 50
+
+/**
+ * Une AUTRE copie de cet envoi a-t-elle déjà sa ligne `email_sent` ?
+ *
+ * ⛔ UN ENVOI, UNE LIGNE. L'agent qui se met lui-même en copie reçoit chez Exchange (et chez un
+ * serveur IMAP) un second exemplaire en Réception, au MÊME Message-ID. La question était « une
+ * autre copie sortante existe-t-elle ? » ; or seule la copie « Envoyés » se journalise
+ * (`actionAuJournal`), et l'exemplaire de la Réception, lu le plus souvent AVANT elle, la privait
+ * de sa ligne : l'envoi n'entrait jamais au dossier du client. On demande donc au journal
+ * lui-même. Appelé AVANT l'insertion : toute copie trouvée est une AUTRE. Les valeurs passent par
+ * `.eq()` / `.in()`, jamais par `.or()` (le Message-ID est du texte d'expéditeur, cf.
+ * `findKnownMessage`), et l'erreur est LEVÉE : « je n'ai pas pu vérifier » n'est pas « première
+ * copie ».
+ */
+async function envoiDejaJournalise(admin: SupabaseClient, account: MailAccountRow, m: NormalizedMessage): Promise<boolean> {
+  if (!m.rfc822MessageId) return false
+  const { data, error } = await admin.from('mail_messages').select('id').eq('account_id', account.id)
+    .eq('rfc822_message_id', m.rfc822MessageId).eq('direction', 'outbound').limit(COPIES_MAX)
+  if (error) throw new Error(`copies de l'envoi: ${error.message}`)
+  const copies = ((data ?? []) as { id: string }[]).map((c) => c.id)
+  if (copies.length === 0) return false
+  const { data: lignes, error: eJournal } = await admin.from('activity_events').select('id')
+    .eq('agency_id', account.agency_id).eq('action', 'email_sent').in('metadata->>message_id', copies).limit(1)
+  if (eJournal) throw new Error(`journal de l'envoi: ${eJournal.message}`)
+  return ((lignes ?? []) as unknown[]).length > 0
 }
 
 /** Ce que `mail-send` reçoit de la copie provisoire d'un envoi Outlook. */

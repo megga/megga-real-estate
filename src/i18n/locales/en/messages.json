@@ -182,6 +182,7 @@
           "colleague": "This address is already connected by another member of the agency. Only its owner can reconnect it.",
           "tooMany": "Too many connection attempts in the last hour. Try again later.",
           "imapAuth": "User name or password rejected by the IMAP server. If the mailbox uses two-step verification, use an app password.",
+          "imapTemporary": "The server is refusing the connection for now (too many open connections, or the service is unavailable). Try again in a few minutes.",
           "imapUnreachable": "The IMAP server is not responding: check its name and port.",
           "imapStarttls": "This IMAP server does not accept STARTTLS on port 143: choose 993.",
           "imapCertificate": "The IMAP server's certificate is not valid for this name: use the server name given by your host.",

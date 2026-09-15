@@ -34,6 +34,26 @@ export class ImapCommandError extends Error {
 export class ImapAuthError extends Error {}
 
 /**
+ * Le serveur a refusé la connexion pour une raison qui PASSE : trop de connexions ouvertes,
+ * service indisponible, quota de connexions atteint. Ce n'est pas le mot de passe — la boîte
+ * se réessaie plus tard, elle n'attend pas qu'on la reconnecte.
+ */
+export class ImapRefusTemporaire extends Error {}
+
+/**
+ * Un NO au LOGIN qui ne dit rien des identifiants (RFC 5530) : `UNAVAILABLE` (un service en
+ * panne), `INUSE`, `LIMIT` (plafond de connexions), `SERVERBUG` — ou l'un de ces textes que
+ * les serveurs mettent derrière un `[ALERT]` (« Too many simultaneous connections »).
+ *
+ * ⛔ TOUT NO ÉTAIT PRIS POUR UN MOT DE PASSE REFUSÉ (revue du 15.09.2026) : un `NO [INUSE]`
+ * passager, ou un « too many connections » quand l'agent a son téléphone et son webmail
+ * ouverts, mettait la boîte en « autorisation à renouveler » dès le premier refus — la
+ * synchro s'arrêtait jusqu'à ce que l'agent retape un mot de passe qui était bon.
+ */
+const REFUS_TEMPORAIRE = /\[(?:UNAVAILABLE|INUSE|LIMIT|SERVERBUG)\]|too many|try again|temporar|unavailable|later|overload|busy|throttl/i
+export const refusTemporaire = (reponse: string): boolean => REFUS_TEMPORAIRE.test(reponse) && !/\[(?:AUTHENTICATIONFAILED|AUTHORIZATIONFAILED|EXPIRED)\]/i.test(reponse)
+
+/**
  * Un argument qu'aucune commande IMAP ne peut porter — refusé AVANT d'écrire quoi que ce
  * soit sur la connexion.
  */
@@ -229,9 +249,12 @@ export class ImapClient {
       if (horsAscii || this.has('LOGINDISABLED')) tagged = await this.authenticatePlain(user, password)
       else tagged = (await this.cmd(`LOGIN ${quote(user)} ${quote(password)}`)).tagged
     } catch (e) {
-      // Un NO à l'authentification, c'est le mot de passe ou l'identifiant. Le reste
-      // (connexion coupée, BAD de syntaxe) garde son erreur d'origine.
-      if (e instanceof ImapCommandError && / NO /.test(` ${e.reponse} `)) throw new ImapAuthError(e.reponse)
+      // Un NO à l'authentification, c'est le mot de passe ou l'identifiant — sauf quand il dit
+      // lui-même qu'il passera (`refusTemporaire`). Le reste (connexion coupée, BAD de
+      // syntaxe) garde son erreur d'origine.
+      if (e instanceof ImapCommandError && / NO /.test(` ${e.reponse} `)) {
+        throw refusTemporaire(e.reponse) ? new ImapRefusTemporaire(e.reponse) : new ImapAuthError(e.reponse)
+      }
       throw e
     }
     // ⚠ ÉCART 2 — LES CAPACITÉS D'AVANT LOGIN NE SONT PAS CELLES D'APRÈS, et le
@@ -321,6 +344,14 @@ export class ImapClient {
     if (a < de) return []
     const { untagged } = await this.cmd(`UID SEARCH UID ${de}:${a}`)
     return lireSearch(untagged).filter((u) => u >= de && u <= a)
+  }
+
+  /** Ceux de ces UID qui existent encore dans le dossier ouvert — une commande pour tous. */
+  async uidPresents(uids: number[]): Promise<number[]> {
+    if (uids.length === 0) return []
+    const { untagged } = await this.cmd(`UID SEARCH UID ${uids.join(',')}`)
+    const voulus = new Set(uids)
+    return lireSearch(untagged).filter((u) => voulus.has(u))
   }
 
   /** Le message qui porte cet en-tête `Message-ID` dans le dossier ouvert. */

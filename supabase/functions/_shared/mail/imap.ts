@@ -16,7 +16,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type {
   ImapConfig, ImapCursor, ImapFolderCursor, ImapSecret, MailAccountRow, MailThreadAction, NormalizedMessage, RemoteChange,
 } from './types.ts'
-import { ImapAuthError, ImapClient, type ImapFolder, type ImapMeta } from './imap-client.ts'
+import { ImapAuthError, ImapClient, ImapRefusTemporaire, type ImapFolder, type ImapMeta } from './imap-client.ts'
 import { denoTcpDuplex, denoTlsDuplex, type DialOptions, type Duplex } from './duplex.ts'
 import { resolvePublicHost } from '../safe-fetch.ts'
 import { attachmentFromRaw, internalDateIso, parseEntetesSeuls, parseRfc822 } from './mime-parse.ts'
@@ -141,7 +141,8 @@ async function motDePasse(admin: SupabaseClient, account: MailAccountRow): Promi
 /**
  * Ouvre la boîte d'un compte. ⚠ Un refus d'identifiants devient `reauth_required` — le
  * même verdict qu'un jeton OAuth révoqué : le mot de passe a changé, la boîte attend
- * qu'on la reconnecte, et le balayage cesse de la marteler.
+ * qu'on la reconnecte, et le balayage cesse de la marteler. Un refus TEMPORAIRE
+ * (`ImapRefusTemporaire`) reste un échec ordinaire : la passe suivante réessaie.
  */
 async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps: ImapDeps, dialOpts: DialOptions = {}): Promise<{ client: ImapClient; folders: ImapFolders; password: string }> {
   const cfg = account.imap_config
@@ -151,6 +152,8 @@ async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps
     return { ...(await imapOpen(cfg, password, deps, dialOpts)), password }
   } catch (e) {
     if (e instanceof ImapAuthError) throw new MailAuthError('reauth_required', `imap: identifiants refusés (${e.message.slice(0, 120)})`)
+    // Sans le texte du serveur : `last_error` est lisible de l'agence (voir `connect`).
+    if (e instanceof ImapRefusTemporaire) throw new Error('imap: connexion refusée pour un temps par le serveur (trop de connexions, service indisponible)')
     throw e
   }
 }
@@ -161,7 +164,7 @@ async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps
  * serveur — l'écran le traduit ; le texte va au journal de la fonction.
  */
 export type EchecConnexion =
-  | 'imap_auth' | 'imap_unreachable' | 'imap_starttls' | 'imap_certificate'
+  | 'imap_auth' | 'imap_temporaire' | 'imap_unreachable' | 'imap_starttls' | 'imap_certificate'
   | 'smtp_auth' | 'smtp_unreachable' | 'smtp_starttls' | 'smtp_certificate'
 
 /**
@@ -179,6 +182,7 @@ export async function imapTestConnexion(cfg: ImapConfig, password: string, deps:
   } catch (e) {
     const m = texte(e)
     const code = e instanceof ImapAuthError ? 'imap_auth'
+      : e instanceof ImapRefusTemporaire ? 'imap_temporaire'
       : certificatRefuse(m) ? 'imap_certificate'
       : /starttls_unavailable/.test(m) ? 'imap_starttls'
       : 'imap_unreachable'
@@ -224,6 +228,8 @@ const TRANCHE = 20
 const FENETRE_DRAPEAUX = 200
 /** Les plus anciens messages du Spam dont on vérifie, à chaque passe, qu'ils n'ont pas été purgés. */
 const PURGES_PAR_PASSE = 500
+/** Les messages sortis de la Réception qu'on va chercher dans l'Archive et la Corbeille, par passe. */
+const RELOCALISATIONS_PAR_PASSE = 25
 
 export interface ImapPassResult { cursor: ImapCursor; inserted: number; updated: number; changes: number; auditFailures: number; done: boolean }
 
@@ -256,9 +262,14 @@ export async function cleDeFil(admin: SupabaseClient, accountId: string, m: Norm
 
 /**
  * Un message déjà en base sous un AUTRE identifiant (déplacé dans le webmail, dossier
- * recréé) est rebaptisé au lieu d'être dupliqué. Reconnu par son Message-ID, sa direction —
- * un envoi en copie à soi-même garde ses deux exemplaires, entrant et sortant — et sa DATE
- * D'ARRIVÉE.
+ * recréé) est rebaptisé au lieu d'être dupliqué. Reconnu par son Message-ID, sa DATE
+ * D'ARRIVÉE, et le même CÔTÉ de la boîte : « Envoyés », ou la Réception et le Spam — un envoi
+ * en copie à soi-même garde ses deux exemplaires, l'un dans « Envoyés », l'autre en Réception.
+ *
+ * ⚠ Plus par le SENS : il suit le dossier (`sensDuMessage`) — un courrier écrit au nom de la
+ * boîte est entrant au Spam, sortant en Réception. Remis en Réception dans le webmail, il n'était
+ * plus reconnu : une seconde ligne naissait, et `resynchroniserSpam` voulait donner à l'ancienne
+ * l'identifiant de la nouvelle.
  *
  * ⛔ LE MESSAGE-ID SEUL N'EST PAS UNE IDENTITÉ : l'expéditeur l'écrit comme il veut. Un
  * courrier NEUF qui reprenait celui d'un message connu — un co-destinataire en copie le
@@ -269,17 +280,18 @@ export async function cleDeFil(admin: SupabaseClient, accountId: string, m: Norm
  * Sans elle, ou quand elle diffère, on n'identifie rien : un doublon visible vaut mieux
  * qu'un message réécrit.
  */
-async function reconnaitreDeplace(admin: SupabaseClient, accountId: string, m: NormalizedMessage, internalDate: string | null): Promise<void> {
+async function reconnaitreDeplace(admin: SupabaseClient, accountId: string, m: NormalizedMessage, internalDate: string | null, envoyes: string | null): Promise<void> {
   if (!m.rfc822MessageId) return
   const arrivee = Date.parse(internalDateIso(internalDate) ?? '')
   if (Number.isNaN(arrivee)) return
   const { data, error } = await admin.from('mail_messages').select('id, provider_message_id, sent_at')
-    .eq('account_id', accountId).eq('rfc822_message_id', m.rfc822MessageId).eq('direction', m.direction).limit(5)
+    .eq('account_id', accountId).eq('rfc822_message_id', m.rfc822MessageId).limit(5)
   if (error) throw new Error(`message déplacé, recherche: ${error.message}`)
   const lignes = (data ?? []) as { id: string; provider_message_id: string; sent_at: string | null }[]
   if (lignes.some((l) => l.provider_message_id === m.providerMessageId)) return
+  const cote = (pid: string) => splitProviderId(pid)?.folder === envoyes
   // Une ligne `pending:` est l'affaire de l'ingestion (copie « Envoyés » d'un envoi du CRM).
-  const ancien = lignes.find((l) => !l.provider_message_id.startsWith('pending:') && Date.parse(l.sent_at ?? '') === arrivee)
+  const ancien = lignes.find((l) => !l.provider_message_id.startsWith('pending:') && cote(l.provider_message_id) === m.inSent && Date.parse(l.sent_at ?? '') === arrivee)
   if (!ancien) return
   const { error: e2 } = await admin.from('mail_messages').update({ provider_message_id: m.providerMessageId }).eq('id', ancien.id)
   if (e2) throw new Error(`message déplacé, renommage: ${e2.message}`)
@@ -345,7 +357,7 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
             if (!m || m.isDraft) continue
             // Le spam a son propre fil, décidé à l'ingestion (`cleDeFilSpam`).
             if (!m.isSpam) m.providerThreadId = await cleDeFil(admin, account.id, m)
-            await reconnaitreDeplace(admin, account.id, m, meta.internalDate)
+            await reconnaitreDeplace(admin, account.id, m, meta.internalDate, folders.sent)
             lot.push(m)
           }
           const r = await ingestMessages(admin, account, lot)
@@ -379,7 +391,7 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
 
       // 3. Les drapeaux posés ailleurs (webmail, téléphone) — Réception ; et, pour le Spam,
       //    les messages qui l'ont QUITTÉ (remis en Réception, ou purgés par le fournisseur).
-      if (role === 'inbox' && reste() > 0) out.changes += await resynchroniserDrapeaux(admin, account, client, nom, etat)
+      if (role === 'inbox' && reste() > 0) out.changes += await resynchroniserDrapeaux(admin, account, client, nom, etat, folders)
       if (role === 'junk' && reste() > 0) out.changes += await resynchroniserSpam(admin, account, client, nom, etat, folders.inbox)
     }
   } finally {
@@ -437,13 +449,17 @@ async function lire(client: ImapClient, account: MailAccountRow, dossier: string
  * lu / non lu, suivi, et le message SORTI de la Réception (archivé ou supprimé dans le
  * webmail) — jugé sur le message ENTRANT le plus récent de chaque fil, pour qu'un vieux
  * message rangé ailleurs n'archive pas une conversation encore vivante.
+ *
+ * ⚠ Sorti de la Réception, il est cherché dans l'Archive et la Corbeille (`retrouver`) : sa
+ * ligne prend l'identifiant qu'il y porte — le prochain geste le trouvera là —, et un courrier
+ * mis à la corbeille dans le webmail se lit « Corbeille », plus « Archivé ».
  */
-async function resynchroniserDrapeaux(admin: SupabaseClient, account: MailAccountRow, client: ImapClient, dossier: string, etat: ImapFolderCursor): Promise<number> {
-  const { data, error } = await admin.from('mail_messages').select('provider_message_id, is_read, thread_id, direction')
+async function resynchroniserDrapeaux(admin: SupabaseClient, account: MailAccountRow, client: ImapClient, dossier: string, etat: ImapFolderCursor, folders: ImapFolders): Promise<number> {
+  const { data, error } = await admin.from('mail_messages').select('provider_message_id, is_read, thread_id, direction, rfc822_message_id, sent_at')
     .eq('account_id', account.id).like('provider_message_id', `${echapperLike(`${dossier}:${etat.uidValidity}:`)}%`)
     .order('sent_at', { ascending: false }).limit(FENETRE_DRAPEAUX)
   if (error) throw new Error(`drapeaux, messages connus: ${error.message}`)
-  const connus = ((data ?? []) as { provider_message_id: string; is_read: boolean; thread_id: string; direction: string }[])
+  const connus = ((data ?? []) as { provider_message_id: string; is_read: boolean; thread_id: string; direction: string; rfc822_message_id: string | null; sent_at: string | null }[])
     .map((r) => ({ ...r, uid: splitProviderId(r.provider_message_id)?.uid ?? 0 }))
     .filter((r) => r.uid > 0 && r.uid <= etat.lastUid)
   if (connus.length === 0) return 0
@@ -472,9 +488,24 @@ async function resynchroniserDrapeaux(admin: SupabaseClient, account: MailAccoun
     const temoin = connus.find((c) => c.thread_id === threadId && distants.has(c.uid))
     if (f && temoin && f.is_starred !== suivi) changes.push({ kind: 'flags', providerMessageId: temoin.provider_message_id, isStarred: suivi })
   }
+  let relocalises = 0
   for (const [threadId, c] of plusRecentEntrant) {
     const f = etatFil.get(threadId)
-    if (f && !f.is_archived && !distants.has(c.uid)) changes.push({ kind: 'flags', providerMessageId: c.provider_message_id, inInbox: false })
+    if (!f || f.is_archived || distants.has(c.uid)) continue
+    const la = relocalises++ < RELOCALISATIONS_PAR_PASSE
+      ? await retrouver(client, async (d) => (await client.examine(d)).uidValidity, c, [folders.archive, folders.trash])
+      : null
+    if (!la) { changes.push({ kind: 'flags', providerMessageId: c.provider_message_id, inInbox: false }); continue }
+    const nouveau = providerId(la.folder, la.uidValidity, la.uid)
+    // Une autre ligne le désigne déjà (un doublon du même courrier) : l'unicité refuserait.
+    const { data: deja, error: eDeja } = await admin.from('mail_messages').select('id')
+      .eq('account_id', account.id).eq('provider_message_id', nouveau).maybeSingle()
+    if (eDeja) throw new Error(`drapeaux, message rangé: ${eDeja.message}`)
+    if (deja) { changes.push({ kind: 'flags', providerMessageId: c.provider_message_id, inInbox: false }); continue }
+    const { error: e } = await admin.from('mail_messages').update({ provider_message_id: nouveau })
+      .eq('account_id', account.id).eq('provider_message_id', c.provider_message_id)
+    if (e) throw new Error(`drapeaux, renommage: ${e.message}`)
+    changes.push({ kind: 'flags', providerMessageId: nouveau, inInbox: false, ...(la.folder === folders.trash ? { isTrashed: true } : {}) })
   }
   return applyRemoteChanges(admin, account, changes)
 }
@@ -539,6 +570,13 @@ async function resynchroniserSpam(admin: SupabaseClient, account: MailAccountRow
       const trouves = mid ? await client.uidSearchHeaderMessageId(mid) : []
       if (trouves.length === 0) { changes.push({ kind: 'message_deleted', providerMessageId: c.provider_message_id }); continue }
       const nouveau = providerId(reception, sel.uidValidity, Math.max(...trouves))
+      // ⛔ Déjà repris par la passe de la Réception comme un courrier NEUF (date d'arrivée
+      // changée par le déplacement) : l'ancienne ligne s'efface. La renommer heurtait l'unicité
+      // (compte, identifiant) — la passe levait, au même message, à chaque tick.
+      const { data: deja, error: eDeja } = await admin.from('mail_messages').select('id')
+        .eq('account_id', account.id).eq('provider_message_id', nouveau).maybeSingle()
+      if (eDeja) throw new Error(`spam, message repris: ${eDeja.message}`)
+      if (deja) { changes.push({ kind: 'message_deleted', providerMessageId: c.provider_message_id }); continue }
       const { error: e } = await admin.from('mail_messages').update({ provider_message_id: nouveau })
         .eq('account_id', account.id).eq('provider_message_id', c.provider_message_id)
       if (e) throw new Error(`spam, renommage: ${e.message}`)
@@ -550,7 +588,52 @@ async function resynchroniserSpam(admin: SupabaseClient, account: MailAccountRow
 
 // ── Gestes ────────────────────────────────────────────────────────────────────
 
-export interface ImapMsg { provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id?: string | null }
+export interface ImapMsg { provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id?: string | null; sent_at?: string | null }
+
+/** Ce qu'un geste a fait : les identifiants qui ont changé, et les messages restés introuvables. */
+export interface ImapGeste { renamed: Record<string, string>; introuvables: string[] }
+
+/** Les gestes qui RAMÈNENT un message en Réception : introuvable, il n'y revient pas. */
+const VERS_LA_RECEPTION: ReadonlySet<MailThreadAction> = new Set(['unarchive', 'untrash', 'not_spam'])
+
+/**
+ * Aucun message entrant du fil n'a été retrouvé (`ImapGeste.introuvables`) : le geste qui devait
+ * le ramener en Réception n'a rien ramené, et le dire est la seule réponse juste. ⛔ Il
+ * répondait ok, l'écran montrait le fil en Réception, et la passe suivante le ré-archivait.
+ * Un message introuvable PARMI d'autres retrouvés — supprimé dans le webmail — ne fait pas
+ * échouer le fil : ceux qui existent sont revenus.
+ */
+export function rienRetrouve(msgs: Pick<ImapMsg, 'provider_message_id' | 'direction'>[], introuvables: ReadonlySet<string>): boolean {
+  const entrants = msgs.filter((m) => m.direction === 'inbound' && !m.provider_message_id.startsWith('pending:'))
+  return entrants.length > 0 && entrants.every((m) => introuvables.has(m.provider_message_id))
+}
+
+/**
+ * Un message rangé AILLEURS que là où la base le croit — archivé depuis le téléphone, mis à la
+ * corbeille du webmail —, retrouvé par son Message-ID et sa DATE D'ARRIVÉE, dossier par
+ * dossier. `null` s'il n'est dans aucun.
+ *
+ * ⛔ Jamais par le Message-ID seul : l'expéditeur l'écrit comme il veut (cf.
+ * `reconnaitreDeplace`) ; l'INTERNALDATE, posée par le serveur à l'arrivée, survit à un
+ * déplacement. `ouvrir` ouvre le dossier et rend son UIDVALIDITY : EXAMINE pour la synchro,
+ * SELECT pour un geste.
+ */
+async function retrouver(
+  client: ImapClient, ouvrir: (dossier: string) => Promise<number>,
+  m: { rfc822_message_id?: string | null; sent_at?: string | null }, dossiers: (string | null)[],
+): Promise<{ folder: string; uidValidity: number; uid: number } | null> {
+  const mid = nettoyerMessageId(m.rfc822_message_id)
+  const arrivee = Date.parse(m.sent_at ?? '')
+  if (!mid || Number.isNaN(arrivee)) return null
+  for (const dossier of new Set(dossiers.filter((d): d is string => !!d))) {
+    const uidValidity = await ouvrir(dossier)
+    const uids = await client.uidSearchHeaderMessageId(mid)
+    if (uids.length === 0) continue
+    const meme = (await client.uidFetchMeta(uids.join(','))).find((x) => Date.parse(internalDateIso(x.internalDate) ?? '') === arrivee)
+    if (meme) return { folder: dossier, uidValidity, uid: meme.uid }
+  }
+  return null
+}
 
 /**
  * Le dossier d'un message a été RECRÉÉ depuis que la base l'a lu : son UID désigne peut-être
@@ -577,34 +660,70 @@ export class ImapDossierRecree extends Error {
  *
  * ⚠ Seuls les messages ENTRANTS se déplacent, comme chez Graph : une copie « Envoyés »
  * reste dans les Envoyés.
+ *
+ * ⛔ UN MESSAGE RANGÉ AILLEURS GARDAIT SON ANCIEN UID (revue du 15.09.2026). Archivé depuis le
+ * téléphone ou le webmail, il quitte la Réception sous un nouvel UID que la synchro ne voit
+ * pas (elle ne lit que Réception, Envoyés et Spam) : la ligne gardait `INBOX:…`. « Désarchiver »
+ * visait alors la Réception, n'y trouvait rien à déplacer, répondait ok — et la passe suivante
+ * ré-archivait le fil ; « Supprimer » déplaçait un UID absent. Avant un DÉPLACEMENT, la présence
+ * est désormais vérifiée (une commande par dossier) ; un absent est cherché dans les autres
+ * dossiers (`retrouver`), le geste porte sur lui là où il est, et son identifiant suit.
+ * Introuvable, il est rendu dans `introuvables` pour un geste qui le ramènerait en Réception —
+ * qui ne peut pas réussir sans lui ; archiver, supprimer ou signaler un message qui n'est plus en
+ * Réception atteint son but sans rien déplacer.
+ *
+ * ⚠ Un DRAPEAU (lu, étoile) ne cherche pas : ouvrir un fil le marque lu, et un message supprimé
+ * dans le webmail coûterait à chaque ouverture une recherche dans quatre dossiers. Posé sur un UID
+ * absent, il ne fait rien (RFC 3501) ; le prochain déplacement, ou la synchro, suit le message.
  */
-export async function imapApply(admin: SupabaseClient, account: MailAccountRow, action: MailThreadAction, msgs: ImapMsg[], deps: ImapDeps = {}): Promise<Record<string, string>> {
+export async function imapApply(admin: SupabaseClient, account: MailAccountRow, action: MailThreadAction, msgs: ImapMsg[], deps: ImapDeps = {}): Promise<ImapGeste> {
   const renamed: Record<string, string> = {}
+  const introuvables: string[] = []
   const { client, folders } = await ouvrirCompte(admin, account, deps)
   try {
     let ouvert: string | null = null
     let validite = 0
-    const ouvrir = async (dossier: string) => {
+    const ouvrir = async (dossier: string): Promise<number> => {
       if (ouvert !== dossier) { validite = (await client.select(dossier)).uidValidity; ouvert = dossier }
+      return validite
     }
     // Le dossier du message, et SON UIDVALIDITY : sinon l'UID vise un autre message.
     const viser = async (p: { folder: string; uidValidity: number }) => {
       await ouvrir(p.folder)
       if (validite !== p.uidValidity) throw new ImapDossierRecree(p.folder)
     }
+    const drapeaux = action === 'mark_read' || action === 'mark_unread' || action === 'star' || action === 'unstar'
+    const vises = msgs.flatMap((m) => {
+      const p = m.provider_message_id.startsWith('pending:') ? null : splitProviderId(m.provider_message_id)
+      return p && (drapeaux || m.direction === 'inbound') ? [{ m, p }] : []
+    })
+    const presents = new Set<string>()
+    const parDossier = new Map<string, typeof vises>()
+    if (!drapeaux) for (const v of vises) parDossier.set(v.p.folder, [...(parDossier.get(v.p.folder) ?? []), v])
+    for (const [dossier, lot] of parDossier) {
+      for (const v of lot) await viser(v.p)
+      for (const uid of await client.uidPresents(lot.map((v) => v.p.uid))) presents.add(providerId(dossier, validite, uid))
+    }
     let archive = folders.archive
     let junk = folders.junk
-    for (const m of msgs) {
-      if (m.provider_message_id.startsWith('pending:')) continue
-      const p = splitProviderId(m.provider_message_id)
-      if (!p) continue
-      if (action === 'mark_read' || action === 'mark_unread' || action === 'star' || action === 'unstar') {
+    for (const { m, p: stocke } of vises) {
+      let p = stocke
+      if (!drapeaux && !presents.has(m.provider_message_id)) {
+        const ailleurs = [folders.inbox, archive, folders.trash, junk, folders.sent].filter((d) => d !== stocke.folder)
+        const la = await retrouver(client, ouvrir, m, ailleurs)
+        if (!la) {
+          if (VERS_LA_RECEPTION.has(action)) introuvables.push(m.provider_message_id)
+          continue
+        }
+        p = la
+        renamed[m.provider_message_id] = providerId(la.folder, la.uidValidity, la.uid)
+      }
+      if (drapeaux) {
         await viser(p)
         const drapeau = action === 'mark_read' || action === 'mark_unread' ? '\\Seen' : '\\Flagged'
         await client.uidStore(p.uid, [drapeau], action === 'mark_read' || action === 'star' ? 'add' : 'remove')
         continue
       }
-      if (m.direction !== 'inbound') continue
       let dest: string | null
       if (action === 'archive') {
         // Une boîte sans dossier d'archive en reçoit un — c'est ce que font Thunderbird et
@@ -640,7 +759,7 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
   } finally {
     await client.logout()
   }
-  return renamed
+  return { renamed, introuvables }
 }
 
 // ── Envoi ─────────────────────────────────────────────────────────────────────

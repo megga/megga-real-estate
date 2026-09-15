@@ -16,9 +16,8 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { gmailLabelPatch, gmailModify } from '../_shared/mail/gmail.ts'
-import { graphMove, graphPatch } from '../_shared/mail/graph.ts'
-import { imapApply } from '../_shared/mail/imap.ts'
+import { gesteChezLeFournisseur, refusDuFil, renommagesDe, type GesteFournisseur } from '../_shared/mail/gestes.ts'
+import { imapApply, rienRetrouve } from '../_shared/mail/imap.ts'
 import { linkThreadToContact, rattacherApresSpam, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import { appliquerEnLot, lireLot } from '../_shared/mail/lot.ts'
@@ -37,33 +36,7 @@ function json(body: unknown, status = 200): Response {
 type ThreadAction = MailThreadAction
 const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash', 'spam', 'not_spam']
 
-interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null; is_spam: boolean }
-
-/** Applique le geste chez le fournisseur, message par message. Rend les nouveaux ids Graph (move). */
-async function pushToProvider(account: MailAccountRow, token: string, action: ThreadAction, msgs: MsgRow[]): Promise<Record<string, string>> {
-  const renamed: Record<string, string> = {}
-  for (const m of msgs) {
-    if (m.provider_message_id.startsWith('pending:')) continue
-    if (account.provider === 'gmail') {
-      // La table des libellés vit dans `gmail.ts` — pure, donc éprouvée par un test
-      // unitaire. Elle dépend de la DIRECTION du message : voir son en-tête (INBOX ne se
-      // pose jamais sur une copie « Envoyés »).
-      const { add, remove } = gmailLabelPatch(action, m.direction)
-      if (add.length === 0 && remove.length === 0) continue
-      await gmailModify(token, m.provider_message_id, add, remove)
-    } else if (account.provider === 'outlook') {
-      if (action === 'mark_read' || action === 'mark_unread') await graphPatch(token, m.provider_message_id, { isRead: action === 'mark_read' })
-      else if (action === 'star' || action === 'unstar') await graphPatch(token, m.provider_message_id, { flagged: action === 'star' })
-      else if (m.direction === 'inbound') {
-        const dest = action === 'archive' ? 'archive' : action === 'trash' ? 'deleteditems' : action === 'spam' ? 'junkemail' : 'inbox'
-        renamed[m.provider_message_id] = await graphMove(token, m.provider_message_id, dest)
-      }
-    } else {
-      throw new Error(`provider ${account.provider} not supported by this build`)
-    }
-  }
-  return renamed
-}
+interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null; is_spam: boolean; sent_at: string | null }
 
 /** Réécrit en base les ids que le déplacement a changés. Lève sur un échec d'écriture. */
 async function renommerIds(admin: SupabaseClient, account: MailAccountRow, renamed: Record<string, string>): Promise<void> {
@@ -165,35 +138,52 @@ serve(async (req: Request) => {
     const parFil = new Map<string, MsgRow[]>()
     {
       const { data: tous, error: eTous } = await admin.from('mail_messages')
-        .select('id, thread_id, provider_message_id, direction, rfc822_message_id, is_spam').in('thread_id', [...connus])
+        .select('id, thread_id, provider_message_id, direction, rfc822_message_id, is_spam, sent_at').in('thread_id', [...connus])
       if (eTous) { console.error(`[mail-actions] lot, messages: ${redactedErrorMessage(eTous)}`); return json({ error: 'messages_query_failed' }, 500) }
       for (const m of (tous ?? []) as (MsgRow & { thread_id: string })[]) parFil.set(m.thread_id, [...(parFil.get(m.thread_id) ?? []), m])
     }
-    let chezLeFournisseur: (msgs: MsgRow[]) => Promise<void>
+    let chezLeFournisseur: (msgs: MsgRow[]) => Promise<string | null>
     if (account.provider === 'imap') {
       // UNE connexion pour tout le lot : douze connexions d'affilée, ce sont douze
       // identifications par mot de passe — ce qu'un hébergeur peut prendre pour une attaque.
       // Un refus y vaut donc pour tout le lot ; la synchro suivante recale ce qui serait
       // passé avant lui.
+      let introuvables: ReadonlySet<string>
       try {
-        await renommerIds(admin, account, await imapApply(admin, account, geste, [...connus].flatMap((id) => parFil.get(id) ?? [])))
+        const r = await imapApply(admin, account, geste, [...connus].flatMap((id) => parFil.get(id) ?? []))
+        await renommerIds(admin, account, r.renamed)
+        introuvables = new Set(r.introuvables)
       } catch (e) {
         console.error(`[mail-actions] lot IMAP refusé: ${redactedErrorMessage(e)}`)
         return json({ ok: true, results: ids.map((id) => ({ thread_id: id, ok: false, error: connus.has(id) ? 'provider_failed' : 'thread_not_found' })) })
       }
-      chezLeFournisseur = async () => {}
+      chezLeFournisseur = async (msgs) => (rienRetrouve(msgs, introuvables) ? 'message_not_found' : null)
     } else {
       let token: string
       try { token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook) } catch (e) {
         console.error(`[mail-actions] lot, jeton: ${redactedErrorMessage(e)}`)
         return json({ error: 'provider_failed' }, 502)
       }
-      chezLeFournisseur = async (msgs) => renommerIds(admin, account, await pushToProvider(account, token, geste, msgs))
+      // UN passage chez le fournisseur pour tout le lot (appels groupés) ; le verdict, par fil.
+      let fait: GesteFournisseur
+      try {
+        fait = await gesteChezLeFournisseur(account.provider, token, geste, [...connus].flatMap((id) => parFil.get(id) ?? []))
+      } catch (e) {
+        console.error(`[mail-actions] lot, fournisseur: ${redactedErrorMessage(e)}`)
+        return json({ ok: true, results: ids.map((id) => ({ thread_id: id, ok: false, error: connus.has(id) ? 'provider_failed' : 'thread_not_found' })) })
+      }
+      chezLeFournisseur = async (msgs) => {
+        await renommerIds(admin, account, renommagesDe(fait.renamed, msgs))
+        return refusDuFil(msgs, fait)
+      }
     }
     const results = await appliquerEnLot(ids, connus, async (id) => {
       const msgs = parFil.get(id) ?? []
       if (msgs.length === 0) return 'thread_empty'
-      try { await chezLeFournisseur(msgs) } catch (e) {
+      try {
+        const refus = await chezLeFournisseur(msgs)
+        if (refus) return refus
+      } catch (e) {
         console.error(`[mail-actions] fil ${id}, fournisseur: ${redactedErrorMessage(e)}`)
         return 'provider_failed'
       }
@@ -224,14 +214,14 @@ serve(async (req: Request) => {
 
   if (!THREAD_ACTIONS.includes(action as ThreadAction)) return json({ error: 'unknown_action' }, 400)
   // ⛔ Ce que le fournisseur doit recevoir, on refuse de le DEVINER. La lecture ne
-  // vérifiait pas son erreur : `msgs = null` donnait une liste vide, la boucle de
-  // `pushToProvider` « réussissait » sans rien envoyer, l'état local était écrit quand
+  // vérifiait pas son erreur : `msgs = null` donnait une liste vide, les appels au
+  // fournisseur « réussissaient » sans rien envoyer, l'état local était écrit quand
   // même et l'API répondait `{ ok: true }`. L'agent archivait un fil : archivé dans le
   // CRM, intact dans Gmail — et le balayage de 2 minutes le rétablissait. Rien nulle
   // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
   // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
   // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
-  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id, is_spam').eq('thread_id', thread.id)
+  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id, is_spam, sent_at').eq('thread_id', thread.id)
   if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
   if (!msgs || msgs.length === 0) {
     console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
@@ -240,10 +230,15 @@ serve(async (req: Request) => {
 
   try {
     // IMAP : un mot de passe et UNE connexion pour tout le fil (imap.ts) — pas de jeton OAuth.
-    const renamed = account.provider === 'imap'
-      ? await imapApply(admin, account, action as ThreadAction, msgs as MsgRow[])
-      : await pushToProvider(account, await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook), action as ThreadAction, msgs as MsgRow[])
-    await renommerIds(admin, account, renamed)
+    if (account.provider === 'imap') {
+      const r = await imapApply(admin, account, action as ThreadAction, msgs as MsgRow[])
+      await renommerIds(admin, account, r.renamed)
+      if (rienRetrouve(msgs as MsgRow[], new Set(r.introuvables))) return json({ error: 'message_not_found' }, 409)
+    } else {
+      const r = await gesteChezLeFournisseur(account.provider, await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook), action as ThreadAction, msgs as MsgRow[])
+      await renommerIds(admin, account, r.renamed)
+      if (refusDuFil(msgs as MsgRow[], r)) return json({ error: 'provider_failed', detail: `${r.refuses.size} message(s) refusé(s) par le fournisseur` }, 502)
+    }
   } catch (e) {
     return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
   }

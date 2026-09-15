@@ -1,7 +1,7 @@
 // supabase/functions/_shared/mail/mime.ts
 // Adresses, RFC 2047, base64url, HTML↔texte, construction d'un message RFC 5322.
 // PUR (aucun import runtime) : testé sous Node, exécuté sous Deno.
-import type { MailAddress, OutgoingMessage } from './types.ts'
+import type { MailAddress, MailDirection, OutgoingMessage } from './types.ts'
 
 const CRLF = '\r\n'
 
@@ -106,23 +106,27 @@ export function encodeHeaderWord(s: string): string {
 export function parseAddress(raw: string): MailAddress | null {
   const s = decodeRfc2047((raw ?? '').trim())
   if (!s) return null
-  const m = s.match(/^(?:"?([^"<]*)"?\s*)?<([^>]+)>$/)
+  // Le nom : entre guillemets (échappements `\"` et `\\` compris), ou nu.
+  const m = s.match(/^(?:"((?:[^"\\]|\\.)*)"|([^<]*?))\s*<([^>]+)>$/)
   if (m) {
-    const name = (m[1] ?? '').trim()
-    return { name: name || null, email: m[2].trim().toLowerCase() }
+    const name = (m[1] !== undefined ? m[1].replace(/\\(.)/g, '$1') : (m[2] ?? '').replace(/^"|"$/g, '')).trim()
+    return { name: name || null, email: m[3].trim().toLowerCase() }
   }
   const bare = s.replace(/^<|>$/g, '').trim()
   if (!bare.includes('@')) return null
   return { name: null, email: bare.toLowerCase() }
 }
 
-/** Sépare sur les virgules qui ne sont ni entre guillemets ni entre chevrons. */
+/** Sépare sur les virgules qui ne sont ni entre guillemets (échappements compris) ni entre chevrons. */
 export function parseAddressList(raw: string): MailAddress[] {
   const out: MailAddress[] = []
   let cur = ''
   let quoted = false
+  let echappe = false
   let angle = 0
   for (const ch of raw ?? '') {
+    if (echappe) { echappe = false; cur += ch; continue }
+    if (ch === '\\' && quoted) { echappe = true; cur += ch; continue }
     if (ch === '"') quoted = !quoted
     else if (ch === '<' && !quoted) angle++
     else if (ch === '>' && !quoted) angle = Math.max(0, angle - 1)
@@ -139,8 +143,47 @@ export function parseAddressList(raw: string): MailAddress[] {
   return out
 }
 
+/** Les caractères qui imposent de citer un nom d'affichage (RFC 5322 §3.2.3, `specials`). */
+const SPECIAUX = /[()<>[\]:;@\\,."]/
+
+/**
+ * Une adresse telle qu'elle part dans un en-tête : « Nom <a@b.ch> ».
+ *
+ * ⛔ UN NOM À VIRGULE S'ÉCRIVAIT SANS GUILLEMETS (revue du 15.09.2026). Répondre à un
+ * expéditeur « Rochat, Camille » (la forme d'Exchange) écrivait `To: Rochat, Camille <c@…>`,
+ * que tout lecteur lit comme DEUX adresses : en SMTP, un faux destinataire « Rochat » ; chez
+ * Gmail, un envoi refusé. Un nom qui porte un caractère spécial part entre guillemets,
+ * `"` et `\` échappés ; un nom non ASCII part en mot encodé, qui n'en a pas besoin.
+ */
 export function formatAddress(a: MailAddress): string {
-  return a.name ? `${encodeHeaderWord(a.name)} <${a.email}>` : a.email
+  if (!a.name) return a.email
+  if (/[^\x20-\x7e]/.test(a.name)) return `${encodeHeaderWord(a.name)} <${a.email}>`
+  return SPECIAUX.test(a.name) ? `"${a.name.replace(/["\\]/g, (c) => `\\${c}`)}" <${a.email}>` : `${a.name} <${a.email}>`
+}
+
+/**
+ * Le SENS d'un message : écrit par la boîte (sortant) ou reçu (entrant).
+ *
+ * ⛔ IL SE DÉCIDAIT SUR `From`, QUE L'EXPÉDITEUR ÉCRIT (revue du 15.09.2026). « Envoyés », OU
+ * `From` = la boîte : l'arnaque qui usurpe l'adresse de la boîte (« j'ai piraté votre
+ * compte »), rangée au spam par le fournisseur, sortait « envoyée par l'agent » — son fil hors
+ * du Spam, dans « Envoyés » ; un formulaire de site qui écrit au nom de la boîte, `Reply-To` =
+ * le prospect, n'arrivait jamais en Réception.
+ *
+ * Le rangement du fournisseur fait foi : « Envoyés » (libellé `SENT`, Sent Items, `\Sent`) est
+ * sortant, le spam est entrant, quel que soit `From`. Ailleurs, `From` = la boîte reste
+ * sortant — la copie qu'Exchange ou un serveur IMAP dépose en Réception quand l'agent se met en
+ * copie —, sauf si `Reply-To` renvoie ailleurs : ce message attend sa réponse chez un tiers.
+ *
+ * ⚠ Ce sens-là classe et affiche. Ce qui ENGAGE — le journal `email_sent`, la reprise d'une
+ * ligne `pending:` — exige « Envoyés » (`NormalizedMessage.inSent`) : `From` n'y suffit jamais.
+ */
+export function sensDuMessage(p: { dansEnvoyes: boolean; spam: boolean; from: string; replyTo: string | null; boite: string }): MailDirection {
+  if (p.dansEnvoyes) return 'outbound'
+  if (p.spam) return 'inbound'
+  const boite = p.boite.trim().toLowerCase()
+  if (p.from.trim().toLowerCase() !== boite) return 'inbound'
+  return p.replyTo && p.replyTo.trim().toLowerCase() !== boite ? 'inbound' : 'outbound'
 }
 
 // ── Corps ─────────────────────────────────────────────────────────────────────

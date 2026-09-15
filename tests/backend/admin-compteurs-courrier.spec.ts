@@ -64,9 +64,9 @@ describe.skipIf(!HAS_KEYS)('Console — les compteurs « e-mails » hors du cour
     const avant = await lire()
     const envoye: NormalizedMessage = {
       providerMessageId: `sent-${stamp}`, providerThreadId: `t-${stamp}`, rfc822MessageId: `<${stamp}@a.test>`, inReplyTo: null, references: [],
-      direction: 'outbound', from: { name: 'Agent', email: boite.email }, to: [{ name: null, email: DEST }], cc: [], bcc: [],
+      direction: 'outbound', inSent: true, from: { name: 'Agent', email: boite.email }, to: [{ name: null, email: DEST }], cc: [], bcc: [],
       replyTo: null, subject: 'Offre', snippet: 'Voici', bodyText: 'Voici', bodyHtml: null, sentAt: new Date().toISOString(),
-      isRead: true, isStarred: false, inInbox: false, isTrashed: false, isDraft: false, providerLabels: ['SENT'], attachments: [],
+      isRead: true, isStarred: false, inInbox: false, isTrashed: false, isSpam: false, isDraft: false, providerLabels: ['SENT'], attachments: [],
     }
     expect(await ingestMessages(service, boite, [envoye])).toEqual({ inserted: 1, updated: 0, auditFailures: 0 })
     // Témoin : la synchro a bien écrit un `email_sent` — l'ancien compteur l'aurait compté.

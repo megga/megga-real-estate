@@ -182,6 +182,7 @@
           "colleague": "Questo indirizzo è già collegato da un altro membro dell'agenzia. Solo chi lo ha collegato può ricollegarlo.",
           "tooMany": "Troppi tentativi di connessione in un'ora. Riprovi più tardi.",
           "imapAuth": "Nome utente o password rifiutati dal server IMAP. Se la casella usa la verifica in due passaggi, usate una password per app.",
+          "imapTemporary": "Il server rifiuta la connessione per il momento (troppe connessioni aperte o servizio non disponibile). Riprovi tra qualche minuto.",
           "imapUnreachable": "Il server IMAP non risponde: verificate nome e porta.",
           "imapStarttls": "Questo server IMAP non accetta STARTTLS sulla porta 143: scegliete 993.",
           "imapCertificate": "Il certificato del server IMAP non vale per questo nome: usate il nome del server indicato dal vostro provider.",

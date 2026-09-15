@@ -9,10 +9,10 @@
  * boîte (épreuve T3.8 du plan).
  */
 import { describe, it, expect } from 'vitest'
-import type { Duplex } from './duplex.ts'
+import type { DialOptions, Duplex } from './duplex.ts'
 import type { MailAccountRow } from './types.ts'
 import {
-  cleDeFil, decodeMUtf7, dialVerifie, imapApply, imapAttachment, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
+  cleDeFil, decodeMUtf7, dialVerifie, imapApply, imapAttachment, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, rienRetrouve, smtpSecurite, splitProviderId,
 } from './imap.ts'
 import { applyRemoteChanges } from './ingest.ts'
 import { syncAccount } from './sync.ts'
@@ -24,10 +24,11 @@ interface Dossier { uidValidity: number; uidNext: number; attrs: string[]; messa
 const MOT_DE_PASSE = 'bon-mot-de-passe'
 
 /** Un message RFC 822 minimal. */
-function courrier(o: { id: string; de?: string; a?: string; objet?: string; refs?: string; corps?: string }): string {
+function courrier(o: { id: string; de?: string; a?: string; repondreA?: string; objet?: string; refs?: string; corps?: string }): string {
   return [
     `From: ${o.de ?? 'Zoé <zoe@ex.ch>'}`,
     `To: ${o.a ?? 'g@agence.ch'}`,
+    ...(o.repondreA ? [`Reply-To: ${o.repondreA}`] : []),
     `Subject: ${o.objet ?? 'Visite'}`,
     `Message-ID: ${o.id}`,
     ...(o.refs ? [`References: ${o.refs}`, `In-Reply-To: ${o.refs.split(' ').pop()}`] : []),
@@ -39,7 +40,8 @@ function courrier(o: { id: string; de?: string; a?: string; objet?: string; refs
   ].join('\r\n')
 }
 
-function fauxImap(boite: Record<string, Dossier>, caps = 'IMAP4rev1 UIDPLUS MOVE') {
+/** `refusLogin` : la réponse du serveur au LOGIN, quel que soit le mot de passe (`NO [INUSE] …`). */
+function fauxImap(boite: Record<string, Dossier>, caps = 'IMAP4rev1 UIDPLUS MOVE', refusLogin?: string) {
   const enc = new TextEncoder()
   const queue: Uint8Array[] = [enc.encode(`* OK [CAPABILITY ${caps}] ready\r\n`)]
   const journal: string[] = []
@@ -73,7 +75,8 @@ function fauxImap(boite: Record<string, Dossier>, caps = 'IMAP4rev1 UIDPLUS MOVE
       const d = courant ? boite[courant] : null
       let m: RegExpMatchArray | null
       if ((m = cmd.match(/^LOGIN "(.*)" "(.*)"$/))) {
-        dire(m[2] === MOT_DE_PASSE ? `${tag} OK [CAPABILITY ${caps}] Logged in\r\n` : `${tag} NO [AUTHENTICATIONFAILED] Authentication failed.\r\n`)
+        dire(refusLogin ? `${tag} ${refusLogin}\r\n`
+          : m[2] === MOT_DE_PASSE ? `${tag} OK [CAPABILITY ${caps}] Logged in\r\n` : `${tag} NO [AUTHENTICATIONFAILED] Authentication failed.\r\n`)
       } else if (cmd === 'CAPABILITY') {
         dire(`* CAPABILITY ${caps}\r\n${tag} OK\r\n`)
       } else if (cmd === 'LIST "" "*"') {
@@ -153,6 +156,7 @@ function fauxSmtp() {
 
 // ── Un faux PostgREST qui GARDE ce qu'on y écrit ─────────────────────────────
 type Ligne = Record<string, unknown>
+type Reponse = { data: unknown; error: { message: string } | null }
 
 /** Un motif LIKE (`%`, `_`, échappés par `\\`) en expression régulière. */
 function likeEnRegex(motif: string): RegExp {
@@ -196,6 +200,14 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string
       if (tri) { const { col, asc } = tri; lignes = [...lignes].sort((a, b) => (String(a[col]) < String(b[col]) ? -1 : 1) * (asc ? 1 : -1)) }
       return lignes.slice(0, limite)
     }
+    /** L'index unique (compte, identifiant) de `mail_messages`, comme la vraie table : un doublon est REFUSÉ. */
+    const refus = (): Reponse | null => {
+      if (table !== 'mail_messages' || (op !== 'insert' && op !== 'update')) return null
+      const visees = op === 'update' ? t(table).filter((l) => filtres.every((f) => f(l))) : []
+      const apres = op === 'insert' ? (Array.isArray(charge) ? charge : [charge!]) : visees.map((l) => ({ ...l, ...(charge as Ligne) }))
+      const doublon = apres.some((n) => t(table).some((l) => !visees.includes(l) && l.account_id === n.account_id && l.provider_message_id === n.provider_message_id))
+      return doublon ? { data: null, error: { message: 'duplicate key value violates unique constraint "mail_messages_account_provider_uniq"' } } : null
+    }
     const b = {
       select: () => b,
       insert: (l: Ligne | Ligne[]) => { op = 'insert'; charge = l; return b },
@@ -212,10 +224,10 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string
       like: (c: string, motif: string) => { const re = likeEnRegex(motif); filtres.push((l) => re.test(String(l[c]))); return b },
       order: (col: string, o?: { ascending?: boolean }) => { tri = { col, asc: o?.ascending !== false }; return b },
       limit: (n: number) => { limite = n; return b },
-      maybeSingle: async () => ({ data: applique()[0] ?? null, error: null }),
-      single: async () => { const r = applique(); return r[0] ? { data: r[0], error: null } : { data: null, error: { message: 'no rows' } } },
-      then: (res: (v: { data: unknown; error: null }) => unknown, rej?: (e: unknown) => unknown) =>
-        Promise.resolve().then(() => ({ data: applique(), error: null })).then(res, rej),
+      maybeSingle: async (): Promise<Reponse> => refus() ?? { data: applique()[0] ?? null, error: null },
+      single: async (): Promise<Reponse> => { const e = refus(); if (e) return e; const r = applique(); return r[0] ? { data: r[0], error: null } : { data: null, error: { message: 'no rows' } } },
+      then: (res: (v: Reponse) => unknown, rej?: (e: unknown) => unknown) =>
+        Promise.resolve().then((): Reponse => refus() ?? { data: applique(), error: null }).then(res, rej),
     }
     return b
   }
@@ -374,7 +386,7 @@ describe('imapApply', () => {
       { provider_message_id: 'INBOX:7:1', direction: 'inbound', rfc822_message_id: '<m1@ex.ch>' },
       { provider_message_id: 'Sent:8:1', direction: 'outbound', rfc822_message_id: '<s1@agence.ch>' },
     ], branche(imap))
-    expect(renomme).toEqual({ 'INBOX:7:1': 'Archive:9:1' })
+    expect(renomme).toEqual({ renamed: { 'INBOX:7:1': 'Archive:9:1' }, introuvables: [] })
     expect(boite.Archive.messages.map((m) => m.uid)).toEqual([1])
     expect(boite.Sent.messages).toHaveLength(1)
   })
@@ -408,6 +420,128 @@ describe('imapApply', () => {
     expect(boite.INBOX.messages.find((m) => m.uid === 2)!.flags).toContain('\\Seen')
   })
 
+  // ⛔ Archivé depuis le téléphone ou le webmail, un message quitte la Réception sous un nouvel
+  // UID que la synchro ne voit pas : la ligne gardait `INBOX:…`. « Désarchiver » visait la
+  // Réception, n'y trouvait rien à déplacer, répondait ok — et la passe suivante ré-archivait.
+  describe('⛔ un message rangé ailleurs depuis un autre client', () => {
+    const M3 = { provider_message_id: 'INBOX:7:3', direction: 'inbound' as const, rfc822_message_id: '<m3@ex.ch>', sent_at: '2026-09-10T08:00:00+00:00' }
+    /** Le webmail range le message : même INTERNALDATE (RFC 6851), un nouvel UID là-bas. */
+    const ranger = (boite: Record<string, Dossier>, uid: number, vers: string) => {
+      const m = boite.INBOX.messages.find((x) => x.uid === uid)!
+      boite.INBOX.messages = boite.INBOX.messages.filter((x) => x !== m)
+      boite[vers].messages.push({ ...m, uid: boite[vers].uidNext++ })
+    }
+
+    it('« Désarchiver » le trouve dans l Archive et le RAMÈNE — son identifiant suit', async () => {
+      const boite = boiteType()
+      ranger(boite, 3, 'Archive')
+      const imap = fauxImap(boite)
+      const r = await imapApply(fauxAdmin().admin, compte(), 'unarchive', [M3], branche(imap))
+      expect(boite.INBOX.messages.map((m) => m.raw.includes('<m3@ex.ch>') ? m.uid : null).filter(Boolean)).toEqual([4])
+      expect(boite.Archive.messages).toEqual([])
+      expect(r).toEqual({ renamed: { 'INBOX:7:3': 'INBOX:7:4' }, introuvables: [] })
+    })
+
+    it('« Supprimer » le déplace de l Archive, où il est — pas un UID absent de la Réception', async () => {
+      const boite = boiteType()
+      ranger(boite, 3, 'Archive')
+      const imap = fauxImap(boite)
+      const r = await imapApply(fauxAdmin().admin, compte(), 'trash', [M3], branche(imap))
+      expect(boite.Archive.messages).toEqual([])
+      expect(boite.Trash.messages.map((m) => m.raw.includes('<m3@ex.ch>'))).toEqual([true])
+      expect(r.renamed).toEqual({ 'INBOX:7:3': 'Trash:10:1' })
+      expect(imap.journal.filter((l) => /UID MOVE/.test(l)), 'un seul déplacement, depuis l Archive').toEqual([expect.stringMatching(/UID MOVE 1 "Trash"$/)])
+    })
+
+    // Ouvrir un fil le marque lu : un message supprimé dans le webmail coûterait, à chaque
+    // ouverture, une recherche dans quatre dossiers.
+    it('un DRAPEAU ne cherche pas : il se pose là où la base le croit, sans vérifier ni fouiller', async () => {
+      const boite = boiteType()
+      ranger(boite, 3, 'Archive')
+      const imap = fauxImap(boite)
+      const r = await imapApply(fauxAdmin().admin, compte(), 'mark_read', [M3], branche(imap))
+      expect(imap.journal.filter((l) => /UID SEARCH/.test(l))).toEqual([])
+      expect(imap.journal.filter((l) => /UID STORE/.test(l))).toEqual([expect.stringMatching(/UID STORE 3 \+FLAGS\.SILENT \(\\Seen\)$/)])
+      expect(r).toEqual({ renamed: {}, introuvables: [] })
+    })
+
+    it('introuvable : RENDU pour un geste qui le ramènerait en Réception — jamais un ok muet', async () => {
+      const boite = boiteType()
+      boite.INBOX.messages = boite.INBOX.messages.filter((x) => x.uid !== 3) // supprimé dans le webmail
+      const imap = fauxImap(boite)
+      expect(await imapApply(fauxAdmin().admin, compte(), 'unarchive', [M3], branche(imap))).toEqual({ renamed: {}, introuvables: ['INBOX:7:3'] })
+      // Archiver ou supprimer un message qui n'est plus en Réception atteint son but sans rien déplacer.
+      expect(await imapApply(fauxAdmin().admin, compte(), 'trash', [M3], branche(fauxImap(boite)))).toEqual({ renamed: {}, introuvables: [] })
+      expect(imap.journal.some((l) => /UID MOVE/.test(l))).toBe(false)
+    })
+
+    it('⛔ jamais par le seul Message-ID : un autre courrier qui le reprend, arrivé à une autre date, n est pas lui', async () => {
+      const boite = boiteType()
+      boite.INBOX.messages = boite.INBOX.messages.filter((x) => x.uid !== 3)
+      boite.Archive.messages.push({ uid: boite.Archive.uidNext++, flags: [], raw: courrier({ id: '<m3@ex.ch>', de: 'Pirate <x@evil.ex>' }), date: '11-Sep-2026 10:00:00 +0200' })
+      const r = await imapApply(fauxAdmin().admin, compte(), 'unarchive', [M3], branche(fauxImap(boite)))
+      expect(r).toEqual({ renamed: {}, introuvables: ['INBOX:7:3'] })
+      expect(boite.Archive.messages).toHaveLength(1)
+    })
+
+    it('avant un déplacement, la présence se vérifie en UNE commande par dossier', async () => {
+      const imap = fauxImap(boiteType())
+      await imapApply(fauxAdmin().admin, compte(), 'archive', [
+        { provider_message_id: 'INBOX:7:1', direction: 'inbound' }, { provider_message_id: 'INBOX:7:2', direction: 'inbound' },
+      ], branche(imap))
+      expect(imap.journal.filter((l) => / UID SEARCH UID /.test(l))).toEqual([expect.stringMatching(/UID SEARCH UID 1,2$/)])
+    })
+
+    it('rienRetrouve : un fil échoue quand AUCUN de ses entrants n a été retrouvé — pas pour un seul disparu', () => {
+      const fil = [
+        { provider_message_id: 'INBOX:7:1', direction: 'inbound' as const }, { provider_message_id: 'INBOX:7:2', direction: 'inbound' as const },
+        { provider_message_id: 'Sent:8:1', direction: 'outbound' as const }, { provider_message_id: 'pending:<x@a>', direction: 'outbound' as const },
+      ]
+      expect(rienRetrouve(fil, new Set(['INBOX:7:1', 'INBOX:7:2']))).toBe(true)
+      expect(rienRetrouve(fil, new Set(['INBOX:7:1']))).toBe(false)
+      expect(rienRetrouve(fil.slice(2), new Set()), 'sans entrant, rien à ramener').toBe(false)
+    })
+
+    it('la synchro le suit : archivé dans le webmail → Archivé sous son identifiant d Archive ; mis à la corbeille → Corbeille', async () => {
+      const boite = boiteType()
+      const { admin, tables } = fauxAdmin()
+      const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+      const ligne = (pid: string) => (tables.mail_messages as Ligne[]).find((m) => m.provider_message_id === pid)
+      const fil = (pid: string) => (tables.mail_threads as Ligne[]).find((f) => f.id === ligne(pid)!.thread_id)!
+      const idM3 = ligne('INBOX:7:3')!.id
+      ranger(boite, 3, 'Archive')
+      const seconde = await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+      expect(ligne('Archive:9:1')?.id).toBe(idM3)
+      expect(fil('Archive:9:1')).toMatchObject({ is_archived: true, is_trashed: false })
+      // Désarchivé dans le CRM : le geste le ramène (mail-actions réécrit l'identifiant), et la
+      // passe suivante ne le ré-archive PLUS.
+      const r = await imapApply(admin, compte(), 'unarchive', [{ ...M3, provider_message_id: 'Archive:9:1' }], branche(fauxImap(boite)))
+      expect(r.renamed).toEqual({ 'Archive:9:1': 'INBOX:7:4' })
+      Object.assign(ligne('Archive:9:1')!, { provider_message_id: 'INBOX:7:4' })
+      Object.assign(fil('INBOX:7:4'), { is_archived: false })
+      await imapSyncPass(admin, compte(), seconde.cursor, 20_000, branche(fauxImap(boite)))
+      expect(fil('INBOX:7:4').is_archived).toBe(false)
+      expect((tables.mail_messages as Ligne[]).filter((m) => m.rfc822_message_id === '<m3@ex.ch>')).toHaveLength(1)
+
+      // Le fil de m1/m2 : m2, son dernier entrant, part à la corbeille du webmail.
+      ranger(boite, 2, 'Trash')
+      await imapSyncPass(admin, compte(), seconde.cursor, 20_000, branche(fauxImap(boite)))
+      expect(fil('Trash:10:1')).toMatchObject({ is_trashed: true, is_archived: false })
+    })
+
+    it('une AUTRE ligne porte déjà l identifiant d arrivée (un doublon du courrier) : archivé sans renommer — la passe ne lève pas', async () => {
+      const boite = boiteType()
+      const { admin, tables } = fauxAdmin()
+      const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+      const x = (tables.mail_messages as Ligne[]).find((m) => m.provider_message_id === 'INBOX:7:3')!
+      ;(tables.mail_messages as Ligne[]).push({ ...x, id: 'doublon', provider_message_id: 'Archive:9:1' })
+      ranger(boite, 3, 'Archive')
+      await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+      expect(x.provider_message_id).toBe('INBOX:7:3')
+      expect((tables.mail_threads as Ligne[]).find((f) => f.id === x.thread_id)).toMatchObject({ is_archived: true })
+    })
+  })
+
   it('une boîte sans dossier d’archive en reçoit un au premier archivage', async () => {
     const boite = boiteType()
     delete (boite as Partial<typeof boite>).Archive
@@ -415,7 +549,7 @@ describe('imapApply', () => {
     const { admin } = fauxAdmin()
     const renomme = await imapApply(admin, compte(), 'archive', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(imap))
     expect(imap.journal.some((l) => / CREATE "Archive"$/.test(l))).toBe(true)
-    expect(renomme['INBOX:7:3']).toBe('Archive:99:1')
+    expect(renomme.renamed['INBOX:7:3']).toBe('Archive:99:1')
   })
 })
 
@@ -618,9 +752,9 @@ describe('le dossier Spam', () => {
     const boite = boiteAvecSpam()
     const { admin } = fauxAdmin()
     const aller = await imapApply(admin, compte(), 'spam', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(fauxImap(boite)))
-    expect(aller).toEqual({ 'INBOX:7:3': 'Junk:11:2' })
+    expect(aller.renamed).toEqual({ 'INBOX:7:3': 'Junk:11:2' })
     const retour = await imapApply(admin, compte(), 'not_spam', [{ provider_message_id: 'Junk:11:2', direction: 'inbound' }], branche(fauxImap(boite)))
-    expect(retour).toEqual({ 'Junk:11:2': 'INBOX:7:4' })
+    expect(retour.renamed).toEqual({ 'Junk:11:2': 'INBOX:7:4' })
   })
 
   it('une boîte sans dossier Spam en reçoit un au premier signalement', async () => {
@@ -628,7 +762,122 @@ describe('le dossier Spam', () => {
     const { admin } = fauxAdmin()
     const r = await imapApply(admin, compte(), 'spam', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(imap))
     expect(imap.journal.some((l) => / CREATE "Junk"$/.test(l))).toBe(true)
-    expect(r['INBOX:7:3']).toBe('Junk:99:1')
+    expect(r.renamed['INBOX:7:3']).toBe('Junk:99:1')
+  })
+})
+
+// ⛔ Le sens d'un message se décidait sur `From`, que l'expéditeur écrit (revue du 15.09.2026) :
+// « Envoyés » OU `From` = la boîte. Rejoué ici de bout en bout — la synchro, le fil, le journal.
+describe('le sens d un message ne se lit plus sur From', () => {
+  const CONTACTS = { 'zoe@ex.ch': 'c-zoe' }
+  const messages = (t: Record<string, Ligne[]>) => (t.mail_messages ?? []) as Ligne[]
+  const ligne = (t: Record<string, Ligne[]>, pid: string) => messages(t).find((m) => m.provider_message_id === pid)!
+  const filDe = (t: Record<string, Ligne[]>, pid: string) => (t.mail_threads as Ligne[]).find((f) => f.id === ligne(t, pid).thread_id)!
+  const journal = (t: Record<string, Ligne[]>) => (t.activity_events ?? []) as Ligne[]
+  const auJournal = (t: Record<string, Ligne[]>, messageId: unknown) => journal(t).filter((e) => (e.metadata as { message_id?: unknown } | null)?.message_id === messageId)
+  const recu = (boite: Record<string, Dossier>, dossier: string, raw: string, date = '12-Sep-2026 10:00:00 +0200') => {
+    boite[dossier].messages.push({ uid: boite[dossier].uidNext++, flags: [], raw, date })
+  }
+
+  it('⛔ l arnaque qui usurpe l adresse de la boîte, rangée au Spam : au Spam, entrante — jamais dans « Envoyés »', async () => {
+    const boite = boiteType()
+    boite.Junk = { uidValidity: 11, uidNext: 1, attrs: ['\\Junk'], messages: [] }
+    recu(boite, 'Junk', courrier({ id: '<pirate@evil.ex>', de: 'G <g@agence.ch>', a: 'g@agence.ch', objet: 'J ai piraté votre compte' }))
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'Junk:11:1')).toMatchObject({ direction: 'inbound', is_spam: true, contact_id: null })
+    expect(filDe(tables, 'Junk:11:1')).toMatchObject({ is_spam: true, last_outbound_at: null })
+    expect(auJournal(tables, ligne(tables, 'Junk:11:1').id)).toEqual([])
+  })
+
+  it('⛔ un tiers écrit au nom de la boîte, un client en destinataire : jamais un « e-mail envoyé » au dossier du client', async () => {
+    const boite = boiteType()
+    recu(boite, 'INBOX', courrier({ id: '<faux@evil.ex>', de: 'Gregory <g@agence.ch>', a: 'Zoé <zoe@ex.ch>', objet: 'Je confirme la réduction de commission' }))
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ direction: 'outbound', contact_id: 'c-zoe' })
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:4').id)).toEqual([])
+    // Témoin : la vraie réponse de l'agent, rangée dans « Envoyés », est l'envoi — et au journal.
+    expect(auJournal(tables, ligne(tables, 'Sent:8:1').id).map((e) => e.action)).toEqual(['email_sent'])
+  })
+
+  it('un formulaire de site qui écrit au nom de la boîte, Reply-To = le prospect : en Réception, pas dans « Envoyés »', async () => {
+    const boite = boiteType()
+    recu(boite, 'INBOX', courrier({ id: '<form-1@agence.ch>', de: 'Site <g@agence.ch>', a: 'g@agence.ch', repondreA: 'Prospect <prospect@ex.ch>', objet: 'Demande de visite' }))
+    const { admin, tables } = fauxAdmin()
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ direction: 'inbound', reply_to: 'prospect@ex.ch' })
+    expect(filDe(tables, 'INBOX:7:4')).toMatchObject({ last_outbound_at: null, is_archived: false })
+    expect(filDe(tables, 'INBOX:7:4').last_inbound_at).not.toBeNull()
+  })
+
+  it('un envoi du CRM en copie à soi : l exemplaire de la Réception ne prend pas la ligne pending:, la copie « Envoyés » la prend', async () => {
+    const MID = '<crm-1@agence.ch>'
+    const boite = boiteType()
+    const envoi = courrier({ id: MID, de: 'G <g@agence.ch>', a: 'zoe@ex.ch', objet: 'Dossier de vente' })
+    recu(boite, 'INBOX', envoi, '12-Sep-2026 10:00:00 +0200')
+    recu(boite, 'Sent', envoi, '12-Sep-2026 10:00:01 +0200')
+    // Ce que `mail-send` a laissé : la ligne provisoire, rattachée, et SA ligne au journal.
+    const { admin, tables } = fauxAdmin({
+      mail_threads: [{ id: 'T-p', account_id: 'acc-1', agency_id: 'ag-1', provider_thread_id: `pending-thread:${MID}`, subject: 'Dossier de vente', participants: [], message_count: 1, last_message_at: '2026-09-12T08:00:00.000Z', last_inbound_at: null, last_outbound_at: '2026-09-12T08:00:00.000Z', is_read: true, is_starred: false, is_archived: false, is_trashed: false, is_spam: false, has_attachments: false, contact_id: 'c-zoe' }],
+      mail_messages: [{ id: 'M-p', thread_id: 'T-p', account_id: 'acc-1', agency_id: 'ag-1', provider_message_id: `pending:${MID}`, rfc822_message_id: MID, direction: 'outbound', contact_id: 'c-zoe', is_spam: false, is_read: true, sent_at: '2026-09-12T08:00:00.000Z' }],
+      activity_events: [{ id: 'ev-crm', agency_id: 'ag-1', action: 'email_sent', actor_kind: 'user', metadata: { message_id: 'M-p' } }],
+    }, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'Sent:8:2').id, 'la copie « Envoyés » reprend la ligne de l envoi').toBe('M-p')
+    expect(ligne(tables, 'INBOX:7:4').id).not.toBe('M-p')
+    expect(messages(tables).some((m) => String(m.provider_message_id).startsWith('pending:'))).toBe(false)
+    expect(journal(tables).filter((e) => e.action === 'email_sent' && [ligne(tables, 'Sent:8:2').id, ligne(tables, 'INBOX:7:4').id].includes((e.metadata as { message_id: string }).message_id)), 'un envoi, une ligne — celle de l agent').toHaveLength(1)
+  })
+
+  it('envoyé DEPUIS le webmail en copie à soi : la copie « Envoyés » a sa ligne, l exemplaire de la Réception n en a pas', async () => {
+    const MID = '<webmail-1@agence.ch>'
+    const boite = boiteType()
+    const envoi = courrier({ id: MID, de: 'G <g@agence.ch>', a: 'zoe@ex.ch', objet: 'Votre offre' })
+    // Arrivés dans la MÊME seconde : seul le côté de la boîte (« Envoyés » ou non) les distingue —
+    // sans lui, la copie « Envoyés » passait pour l'exemplaire de la Réception DÉPLACÉ.
+    recu(boite, 'INBOX', envoi, '12-Sep-2026 10:00:00 +0200')
+    recu(boite, 'Sent', envoi, '12-Sep-2026 10:00:00 +0200')
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:4').id)).toEqual([])
+    expect(auJournal(tables, ligne(tables, 'Sent:8:2').id).map((e) => e.action)).toEqual(['email_sent'])
+    // Rejoué, rien ne s'ajoute.
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    expect(journal(tables).filter((e) => e.action === 'email_sent')).toHaveLength(2)
+  })
+
+  // ⛔ Le sens suit le dossier : écrit au nom de la boîte, il est entrant au Spam et sortant en
+  // Réception. La reconnaissance d'un déplacement exigeait le MÊME sens : remis en Réception, il
+  // naissait une seconde fois, et la passe du Spam voulait donner à l'ancienne ligne l'identifiant
+  // de la nouvelle — l'unicité refusait, la passe levait, à chaque tick.
+  it('⛔ un courrier au nom de la boîte, remis du Spam en Réception : reconnu, pas dupliqué — la passe ne lève pas', async () => {
+    const boite = boiteType()
+    boite.Junk = { uidValidity: 11, uidNext: 1, attrs: ['\\Junk'], messages: [] }
+    recu(boite, 'Junk', courrier({ id: '<soi@agence.ch>', de: 'G <g@agence.ch>', a: 'g@agence.ch', objet: 'Note à moi-même' }), '11-Sep-2026 09:00:00 +0200')
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const id = ligne(tables, 'Junk:11:1').id
+    const m = boite.Junk.messages.pop()!
+    boite.INBOX.messages.push({ ...m, uid: boite.INBOX.uidNext++ })
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    expect(messages(tables).filter((x) => x.rfc822_message_id === '<soi@agence.ch>').map((x) => [x.id, x.provider_message_id])).toEqual([[id, 'INBOX:7:4']])
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ is_spam: false, direction: 'outbound' })
+  })
+
+  it('⛔ déjà repris en Réception comme un courrier neuf (date d arrivée changée) : la ligne du Spam s efface au lieu de heurter l unicité', async () => {
+    const boite = boiteType()
+    boite.Junk = { uidValidity: 11, uidNext: 1, attrs: ['\\Junk'], messages: [] }
+    recu(boite, 'Junk', courrier({ id: '<colis@ex.ch>', objet: 'Votre colis' }), '11-Sep-2026 09:00:00 +0200')
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const m = boite.Junk.messages.pop()!
+    // Recopié plutôt que déplacé (un client qui télécharge puis redépose) : une autre INTERNALDATE.
+    boite.INBOX.messages.push({ ...m, uid: boite.INBOX.uidNext++, date: '13-Sep-2026 08:00:00 +0200' })
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    expect(messages(tables).filter((x) => x.rfc822_message_id === '<colis@ex.ch>').map((x) => x.provider_message_id)).toEqual(['INBOX:7:4'])
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ is_spam: false, contact_id: 'c-zoe' })
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:4').id)).toHaveLength(1)
   })
 })
 
@@ -637,6 +886,11 @@ describe('imapTestConnexion', () => {
     const cfg = compte().imap_config!
     const r = await imapTestConnexion(cfg, 'faux', branche(fauxImap(boiteType()), fauxSmtp()))
     expect(r).toMatchObject({ ok: false, code: 'imap_auth' })
+  })
+  it('un refus qui passera se dit comme tel : imap_temporaire, pas « mot de passe refusé »', async () => {
+    const cfg = compte().imap_config!
+    const r = await imapTestConnexion(cfg, MOT_DE_PASSE, branche(fauxImap(boiteType(), undefined, 'NO [UNAVAILABLE] Temporary authentication failure'), fauxSmtp()))
+    expect(r).toMatchObject({ ok: false, code: 'imap_temporaire' })
   })
   it('les deux serveurs répondent : ok', async () => {
     const cfg = compte().imap_config!
@@ -762,12 +1016,12 @@ describe('⛔ un courrier piégé ne bloque plus la boîte', () => {
 
 describe('⛔ dialVerifie : l’hôte saisi est revérifié à CHAQUE connexion', () => {
   const faux = (resoudre: (h: string) => Promise<string>) => {
-    const appels: { voie: string; host: string; port: number; opts: Record<string, unknown> }[] = []
+    const appels: { voie: string; host: string; port: number; opts: DialOptions }[] = []
     const conn = { async read() { return null }, async write() {}, close() {} }
     const net = {
       resoudre,
-      tls: async (host: string, port: number, opts: Record<string, unknown> = {}) => { appels.push({ voie: 'tls', host, port, opts }); return conn },
-      tcp: async (host: string, port: number, opts: Record<string, unknown> = {}) => { appels.push({ voie: 'tcp', host, port, opts }); return conn },
+      tls: async (host: string, port: number, opts: DialOptions = {}) => { appels.push({ voie: 'tls', host, port, opts }); return conn },
+      tcp: async (host: string, port: number, opts: DialOptions = {}) => { appels.push({ voie: 'tcp', host, port, opts }); return conn },
     }
     return { net, appels }
   }
@@ -807,6 +1061,23 @@ describe('⛔ une passe tuée ne laisse plus le compte en tête de file', () => 
     expect(vuAuDial).toMatchObject({ sync_failures: 1 })
     expect(Date.parse(String((vuAuDial as unknown as Ligne).next_sync_at))).toBeGreaterThan(MAINTENANT)
     expect((tables.mail_accounts as Ligne[])[0]).toMatchObject({ sync_failures: 0, last_error: null })
+  })
+
+  // ⛔ Un « trop de connexions » passager n'est pas un mot de passe refusé : la boîte ne passe
+  // pas en « autorisation à renouveler », la passe suivante réessaie.
+  it('un refus TEMPORAIRE au LOGIN laisse la boîte active — échec compté, jamais « à renouveler »', async () => {
+    const { admin, tables } = fauxAdmin(tablesDe(0))
+    const imap = fauxImap(boiteType(), undefined, 'NO [LIMIT] Too many simultaneous connections')
+    const r = await syncAccount(admin, { ...compte(), sync_failures: 0 }, {} as never, 20_000, { now: () => MAINTENANT, dial: async () => imap.duplex })
+    expect(r.error).toMatch(/pour un temps/)
+    expect(r.error, 'le texte du serveur ne remonte pas').not.toMatch(/simultaneous/)
+    expect((tables.mail_accounts as Ligne[])[0]).toMatchObject({ status: 'active', sync_failures: 1 })
+    // Témoin : un vrai refus d'identifiants, lui, demande de reconnecter.
+    const t2 = fauxAdmin(tablesDe(0))
+    await syncAccount(t2.admin, { ...compte(), sync_failures: 0 }, {} as never, 20_000, {
+      now: () => MAINTENANT, dial: async () => fauxImap(boiteType(), undefined, 'NO [AUTHENTICATIONFAILED] Invalid credentials').duplex,
+    })
+    expect((t2.tables.mail_accounts as Ligne[])[0]).toMatchObject({ status: 'reauth_required' })
   })
 
   it('après cinq passes mortes d’affilée, le compte quitte le balayage sans rouvrir de connexion', async () => {

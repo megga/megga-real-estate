@@ -12,12 +12,12 @@
  */
 import PostalMime from 'npm:postal-mime@3.0.0'
 import type { MailAddress, NormalizedAttachment, NormalizedMessage } from './types.ts'
-import { htmlToText, nettoyerMessageId, nettoyerReferences, snippetOf } from './mime.ts'
+import { htmlToText, nettoyerMessageId, nettoyerReferences, sensDuMessage, snippetOf } from './mime.ts'
 
 export interface ParseCtx {
   providerMessageId: string
   boxEmail: string
-  /** Le dossier dit la direction (un message de « Envoyés » est sortant) et le spam (`junk`). */
+  /** Le dossier dit « Envoyés » (`inSent`, et le sens) et le spam (`junk`) — cf. `sensDuMessage`. */
   dossier: 'inbox' | 'sent' | 'junk'
   flags: string[]
   /** INTERNALDATE — la date d'ARRIVÉE, celle que Gmail donne aussi ; l'en-tête `Date` est un repli. */
@@ -73,7 +73,7 @@ export function internalDateIso(s: string | null): string | null {
 export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<NormalizedMessage> {
   const e = (await PostalMime.parse(raw, { attachmentEncoding: 'base64', ...LIMITES })) as unknown as PmEmail
   const from = adresse(e.from) ?? { name: null, email: '' }
-  const sortant = ctx.dossier === 'sent' || from.email === ctx.boxEmail.toLowerCase()
+  const replyTo = adresses(e.replyTo)[0]?.email ?? null
   const attachments: NormalizedAttachment[] = e.attachments.map((a, i) => ({
     providerAttachmentId: String(i),
     filename: a.filename || `piece-${i + 1}`,
@@ -94,10 +94,11 @@ export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<Norma
     rfc822MessageId,
     inReplyTo: nettoyerMessageId(e.inReplyTo),
     references: nettoyerReferences(e.references),
-    direction: sortant ? 'outbound' : 'inbound',
+    direction: sensDuMessage({ dansEnvoyes: ctx.dossier === 'sent', spam: ctx.dossier === 'junk', from: from.email, replyTo, boite: ctx.boxEmail }),
+    inSent: ctx.dossier === 'sent',
     from,
     to: adresses(e.to), cc: adresses(e.cc), bcc: adresses(e.bcc),
-    replyTo: adresses(e.replyTo)[0]?.email ?? null,
+    replyTo,
     subject: e.subject ?? '',
     snippet: snippetOf(bodyText ?? ''),
     bodyText,

@@ -74,6 +74,47 @@ const PORTS_SMTP = new Set([465, 587])
 const ECHECS_IMAP_PAR_HEURE = 10
 
 /**
+ * Le secret d'une boîte, rangé dans Vault ; `null` si Vault le refuse (déjà journalisé).
+ * ⚠ Rattrapé ici : une levée non rattrapée sortait de l'edge en 500 SANS en-têtes CORS, que
+ * le navigateur rend en « erreur réseau » — l'assistant ne pouvait rien en dire.
+ */
+async function rangerSecret(admin: SupabaseAdmin, nom: string, secret: OAuthSecret | ImapSecret): Promise<string | null> {
+  try {
+    return await storeAccountSecret(admin, nom, secret)
+  } catch (e) {
+    console.error(`[mail-oauth] secret de ${nom} refusé par Vault :`, redactedErrorMessage(e))
+    return null
+  }
+}
+
+/**
+ * La RECONNEXION d'une boîte existante : le nouveau secret d'abord, la ligne qui le désigne
+ * ensuite, l'ancien secret en dernier. ⛔ L'ordre inverse effaçait l'ancien AVANT de ranger le
+ * nouveau : un refus de Vault ou de la ligne laissait la boîte pointer vers un secret
+ * disparu — et, les noms de secret étant alors uniques par adresse, un ancien secret resté
+ * orphelin interdisait toute reconnexion. Rend un code d'échec, ou `null`.
+ */
+async function reconnecter(
+  admin: SupabaseAdmin, compte: { id: string; vault_secret_id: string | null }, nom: string,
+  secret: OAuthSecret | ImapSecret, patch: Record<string, unknown>,
+): Promise<string | null> {
+  const vaultId = await rangerSecret(admin, nom, secret)
+  if (!vaultId) return 'secret_store_failed'
+  const { error } = await admin.from('mail_accounts').update({ ...patch, vault_secret_id: vaultId }).eq('id', compte.id)
+  if (error) {
+    console.error(`[mail-oauth] compte ${compte.id}, reconnexion refusée :`, redactedErrorMessage(error))
+    await deleteAccountSecret(admin, vaultId)
+      .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec de reconnexion :`, redactedErrorMessage(e)))
+    return 'account_update_failed'
+  }
+  if (compte.vault_secret_id) {
+    await deleteAccountSecret(admin, compte.vault_secret_id)
+      .catch((e) => console.error(`[mail-oauth] ancien secret ${compte.vault_secret_id} ORPHELIN (compte ${compte.id}) :`, redactedErrorMessage(e)))
+  }
+  return null
+}
+
+/**
  * Une ligne au journal pour un geste sur une boîte (« Audit trail : activity_events pour toute
  * action »). Le FAIT seulement — ni adresse ni serveur : la table est lisible de l'agence.
  * Un refus d'écriture se dit au journal de la fonction, sans défaire le geste.
@@ -206,14 +247,8 @@ serve(async (req: Request) => {
     let accountId: string
     if (existing) {
       // ⚠ Une RÉAUTORISATION n'a pas à échouer parce que l'ANCIEN secret ne s'efface
-      // pas : le nouveau va le remplacer dans la ligne, la boîte doit repartir. Mais
-      // l'ancien devient alors un secret orphelin dans Vault — c'est écrit, ça ne
-      // disparaît plus en silence à chaque reconnexion.
-      if (existing.vault_secret_id) {
-        await deleteAccountSecret(admin, existing.vault_secret_id)
-          .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
-      }
-      const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      // pas : le nouveau le remplace dans la ligne, la boîte doit repartir. Mais l'ancien
+      // devient alors un secret orphelin dans Vault — c'est écrit (`reconnecter`).
       /**
        * ⛔ UNE RÉAUTORISATION NE CHANGE PAS DE MAIN. Le patch écrivait `owner_id: user.id`
        * ET `visibility: st.visibility` : n'importe quel membre de l'agence connaissant le
@@ -234,14 +269,14 @@ serve(async (req: Request) => {
       if (existing.owner_id !== user.id) {
         console.error(`[mail-oauth] compte ${existing.id} réautorisé par ${user.id}, propriétaire ${existing.owner_id} — jeton remplacé, propriété INCHANGÉE`)
       }
-      const { error } = await admin.from('mail_accounts').update({
-        vault_secret_id: vaultId, status: 'active', last_error: null, sync_failures: 0,
-        display_name: identity.name, next_sync_at: new Date().toISOString(),
-      }).eq('id', existing.id)
-      if (error) return json({ error: 'account_update_failed' }, 500)
+      const echec = await reconnecter(admin, existing, `mail:${provider}:${identity.email}`, secret, {
+        status: 'active', last_error: null, sync_failures: 0, display_name: identity.name, next_sync_at: new Date().toISOString(),
+      })
+      if (echec) return json({ error: echec }, 500)
       accountId = existing.id
     } else {
-      const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      const vaultId = await rangerSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      if (!vaultId) return json({ error: 'secret_store_failed' }, 500)
       const { data: ins, error } = await admin.from('mail_accounts').insert({
         agency_id: profile.agency_id, owner_id: user.id, provider, email: identity.email, display_name: identity.name,
         visibility: st.visibility, status: 'active', vault_secret_id: vaultId,
@@ -353,18 +388,14 @@ serve(async (req: Request) => {
     if (existing) {
       // La reconnexion par son PROPRIÉTAIRE (le seul admis, cf. plus haut) : le mot de passe
       // et les serveurs changent, la visibilité non — elle se change par `update`.
-      if (existing.vault_secret_id) {
-        await deleteAccountSecret(admin, existing.vault_secret_id)
-          .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
-      }
-      const vaultId = await storeAccountSecret(admin, `mail:imap:${email}`, secret)
-      const { error } = await admin.from('mail_accounts').update({
-        vault_secret_id: vaultId, imap_config: imap, status: 'active', last_error: null, sync_failures: 0, next_sync_at: new Date().toISOString(),
-      }).eq('id', existing.id)
-      if (error) return json({ error: 'account_update_failed' }, 500)
+      const echec = await reconnecter(admin, existing, `mail:imap:${email}`, secret, {
+        imap_config: imap, status: 'active', last_error: null, sync_failures: 0, next_sync_at: new Date().toISOString(),
+      })
+      if (echec) return json({ error: echec }, 500)
       accountId = existing.id
     } else {
-      const vaultId = await storeAccountSecret(admin, `mail:imap:${email}`, secret)
+      const vaultId = await rangerSecret(admin, `mail:imap:${email}`, secret)
+      if (!vaultId) return json({ error: 'secret_store_failed' }, 500)
       const { data: ins, error } = await admin.from('mail_accounts').insert({
         agency_id: profile.agency_id, owner_id: user.id, provider: 'imap', email, display_name: null,
         visibility, status: 'active', vault_secret_id: vaultId, imap_config: imap,

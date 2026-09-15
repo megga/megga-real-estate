@@ -72,6 +72,7 @@ const IMAP_ERRORS: Record<string, string> = {
   owned_by_colleague: 'mail.add.imap.err.colleague',
   too_many_attempts: 'mail.add.imap.err.tooMany',
   imap_auth: 'mail.add.imap.err.imapAuth',
+  imap_temporaire: 'mail.add.imap.err.imapTemporary',
   imap_unreachable: 'mail.add.imap.err.imapUnreachable',
   imap_starttls: 'mail.add.imap.err.imapStarttls',
   imap_certificate: 'mail.add.imap.err.imapCertificate',

@@ -228,7 +228,9 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const SP: CalPalette = buildCalPalette(dark)
 
   // ── Données ──
-  const { events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
+  // Les séries NON développées : les surcharges optimistes se posent sur le maître, puis la vue
+  // développe autour de la date affichée (`labelled`).
+  const { series: events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
   const { createVisit, updateVisit, deleteVisit } = useVisits()
   const evenements = useCalendarEvents()
   const { createReminder, markAsDone, cancel: cancelReminder, reschedule: rescheduleReminder } = useReminders()

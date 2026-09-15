@@ -42,9 +42,9 @@ describe.skipIf(!HAS_KEYS)('Messagerie — un envoi Outlook depuis le CRM entre 
   /** La copie « Envoyés » telle que Graph la rendra à la synchro. */
   const copieEnvoyes = (boite: MailAccountRow, mid: string, to: string): NormalizedMessage => ({
     providerMessageId: `AAMk-${mid}`, providerThreadId: `conv-${mid}`, rfc822MessageId: mid, inReplyTo: null, references: [],
-    direction: 'outbound', from: { name: 'Agent', email: boite.email }, to: [{ name: 'Zoé', email: to }], cc: [], bcc: [],
+    direction: 'outbound', inSent: true, from: { name: 'Agent', email: boite.email }, to: [{ name: 'Zoé', email: to }], cc: [], bcc: [],
     replyTo: null, subject: 'Visite samedi', snippet: 'Bonjour', bodyText: 'Bonjour', bodyHtml: null,
-    sentAt: new Date().toISOString(), isRead: true, isStarred: false, inInbox: false, isTrashed: false, isDraft: false,
+    sentAt: new Date().toISOString(), isRead: true, isStarred: false, inInbox: false, isTrashed: false, isSpam: false, isDraft: false,
     providerLabels: [], attachments: [],
   })
   const journal = async (boite: MailAccountRow) =>
