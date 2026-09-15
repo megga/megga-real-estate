@@ -159,7 +159,7 @@ const CORRESPONDANTS: { nom: string; email: string; objet: string; extrait: stri
 
 const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
   const c = CORRESPONDANTS[i % CORRESPONDANTS.length]
-  return {
+  const fil: MailThreadRow = {
     id: `fx-t${i}`,
     account_id: 'fx-a1',
     subject: `${c.objet} ${i}`,
@@ -179,10 +179,13 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
     label_id: FX_LABELS[i % FX_LABELS.length].id,
     contact_id: i % 2 === 0 ? 'fx-c1' : null,
     message_count: 1 + (i % 3),
+    last_inbound_at: null,
     // Écrasé par `fxThreads`, qui connaît le total de la requête servie.
     total: 0,
     ...over,
   }
+  // Tous les fils du banc ont reçu : leur dernier message est un entrant.
+  return 'last_inbound_at' in over ? fil : { ...fil, last_inbound_at: fil.last_message_at }
 }
 
 /**

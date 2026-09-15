@@ -20,7 +20,7 @@ import { gesteChezLeFournisseur, refusDuFil, renommagesDe, type GesteFournisseur
 import { imapApply, rienRetrouve } from '../_shared/mail/imap.ts'
 import { linkThreadToContact, rattacherApresSpam, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
-import { appliquerEnLot, lireLot } from '../_shared/mail/lot.ts'
+import { appliquerEnLot, lireLot, lireToutesLesPages, rienASignaler } from '../_shared/mail/lot.ts'
 import type { MailAccountRow, MailThreadAction } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
@@ -37,6 +37,18 @@ type ThreadAction = MailThreadAction
 const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash', 'spam', 'not_spam']
 
 interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null; is_spam: boolean; sent_at: string | null }
+
+/** Les messages de ces fils, TOUS (`lireToutesLesPages`), triés par id pour une pagination stable. */
+async function lireMessages(admin: SupabaseClient, threadIds: string[]): Promise<(MsgRow & { thread_id: string })[] | null> {
+  const { lignes, error } = await lireToutesLesPages<MsgRow & { thread_id: string }>((de, a) => admin.from('mail_messages')
+    .select('id, thread_id, provider_message_id, direction, rfc822_message_id, is_spam, sent_at').in('thread_id', threadIds)
+    .order('id', { ascending: true }).range(de, a))
+  if (error) { console.error(`[mail-actions] messages: ${redactedErrorMessage(error)}`); return null }
+  return lignes
+}
+
+/** Les refus de `linkThreadToContact` que l'écran sait dire ; tout autre échec est `link_failed`. */
+const REFUS_DU_RAPPROCHEMENT = ['email_not_in_thread', 'email_is_internal', 'contact_not_in_agency'] as const
 
 /** Réécrit en base les ids que le déplacement a changés. Lève sur un échec d'écriture. */
 async function renommerIds(admin: SupabaseClient, account: MailAccountRow, renamed: Record<string, string>): Promise<void> {
@@ -61,14 +73,14 @@ async function renommerIds(admin: SupabaseClient, account: MailAccountRow, renam
  * S14) : il est journalisé caviardé.
  */
 async function ecrireLocalement(admin: SupabaseClient, account: MailAccountRow, action: ThreadAction, threadId: string, msgs: MsgRow[]): Promise<string | null> {
-  const echec = (etape: string, e: unknown) => {
+  const refuser = (etape: string, e: unknown) => {
     console.error(`[mail-actions] fil ${threadId}, ${etape}: ${redactedErrorMessage(e)}`)
     return 'local_write_failed'
   }
   if (action === 'mark_read' || action === 'mark_unread') {
     const { error } = await admin.from('mail_messages').update({ is_read: action === 'mark_read' }).eq('thread_id', threadId)
-    if (error) return echec('lu des messages', error)
-    try { await recomputeThread(admin, threadId) } catch (e) { return echec('recalcul du fil', e) }
+    if (error) return refuser('lu des messages', error)
+    try { await recomputeThread(admin, threadId) } catch (e) { return refuser('recalcul du fil', e) }
   }
   const patch: Record<string, unknown> = {}
   if (action === 'star') patch.is_starred = true
@@ -85,19 +97,19 @@ async function ecrireLocalement(admin: SupabaseClient, account: MailAccountRow, 
     let q = admin.from('mail_messages').update({ is_spam: auSpam }).eq('thread_id', threadId)
     if (auSpam) q = q.eq('direction', 'inbound')
     const { error } = await q
-    if (error) return echec('spam des messages', error)
+    if (error) return refuser('spam des messages', error)
     patch.is_spam = auSpam
     if (!auSpam) patch.is_archived = false
   }
   if (Object.keys(patch).length) {
     const { error } = await admin.from('mail_threads').update(patch).eq('id', threadId)
-    if (error) return echec('fil', error)
+    if (error) return refuser('fil', error)
   }
   // ⛔ Sorti du spam, le fil entre dans le CRM comme s'il arrivait : rattaché à son contact et
   // journalisé — l'ingestion le lui refusait tant qu'il était du spam. Après l'écriture du
   // fil : `rattacherApresSpam` ne touche pas un fil encore marqué spam.
   if (action === 'not_spam') {
-    try { await rattacherApresSpam(admin, account, threadId, sortisDuSpam) } catch (e) { return echec('sortie du spam', e) }
+    try { await rattacherApresSpam(admin, account, threadId, sortisDuSpam) } catch (e) { return refuser('sortie du spam', e) }
   }
   return null
 }
@@ -137,10 +149,16 @@ serve(async (req: Request) => {
     if (connus.size === 0) return json({ ok: true, results: await appliquerEnLot(ids, connus, async () => null) })
     const parFil = new Map<string, MsgRow[]>()
     {
-      const { data: tous, error: eTous } = await admin.from('mail_messages')
-        .select('id, thread_id, provider_message_id, direction, rfc822_message_id, is_spam, sent_at').in('thread_id', [...connus])
-      if (eTous) { console.error(`[mail-actions] lot, messages: ${redactedErrorMessage(eTous)}`); return json({ error: 'messages_query_failed' }, 500) }
-      for (const m of (tous ?? []) as (MsgRow & { thread_id: string })[]) parFil.set(m.thread_id, [...(parFil.get(m.thread_id) ?? []), m])
+      const tous = await lireMessages(admin, [...connus])
+      if (!tous) return json({ error: 'messages_query_failed' }, 500)
+      for (const m of tous) parFil.set(m.thread_id, [...(parFil.get(m.thread_id) ?? []), m])
+    }
+    // Rien à signaler sur un fil sans message reçu (`rienASignaler`) : ni appel au fournisseur,
+    // ni écriture — son verdict le dit.
+    const aTraiter = [...connus].filter((id) => !rienASignaler(geste, parFil.get(id) ?? []))
+    // Rien à faire chez le fournisseur : ni jeton, ni connexion — les verdicts seuls.
+    if (aTraiter.length === 0) {
+      return json({ ok: true, results: await appliquerEnLot(ids, connus, async (id) => ((parFil.get(id) ?? []).length ? 'nothing_to_flag' : 'thread_empty')) })
     }
     let chezLeFournisseur: (msgs: MsgRow[]) => Promise<string | null>
     if (account.provider === 'imap') {
@@ -150,7 +168,7 @@ serve(async (req: Request) => {
       // passé avant lui.
       let introuvables: ReadonlySet<string>
       try {
-        const r = await imapApply(admin, account, geste, [...connus].flatMap((id) => parFil.get(id) ?? []))
+        const r = await imapApply(admin, account, geste, aTraiter.flatMap((id) => parFil.get(id) ?? []))
         await renommerIds(admin, account, r.renamed)
         introuvables = new Set(r.introuvables)
       } catch (e) {
@@ -167,7 +185,7 @@ serve(async (req: Request) => {
       // UN passage chez le fournisseur pour tout le lot (appels groupés) ; le verdict, par fil.
       let fait: GesteFournisseur
       try {
-        fait = await gesteChezLeFournisseur(account.provider, token, geste, [...connus].flatMap((id) => parFil.get(id) ?? []))
+        fait = await gesteChezLeFournisseur(account.provider, token, geste, aTraiter.flatMap((id) => parFil.get(id) ?? []))
       } catch (e) {
         console.error(`[mail-actions] lot, fournisseur: ${redactedErrorMessage(e)}`)
         return json({ ok: true, results: ids.map((id) => ({ thread_id: id, ok: false, error: connus.has(id) ? 'provider_failed' : 'thread_not_found' })) })
@@ -177,9 +195,10 @@ serve(async (req: Request) => {
         return refusDuFil(msgs, fait)
       }
     }
-    const results = await appliquerEnLot(ids, connus, async (id) => {
+    const traiterFil = async (id: string): Promise<string | null> => {
       const msgs = parFil.get(id) ?? []
       if (msgs.length === 0) return 'thread_empty'
+      if (rienASignaler(geste, msgs)) return 'nothing_to_flag'
       try {
         const refus = await chezLeFournisseur(msgs)
         if (refus) return refus
@@ -188,7 +207,8 @@ serve(async (req: Request) => {
         return 'provider_failed'
       }
       return ecrireLocalement(admin, account, geste, id, msgs)
-    })
+    }
+    const results = await appliquerEnLot(ids, connus, traiterFil)
     return json({ ok: true, results })
   }
 
@@ -197,7 +217,7 @@ serve(async (req: Request) => {
     .eq('id', threadId).eq('account_id', account.id).maybeSingle()
   // Une lecture en échec n'est pas un fil absent : la dire 404 enverrait l'agent
   // chercher un fil qu'il voit pourtant à l'écran.
-  if (eThread) return json({ error: 'thread_query_failed', detail: eThread.message }, 500)
+  if (eThread) { console.error(`[mail-actions] fil ${threadId}: ${redactedErrorMessage(eThread)}`); return json({ error: 'thread_query_failed' }, 500) }
   if (!thread) return json({ error: 'thread_not_found' }, 404)
 
   if (action === 'link_contact') {
@@ -207,7 +227,12 @@ serve(async (req: Request) => {
     try {
       await linkThreadToContact(admin, account, thread.id, contactId, email, user.id)
     } catch (e) {
-      return json({ error: e instanceof Error ? e.message : 'link_failed' }, 400)
+      // Un refus CONNU se dit tel quel (l'écran le traduit) ; le reste — une lecture ou une
+      // écriture en échec — porte un texte de Postgres, qui ne part pas à l'appelant (S14).
+      const texte = e instanceof Error ? e.message : ''
+      const refus = REFUS_DU_RAPPROCHEMENT.find((code) => code === texte) ?? 'link_failed'
+      if (refus === 'link_failed') console.error(`[mail-actions] rapprochement du fil ${thread.id}: ${redactedErrorMessage(e)}`)
+      return json({ error: refus }, 400)
     }
     return json({ ok: true, thread_id: thread.id, contact_id: contactId })
   }
@@ -221,33 +246,38 @@ serve(async (req: Request) => {
   // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
   // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
   // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
-  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id, is_spam, sent_at').eq('thread_id', thread.id)
-  if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
-  if (!msgs || msgs.length === 0) {
+  const msgs = await lireMessages(admin, [thread.id])
+  if (!msgs) return json({ error: 'messages_query_failed' }, 500)
+  if (msgs.length === 0) {
     console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
     return json({ error: 'thread_empty' }, 409)
   }
+  if (rienASignaler(action as ThreadAction, msgs)) return json({ error: 'nothing_to_flag' }, 409)
 
   try {
     // IMAP : un mot de passe et UNE connexion pour tout le fil (imap.ts) — pas de jeton OAuth.
     if (account.provider === 'imap') {
-      const r = await imapApply(admin, account, action as ThreadAction, msgs as MsgRow[])
+      const r = await imapApply(admin, account, action as ThreadAction, msgs)
       await renommerIds(admin, account, r.renamed)
-      if (rienRetrouve(msgs as MsgRow[], new Set(r.introuvables))) return json({ error: 'message_not_found' }, 409)
+      if (rienRetrouve(msgs, new Set(r.introuvables))) return json({ error: 'message_not_found' }, 409)
     } else {
-      const r = await gesteChezLeFournisseur(account.provider, await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook), action as ThreadAction, msgs as MsgRow[])
+      const r = await gesteChezLeFournisseur(account.provider, await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook), action as ThreadAction, msgs)
       await renommerIds(admin, account, r.renamed)
-      if (refusDuFil(msgs as MsgRow[], r)) return json({ error: 'provider_failed', detail: `${r.refuses.size} message(s) refusé(s) par le fournisseur` }, 502)
+      if (refusDuFil(msgs, r)) { console.error(`[mail-actions] fil ${thread.id}: ${r.refuses.size} message(s) refusé(s) par le fournisseur`); return json({ error: 'provider_failed' }, 502) }
     }
   } catch (e) {
-    return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+    // ⛔ Le texte d'une erreur de fournisseur (bannière IMAP, corps d'une réponse Gmail ou
+    // Graph, `error_description` d'un refus OAuth) ne part pas à l'appelant (S14) : journalisé
+    // caviardé, et un CODE à l'écran.
+    console.error(`[mail-actions] fil ${thread.id}, fournisseur: ${redactedErrorMessage(e)}`)
+    return json({ error: 'provider_failed' }, 502)
   }
 
-  const echec = await ecrireLocalement(admin, account, action as ThreadAction, thread.id, msgs as MsgRow[])
+  const echec = await ecrireLocalement(admin, account, action as ThreadAction, thread.id, msgs)
   if (echec) return json({ error: echec }, 500)
 
   const { data: after, error: eAfter } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, is_spam').eq('id', thread.id).single()
   // `{ ok: true, thread: null }` disait « c'est fait » sur un fil devenu illisible.
-  if (eAfter || !after) return json({ error: 'thread_reload_failed', detail: eAfter?.message ?? 'aucune ligne' }, 500)
+  if (eAfter || !after) { console.error(`[mail-actions] fil ${thread.id}, relecture: ${eAfter ? redactedErrorMessage(eAfter) : 'aucune ligne'}`); return json({ error: 'thread_reload_failed' }, 500) }
   return json({ ok: true, thread: after })
 })

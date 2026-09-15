@@ -79,7 +79,9 @@ export function MailList(p: Props) {
   // le DNS et le site de chaque spammeur — un accusé de lecture, un domaine unique par
   // destinataire suffit — et accolait le vrai logo d'une banque à l'hameçonnage qui l'usurpe.
   const adresse = (r: MailThreadRow) => r.from_email ?? r.participants[0]?.email ?? null
-  const logos = useMailSenderLogos(p.rows[0]?.account_id ?? null, p.rows.filter((r) => !r.is_spam).map(adresse))
+  // Et seulement pour un fil qui a REÇU : l'adresse d'un fil d'envoi est celle du DESTINATAIRE,
+  // que `mail-logos` refuse de résoudre — demandée à chaque liste, en pure perte (revue du 15.09.2026).
+  const logos = useMailSenderLogos(p.rows[0]?.account_id ?? null, p.rows.filter((r) => !r.is_spam && r.last_inbound_at).map(adresse))
 
   /**
    * ⚠ Les brouillons sont servis EN ENTIER par leur hook (ils sont locaux, il

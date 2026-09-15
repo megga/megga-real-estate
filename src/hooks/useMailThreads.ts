@@ -17,7 +17,10 @@ export interface MailThreadRow {
   is_read: boolean; is_starred: boolean; is_archived: boolean; is_trashed: boolean
   /** Au spam chez le fournisseur : le fil ne vit que dans le dossier « Spam » (20260915080200). */
   is_spam: boolean
-  label_id: string | null; contact_id: string | null; message_count: number; total: number
+  label_id: string | null; contact_id: string | null; message_count: number
+  /** Le dernier message REÇU ; `null` pour un fil qui n'a rien reçu — il n'a rien à signaler comme spam. */
+  last_inbound_at: string | null
+  total: number
 }
 export interface MailThreadFilters { folder: MailFolder; labelId: string | null; q: string; unreadOnly: boolean; attOnly: boolean; page: number }
 export interface MailFolderCounts { inbox_unread: number; archived: number; drafts: number; spam: number; label_counts: Record<string, number> }
@@ -103,7 +106,7 @@ export function useMailThreadRow(threadId: string | null) {
       if (fx) return threadId ? fxFil(threadId) : null
       if (!threadId) return null
       const { data, error } = await supabase.from('mail_threads')
-        .select('id, account_id, subject, snippet, from_name, from_email, participants, last_message_at, has_attachments, is_read, is_starred, is_archived, is_trashed, is_spam, label_id, contact_id, message_count')
+        .select('id, account_id, subject, snippet, from_name, from_email, participants, last_message_at, has_attachments, is_read, is_starred, is_archived, is_trashed, is_spam, label_id, contact_id, message_count, last_inbound_at')
         .eq('id', threadId).maybeSingle()
       if (error) throw error
       return data ? ({ ...data, participants: (data.participants ?? []) as unknown as MailAddress[], total: 0 } as MailThreadRow) : null

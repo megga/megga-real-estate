@@ -218,7 +218,8 @@
         "reauth_required": "Autorisation à renouveler",
         "error": "Erreur de synchronisation",
         "disabled": "Désactivée"
-      }
+      },
+      "disconnectError": "La boîte n'a pas pu être déconnectée. Réessayez dans un instant."
     },
     "compose": {
       "cta": "Nouveau message",
@@ -245,6 +246,17 @@
       "invalidHint_one": "Une adresse est à corriger : double-cliquez dessus pour la modifier.",
       "invalidHint_other": "{{count}} adresses sont à corriger : double-cliquez dessus pour les modifier.",
       "suggestions": "Contacts suggérés"
+    },
+    "sendError": {
+      "generic": "L'envoi a échoué. Réessayez dans un instant.",
+      "send_failed": "Le serveur de la boîte a refusé l'envoi. Vérifiez les destinataires, puis réessayez.",
+      "provider_auth": "La boîte d'envoi ne répond plus : reconnectez-la depuis les réglages, puis réessayez.",
+      "account_not_active": "Cette boîte ne peut pas envoyer : son autorisation est à renouveler.",
+      "attachments_too_large": "Les pièces jointes dépassent la taille permise pour un envoi.",
+      "attachment_too_large_outlook": "Une pièce jointe dépasse 3 Mo, la limite d'Outlook pour un envoi depuis le CRM.",
+      "recipient_required": "Ajoutez au moins un destinataire.",
+      "subject_required": "Ajoutez un objet au message.",
+      "original_not_found": "Le message d'origine est introuvable : il a peut-être été supprimé."
     },
     "folders": {
       "aria": "Dossiers",
@@ -323,6 +335,7 @@
       "showImages": "Afficher les images",
       "bodyTitle": "Corps du message",
       "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
+      "bodyMissing": "Le contenu de ce message ne peut pas s'afficher ici (trop volumineux, ou illisible) : ouvrez-le dans votre messagerie.",
       "unlinked": "Adresse non rattachée : {{email}}",
       "spam": "Dans le spam : ce message n'est rattaché à aucun contact.",
       "spamInThread_one": "{{count}} message de cette conversation est au spam.",

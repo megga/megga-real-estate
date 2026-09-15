@@ -277,7 +277,7 @@ describe('les dossiers', () => {
     expect(resolveFolders([
       { name: 'INBOX', attributes: [] }, { name: 'INBOX.Envoy&AOk-s', attributes: [] },
       { name: 'Corbeille', attributes: [] }, { name: 'Tout', attributes: ['\\Archive'] },
-    ])).toEqual({ inbox: 'INBOX', sent: 'INBOX.Envoy&AOk-s', archive: 'Tout', trash: 'Corbeille', junk: null })
+    ])).toEqual({ inbox: 'INBOX', sent: 'INBOX.Envoy&AOk-s', archive: 'Tout', trash: 'Corbeille', junk: null, prefixe: 'INBOX.' })
   })
   it('le Spam : l usage spécial \\Junk d abord, puis les noms — « Bulk Mail » de Yahoo, « Spamverdacht » de GMX', () => {
     expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'Indésirables', attributes: ['\\Junk'] }, { name: 'Spam', attributes: [] }]).junk).toBe('Indésirables')
@@ -540,6 +540,23 @@ describe('imapApply', () => {
       expect(x.provider_message_id).toBe('INBOX:7:3')
       expect((tables.mail_threads as Ligne[]).find((f) => f.id === x.thread_id)).toMatchObject({ is_archived: true })
     })
+  })
+
+  // ⛔ Courier (cPanel) range tout sous la Réception : `CREATE "Archive"` à la racine y est
+  // refusé, et archiver rendait 502 (revue du 15.09.2026).
+  it('une boîte dont les dossiers vivent sous INBOX. y crée son Archive et son Spam', async () => {
+    const boite = boiteType()
+    // Sans usage spécial annoncé : les dossiers se reconnaissent à leur nom, sous « INBOX. ».
+    const cpanel: Record<string, Dossier> = { INBOX: boite.INBOX, 'INBOX.Sent': { ...boite.Sent, attrs: [] }, 'INBOX.Trash': { ...boite.Trash, attrs: [] } }
+    const imap = fauxImap(cpanel)
+    const { admin } = fauxAdmin()
+    const r = await imapApply(admin, compte(), 'archive', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(imap))
+    expect(imap.journal.some((l) => / CREATE "INBOX\.Archive"$/.test(l))).toBe(true)
+    expect(r.renamed['INBOX:7:3']).toBe('INBOX.Archive:99:1')
+    const s2 = await imapApply(admin, compte(), 'spam', [{ provider_message_id: 'INBOX:7:2', direction: 'inbound' }], branche(fauxImap(cpanel)))
+    expect(s2.renamed['INBOX:7:2']).toBe('INBOX.Junk:99:1')
+    // Témoin : une boîte aux dossiers à la racine crée les siens à la racine.
+    expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'Sent', attributes: ['\\Sent'] }, { name: 'INBOX/Clients', attributes: [] }]).prefixe).toBe('')
   })
 
   it('une boîte sans dossier d’archive en reçoit un au premier archivage', async () => {
@@ -991,8 +1008,7 @@ describe('⛔ un courrier piégé ne bloque plus la boîte', () => {
     const r = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
     const lignes = tables.mail_messages as Ligne[]
     const piege = lignes.find((l) => l.provider_message_id === 'INBOX:7:4')!
-    expect(piege).toMatchObject({ subject: 'Colis', from_email: 'x@evil.com' })
-    expect(String(piege.body_text)).toContain('pas pu être lu')
+    expect(piege).toMatchObject({ subject: 'Colis', from_email: 'x@evil.com', body_text: null, body_truncated: true })
     expect(lignes.some((l) => l.provider_message_id === 'INBOX:7:5')).toBe(true)
     expect(r.cursor.folders.INBOX.lastUid).toBe(5)
   })

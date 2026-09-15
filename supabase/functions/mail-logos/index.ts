@@ -64,8 +64,7 @@ const versLogo = (l: Pick<Ligne, 'status' | 'mime' | 'data' | 'source'>): Logo =
   l.status === 'found' && l.mime && l.data && l.source ? { mime: l.mime, data: l.data, source: l.source } : null
 
 /**
- * Les domaines demandés dont la boîte a réellement reçu du courrier (fils ou messages) HORS
- * spam.
+ * Les domaines demandés dont la boîte a réellement REÇU du courrier, hors spam.
  *
  * ⛔ UN DOMAINE VU SEULEMENT AU SPAM N'EST PAS RÉSOLU (15.09.2026). Le spam est importé
  * depuis le 14.09 : ouvrir le dossier faisait visiter par nos serveurs le DNS et le site de
@@ -73,22 +72,22 @@ const versLogo = (l: Pick<Ligne, 'status' | 'mime' | 'data' | 'source'>): Logo =
  * est relevée et lue — et le vrai logo BIMI d'une banque se posait sur l'hameçonnage qui
  * usurpe son domaine. L'écran n'en demande plus pour le spam ; ce verrou ne le croit pas sur
  * parole.
+ *
+ * ⛔ UN DOMAINE À LA FOIS, ET UNE LIGNE SUFFIT (revue du 15.09.2026). Un seul `.or(…)` plafonné à
+ * deux cents lignes servait tous les domaines demandés : un expéditeur massif occupait le
+ * plafond, et le notaire de la même page n'était jamais vu « reçu ». Et un MESSAGE entrant, pas
+ * l'expéditeur d'un fil : celui d'un fil d'envoi est son destinataire.
  */
 async function domainesRecus(admin: SupabaseClient, accountId: string, domaines: string[]): Promise<Set<string>> {
-  // Les domaines sont validés par `normaliserDomaine` ([a-z0-9.-]) : ni virgule, ni
-  // parenthèse, ni joker ne peut sortir du motif (même forme que la recherche de contacts
-  // de `_shared/whatsapp-actions.ts`, qui tourne en production).
-  const filtre = domaines.map((d) => `from_email.ilike.%@${d}`).join(',')
-  const [fils, messages] = await Promise.all([
-    admin.from('mail_threads').select('from_email').eq('account_id', accountId).eq('is_spam', false).or(filtre).limit(200),
-    admin.from('mail_messages').select('from_email').eq('account_id', accountId).eq('is_spam', false).or(filtre).limit(200),
-  ])
-  const vus = new Set<string>()
-  for (const r of [...(fils.data ?? []), ...(messages.data ?? [])]) {
-    const d = normaliserDomaine(String(r.from_email ?? ''))
-    if (d) vus.add(d)
-  }
-  return vus
+  // Les domaines sont validés par `normaliserDomaine` ([a-z0-9.-]) : ni joker ni échappement
+  // ne peut sortir du motif.
+  const vus = await Promise.all(domaines.map(async (d) => {
+    const { data, error } = await admin.from('mail_messages').select('id')
+      .eq('account_id', accountId).eq('is_spam', false).eq('direction', 'inbound').ilike('from_email', `%@${d}`).limit(1)
+    if (error) console.error(`[mail-logos] ${d}, courrier reçu illisible :`, error.message)
+    return !error && (data ?? []).length > 0 ? d : null
+  }))
+  return new Set(vus.filter((d): d is string => !!d))
 }
 
 /** `f` sur chaque élément, `n` à la fois. */

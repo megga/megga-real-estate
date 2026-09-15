@@ -82,7 +82,16 @@ export function decodeMUtf7(s: string): string {
   })
 }
 
-export interface ImapFolders { inbox: string; sent: string | null; archive: string | null; trash: string | null; junk: string | null }
+export interface ImapFolders {
+  inbox: string; sent: string | null; archive: string | null; trash: string | null; junk: string | null
+  /**
+   * Le parent d'un dossier que le CRM CRÉE (l'Archive, le Spam d'une boîte qui n'en a pas) :
+   * `INBOX.` quand les dossiers de la boîte vivent sous la Réception — Courier, et donc cPanel —,
+   * sinon rien. ⛔ Créé à la racine, `CREATE "Archive"` y était refusé : archiver rendait 502
+   * (revue du 15.09.2026).
+   */
+  prefixe: string
+}
 
 /**
  * Les dossiers utiles : l'usage spécial annoncé (RFC 6154) d'abord, puis les noms usuels
@@ -95,7 +104,7 @@ export function resolveFolders(list: ImapFolder[]): ImapFolders {
     const n = decodeMUtf7(f.name).toLowerCase()
     return noms.some((x) => { const v = x.toLowerCase(); return n === v || n.endsWith(`.${v}`) || n.endsWith(`/${v}`) })
   })?.name ?? null
-  return {
+  const dossiers = {
     inbox: list.find((f) => f.name.toLowerCase() === 'inbox')?.name ?? 'INBOX',
     sent: parAttribut('\\Sent') ?? parNom(['Sent', 'Sent Messages', 'Sent Items', 'Sent Mail', 'Envoyés', 'Éléments envoyés', 'Messages envoyés', 'Gesendet', 'Gesendete Elemente', 'Inviati', 'Posta inviata']),
     archive: parAttribut('\\Archive') ?? parNom(['Archive', 'Archives', 'Archiv', 'Archivio']),
@@ -104,6 +113,10 @@ export function resolveFolders(list: ImapFolder[]): ImapFolders {
     // celui de GMX et WEB.DE.
     junk: parAttribut('\\Junk') ?? parNom(['Junk', 'Spam', 'Junk E-mail', 'Junk Email', 'Junk Mail', 'Bulk Mail', 'Courrier indésirable', 'Pourriel', 'Indésirables', 'Spamverdacht', 'Junk-E-Mail', 'Unerwünscht', 'Posta indesiderata']),
   }
+  // Les dossiers du SERVEUR (Envoyés, Corbeille…) disent où il range les siens ; un sous-dossier
+  // de la Réception créé par l'agent, lui, ne dit rien de l'espace de noms.
+  const modele = [dossiers.sent, dossiers.trash, dossiers.junk, dossiers.archive].find((n) => n && /^inbox[./]/i.test(n))
+  return { ...dossiers, prefixe: modele ? modele.slice(0, 6) : '' }
 }
 
 /** `<dossier>:<uidValidity>:<uid>` — le dossier peut lui-même contenir des deux-points. */
@@ -158,11 +171,7 @@ async function ouvrirCompte(admin: SupabaseClient, account: MailAccountRow, deps
   }
 }
 
-/**
- * Le test de l'assistant : IMAP (connexion, identifiants, dossiers) puis SMTP
- * (identifiants, sans rien envoyer). Rend un CODE par étape en échec, jamais le texte du
- * serveur — l'écran le traduit ; le texte va au journal de la fonction.
- */
+/** L'étape du test de l'assistant qui a échoué (`imapTestConnexion`) — un code, que l'écran traduit. */
 export type EchecConnexion =
   | 'imap_auth' | 'imap_temporaire' | 'imap_unreachable' | 'imap_starttls' | 'imap_certificate'
   | 'smtp_auth' | 'smtp_unreachable' | 'smtp_starttls' | 'smtp_certificate'
@@ -174,6 +183,12 @@ export type EchecConnexion =
  * « invalid peer certificate: certificate not valid for name … »).
  */
 const certificatRefuse = (m: string) => /peer certificate/i.test(m)
+
+/**
+ * Le test de l'assistant : IMAP (connexion, identifiants, dossiers) puis SMTP
+ * (identifiants, sans rien envoyer). Rend un CODE par étape en échec, jamais le texte du
+ * serveur — l'écran le traduit ; le texte va au journal de la fonction.
+ */
 export async function imapTestConnexion(cfg: ImapConfig, password: string, deps: ImapDeps = {}): Promise<{ ok: true } | { ok: false; code: EchecConnexion; detail: string }> {
   const texte = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 300)
   try {
@@ -424,23 +439,23 @@ function entetesDe(raw: Uint8Array): Uint8Array {
  */
 async function lire(client: ImapClient, account: MailAccountRow, dossier: string, uidValidity: number, role: 'inbox' | 'sent' | 'junk', meta: ImapMeta): Promise<NormalizedMessage | null> {
   const ctx = { providerMessageId: providerId(dossier, uidValidity, meta.uid), boxEmail: account.email, dossier: role, flags: meta.flags, internalDate: meta.internalDate }
-  const enTetesSeuls = async (entetes: Uint8Array, corps: string): Promise<NormalizedMessage | null> => {
+  const enTetesSeuls = async (entetes: Uint8Array): Promise<NormalizedMessage | null> => {
     try {
-      return await parseEntetesSeuls(entetes, ctx, corps)
+      return await parseEntetesSeuls(entetes, ctx)
     } catch (e) {
       console.warn(`[mail-sync] imap ${account.id} : message ${ctx.providerMessageId} illisible, sauté (${e instanceof Error ? e.name : 'erreur'})`)
       return null
     }
   }
   if (meta.size > POIDS_MAX) {
-    return enTetesSeuls(await client.uidFetchHeader(meta.uid, ENTETES_MAX), `Message de ${Math.round(meta.size / 1024 / 1024)} Mo, trop volumineux pour être affiché ici : ouvrez-le dans votre messagerie.`)
+    return enTetesSeuls(await client.uidFetchHeader(meta.uid, ENTETES_MAX))
   }
   // Le serveur a ANNONCÉ au plus POIDS_MAX : un littéral bien plus gros n'est pas ce message-là.
   const raw = await client.uidFetchRaw(meta.uid, POIDS_MAX * 2)
   try {
     return await parseRfc822(raw, ctx)
   } catch {
-    return enTetesSeuls(entetesDe(raw), `Ce message n'a pas pu être lu ici : ouvrez-le dans votre messagerie.`)
+    return enTetesSeuls(entetesDe(raw))
   }
 }
 
@@ -728,14 +743,14 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
       if (action === 'archive') {
         // Une boîte sans dossier d'archive en reçoit un — c'est ce que font Thunderbird et
         // Apple Mail au premier archivage.
-        if (!archive) { await client.create('Archive'); archive = 'Archive' }
+        if (!archive) { archive = `${folders.prefixe}Archive`; await client.create(archive) }
         dest = archive
       } else if (action === 'trash') {
         dest = folders.trash
         if (!dest) throw new Error('imap: aucun dossier Corbeille sur ce serveur')
       } else if (action === 'spam') {
         // Même règle que l'archive : une boîte sans dossier de spam en reçoit un.
-        if (!junk) { await client.create('Junk'); junk = 'Junk' }
+        if (!junk) { junk = `${folders.prefixe}Junk`; await client.create(junk) }
         dest = junk
       } else {
         // unarchive, untrash, not_spam : retour en Réception.

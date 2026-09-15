@@ -82,6 +82,9 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   whatsapp_ai_send_client_email: 'message', whatsapp_ai_send_template: 'message',
   whatsapp_delivery_failed: 'message', whatsapp_send_blocked: 'message',
   whatsapp_optin_invited: 'message', auto_email_sent: 'message', wa_undo: 'message',
+  // Les boîtes de la Messagerie : branchée, refusée, déconnectée, réglée
+  mail_account_connected: 'message', mail_account_connect_failed: 'message',
+  mail_account_disconnected: 'message', mail_account_updated: 'message',
   // Matching : correspondances et sélections envoyées
   match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
   // Agenda

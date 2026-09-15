@@ -413,7 +413,7 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       provider_message_id: m.providerMessageId, rfc822_message_id: m.rfc822MessageId, in_reply_to: m.inReplyTo,
       direction: m.direction, from_name: m.from.name, from_email: m.from.email,
       to: m.to, cc: m.cc, bcc: m.bcc, reply_to: m.replyTo, subject: m.subject, snippet: m.snippet,
-      body_text: m.bodyText, body_html: html, body_truncated: truncated, sent_at: m.sentAt,
+      body_text: m.bodyText, body_html: html, body_truncated: truncated || !!m.corpsNonLu, sent_at: m.sentAt,
       is_read: m.isRead, has_attachments: m.attachments.some((a) => !a.isInline), provider_labels: m.providerLabels,
       // Un message rattaché PUIS passé au spam GARDE son contact : il a sa ligne au journal, et
       // l'effacer le faisait rejournaliser à sa sortie du spam — une seconde ligne, append-only.

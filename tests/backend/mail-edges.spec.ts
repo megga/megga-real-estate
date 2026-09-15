@@ -406,6 +406,65 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
   // n'exigeait qu'un « @ » : sur n'importe quel fil visible, un agent réaffectait l'alias
   // d'une adresse qu'il n'avait jamais lue. L'adresse doit désormais être celle d'un
   // correspondant EXTERNE de ce fil — ni la boîte, ni une adresse interne à l'agence.
+  // ⛔ « Spam » sur un fil qui n'a rien reçu : le fil prenait `is_spam` sans qu'un seul de ses
+  // messages le porte, et le premier recalcul le rendait à « Envoyés » (revue du 15.09.2026).
+  it('mail-actions : « Spam » sur un fil sans message reçu est refusé, un par un comme en lot — avant tout fournisseur', async () => {
+    const svc = serviceRoleClient()
+    const maintenant = new Date().toISOString()
+    const { data: th, error: eTh } = await svc.from('mail_threads').insert({
+      account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-envoye-${s.stamp}`, subject: 'Offre', last_outbound_at: maintenant,
+    }).select('id').single()
+    if (eTh) throw new Error(`mail_threads: ${eTh.message}`)
+    const { error: eM } = await svc.from('mail_messages').insert({
+      thread_id: th.id, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-envoye-${s.stamp}`, direction: 'outbound',
+      from_email: `a-${s.stamp}@a.test`, to: [{ name: null, email: `zoe-${s.stamp}@ex.ch` }], sent_at: maintenant,
+    })
+    if (eM) throw new Error(`mail_messages: ${eM.message}`)
+    // Ni jeton ni connexion pour cette boîte de test : un appel au fournisseur rendrait 502.
+    const un = await call('mail-actions', { action: 'spam', account_id: boxAId, thread_id: th.id }, jwtA)
+    expect(un.status, un.text.slice(0, 200)).toBe(409)
+    expect(un.json.error).toBe('nothing_to_flag')
+    const lot = await call('mail-actions', { action: 'spam', account_id: boxAId, thread_ids: [th.id] }, jwtA)
+    expect(lot.status, lot.text.slice(0, 200)).toBe(200)
+    expect(lot.json.results).toEqual([{ thread_id: th.id, ok: false, error: 'nothing_to_flag' }])
+    const { data: apres } = await svc.from('mail_threads').select('is_spam').eq('id', th.id).single()
+    expect(apres!.is_spam).toBe(false)
+    await svc.from('mail_threads').delete().eq('id', th.id)
+  })
+
+  // ⛔ Rendre une boîte partagée, puis la déconnecter, ne laissaient AUCUNE trace au journal
+  // (revue du 15.09.2026). Le fait seulement : l'identifiant et ce qui a changé — jamais le
+  // nom d'affichage. Boîte jetable sans secret Vault : rien à révoquer chez le fournisseur.
+  it('mail-oauth update puis disconnect : chaque geste laisse sa ligne au journal', async () => {
+    const svc = serviceRoleClient()
+    const { data: boite, error } = await svc.from('mail_accounts')
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: `jetable-${s.stamp}@a.test`, visibility: 'owner' })
+      .select('id').single()
+    if (error) throw new Error(`mail_accounts: ${error.message}`)
+    const lignes = async (action: string) => {
+      const { data } = await svc.from('activity_events').select('actor_id, actor_kind, category, object_label, metadata')
+        .eq('agency_id', s.agencyAId).eq('action', action).eq('metadata->>account_id', boite.id)
+      return data ?? []
+    }
+    const maj = await call('mail-oauth', { action: 'update', account_id: boite.id, visibility: 'agency', display_name: 'Secret' }, jwtA)
+    expect(maj.status, maj.text.slice(0, 200)).toBe(200)
+    const [modif, ...enTrop] = await lignes('mail_account_updated')
+    expect(enTrop).toEqual([])
+    expect(modif).toMatchObject({ actor_id: s.agentAId, actor_kind: 'user', category: 'messaging', object_label: null })
+    expect(modif.metadata).toEqual({ account_id: boite.id, champs: ['display_name', 'visibility'], visibility: 'agency' })
+    // Témoin : un réglage qui ne change rien n'écrit rien.
+    await call('mail-oauth', { action: 'update', account_id: boite.id }, jwtA)
+    expect(await lignes('mail_account_updated')).toHaveLength(1)
+
+    const dec = await call('mail-oauth', { action: 'disconnect', account_id: boite.id }, jwtA)
+    expect(dec.status, dec.text.slice(0, 200)).toBe(200)
+    const depart = await lignes('mail_account_disconnected')
+    expect(depart).toHaveLength(1)
+    expect(depart[0]).toMatchObject({ actor_id: s.agentAId, metadata: { provider: 'gmail', account_id: boite.id } })
+    const { data: reste } = await svc.from('mail_accounts').select('id').eq('id', boite.id).maybeSingle()
+    expect(reste).toBeNull()
+  })
+
   describe('link_contact : l’adresse apprise est celle d’un correspondant externe du fil', () => {
     const service = () => serviceRoleClient()
     let threadId: string

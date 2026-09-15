@@ -218,7 +218,8 @@
         "reauth_required": "Berechtigung erneuern",
         "error": "Synchronisierungsfehler",
         "disabled": "Deaktiviert"
-      }
+      },
+      "disconnectError": "Das Postfach konnte nicht getrennt werden. Versuchen Sie es gleich noch einmal."
     },
     "compose": {
       "cta": "Neue Nachricht",
@@ -245,6 +246,17 @@
       "invalidHint_one": "Eine Adresse ist zu korrigieren: zum Bearbeiten doppelklicken.",
       "invalidHint_other": "{{count}} Adressen sind zu korrigieren: zum Bearbeiten doppelklicken.",
       "suggestions": "Vorgeschlagene Kontakte"
+    },
+    "sendError": {
+      "generic": "Der Versand ist fehlgeschlagen. Versuchen Sie es gleich noch einmal.",
+      "send_failed": "Der Server des Postfachs hat den Versand abgelehnt. Prüfen Sie die Empfänger und versuchen Sie es erneut.",
+      "provider_auth": "Das Postfach antwortet nicht mehr: Verbinden Sie es in den Einstellungen neu und versuchen Sie es erneut.",
+      "account_not_active": "Dieses Postfach kann nicht senden: Seine Autorisierung muss erneuert werden.",
+      "attachments_too_large": "Die Anhänge überschreiten die zulässige Grösse für einen Versand.",
+      "attachment_too_large_outlook": "Ein Anhang ist grösser als 3 MB, die Grenze von Outlook für einen Versand aus dem CRM.",
+      "recipient_required": "Fügen Sie mindestens einen Empfänger hinzu.",
+      "subject_required": "Fügen Sie der Nachricht einen Betreff hinzu.",
+      "original_not_found": "Die ursprüngliche Nachricht ist nicht auffindbar: Sie wurde möglicherweise gelöscht."
     },
     "folders": {
       "aria": "Ordner",
@@ -323,6 +335,7 @@
       "showImages": "Bilder anzeigen",
       "bodyTitle": "Nachrichtentext",
       "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
+      "bodyMissing": "Der Inhalt dieser Nachricht kann hier nicht angezeigt werden (zu gross oder unlesbar): Öffnen Sie sie in Ihrem Mailprogramm.",
       "unlinked": "Adresse nicht zugeordnet: {{email}}",
       "spam": "Im Spam: Diese Nachricht ist keinem Kontakt zugeordnet.",
       "spamInThread_one": "{{count}} Nachricht dieser Unterhaltung ist im Spam.",

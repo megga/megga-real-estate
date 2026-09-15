@@ -149,6 +149,29 @@ describe('safeFetchResponse — plafond et erreurs', () => {
   })
 })
 
+// ⛔ Le délai n'annulait que le `fetch` : un nom dont les serveurs faisant autorité se taisent
+// tenait la requête le délai du RÉSOLVEUR — 15 007 ms mesurés pour 4 000 demandés (revue du 15.09.2026).
+describe('safeFetchResponse — ⛔ la résolution DNS est sous le même délai', () => {
+  it('un DNS muet cède au délai de l’appelant, et le résolveur a reçu le signal', async () => {
+    const signaux: (AbortSignal | undefined)[] = []
+    ;(globalThis as unknown as { Deno: unknown }).Deno = {
+      env: { get: () => undefined },
+      resolveDns: (_host: string, _type: string, opts?: { signal?: AbortSignal }) => new Promise<string[]>((_resolve, reject) => {
+        signaux.push(opts?.signal)
+        opts?.signal?.addEventListener('abort', () => reject(new Error('aborted')))
+      }),
+    }
+    const debut = Date.now()
+    await expect(safeFetchResponse('https://muet.example.ch/', { timeoutMs: 50 })).rejects.toThrow(/fetch: timeout/)
+    expect(Date.now() - debut).toBeLessThan(1_000)
+    expect(signaux).toHaveLength(2)
+    expect(signaux.every((s) => s instanceof AbortSignal)).toBe(true)
+    expect(fetched).toEqual([])
+    // Et ce motif-là ne se rend pas tel quel à l'appelant : `fetch_failed`.
+    expect(safeFetchErrorCode(new Error('fetch: timeout'))).toBe('fetch_failed')
+  })
+})
+
 describe('safeFetch — le contrat historique ne bouge pas', () => {
   it('refuse toute redirection, même publique', async () => {
     routes['https://old-img.example.ch/p/1.jpg'] = () => redirect('https://img.getmegga.com/p/1.jpg', 301)

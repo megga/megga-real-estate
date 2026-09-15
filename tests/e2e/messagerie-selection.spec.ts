@@ -39,6 +39,19 @@ test('cocher une ligne fait paraître la barre ; la décocher, ou changer de dos
   await expect(barre(page)).toHaveCount(0)
 })
 
+// ⛔ Le fond de survol était peint à la main dans le DOM : décocher la ligne sous le pointeur
+// l'effaçait, et elle restait nue jusqu'à ce que le pointeur en sorte (revue du 15.09.2026).
+test('décocher une ligne sous le pointeur lui rend son fond de survol', async ({ page }) => {
+  const ligne = lignes(page).nth(1)
+  const fond = () => ligne.evaluate((el) => getComputedStyle(el).backgroundColor)
+  await ligne.hover()
+  await expect.poll(fond).not.toBe('rgba(0, 0, 0, 0)')
+  await cocher(page, 1)
+  await cocher(page, 1)
+  await expect(barre(page)).toHaveCount(0)
+  await expect.poll(fond).not.toBe('rgba(0, 0, 0, 0)')
+})
+
 test('Maj+clic coche une plage ; la case « tout » vide la sélection, puis coche la page', async ({ page }) => {
   await cocher(page, 1)
   await cocher(page, 4, true)
@@ -60,6 +73,18 @@ test('supprimer trois messages d’un coup : une confirmation qui les nomme, pui
   await modale.getByRole('button', { name: 'Supprimer' }).click()
   await expect(page.getByText('3 messages supprimés')).toBeVisible()
   await expect.poll(() => total(page)).toBe(avant - 3)
+})
+
+// ⛔ Un seul fil coché partait par la voie du lecteur : ni compte rendu, ni sélection vidée —
+// la barre restait ouverte sur un fil parti (revue du 15.09.2026).
+test('supprimer UN message depuis la barre : le compte rendu le dit, et la barre se referme', async ({ page }) => {
+  const avant = await total(page)
+  await cocher(page, 1)
+  await barre(page).getByRole('button', { name: 'Supprimer' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Supprimer' }).click()
+  await expect(page.getByText('1 message supprimé')).toBeVisible()
+  await expect(barre(page)).toHaveCount(0)
+  await expect.poll(() => total(page)).toBe(avant - 1)
 })
 
 test('archiver deux messages : ils rejoignent « Archivé », et son compteur suit', async ({ page }) => {

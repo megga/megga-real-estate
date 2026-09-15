@@ -46,6 +46,24 @@ function adresses(liste?: PmMailbox[]): MailAddress[] {
   return (liste ?? []).flatMap((a) => (a.group ? a.group : [a])).map(adresse).filter((x): x is MailAddress => !!x)
 }
 
+/** Les extensions d'un nom de pièce absent, pour les types courants. */
+const EXTENSIONS: Record<string, string> = {
+  'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'text/plain': 'txt',
+  'text/html': 'html', 'text/calendar': 'ics', 'message/rfc822': 'eml', 'application/zip': 'zip',
+}
+
+/**
+ * Le nom d'une pièce qui n'en porte pas : `ATT00001.pdf`, la convention d'Outlook.
+ *
+ * ⚠ Neutre, parce qu'il est ÉCRIT en base et relu partout — dans le lecteur, dans le nom d'un
+ * document classé au dossier : `piece-1` restait en français sous un agent germanophone (revue
+ * du 15.09.2026).
+ */
+export function nomDePiece(rang: number, mimeType: string | null | undefined): string {
+  const ext = EXTENSIONS[(mimeType ?? '').toLowerCase()] ?? 'bin'
+  return `ATT${String(rang + 1).padStart(5, '0')}.${ext}`
+}
+
 /** Taille décodée d'un contenu base64 (sans le décoder : c'est tout l'objet du mode base64). */
 function tailleBase64(b64: string): number {
   const net = b64.replace(/[^A-Za-z0-9+/=]/g, '')
@@ -76,7 +94,7 @@ export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<Norma
   const replyTo = adresses(e.replyTo)[0]?.email ?? null
   const attachments: NormalizedAttachment[] = e.attachments.map((a, i) => ({
     providerAttachmentId: String(i),
-    filename: a.filename || `piece-${i + 1}`,
+    filename: a.filename || nomDePiece(i, a.mimeType),
     mimeType: a.mimeType || 'application/octet-stream',
     sizeBytes: typeof a.content === 'string'
       ? (a.encoding === 'base64' ? tailleBase64(a.content) : new TextEncoder().encode(a.content).byteLength)
@@ -116,13 +134,17 @@ export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<Norma
 }
 
 /**
- * Un message trop lourd pour être téléchargé : ses seuls EN-TÊTES, et un corps qui dit
- * pourquoi il manque. Le fil, l'expéditeur et la date restent justes ; l'agent ouvre le
- * message dans son webmail.
+ * Un message trop lourd pour être téléchargé, ou dont le corps ne s'analyse pas : ses seuls
+ * EN-TÊTES, et `corpsNonLu`. Le fil, l'expéditeur et la date restent justes ; l'écran dit, dans
+ * la langue de l'agent, d'ouvrir le message dans son webmail.
+ *
+ * ⛔ Le corps était une PHRASE FRANÇAISE écrite en base (revue du 15.09.2026) — « Message de
+ * 12 Mo, trop volumineux… » —, lue telle quelle par un agent germanophone, jusque dans l'extrait
+ * de la liste.
  */
-export async function parseEntetesSeuls(entetes: Uint8Array, ctx: ParseCtx, corps: string): Promise<NormalizedMessage> {
+export async function parseEntetesSeuls(entetes: Uint8Array, ctx: ParseCtx): Promise<NormalizedMessage> {
   const m = await parseRfc822(entetes, ctx)
-  return { ...m, bodyText: corps, bodyHtml: null, snippet: snippetOf(corps), attachments: [] }
+  return { ...m, bodyText: null, bodyHtml: null, snippet: '', attachments: [], corpsNonLu: true }
 }
 
 /** Les octets d'une pièce (par son rang, `providerAttachmentId`) dans un message brut. */
@@ -131,5 +153,5 @@ export async function attachmentFromRaw(raw: Uint8Array, index: number): Promise
   const a = e.attachments[index]
   if (!a) return null
   const bytes = typeof a.content === 'string' ? new TextEncoder().encode(a.content) : new Uint8Array(a.content)
-  return { bytes, mimeType: a.mimeType || 'application/octet-stream', filename: a.filename || `piece-${index + 1}` }
+  return { bytes, mimeType: a.mimeType || 'application/octet-stream', filename: a.filename || nomDePiece(index, a.mimeType) }
 }

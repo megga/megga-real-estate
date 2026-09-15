@@ -57,13 +57,19 @@ describe.skipIf(!HAS_KEYS)('Messagerie — edge mail-logos', () => {
     boxAinBId = await mk(s.agencyBId, s.agentAId, `logos-ab-${s.stamp}@b.test`, 'owner')
 
     // Ce que la boîte A a REÇU : une particulière chez Gmail, et une société dont le logo
-    // est déjà en cache.
+    // est déjà en cache. « Reçu » se lit sur un MESSAGE entrant (revue du 15.09.2026) :
+    // l'expéditeur d'un fil d'envoi est son destinataire.
     const recu = async (from: string, tag: string) => {
-      const { error } = await service.from('mail_threads').insert({
+      const { data: fil, error } = await service.from('mail_threads').insert({
         account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-logo-${tag}-${s.stamp}`,
         subject: tag, from_name: tag, from_email: from, last_message_at: new Date().toISOString(),
-      })
+      }).select('id').single()
       if (error) throw new Error(`mail_threads ${tag}: ${error.message}`)
+      const { error: eMsg } = await service.from('mail_messages').insert({
+        thread_id: fil.id, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-logo-${tag}-${s.stamp}`,
+        direction: 'inbound', sent_at: new Date().toISOString(), from_email: from,
+      })
+      if (eMsg) throw new Error(`mail_messages ${tag}: ${eMsg.message}`)
     }
     await recu('zoe.particuliere@gmail.com', 'gmail')
     await recu(`credit@${cache()}`, 'cache')
@@ -98,6 +104,26 @@ describe.skipIf(!HAS_KEYS)('Messagerie — edge mail-logos', () => {
     const r = await call({ account_id: 'pas-un-uuid', domains: ['gmail.com'] }, jwtA)
     expect(r.status).toBe(400)
     expect(r.json.error).toBe('invalid_account')
+  })
+
+  // ⛔ Un domaine auquel la boîte n'a qu'ÉCRIT n'est pas reçu : l'agent choisirait sinon le site
+  // que nos serveurs visitent (revue du 15.09.2026 — le fil d'envoi portait le destinataire).
+  it('un domaine seulement ÉCRIT par la boîte n est pas « reçu »', async () => {
+    const svc = serviceRoleClient()
+    const ecrit = `ecrit-${s.stamp}.test`
+    const { data: fil, error } = await svc.from('mail_threads').insert({
+      account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-logo-ecrit-${s.stamp}`, subject: 'Offre',
+      from_email: `client@${ecrit}`, last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(),
+    }).select('id').single()
+    if (error) throw new Error(`mail_threads écrit: ${error.message}`)
+    const { error: eMsg } = await svc.from('mail_messages').insert({
+      thread_id: fil.id, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-logo-ecrit-${s.stamp}`,
+      direction: 'outbound', sent_at: new Date().toISOString(), from_email: `logos-a-${s.stamp}@a.test`, to: [{ name: null, email: `client@${ecrit}` }],
+    })
+    if (eMsg) throw new Error(`mail_messages écrit: ${eMsg.message}`)
+    const r = await call({ account_id: boxAId, domains: [ecrit] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
+    expect(r.json.logos).toEqual({})
   })
 
   it('un domaine que la boîte n a jamais reçu n est pas résolu : ce n est pas un lecteur d URL', async () => {

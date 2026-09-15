@@ -11,6 +11,7 @@
 //         provisoire que Graph, rapprochée de la même façon quand la synchro relit le dossier.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, nettoyerMessageId, textToHtml } from '../_shared/mail/mime.ts'
@@ -98,7 +99,12 @@ serve(async (req: Request) => {
   let token = ''
   if (account.provider !== 'imap') {
     try { token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook) }
-    catch (e) { return json({ error: 'provider_auth', detail: e instanceof Error ? e.message : String(e) }, 502) }
+    catch (e) {
+      // ⛔ Le texte d'un refus de jeton porte l'`error_description` du fournisseur (S14) :
+      // journalisé caviardé, un code à l'écran.
+      console.error(`[mail-send] ${account.provider} ${account.id}, jeton: ${redactedErrorMessage(e)}`)
+      return json({ error: 'provider_auth' }, 502)
+    }
   }
 
   if (kind === 'forward' && original && account.provider === 'gmail') {
@@ -117,7 +123,8 @@ serve(async (req: Request) => {
         outAtts.push({ filename: a.filename, mimeType: a.mimeType, base64: base64Encode(a.bytes) })
       }
     } catch (e) {
-      return json({ error: 'provider_auth', detail: e instanceof Error ? e.message : String(e) }, 502)
+      console.error(`[mail-send] imap ${account.id}, pièces du transfert: ${redactedErrorMessage(e)}`)
+      return json({ error: 'provider_auth' }, 502)
     }
   }
 
@@ -213,13 +220,14 @@ serve(async (req: Request) => {
       await graphSend(token, { subject, html: fullHtml, to, cc, bcc, internetMessageId: messageId, attachments: outAtts }, mode)
     }
   } catch (e) {
-    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+    console.error(`[mail-send] ${account.provider} ${account.id}, envoi refusé: ${redactedErrorMessage(e)}`)
+    return json({ error: 'send_failed' }, 502)
   }
   // L'instant où le fournisseur a ACCEPTÉ : la date du fait au journal (`metadata.sent_at`).
   const acceptedAt = new Date().toISOString()
 
   // ── Le courrier est PARTI. Tout ce qui suit est de la comptabilité locale. ───────
-  let bookkeeping: string | null = null
+  let incomplet = false
   try {
     if (account.provider === 'gmail') {
       // Gmail rend l'id du message envoyé ; sans lui il n'y a rien à réingérer.
@@ -253,8 +261,8 @@ serve(async (req: Request) => {
   } catch (e) {
     // JAMAIS 502 ici : le fournisseur a accepté. Un refus renvoyé à l'agent le ferait
     // renvoyer, et le client recevrait le courrier deux fois.
-    bookkeeping = e instanceof Error ? e.message : String(e)
-    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${bookkeeping}`)
+    incomplet = true
+    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${redactedErrorMessage(e)}`)
   }
 
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
@@ -282,7 +290,7 @@ serve(async (req: Request) => {
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
   // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est
   // incomplète, pour que l'UI l'annonce au lieu d'inviter à renvoyer.
-  return json(bookkeeping
-    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded', detail: bookkeeping.slice(0, 300) }
+  return json(incomplet
+    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded' }
     : { ok: true, message_id: localMessageId, thread_id: threadId })
 })

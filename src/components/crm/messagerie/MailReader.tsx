@@ -262,7 +262,8 @@ export function MailReader(p: Props) {
             {btn(t('mail.read.forward'), p.onForward)}
             {btn(t('mail.plan.cta'), p.onPlanifier)}
             {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
-            {btn(t('mail.ctx.spam'), p.onSpam)}
+            {/* Un fil qui n'a rien reçu n'a rien à signaler (`rienASignaler`, mail-actions). */}
+            {p.thread.last_inbound_at && btn(t('mail.ctx.spam'), p.onSpam)}
           </>
         )}
         {btn(t('mail.ctx.delete'), p.onDelete, { danger: true, right: true })}

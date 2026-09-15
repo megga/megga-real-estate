@@ -4,7 +4,7 @@
  * un groupe d'adresses, un corps HTML seul, une pièce jointe et une image intégrée.
  */
 import { describe, it, expect } from 'vitest'
-import { attachmentFromRaw, internalDateIso, parseEntetesSeuls, parseRfc822, type ParseCtx } from './mime-parse.ts'
+import { attachmentFromRaw, internalDateIso, nomDePiece, parseEntetesSeuls, parseRfc822, type ParseCtx } from './mime-parse.ts'
 
 const RAW = [
   'From: =?UTF-8?B?Wm/DqSBSb2NoYXQ=?= <Zoe@Ex.ch>',
@@ -68,7 +68,7 @@ describe('parseRfc822', () => {
     expect(n.sentAt).toBe('2026-09-03T08:00:00.000Z')
     expect(n.attachments).toEqual([
       { providerAttachmentId: '0', filename: 'plan.pdf', mimeType: 'application/pdf', sizeBytes: 9, isInline: false, contentId: null },
-      { providerAttachmentId: '1', filename: 'piece-2', mimeType: 'image/png', sizeBytes: 8, isInline: true, contentId: '<logo@ex>' },
+      { providerAttachmentId: '1', filename: 'ATT00002.png', mimeType: 'image/png', sizeBytes: 8, isInline: true, contentId: '<logo@ex>' },
     ])
   })
 
@@ -95,12 +95,19 @@ describe('parseRfc822', () => {
     expect(n.isDraft).toBe(true)
   })
 
-  it('un message trop lourd garde ses en-têtes et dit pourquoi son corps manque', async () => {
+  // ⛔ Le corps était une PHRASE FRANÇAISE écrite en base, lue telle quelle par un agent
+  // germanophone jusque dans l'extrait de la liste (revue du 15.09.2026).
+  it('un message trop lourd garde ses en-têtes et le FAIT que son corps manque — aucune phrase en base', async () => {
     const entetes = new TextEncoder().encode(RAW.split('\r\n\r\n')[0] + '\r\n\r\n')
-    const n = await parseEntetesSeuls(entetes, ctx(), 'Message trop volumineux')
+    const n = await parseEntetesSeuls(entetes, ctx())
     expect(n.subject).toBe('Visite à Genève')
-    expect(n.bodyText).toBe('Message trop volumineux')
-    expect(n.attachments).toEqual([])
+    expect(n).toMatchObject({ bodyText: null, bodyHtml: null, snippet: '', attachments: [], corpsNonLu: true })
+  })
+
+  it('une pièce sans nom reçoit un nom NEUTRE, à la manière d Outlook', () => {
+    expect(nomDePiece(0, 'application/pdf')).toBe('ATT00001.pdf')
+    expect(nomDePiece(11, 'image/PNG')).toBe('ATT00012.png')
+    expect(nomDePiece(2, 'application/x-inconnu')).toBe('ATT00003.bin')
   })
 })
 

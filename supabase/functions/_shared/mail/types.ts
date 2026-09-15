@@ -93,6 +93,8 @@ export interface NormalizedMessage {
   isDraft: boolean
   providerLabels: string[]
   attachments: NormalizedAttachment[]
+  /** Corps ni téléchargé ni analysé (trop lourd, illisible) : l'écran le dit, `body_truncated` en base. */
+  corpsNonLu?: boolean
 }
 
 /** Les dix gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */

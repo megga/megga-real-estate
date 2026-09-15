@@ -131,6 +131,14 @@ const PAR_DOMAINE: Record<string, Verdict> = {
 }
 
 /**
+ * Les domaines des messageries de PARTICULIERS que ce module reconnaît à l'adresse — la même
+ * liste sert `logos.ts`, qui ne cherche pas de logo pour eux (`MESSAGERIES_GRAND_PUBLIC`).
+ */
+export function domainesParticuliers(): string[] {
+  return Object.keys(PAR_DOMAINE)
+}
+
+/**
  * Le serveur de courrier entrant (MX) désigne l'hébergeur — c'est ce qui reconnaît un domaine
  * d'AGENCE. Premier motif apparié, dans l'ordre des préférences MX ; ⚠ l'ordre des règles
  * compte : AOL avant Yahoo, dont il partage le suffixe.

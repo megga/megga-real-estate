@@ -25,7 +25,7 @@ import { rel, repoPath, scanRoots } from './helpers/fs-scan'
  */
 const HORS_COURRIER: Record<string, string> = {
   'supabase/functions/mail-attachment/index.ts': 'classement explicite d’une pièce au dossier, pas un courrier',
-  'supabase/functions/mail-oauth/index.ts': 'connexion d’une boîte, réussie ou refusée (15.09.2026) : un code et un identifiant, ni objet ni adresse',
+  'supabase/functions/mail-oauth/index.ts': 'connexion, déconnexion ou réglage d’une boîte (15.09.2026) : un code et un identifiant, ni objet, ni adresse, ni nom d’affichage',
 }
 
 const lire = (f: string) => readFileSync(repoPath(f), 'utf8')

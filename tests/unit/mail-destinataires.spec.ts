@@ -7,8 +7,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  adresseValide, ajouterDestinataires, boiteDEnvoi, decouperDestinataires, ecrireDestinataire, lireDestinataire, peutEnvoyerDepuis, scinderSaisie,
+  adresseValide, ajouterDestinataires, boiteDEnvoi, codeErreurEnvoi, decouperDestinataires, ecrireDestinataire, lireDestinataire, peutEnvoyerDepuis, scinderSaisie,
 } from '@/lib/mail/compose'
+import fr from '@/i18n/locales/fr/messages.json'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 
 describe('lireDestinataire', () => {
@@ -113,3 +114,21 @@ describe('la boîte d’envoi', () => {
     expect(boiteDEnvoi(b, ['c'])).toBe('c')
   })
 })
+
+// ⛔ Le composeur affichait le motif du serveur tel quel — `send_failed: smtp: 550 …`, voire le
+// texte d'un refus de jeton (revue du 15.09.2026).
+describe('codeErreurEnvoi — une phrase, jamais le motif du serveur', () => {
+  it('un refus connu garde son code ; tout autre motif est « generic »', () => {
+    expect(codeErreurEnvoi('attachment_too_large_outlook')).toBe('attachment_too_large_outlook')
+    expect(codeErreurEnvoi('send_failed: smtp: 550 5.1.1 inconnu')).toBe('send_failed')
+    expect(codeErreurEnvoi('http_500')).toBe('generic')
+    expect(codeErreurEnvoi('Edge Function returned a non-2xx status code')).toBe('generic')
+  })
+  it('chaque code a sa phrase', () => {
+    const phrases = (fr as { mail: { sendError: Record<string, string> } }).mail.sendError
+    for (const motif of ['send_failed', 'provider_auth', 'account_not_active', 'attachments_too_large', 'attachment_too_large_outlook', 'recipient_required', 'subject_required', 'original_not_found', 'autre chose']) {
+      expect(phrases[codeErreurEnvoi(motif)], motif).toBeTruthy()
+    }
+  })
+})
+

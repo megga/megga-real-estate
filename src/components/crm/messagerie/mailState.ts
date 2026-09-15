@@ -7,8 +7,10 @@ export type MailFolder = 'in' | 'arch' | 'star' | 'sent' | 'draft' | 'spam'
 export type MailModal =
   | { kind: 'none' }
   | { kind: 'compose'; draftId?: string }
-  // Un fil (menu, lecteur) ou plusieurs (la sélection de la liste, 15.09.2026).
-  | { kind: 'delete'; threadIds: string[] }
+  // Un fil (menu, lecteur) ou plusieurs (la sélection de la liste, 15.09.2026). Venue de la
+  // sélection, la suppression passe par le lot MÊME pour un seul fil : son compte rendu, et la
+  // sélection vidée — sans quoi la barre restait ouverte sur un fil parti.
+  | { kind: 'delete'; threadIds: string[]; depuisSelection?: boolean }
   | { kind: 'disconnect'; accountId: string }
   | { kind: 'add-account'; step: 'list' | 'oauth' | 'imap' | 'done'; provider?: 'gmail' | 'outlook' | 'imap'; accountId?: string }
   | { kind: 'link-contact'; threadId: string; email: string; name: string | null }

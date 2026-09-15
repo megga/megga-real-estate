@@ -54,7 +54,9 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
   const [survol, setSurvol] = useState(false)
   const [focus, setFocus] = useState(false)
   const caseVisible = selectionne || enSelection || survol || focus
-  const fond = selectionne ? ms.elev : 'transparent'
+  // Le survol vit dans l'état : peint à la main dans le DOM, il était effacé par le rendu d'une
+  // ligne décochée sous le pointeur, et la ligne survolée perdait son fond.
+  const fond = selectionne ? ms.elev : survol ? ms.hover2 : 'transparent'
   // ⚠ 600 et non 700 comme la maquette : la grammaire MEGGA X plafonne à 600
   // (cliquet `megga-x-grammar`), et l'écart 500/600 suffit à lire « non lu ».
   const weight = row.is_read ? 500 : 600
@@ -78,8 +80,8 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
         alignItems: 'center', padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)',
         borderBottom: `1px solid ${ms.bord2}`, cursor: 'pointer', color: ms.ink, transition: MAIL_TRANSITION, background: fond,
       }}
-      onMouseEnter={(e) => { setSurvol(true); if (!selectionne) e.currentTarget.style.background = ms.hover2 }}
-      onMouseLeave={(e) => { setSurvol(false); e.currentTarget.style.background = fond }}
+      onMouseEnter={() => setSurvol(true)}
+      onMouseLeave={() => setSurvol(false)}
     >
       {/* Pas d'étoile sur un spam : « Suivis » exclut le spam, le geste semblerait sans effet
           (même règle que le menu de la ligne). La cellule reste, la grille aussi. */}

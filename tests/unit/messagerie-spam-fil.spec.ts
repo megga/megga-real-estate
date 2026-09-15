@@ -43,11 +43,23 @@ describe('Messagerie — l’écran tient le spam à part', () => {
   })
 
   it('aucun logo pour du spam : liste, lecteur, mobile — et le verrou de l’edge', () => {
-    expect(lire('src/components/crm/messagerie/MailList.tsx')).toMatch(/p\.rows\.filter\(\(r\) => !r\.is_spam\)\.map\(adresse\)/)
+    // Ni pour un fil qui n'a rien reçu : son adresse est celle du destinataire (revue du 15.09.2026).
+    expect(lire('src/components/crm/messagerie/MailList.tsx')).toMatch(/p\.rows\.filter\(\(r\) => !r\.is_spam && r\.last_inbound_at\)\.map\(adresse\)/)
     expect(lire('src/components/crm/messagerie/MailReader.tsx')).toMatch(/first && !p\.thread\.is_spam && !first\.is_spam \? \[first\.from_email\] : \[\]/)
-    expect(lire('src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx')).toMatch(/threads\.rows\.filter\(\(r\) => !r\.is_spam\)/)
+    expect(lire('src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx')).toMatch(/threads\.rows\.filter\(\(r\) => !r\.is_spam && r\.last_inbound_at\)/)
     const edge = lire('supabase/functions/mail-logos/index.ts')
-    expect(edge.match(/\.eq\('is_spam', false\)\.or\(filtre\)/g), 'les fils ET les messages').toHaveLength(2)
+    // Un MESSAGE reçu, domaine par domaine : plus de fil, plus de `.or(…)` partagé.
+    expect(edge.match(/\.eq\('is_spam', false\)\.eq\('direction', 'inbound'\)\.ilike\('from_email'/g)).toHaveLength(1)
+    expect(edge).not.toMatch(/\.or\(filtre\)/)
+  })
+
+  // ⛔ « Spam » sur un fil qui n'a rien reçu : aucun message à signaler, et le fil passait au
+  // Spam pour en ressortir au premier recalcul (revue du 15.09.2026). Le serveur le refuse
+  // (`rienASignaler`) ; l'écran ne l'offre qu'à un fil qui a reçu.
+  it('« Spam » n’est offert qu’à un fil qui a reçu : lecteur, menu de la ligne, barre de la sélection', () => {
+    expect(lire('src/components/crm/messagerie/MailReader.tsx')).toMatch(/p\.thread\.last_inbound_at && btn\(t\('mail\.ctx\.spam'\)/)
+    expect(lire('src/components/crm/messagerie/MailContextMenu.tsx')).toMatch(/\(row\.is_spam \|\| row\.last_inbound_at\) && item\(/)
+    expect(lire('src/components/crm/messagerie/MessagerieApp.tsx')).toMatch(/selectionVisible\.some\(\(r\) => r\.last_inbound_at\)/)
   })
 
   it('les textes existent dans les quatre langues', () => {

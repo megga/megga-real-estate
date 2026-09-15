@@ -239,7 +239,7 @@ export function MailComposeModal({ ms, boites, boiteOuverte, draft, sending, err
         {/* Dit POURQUOI « Envoyer » reste éteint : une capsule en alerte se voit, sa
             conséquence non. */}
         {invalides > 0 && <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{t('mail.compose.invalidHint', { count: invalides })}</div>}
-        {/* Le motif du serveur, tel quel : `attachment_too_large_outlook` dit plus
+        {/* La phrase du motif (`codeErreurEnvoi`) : `attachment_too_large_outlook` dit plus
             qu'un « échec de l'envoi » qui laisserait chercher la cause. */}
         {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{error}</div>}
       </div>

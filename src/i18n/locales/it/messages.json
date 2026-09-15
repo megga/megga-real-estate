@@ -218,7 +218,8 @@
         "reauth_required": "Autorizzazione da rinnovare",
         "error": "Errore di sincronizzazione",
         "disabled": "Disattivata"
-      }
+      },
+      "disconnectError": "La casella non ha potuto essere scollegata. Riprovi tra un momento."
     },
     "compose": {
       "cta": "Nuovo messaggio",
@@ -245,6 +246,17 @@
       "invalidHint_one": "Un indirizzo è da correggere: fai doppio clic per modificarlo.",
       "invalidHint_other": "{{count}} indirizzi sono da correggere: fai doppio clic per modificarli.",
       "suggestions": "Contatti suggeriti"
+    },
+    "sendError": {
+      "generic": "L'invio non è riuscito. Riprovi tra un momento.",
+      "send_failed": "Il server della casella ha rifiutato l'invio. Verifichi i destinatari, poi riprovi.",
+      "provider_auth": "La casella non risponde più: la ricolleghi dalle impostazioni, poi riprovi.",
+      "account_not_active": "Questa casella non può inviare: la sua autorizzazione va rinnovata.",
+      "attachments_too_large": "Gli allegati superano la dimensione consentita per un invio.",
+      "attachment_too_large_outlook": "Un allegato supera 3 MB, il limite di Outlook per un invio dal CRM.",
+      "recipient_required": "Aggiunga almeno un destinatario.",
+      "subject_required": "Aggiunga un oggetto al messaggio.",
+      "original_not_found": "Il messaggio originale è introvabile: forse è stato eliminato."
     },
     "folders": {
       "aria": "Cartelle",
@@ -323,6 +335,7 @@
       "showImages": "Mostra le immagini",
       "bodyTitle": "Corpo del messaggio",
       "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo programma di posta per la versione completa.",
+      "bodyMissing": "Il contenuto di questo messaggio non può essere mostrato qui (troppo grande o illeggibile): lo apra nel suo programma di posta.",
       "unlinked": "Indirizzo non collegato: {{email}}",
       "spam": "Nello spam: questo messaggio non è collegato a nessun contatto.",
       "spamInThread_one": "{{count}} messaggio di questa conversazione è nello spam.",

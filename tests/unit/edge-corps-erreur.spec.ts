@@ -45,6 +45,9 @@ const SITES_S14 = [
   'send-email', 'speech-to-text', 'magic-link-create', 'mail-oauth', 'translate-on-demand',
   'matching-engine', 'kyc-report-import', 'detect-new-device',
   'kyc-report-data', 'c2pa-verify', 'log-auth-event', 'stripe-webhook', 'accept-team-invite',
+  // La revue du 15.09.2026 (U9) : les trois autres edges de la Messagerie rendaient le texte
+  // d'une erreur Postgres ou le corps d'un refus du fournisseur (`error_description` compris).
+  'mail-actions', 'mail-send', 'mail-attachment',
 ] as const
 
 /**

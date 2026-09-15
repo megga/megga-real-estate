@@ -134,6 +134,25 @@ export function ajouterDestinataires(liste: MailAddress[], ajouts: MailAddress[]
   return out
 }
 
+/** Les refus de `mail-send` que l'écran sait dire. */
+const REFUS_D_ENVOI = [
+  'send_failed', 'provider_auth', 'account_not_active', 'attachments_too_large', 'attachment_too_large_outlook',
+  'recipient_required', 'subject_required', 'original_not_found',
+] as const
+
+/**
+ * Le code d'un échec d'envoi, pour sa phrase (`mail.sendError.<code>`) ; `generic` pour tout
+ * autre motif.
+ *
+ * ⛔ Le composeur affichait le motif du serveur tel quel (revue du 15.09.2026) : un code
+ * technique à l'écran — `send_failed: …` suivi du texte du fournisseur, bannière SMTP ou refus
+ * de jeton, qui ne devait pas quitter le serveur. `mail-send` ne rend plus que des codes.
+ */
+export function codeErreurEnvoi(motif: string): (typeof REFUS_D_ENVOI)[number] | 'generic' {
+  const code = motif.split(':')[0].trim()
+  return REFUS_D_ENVOI.find((c) => c === code) ?? 'generic'
+}
+
 /**
  * Une boîte peut-elle ENVOYER ? `mail-send` refuse une boîte qui n'est pas `active`
  * (409 `account_not_active`). ⚠ Le fournisseur ne compte plus : IMAP envoie par SMTP depuis

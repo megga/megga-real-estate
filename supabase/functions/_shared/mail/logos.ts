@@ -24,6 +24,7 @@
 // ⛔ Une messagerie grand public (gmail.com, bluewin.ch…) n'a PAS de logo à montrer :
 // l'expéditeur est un particulier, et le logo de Gmail sous chaque client serait faux.
 // Aucune requête ne part pour elles.
+import { domainesParticuliers } from './imap-presets.ts'
 
 /** Plafond d'un logo, en octets : au-delà, ce n'est plus une pastille, c'est une photo. */
 export const LOGO_OCTETS_MAX = 96 * 1024
@@ -61,10 +62,14 @@ export function normaliserDomaine(brut: string): string | null {
 
 /**
  * Les messageries des particuliers — Suisse d'abord, puis les marchés des quatre
- * langues. Une absence ne casse rien : le domaine est alors traité comme celui d'une
- * entreprise, et ne trouve au pire que le logo du fournisseur.
+ * langues —, et toutes celles que l'assistant de connexion reconnaît (`imap-presets.ts`).
+ *
+ * ⛔ Les deux listes vivaient à part (revue du 15.09.2026) : 21 domaines que l'assistant
+ * connaît manquaient ici — `ikmail.com`, `posteo.de`, `ymail.com`… — et une requête partait
+ * pour eux : le logo d'Infomaniak s'affichait sous un particulier, pour trente jours. Une
+ * absence reste possible ; le domaine est alors traité comme celui d'une entreprise.
  */
-export const MESSAGERIES_GRAND_PUBLIC: ReadonlySet<string> = new Set([
+export const MESSAGERIES_GRAND_PUBLIC: ReadonlySet<string> = new Set([...domainesParticuliers(), 
   'bluewin.ch', 'bluemail.ch', 'sunrise.ch', 'swissonline.ch', 'hispeed.ch', 'green.ch', 'vtxnet.ch',
   'netplus.ch', 'gmx.ch', 'hotmail.ch', 'yahoo.ch', 'protonmail.ch', 'ik.me',
   'gmail.com', 'googlemail.com', 'outlook.com', 'outlook.fr', 'outlook.de', 'hotmail.com', 'hotmail.fr',

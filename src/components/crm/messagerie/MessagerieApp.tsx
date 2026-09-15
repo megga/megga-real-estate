@@ -29,6 +29,7 @@ import { useMailFolderCounts, useMailThreadRow, useMailThreads, type MailThreadR
 import { useCrmTabsOptionnel, useTabScopedState } from '@/hooks/useCrmTabs'
 import { brouillonDepuisMail, deposerBrouillonCalendrier } from '@/lib/calendrierEvenements'
 import { expediteurComplet } from '@/lib/mail/format'
+import { codeErreurEnvoi } from '@/lib/mail/compose'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
@@ -274,13 +275,16 @@ export function MessagerieApp({ dark, setDark }: Props) {
     ...(state.folder === 'spam' ? [] : [state.folder === 'arch'
       ? { cle: 'unarchive', libelle: t('mail.ctx.unarchive'), icone: 'inbox' as const, onClick: () => agirEnLot('unarchive', idsSelection) }
       : { cle: 'archive', libelle: t('mail.ctx.archive'), icone: 'archive' as const, onClick: () => agirEnLot('archive', idsSelection) }]),
-    state.folder === 'spam'
-      ? { cle: 'not_spam', libelle: t('mail.ctx.notSpam'), icone: 'inbox', onClick: () => agirEnLot('not_spam', idsSelection) }
-      : { cle: 'spam', libelle: t('mail.ctx.spam'), icone: 'spam', onClick: () => agirEnLot('spam', idsSelection) },
+    ...(state.folder === 'spam'
+      ? [{ cle: 'not_spam', libelle: t('mail.ctx.notSpam'), icone: 'inbox' as const, onClick: () => agirEnLot('not_spam', idsSelection) }]
+      // Rien à signaler dans une sélection qui n'a rien reçu (`rienASignaler`, mail-actions).
+      : selectionVisible.some((r) => r.last_inbound_at)
+        ? [{ cle: 'spam', libelle: t('mail.ctx.spam'), icone: 'spam' as const, onClick: () => agirEnLot('spam', idsSelection) }]
+        : []),
     toutLu
       ? { cle: 'mark_unread', libelle: t('mail.ctx.markUnread'), icone: 'mail', onClick: () => agirEnLot('mark_unread', idsSelection) }
       : { cle: 'mark_read', libelle: t('mail.ctx.markRead'), icone: 'mail', onClick: () => agirEnLot('mark_read', idsSelection) },
-    { cle: 'trash', libelle: t('mail.ctx.delete'), icone: 'trash', danger: true, onClick: () => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: idsSelection } }) },
+    { cle: 'trash', libelle: t('mail.ctx.delete'), icone: 'trash', danger: true, onClick: () => dispatch({ type: 'modal', modal: { kind: 'delete', threadIds: idsSelection, depuisSelection: true } }) },
   ]
 
   /**
@@ -484,7 +488,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   label={labels.labels.find((l) => l.id === filOuvert.label_id) ?? null}
                   composer={state.composer}
                   sending={send.isPending}
-                  sendError={send.error?.message ?? null}
+                  sendError={send.error ? t(`mail.sendError.${codeErreurEnvoi(send.error.message)}`) : null}
                   onBack={() => dispatch({ type: 'back' })}
                   onReply={() => { send.reset(); dispatch({ type: 'composer', composer: 'reply' }) }}
                   onForward={() => { send.reset(); dispatch({ type: 'composer', composer: 'forward' }) }}
@@ -604,7 +608,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
               boiteOuverte={state.accountId}
               draft={brouillonCompose}
               sending={send.isPending}
-              error={send.error?.message ?? null}
+              error={send.error ? t(`mail.sendError.${codeErreurEnvoi(send.error.message)}`) : null}
               onClose={(contenu) => {
                 // Fermer sans envoyer n'efface rien : la saisie devient un
                 // brouillon LOCAL (D7), jamais poussé chez le fournisseur — rangé
@@ -694,7 +698,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             ms={ms}
             boite={boiteADeconnecter}
             busy={accounts.disconnect.isPending}
-            error={accounts.disconnect.error?.message ?? null}
+            error={accounts.disconnect.error ? t('mail.box.disconnectError') : null}
             onCancel={() => { accounts.disconnect.reset(); dispatch({ type: 'modal', modal: { kind: 'none' } }) }}
             onConfirm={confirmerDeconnexion}
           />
@@ -707,12 +711,12 @@ export function MessagerieApp({ dark, setDark }: Props) {
             // On revient à la liste APRÈS la corbeille : fermer la modale sur la
             // lecture d'un fil qui n'y est plus laisserait un écran sans objet.
             onConfirm={() => {
-              if (filsASupprimer.length === 1) {
+              if (state.modal.kind === 'delete' && state.modal.depuisSelection && filsASupprimer.length > 0) {
+                agirEnLot('trash', filsASupprimer.map((r) => r.id), () => dispatch({ type: 'modal', modal: { kind: 'none' } }))
+              } else if (filsASupprimer.length === 1) {
                 actions.act.mutate({ action: 'trash', threadId: filsASupprimer[0].id }, {
                   onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
                 })
-              } else if (filsASupprimer.length > 1) {
-                agirEnLot('trash', filsASupprimer.map((r) => r.id), () => dispatch({ type: 'modal', modal: { kind: 'none' } }))
               }
             }}
           />

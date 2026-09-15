@@ -118,8 +118,13 @@ async function reconnecter(
  * Une ligne au journal pour un geste sur une boîte (« Audit trail : activity_events pour toute
  * action »). Le FAIT seulement — ni adresse ni serveur : la table est lisible de l'agence.
  * Un refus d'écriture se dit au journal de la fonction, sans défaire le geste.
+ *
+ * ⛔ Seul `connect_imap` écrivait (revue du 15.09.2026) : brancher une boîte Google ou Outlook,
+ * la déconnecter, la rendre personnelle ou partagée ne laissaient AUCUNE trace — pas même
+ * quand un collègue réautorisait la boîte d'un autre.
  */
-async function journaliser(admin: SupabaseAdmin, agencyId: string, userId: string, action: 'mail_account_connected' | 'mail_account_connect_failed', severity: 'info' | 'warn', metadata: Record<string, unknown>): Promise<void> {
+type GesteSurBoite = 'mail_account_connected' | 'mail_account_connect_failed' | 'mail_account_disconnected' | 'mail_account_updated'
+async function journaliser(admin: SupabaseAdmin, agencyId: string, userId: string, action: GesteSurBoite, severity: 'info' | 'warn', metadata: Record<string, unknown>): Promise<void> {
   const { error } = await admin.from('activity_events').insert({
     agency_id: agencyId, actor_id: userId, actor_kind: 'user', action, category: 'messaging', severity,
     entity_type: 'user', entity_id: userId, object_label: null, metadata,
@@ -291,6 +296,7 @@ serve(async (req: Request) => {
       accountId = ins.id
     }
 
+    await journaliser(admin, profile.agency_id, user.id, 'mail_account_connected', 'info', { provider, account_id: accountId, reconnexion: !!existing })
     await semerLibelles(admin, profile.agency_id, user.id)
     return lancerEtRendre(admin, accountId, cfg)
   }
@@ -438,7 +444,10 @@ serve(async (req: Request) => {
      * survit, la déconnexion est réessayable, et la réponse le dit au lieu de mentir.
      */
     const r = await disconnectMailAccount(admin, account)
-    if (r.ok) return json({ ok: true })
+    if (r.ok) {
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_disconnected', 'info', { provider: account.provider, account_id: account.id })
+      return json({ ok: true })
+    }
     if (r.reason === 'secret_unreadable' || r.reason === 'provider_refused') {
       return json({ error: 'revocation_failed', detail: r.reason, account_id: account.id }, 502)
     }
@@ -482,6 +491,14 @@ serve(async (req: Request) => {
     }
     const { data: pub, error } = await admin.from('mail_accounts').update(patch).eq('id', account.id).select(PUBLIC_COLS).single()
     if (error) return json({ error: 'update_failed' }, 500)
+    // Ce qui a changé, et la visibilité ou l'état qu'elle prend — jamais le nom d'affichage lui-même.
+    const champs = Object.keys(patch).filter((k) => k !== 'last_error' && k !== 'sync_failures' && k !== 'next_sync_at')
+    if (champs.length) {
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_updated', 'info', {
+        account_id: account.id, champs,
+        ...(patch.visibility ? { visibility: patch.visibility } : {}), ...(patch.status ? { status: patch.status } : {}),
+      })
+    }
     return json({ account: pub })
   }
 

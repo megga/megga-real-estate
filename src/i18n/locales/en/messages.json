@@ -218,7 +218,8 @@
         "reauth_required": "Authorisation to renew",
         "error": "Sync error",
         "disabled": "Disabled"
-      }
+      },
+      "disconnectError": "The mailbox could not be disconnected. Try again in a moment."
     },
     "compose": {
       "cta": "New message",
@@ -245,6 +246,17 @@
       "invalidHint_one": "One address needs fixing: double-click it to edit.",
       "invalidHint_other": "{{count}} addresses need fixing: double-click one to edit.",
       "suggestions": "Suggested contacts"
+    },
+    "sendError": {
+      "generic": "Sending failed. Try again in a moment.",
+      "send_failed": "The mailbox server refused to send. Check the recipients, then try again.",
+      "provider_auth": "The mailbox no longer responds: reconnect it from the settings, then try again.",
+      "account_not_active": "This mailbox cannot send: its authorisation needs to be renewed.",
+      "attachments_too_large": "The attachments exceed the size allowed for one message.",
+      "attachment_too_large_outlook": "An attachment is larger than 3 MB, the Outlook limit for sending from the CRM.",
+      "recipient_required": "Add at least one recipient.",
+      "subject_required": "Add a subject to the message.",
+      "original_not_found": "The original message cannot be found: it may have been deleted."
     },
     "folders": {
       "aria": "Folders",
@@ -323,6 +335,7 @@
       "showImages": "Show images",
       "bodyTitle": "Message body",
       "truncated": "Message truncated (too large): open it in your mail client for the full version.",
+      "bodyMissing": "This message's content cannot be shown here (too large, or unreadable): open it in your mail client.",
       "unlinked": "Address not linked: {{email}}",
       "spam": "In spam: this message isn't linked to any contact.",
       "spamInThread_one": "{{count}} message in this conversation is in spam.",

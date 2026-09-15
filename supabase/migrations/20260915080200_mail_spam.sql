@@ -24,7 +24,9 @@ create index if not exists mail_threads_account_spam_idx
 
 -- ── 2. La liste ──────────────────────────────────────────────────────────────
 -- Le type de retour gagne `is_spam` : un `create or replace` ne change pas les colonnes
--- d'une fonction (42P13) — on la retire et on la recrée, droits compris.
+-- d'une fonction (42P13) — on la retire et on la recrée, droits compris. Et `last_inbound_at`
+-- (revue du 15.09.2026) : un fil sans aucun message reçu n'offre pas « Spam » — signalé, il
+-- prenait `is_spam` sans qu'un seul de ses messages le porte, et le premier recalcul le rendait.
 drop function if exists public.mail_list_threads(uuid, text, uuid, text, boolean, boolean, integer, integer);
 create or replace function public.mail_list_threads(
   p_account_id uuid,
@@ -40,7 +42,7 @@ returns table (
   id uuid, account_id uuid, subject text, snippet text, from_name text, from_email text,
   participants jsonb, last_message_at timestamptz, has_attachments boolean,
   is_read boolean, is_starred boolean, is_archived boolean, is_trashed boolean, is_spam boolean,
-  label_id uuid, contact_id uuid, message_count integer, total bigint
+  label_id uuid, contact_id uuid, message_count integer, last_inbound_at timestamptz, total bigint
 )
 language sql stable security invoker set search_path = public as $$
   with q as (
@@ -51,7 +53,7 @@ language sql stable security invoker set search_path = public as $$
   select t.id, t.account_id, t.subject, t.snippet, t.from_name, t.from_email,
          t.participants, t.last_message_at, t.has_attachments,
          t.is_read, t.is_starred, t.is_archived, t.is_trashed, t.is_spam,
-         t.label_id, t.contact_id, t.message_count,
+         t.label_id, t.contact_id, t.message_count, t.last_inbound_at,
          count(*) over () as total
   from public.mail_threads t, q
   where t.account_id = p_account_id

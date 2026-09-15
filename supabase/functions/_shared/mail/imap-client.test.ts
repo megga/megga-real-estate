@@ -186,7 +186,7 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
       'UID MOVE': '$TAG OK MOVE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'move', uid: null, uidValidity: null })
+    expect(await c.uidMove(7, 'Archive')).toEqual({ uid: null, uidValidity: null })
     expect(sent.filter((s) => /MOVE|COPY|EXPUNGE/.test(s))).toEqual(['a2 UID MOVE 7 "Archive"'])
   })
 
@@ -199,7 +199,7 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
     })
     await c.login('u', 'p')
     // L'UID d'arrivée vient du `[COPYUID 1 7 20]` : « désarchiver » retrouvera le message.
-    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'copy+uid-expunge', uid: 20, uidValidity: 1 })
+    expect(await c.uidMove(7, 'Archive')).toEqual({ uid: 20, uidValidity: 1 })
     expect(sent.filter((s) => /COPY|STORE|EXPUNGE/.test(s))).toEqual([
       'a2 UID COPY 7 "Archive"',
       'a3 UID STORE 7 +FLAGS.SILENT (\\Deleted)',
@@ -219,32 +219,23 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
       'UID STORE': '$TAG OK STORE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'copy-only', uid: null, uidValidity: null })
+    expect(await c.uidMove(7, 'Archive')).toEqual({ uid: null, uidValidity: null })
     expect(sent.some((s) => /\bEXPUNGE\b/.test(s))).toBe(false)
   })
 })
 
 describe('ImapClient — append', () => {
-  it('rend l\u0027UID attribué quand le serveur annonce APPENDUID', async () => {
-    const { c, sent } = await ouvrir({
-      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
-      APPEND: '+ Ready for literal data\r\n||$TAG OK [APPENDUID 42 100] APPEND completed\r\n',
-    })
-    await c.login('u', 'p')
-    expect(await c.append('Sent', new TextEncoder().encode('From: a@b\r\n\r\nhi'))).toBe(100)
-    expect(sent[1]).toBe('a2 APPEND "Sent" (\\Seen) {15}')
-  })
-
-  it('rend null sans APPENDUID — l\u0027appelant doit SAVOIR qu\u0027il ne sait pas', async () => {
-    // Sans UIDPLUS le serveur n'annonce aucun UID. Rendre 0 laisserait croire à
-    // un identifiant ; `null` dit l'ignorance, et le lot 3 devra la gérer.
-    const { c } = await ouvrir({
-      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1]\r\n',
-      CAPABILITY: '* CAPABILITY IMAP4rev1\r\n$TAG OK\r\n',
-      APPEND: '+ go\r\n||$TAG OK APPEND completed\r\n',
-    })
-    await c.login('u', 'p')
-    expect(await c.append('Sent', new TextEncoder().encode('x'))).toBeNull()
+  // La copie « Envoyés » se reconnaît par son Message-ID (ligne `pending:`) : aucun UID à rendre.
+  it('dépose le littéral, avec ou sans APPENDUID annoncé', async () => {
+    for (const fin of ['$TAG OK [APPENDUID 42 100] APPEND completed\r\n', '$TAG OK APPEND completed\r\n']) {
+      const { c, sent } = await ouvrir({
+        LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
+        APPEND: `+ Ready for literal data\r\n||${fin}`,
+      })
+      await c.login('u', 'p')
+      await expect(c.append('Sent', new TextEncoder().encode('From: a@b\r\n\r\nhi'))).resolves.toBeUndefined()
+      expect(sent[1]).toBe('a2 APPEND "Sent" (\\Seen) {15}')
+    }
   })
 
   it('lève quand le serveur REFUSE le littéral', async () => {
@@ -296,7 +287,7 @@ describe('ImapClient — ce que les vrais serveurs rendent', () => {
       'UID MOVE': '* OK [COPYUID 5 7 31] Moved\r\n* 3 EXPUNGE\r\n$TAG OK MOVE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'move', uid: 31, uidValidity: 5 })
+    expect(await c.uidMove(7, 'Archive')).toEqual({ uid: 31, uidValidity: 5 })
   })
 
   it('list : noms entre guillemets échappés, en littéral (UTF-8), et sans nom écartés', async () => {

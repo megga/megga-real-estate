@@ -9593,6 +9593,7 @@ export type Database = {
           is_starred: boolean
           is_trashed: boolean
           label_id: string
+          last_inbound_at: string
           last_message_at: string
           message_count: number
           participants: Json

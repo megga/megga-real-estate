@@ -1,6 +1,6 @@
 // Les gestes en lot : un verdict par fil, jamais un refus en bloc (lot.ts).
 import { describe, it, expect } from 'vitest'
-import { LOT_MAX, appliquerEnLot, lireLot } from './lot.ts'
+import { LOT_MAX, appliquerEnLot, lireLot, lireToutesLesPages, rienASignaler } from './lot.ts'
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
 
@@ -49,3 +49,34 @@ describe('appliquerEnLot', () => {
     expect(verdicts).toEqual([{ thread_id: id(1), ok: false, error: 'failed' }, { thread_id: id(2), ok: true }])
   })
 })
+
+// ⛔ « Spam » sur un fil sans message reçu : le fil prenait `is_spam` sans qu'un seul de ses
+// messages le porte, et le premier recalcul le rendait à « Envoyés » (revue du 15.09.2026).
+describe('rienASignaler', () => {
+  it('« Spam » sur un fil qui n a rien reçu : rien à signaler', () => {
+    expect(rienASignaler('spam', [{ direction: 'outbound' }, { direction: 'outbound' }])).toBe(true)
+    expect(rienASignaler('spam', [])).toBe(true)
+  })
+  it('un seul message reçu suffit ; et les autres gestes ne sont pas concernés', () => {
+    expect(rienASignaler('spam', [{ direction: 'outbound' }, { direction: 'inbound' }])).toBe(false)
+    expect(rienASignaler('archive', [{ direction: 'outbound' }])).toBe(false)
+    expect(rienASignaler('not_spam', [{ direction: 'outbound' }])).toBe(false)
+  })
+})
+
+// ⛔ PostgREST plafonne une réponse (`max_rows`) sans le dire (revue du 15.09.2026).
+describe('lireToutesLesPages', () => {
+  const table = Array.from({ length: 12 }, (_, i) => i)
+  /** Un PostgREST dont le `max_rows` (3) est plus bas que la page demandée (5). */
+  const plafonne = (maxRows: number) => async (de: number, a: number) => ({ data: table.slice(de, Math.min(a + 1, de + maxRows)), error: null })
+  it('lit TOUT, même sous un max_rows plus bas que la page demandée', async () => {
+    expect((await lireToutesLesPages(plafonne(3), 5)).lignes).toEqual(table)
+  })
+  it('s arrête à une page vide, et rend l erreur d une page', async () => {
+    let n = 0
+    const r = await lireToutesLesPages(async (de) => (++n === 2 ? { data: null, error: { message: 'boom' } } : { data: table.slice(de, de + 5), error: null }), 5)
+    expect(r.error).toEqual({ message: 'boom' })
+    expect(r.lignes).toHaveLength(5)
+  })
+})
+

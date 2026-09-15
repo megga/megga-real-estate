@@ -57,7 +57,8 @@ export default function MobileMessagerieScreen() {
   const thread = useMailThread(sel)
   const ligne = threads.rows.find((r) => r.id === sel) ?? null
   // Aucun logo pour du spam : la Réception n'en montre pas, mais la règle ne dépend pas du dossier.
-  const logos = useMailSenderLogos(boite?.id ?? null, threads.rows.filter((r) => !r.is_spam).map((r) => r.from_email))
+  // Ni pour un fil qui n'a rien reçu : son adresse est celle du destinataire (cf. MailList).
+  const logos = useMailSenderLogos(boite?.id ?? null, threads.rows.filter((r) => !r.is_spam && r.last_inbound_at).map((r) => r.from_email))
   // Un message au spam dans un fil qui n'y est pas ne se lit pas ici (`partagerSpam`) : l'écran
   // n'a pas de geste pour le déplier, il le dit.
   const { affiches, auSpam } = partagerSpam(thread.data ?? [], ligne?.is_spam ?? false)

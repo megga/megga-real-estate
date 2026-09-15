@@ -20,7 +20,7 @@ export interface ImapFlags { uid: number; flags: string[] }
 /** Ce qu'on lit d'un message AVANT de le télécharger : ses drapeaux, sa taille, sa date d'arrivée. */
 export interface ImapMeta extends ImapFlags { size: number; internalDate: string | null }
 /** Où un message déplacé a atterri — `null` quand le serveur ne l'annonce pas (sans UIDPLUS). */
-export interface ImapMoved { voie: 'move' | 'copy+uid-expunge' | 'copy-only'; uid: number | null; uidValidity: number | null }
+export interface ImapMoved { uid: number | null; uidValidity: number | null }
 
 /** Une réponse NO/BAD à une commande — la ligne du serveur, telle quelle. */
 export class ImapCommandError extends Error {
@@ -420,29 +420,24 @@ export class ImapClient {
     if (this.has('MOVE')) {
       const r = await this.cmd(`UID MOVE ${uid} ${quote(folder)}`)
       const c = lireCopyUid([...r.untagged, r.tagged])
-      return { voie: 'move', uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
+      return { uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
     }
     const r = await this.cmd(`UID COPY ${uid} ${quote(folder)}`)
     const c = lireCopyUid([...r.untagged, r.tagged])
     await this.uidStore(uid, ['\\Deleted'], 'add')
-    const arrivee = { uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
-    if (this.has('UIDPLUS')) {
-      await this.cmd(`UID EXPUNGE ${uid}`)
-      return { voie: 'copy+uid-expunge', ...arrivee }
-    }
-    return { voie: 'copy-only', ...arrivee }
+    if (this.has('UIDPLUS')) await this.cmd(`UID EXPUNGE ${uid}`)
+    return { uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
   }
 
   /**
    * Dépose un message (la copie dans « Envoyés » après un envoi SMTP).
    *
-   * ⚠ ÉCART 4 — rend l'UID attribué quand le serveur l'annonce. Le plan rendait
-   * `void` et jetait le `[APPENDUID <uidvalidity> <uid>]` de la ligne taguée,
-   * alors que l'architecture du lot en a besoin pour rattacher la copie au fil
-   * sans relire tout le dossier. `null` quand le serveur n'annonce pas UIDPLUS :
-   * l'appelant doit alors savoir qu'il ne saura pas, plutôt que de croire à un 0.
+   * ⚠ Rien n'est rendu : la copie se reconnaît à la synchro par son Message-ID (la ligne
+   * `pending:<Message-ID>` de l'envoi, `ingest.ts`). Un « ÉCART 4 » rendait l'UID de
+   * `[APPENDUID …]` en disant le lot en avoir besoin — aucun code ne le lisait, et sans
+   * l'UIDVALIDITY qu'il jetait il ne désignait rien (revue du 15.09.2026).
    */
-  async append(folder: string, raw: Uint8Array, flags = ['\\Seen']): Promise<number | null> {
+  async append(folder: string, raw: Uint8Array, flags = ['\\Seen']): Promise<void> {
     const tag = `a${++this.n}`
     await this.conn.write(new TextEncoder().encode(`${tag} APPEND ${quote(folder)} (${flags.join(' ')}) {${raw.length}}\r\n`))
     const cont = await this.reader.line()
@@ -454,8 +449,7 @@ export class ImapClient {
       if (line === null) throw new Error('imap: connection closed')
       if (line.startsWith(`${tag} `)) {
         if (!line.startsWith(`${tag} OK`)) throw new ImapCommandError(line)
-        const m = line.match(/\[APPENDUID (\d+) (\d+)\]/i)
-        return m ? Number(m[2]) : null
+        return
       }
     }
   }

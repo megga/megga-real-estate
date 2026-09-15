@@ -10,6 +10,7 @@
  *  · une échéance dépassée n'est pas un « rien » : elle lève, pour que rien ne soit caché.
  */
 import { describe, expect, it } from 'vitest'
+import { domainesParticuliers } from './imap-presets.ts'
 import {
   DelaiDepasse, coteImage, domainesCandidats, enBase64, estGrandPublic, iconesDeLaPage, imageAcceptable,
   normaliserDomaine, reconnaitreImage, resoudreLogo, urlBimi, type ReponseHttp, type Reseau,
@@ -62,6 +63,13 @@ describe('domaines', () => {
     expect(estGrandPublic('bluewin.ch')).toBe(true)
     expect(estGrandPublic('mail.yahoo.com')).toBe(true)
     expect(estGrandPublic('banque-exemple.ch')).toBe(false)
+  })
+  // ⛔ 21 domaines que l'assistant de connexion connaît manquaient ici : le logo d'Infomaniak
+  // s'affichait sous un particulier en `@ikmail.com` (revue du 15.09.2026).
+  it('toute messagerie que l assistant de connexion reconnaît est grand public', () => {
+    const manquants = domainesParticuliers().filter((d) => !estGrandPublic(d))
+    expect(manquants).toEqual([])
+    expect(domainesParticuliers()).toEqual(expect.arrayContaining(['ikmail.com', 'posteo.de', 'ymail.com', 'aol.fr']))
   })
 
   it('essaie le domaine puis ses parents — jamais un suffixe qui ne désigne personne', () => {

@@ -89,7 +89,8 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
         {!row.is_spam && item(row.is_starred ? t('mail.ctx.unstar') : t('mail.ctx.star'), () => onAction(row.is_starred ? 'unstar' : 'star'))}
         {!row.is_spam && item(t('mail.plan.cta'), onPlanifier)}
         {!row.is_spam && item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
-        {item(row.is_spam ? t('mail.ctx.notSpam') : t('mail.ctx.spam'), onSpam)}
+        {/* Un fil qui n'a rien reçu n'a rien à signaler (`rienASignaler`, mail-actions). */}
+        {(row.is_spam || row.last_inbound_at) && item(row.is_spam ? t('mail.ctx.notSpam') : t('mail.ctx.spam'), onSpam)}
         {item(t('mail.ctx.delete'), onDelete, { danger: true })}
         {!row.is_spam && (
           <>
