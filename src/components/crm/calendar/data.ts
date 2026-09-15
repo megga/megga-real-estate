@@ -148,13 +148,21 @@ export interface CalEvent {
   /**
    * Table d'origine (routage des écritures serveur).
    *
+   * `event` = un ÉVÉNEMENT du calendrier (`calendar_events`, 15.09.2026) : tout ce qui n'est
+   * ni une visite, ni une tâche, ni un rendez-vous KYC — gardé tel qu'on l'a saisi.
+   *
    * `appointment` = RDV de vérification KYC réservé par le CLIENT. Les branches
    * d'écriture de CalendarApp ne le reconnaissent volontairement pas : glisser
    * pour replanifier reste inopérant, parce que déplacer un rendez-vous confirmé
    * sans prévenir le client serait pire que de ne rien faire. Le report passe par
    * les RPC, qui envoient un courriel.
    */
-  origin?: 'visit' | 'reminder' | 'appointment'
+  origin?: 'visit' | 'reminder' | 'appointment' | 'event'
+  /**
+   * L'e-mail d'où l'événement est né (« Planifier » dans la Messagerie, 15.09.2026) : la
+   * bulle offre de le rouvrir. `calendar_events.mail_thread_id` ; nul ailleurs.
+   */
+  mailThreadId?: string | null
   /**
    * Libellé de l'agence posé sur l'événement (UN au plus, comme un fil de la
    * Messagerie). Résolu par `CalendarApp` depuis `useCalendarLabels` : il n'est

@@ -222,6 +222,18 @@ calendar_labels (id, agency_id, name, color, position, created_at, updated_at)
   --   l'agence de l'appelant — la LECTURE, hors de la requête du Calendrier
   -- RPC calendar_set_event_label(p_source, p_event_id, p_label_id default null) :
   --   l'ÉCRITURE, ne touche QUE la colonne du libellé (omettre p_label_id le retire)
+  --   ; source 'event' (calendar_events) depuis 20260915080300
+
+-- Événements du Calendrier (15.09.2026, 20260915080300) : ni visite, ni relance, ni RDV
+-- KYC — gardés TELS QU'ON LES A SAISIS. Ils partaient en reminders et revenaient « Tâche ».
+calendar_events (id, agency_id, created_by → profiles, type, title, starts_at, ends_at,
+  all_day, location, notes, color, recurrence jsonb, status, contact_id → contacts,
+  property_id → properties, mail_thread_id → mail_threads, calendar_label_id,
+  created_at, updated_at)
+  -- type : CHECK ('visite','mandate','notary','task','publish','kyc','autre') ;
+  --   title 1..200 ; ends_at ≥ starts_at ; color hexa ; status null|'done'|'cancelled'
+  -- mail_thread_id : l'e-mail d'origine (« Planifier » dans la Messagerie), le lien retour
+  -- (calendar_label_id, agency_id) → calendar_labels : même FK composite que les autres
 
 -- Dossiers KYC
 kyc_cases (id, agency_id, transaction_id, contact_id, type, risk_level, status, completion_pct, validated_by, validated_at, created_at)
@@ -484,6 +496,9 @@ de récursion) :
   contact est de l'agence ET que l'adresse est celle d'un correspondant externe du fil (ni
   la boîte, ni un alias d'envoi — l'expéditeur d'un sortant —, ni une adresse interne) ;
   l'unique lecteur est l'ingestion.
+- calendar_events : CRUD client borné à l'agence (get_my_agency_id()), anon révoqué ; le
+  WITH CHECK n'accepte un mail_thread_id que si le fil est VISIBLE de l'appelant (RLS de
+  mail_threads) — sans ça la clé étrangère laissait citer le fil d'une boîte personnelle.
 - calendar_labels : CRUD client borné à l'agence (get_my_agency_id()), anon révoqué.
   Les deux RPC du Calendrier sont SECURITY DEFINER, search_path vide, fermées à anon :
   la lecture ne rend que des identifiants ; l'écriture ne touche que calendar_label_id

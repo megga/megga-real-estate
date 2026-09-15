@@ -13,7 +13,8 @@ import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { CalEvent, CalHotBuyer } from '@/components/crm/calendar/data'
+import { CAL_EVENT_TYPES, type CalEvent, type CalEventRecurrence, type CalEventTypeId, type CalHotBuyer } from '@/components/crm/calendar/data'
+import { titreDeRelance } from '@/lib/calendrierEvenements'
 
 interface VisitJoin {
   id: string
@@ -33,6 +34,26 @@ interface ReminderJoin {
   message_template: string | null
   contact: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
   property: { title: string | null; address: string | null } | { title: string | null; address: string | null }[] | null
+}
+
+/** Une ligne `calendar_events` (20260915080300), contact et bien joints. */
+interface EvenementJoin {
+  id: string
+  type: string
+  title: string
+  starts_at: string
+  ends_at: string
+  all_day: boolean
+  location: string | null
+  notes: string | null
+  color: string | null
+  recurrence: unknown
+  status: string | null
+  contact_id: string | null
+  property_id: string | null
+  mail_thread_id: string | null
+  contact: { first_name: string; last_name: string } | { first_name: string; last_name: string }[] | null
+  property: { id: string; title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null } | { id: string; title: string | null; address: string | null; city: string | null; price: number | null; surface_m2: number | null }[] | null
 }
 
 interface AppointmentJoin {
@@ -141,16 +162,55 @@ function reminderToCalEvent(r: ReminderJoin): CalEvent {
   const start = new Date(r.trigger_at)
   const end = new Date(start.getTime() + 30 * 60 * 1000) // 30 min de bloc visuel par défaut
   const contactName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : ''
+  // Le titre saisi dans le calendrier, s'il y en a un (« [Titre] notes ») — sinon celui
+  // d'une relance du système.
+  const { titre, reste } = titreDeRelance(r.message_template)
   return {
     id: r.id,
     origin: 'reminder',
     type: 'task',
-    title: contactName ? `Relance ${contactName}` : 'Tâche',
+    title: titre ?? (contactName ? `Relance ${contactName}` : 'Tâche'),
     contact: contactName ? { name: contactName, role: 'Contact' } : undefined,
     location: property?.address ?? undefined,
     start,
     end,
-    notes: r.message_template ?? undefined,
+    notes: reste ?? undefined,
+  }
+}
+
+/**
+ * Convertit une ligne `calendar_events` en `CalEvent` (origin 'event') — TEL QU'ON L'A
+ * SAISI : titre, type, début et fin, journée entière, récurrence, couleur, statut.
+ */
+function evenementToCalEvent(e: EvenementJoin): CalEvent {
+  const contact = unwrap(e.contact)
+  const property = unwrap(e.property)
+  const contactName = contact ? `${contact.first_name} ${contact.last_name}`.trim() : ''
+  const rec = e.recurrence as CalEventRecurrence | null
+  return {
+    id: e.id,
+    origin: 'event',
+    type: (e.type in CAL_EVENT_TYPES ? e.type : 'autre') as CalEventTypeId,
+    title: e.title,
+    start: new Date(e.starts_at),
+    end: new Date(e.ends_at),
+    allDay: e.all_day,
+    location: e.location ?? (property ? [property.address, property.city].filter(Boolean).join(', ') || undefined : undefined),
+    notes: e.notes ?? undefined,
+    color: e.color ?? undefined,
+    recurrence: rec && typeof rec === 'object' && rec.freq ? rec : null,
+    status: e.status === 'done' || e.status === 'cancelled' ? e.status : undefined,
+    contactId: e.contact_id,
+    contact: contactName ? { name: contactName, role: 'Contact' } : undefined,
+    bienId: e.property_id,
+    property: property ? {
+      id: property.id,
+      title: property.title || property.address || 'Bien',
+      area: property.surface_m2 ?? 0,
+      price: property.price ?? null,
+      tone: toneFromId(property.id),
+    } : undefined,
+    mailThreadId: e.mail_thread_id,
   }
 }
 
@@ -274,13 +334,42 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
     staleTime: 60_000,
   })
 
+  // Les ÉVÉNEMENTS (20260915080300). ⚠ Une table ABSENTE — la migration pas encore
+  // appliquée, ou sautée par le date-guard — n'éteint pas le Calendrier : il garde visites,
+  // tâches et rendez-vous, comme pour les libellés (20260914213550). Toute autre erreur remonte.
+  const { data: evenements = [], isLoading: eventsLoading, isError: eventsError, refetch: refetchEvents } = useQuery({
+    queryKey: ['calendar-events', agencyId, range.from, range.to],
+    queryFn: async (): Promise<EvenementJoin[]> => {
+      if (!agencyId) return []
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('id, type, title, starts_at, ends_at, all_day, location, notes, color, recurrence, status, contact_id, property_id, mail_thread_id, contact:contacts(first_name, last_name), property:properties(id, title, address, city, price, surface_m2)')
+        .eq('agency_id', agencyId)
+        .lte('starts_at', range.to)
+        // Un événement RÉCURRENT né avant la fenêtre y a quand même des occurrences.
+        .or(`starts_at.gte.${range.from},recurrence.not.is.null`)
+        .order('starts_at', { ascending: true })
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          console.error('[calendar] calendar_events introuvable : la migration 20260915080300 manque')
+          return []
+        }
+        throw error
+      }
+      return (data ?? []) as unknown as EvenementJoin[]
+    },
+    enabled: !!agencyId,
+    staleTime: 60_000,
+  })
+
   const events = useMemo<CalEvent[]>(() => {
     const out: CalEvent[] = []
     for (const v of visits) out.push(visitToCalEvent(v))
     for (const r of reminders) out.push(reminderToCalEvent(r))
     for (const a of appointments) out.push(appointmentToCalEvent(a))
+    for (const e of evenements) out.push(evenementToCalEvent(e))
     return out.sort((a, b) => a.start.getTime() - b.start.getTime())
-  }, [visits, reminders, appointments])
+  }, [visits, reminders, appointments, evenements])
 
   // Hot buyers : contacts.score IN ('hot','warm') ordonnés par last_interaction_at,
   // top 5 acheteurs chauds (exposés pour d'éventuels consommateurs — Today/mobile).
@@ -317,10 +406,11 @@ export function useCalendarScreen(): UseCalendarScreenReturn {
   return {
     events,
     hotBuyers,
-    isLoading: visitsLoading || remindersLoading || apptLoading || hotLoading,
-    isError: visitsError || remindersError || apptError || hotError,
+    isLoading: visitsLoading || remindersLoading || apptLoading || eventsLoading || hotLoading,
+    isError: visitsError || remindersError || apptError || eventsError || hotError,
     refetch: () => {
       void refetchVisits()
+      void refetchEvents()
       void refetchReminders()
       void refetchAppts()
       void refetchHot()

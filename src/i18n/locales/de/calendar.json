@@ -432,7 +432,9 @@
     "markedTodo": "Als offen markiert",
     "markedCancelled": "Als abgesagt markiert",
     "reactivated": "Reaktiviert",
-    "moveFailed": "Verschiebung nicht gespeichert"
+    "moveFailed": "Verschiebung nicht gespeichert",
+    "saveFailed": "Änderung nicht gespeichert",
+    "deleteFailed": "Löschung nicht gespeichert"
   },
   "onboarding": {
     "connectGoogle": "Google verbinden",

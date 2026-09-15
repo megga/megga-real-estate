@@ -1847,6 +1847,115 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          agency_id: string
+          all_day: boolean
+          calendar_label_id: string | null
+          color: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          ends_at: string
+          id: string
+          location: string | null
+          mail_thread_id: string | null
+          notes: string | null
+          property_id: string | null
+          recurrence: Json | null
+          starts_at: string
+          status: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          all_day?: boolean
+          calendar_label_id?: string | null
+          color?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at: string
+          id?: string
+          location?: string | null
+          mail_thread_id?: string | null
+          notes?: string | null
+          property_id?: string | null
+          recurrence?: Json | null
+          starts_at: string
+          status?: string | null
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          all_day?: boolean
+          calendar_label_id?: string | null
+          color?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string
+          id?: string
+          location?: string | null
+          mail_thread_id?: string | null
+          notes?: string | null
+          property_id?: string | null
+          recurrence?: Json | null
+          starts_at?: string
+          status?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_calendar_label_id_agency_id_fkey"
+            columns: ["calendar_label_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_labels"
+            referencedColumns: ["id", "agency_id"]
+          },
+          {
+            foreignKeyName: "calendar_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_mail_thread_id_fkey"
+            columns: ["mail_thread_id"]
+            isOneToOne: false
+            referencedRelation: "mail_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_labels: {
         Row: {
           agency_id: string

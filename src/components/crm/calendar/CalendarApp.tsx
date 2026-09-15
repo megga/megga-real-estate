@@ -33,6 +33,8 @@ import { useCalendarExternal } from '@/hooks/useCalendarExternal'
 import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
 import { useCalendarLabels } from '@/hooks/useCalendarLabels'
+import { useCalendarEvents } from '@/hooks/useCalendarEvents'
+import { versLigneEvenement } from '@/lib/calendrierEvenements'
 import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
@@ -226,6 +228,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   // ── Données ──
   const { events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
   const { createVisit, updateVisit, deleteVisit } = useVisits()
+  const evenements = useCalendarEvents()
   const { createReminder, markAsDone, cancel: cancelReminder, reschedule: rescheduleReminder } = useReminders()
   const calLabels = useCalendarLabels()
   // Le créateur et le menu des libellés sont ceux de la Messagerie : ils se
@@ -373,13 +376,18 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         await queryClient.invalidateQueries({ queryKey: ['calendar-visits'] })
         const newId = (created as { id?: string } | undefined)?.id
         if (newId) propagateVisit(newId, 'create')
-      } else {
+      } else if (draft.type === 'task') {
+        // Une TÂCHE reste une relance : elle entre dans « Relances du jour ».
         await createReminder({
           type: 'custom', triggerAt: draft.start, title: draft.title,
           description: draft.notes ?? draft.location ?? undefined,
           contactId: draft.contactId ?? null, propertyId: draft.bienId ?? null,
         })
         await queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+      } else {
+        // ⛔ Tout le reste est un ÉVÉNEMENT, gardé tel qu'on l'a saisi (20260915080300).
+        // Il partait en relance, et revenait « Tâche » au rechargement.
+        await evenements.creer(draft)
       }
       // Succès : si l'événement tombe dans la fenêtre lue par useCalendarScreen
       // (today ±60 j), le refetch l'a rapporté → on retire le brouillon optimiste
@@ -395,7 +403,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         })
       }
     } catch { /* échec : on garde l'override (événement visible cette session) */ }
-  }, [createVisit, createReminder, queryClient, propagateVisit])
+  }, [createVisit, createReminder, evenements, queryClient, propagateVisit])
 
   /**
    * Enregistre un nouvel horaire ; rend `false` en échec.
@@ -418,12 +426,14 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       } else if (ev.origin === 'reminder') {
         await rescheduleReminder(mid, start, { closed: !!statusesRef.current[ev.id] })
         await queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+      } else if (ev.origin === 'event') {
+        await evenements.modifier(mid, { starts_at: start.toISOString(), ends_at: end.toISOString() })
       }
       return true
     } catch {
       return false
     }
-  }, [updateVisit, rescheduleReminder, queryClient, propagateVisit])
+  }, [updateVisit, rescheduleReminder, evenements, queryClient, propagateVisit])
 
   /** L'horaire n'a pas pu être enregistré : l'événement reprend sa place, et le toast le dit. */
   const revertTime = useCallback((mid: string, title: string) => {
@@ -449,8 +459,16 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     const horaireChange = !src || src.start.getTime() !== draft.start.getTime()
     if (draft.origin === 'visit' || (draft.origin === 'reminder' && horaireChange)) {
       void persistTime(draft, draft.start, draft.end).then(ok => { if (!ok) revertTime(calMasterId(draft.id), draft.title) })
+    } else if (draft.origin === 'event') {
+      // Un événement se réécrit EN ENTIER : titre, type, lieu, notes, récurrence — pas
+      // seulement son horaire, comme une visite ou une tâche.
+      const mid = calMasterId(draft.id)
+      void evenements.modifier(mid, versLigneEvenement(draft)).catch(() => {
+        setOverrides(prev => { if (!(mid in prev)) return prev; const next = { ...prev }; delete next[mid]; return next })
+        setToast({ key: Date.now(), change: `${calShortTitle(draft.title)} · ${t('toast.saveFailed')}`, echec: true })
+      })
     }
-  }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime])
+  }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime, evenements])
 
   const deleteEvent = useCallback((id: string) => {
     const mid = calMasterId(id)
@@ -467,8 +485,14 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     } else if (ev?.origin === 'reminder') {
       cancelReminder(mid)
       void queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
+    } else if (ev?.origin === 'event') {
+      // Une série se supprime entière : ses occurrences ne sont pas des lignes.
+      void evenements.supprimer(mid).catch(() => {
+        setDeletedIds(prev => { const n = new Set(prev); n.delete(id); return n })
+        setToast({ key: Date.now(), change: `${calShortTitle(ev.title)} · ${t('toast.deleteFailed')}`, echec: true })
+      })
     }
-  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder])
+  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder, evenements])
 
   // Un glissé part : la bulle ouverte se ferme (elle resterait accrochée au point de départ).
   const dragStartEvent = useCallback((_id: string) => setPopover(null), [])
@@ -518,9 +542,12 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       } else if (nowOn && ev.origin === 'reminder') {
         if (status === 'done') markAsDone(mid)
         else cancelReminder(mid)
+      } else if (ev.origin === 'event') {
+        // Réversible dans les deux sens : l'événement porte son statut, il ne s'éteint pas.
+        void evenements.modifier(mid, { status: nowOn ? status : null }).catch(() => { /* best-effort, comme les autres sources */ })
       }
     }
-  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder])
+  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder, evenements])
 
   // ── Libellés ──
   // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux

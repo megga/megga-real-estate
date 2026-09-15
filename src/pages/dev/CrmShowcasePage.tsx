@@ -429,7 +429,7 @@ export default function CrmShowcasePage() {
       // une tâche glissée d'un jour à l'autre y change de jour pour de bon — sans quoi
       // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
       // mêmes tables, la montrait encore à son ancienne place.
-      ecrivables: ['calendar_labels', 'visits', 'reminders'],
+      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events'],
     })
     installerBanc()
     return desinstallerBanc

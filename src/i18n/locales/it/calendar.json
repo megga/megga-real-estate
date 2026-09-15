@@ -432,7 +432,9 @@
     "markedTodo": "Segnato da fare",
     "markedCancelled": "Segnato come annullato",
     "reactivated": "Riattivato",
-    "moveFailed": "Spostamento non salvato"
+    "moveFailed": "Spostamento non salvato",
+    "saveFailed": "Modifica non salvata",
+    "deleteFailed": "Eliminazione non salvata"
   },
   "onboarding": {
     "connectGoogle": "Collega Google",

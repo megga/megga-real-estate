@@ -96,7 +96,7 @@ export interface TodayHBlock extends HlBlockData {
   /** Référence réelle passée à la route (uuid), quand elle existe. */
   navRef?: string
   /** Table d'origine — décide du chemin d'écriture du geste « fait ». */
-  origin?: 'visit' | 'reminder' | 'appointment'
+  origin?: 'visit' | 'reminder' | 'appointment' | 'event'
 }
 
 /**
@@ -109,7 +109,7 @@ export interface TodayHBlock extends HlBlockData {
  * pas ici une porte que le Calendrier ferme.
  */
 export function canMarkDone(b: TodayHBlock): boolean {
-  return b.origin === 'visit' || b.origin === 'reminder'
+  return b.origin === 'visit' || b.origin === 'reminder' || b.origin === 'event'
 }
 
 export interface TodayHDay {
@@ -228,6 +228,12 @@ export async function markBlockDone(b: TodayHBlock, done: boolean): Promise<bool
       .from('reminders')
       .update(done ? { status: 'done', completed_at: now } : { status: 'pending', completed_at: null })
       .eq('id', b.id)
+    return !error
+  }
+  // ⚠ AVANT la branche des visites, qui est le repli : un événement du calendrier
+  // (`calendar_events`) y aurait été cherché dans `visits`, et le geste perdu en silence.
+  if (b.origin === 'event') {
+    const { error } = await supabase.from('calendar_events').update({ status: done ? 'done' : null }).eq('id', b.id)
     return !error
   }
   // `visits` : le trigger `trg_visit_completed_at` POSE `completed_at` quand le

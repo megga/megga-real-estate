@@ -432,7 +432,9 @@
     "markedTodo": "Marqué à faire",
     "markedCancelled": "Marqué annulé",
     "reactivated": "Réactivé",
-    "moveFailed": "Déplacement non enregistré"
+    "moveFailed": "Déplacement non enregistré",
+    "saveFailed": "Modification non enregistrée",
+    "deleteFailed": "Suppression non enregistrée"
   },
   "onboarding": {
     "connectGoogle": "Connecter Google",

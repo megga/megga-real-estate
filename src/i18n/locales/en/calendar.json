@@ -432,7 +432,9 @@
     "markedTodo": "Marked to do",
     "markedCancelled": "Marked cancelled",
     "reactivated": "Reactivated",
-    "moveFailed": "Move not saved"
+    "moveFailed": "Move not saved",
+    "saveFailed": "Change not saved",
+    "deleteFailed": "Deletion not saved"
   },
   "onboarding": {
     "connectGoogle": "Connect Google",

@@ -382,6 +382,19 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
     },
   ],
+  // Un ÉVÉNEMENT du calendrier (`calendar_events`, 20260915080300) : ni visite ni relance,
+  // gardé tel qu'on l'a saisi — titre, fin, type. Jointures portées par la ligne, comme
+  // les visites (le banc n'applique pas `select`).
+  calendar_events: [
+    {
+      id: 'ce1', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, type: 'notary', title: 'Signature chez le notaire · Champel',
+      starts_at: ilYA(-26), ends_at: ilYA(-27), all_day: false, location: 'Étude Exemple, Genève', notes: null, color: null,
+      recurrence: null, status: null, contact_id: 'c1', property_id: 'p1', mail_thread_id: null, calendar_label_id: null,
+      created_at: ilYA(30), updated_at: ilYA(30),
+      contact: { first_name: 'Camille', last_name: 'Rochat' },
+      property: { id: 'p1', title: 'Appartement 4,5 pièces · Champel', address: 'Avenue de Champel 12', city: 'Genève', price: 1_450_000, surface_m2: 118 },
+    },
+  ],
   // Libellés du Calendrier — des barreaux de la direction, pas des littéraux : la
   // couleur d'un libellé est une donnée saisie, et une fixture qui écrirait des
   // hexadécimaux ferait monter l'inventaire de couleurs du dossier `pages/dev`.
