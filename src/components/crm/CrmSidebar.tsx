@@ -168,31 +168,14 @@ function SidebarRow({
   )
 }
 
-// ─── Filet entre deux groupes (barre repliée seulement) ────────────────────
+// ─── Groupes : aucun séparateur, dépliée comme repliée ─────────────────────
 // ⛔ LES SUR-TITRES DE GROUPE SONT RETIRÉS DEPUIS LE 7 SEPTEMBRE 2026 (Julien :
-// « enlève les catégories »). Ils étaient nés le 4 septembre, quand l'ordre seul
-// ne signalait plus rien à dix entrées. Le découpage en groupes SURVIT — il
-// ordonne la liste, il nomme les groupes pour un lecteur d'écran
-// (`role="group"` + `aria-label`), et c'est lui que rend la grille de la page
-// d'onglet neuf. Dépliée, la barre ne sépare donc plus rien : on revient à ce
-// que la référence de design prescrivait — « seul l'ordre les signale ».
-//
-// ⚠ REPLIÉE, LE FILET RESTE. Ce n'est pas une catégorie mais un trait, dans une
-// colonne où aucun mot n'est affiché de toute façon : sans lui, quatorze glyphes
-// s'empilent sans respiration. Rien au-dessus du PREMIER groupe — un filet juste
-// sous le bloc d'agence redoublerait la bordure de la carte.
-
-function FiletDeGroupe({ collapsed, first = false, sp }: {
-  collapsed: boolean; first?: boolean; sp: CrmPalette
-}) {
-  if (!collapsed || first) return null
-  return (
-    <div aria-hidden style={{
-      height: 1, background: sp.frameBorder,
-      margin: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-xs)',
-    }} />
-  )
-}
+// « enlève les catégories »), et LES FILETS DE LA BARRE REPLIÉE DEPUIS LE
+// 16 SEPTEMBRE 2026 (Julien : « enlève les petites lignes séparatrices »). Le
+// découpage en groupes SURVIT — il ordonne la liste, il nomme les groupes pour un
+// lecteur d'écran (`role="group"` + `aria-label`), et c'est lui que rend la grille
+// de la page d'onglet neuf. À l'écran, seul l'ordre les signale, dans les deux
+// états de la barre. Le squelette (`CrmPageSkeleton`) suit la même règle.
 
 // ─── Encart de synthèse — l'objectif de la période ─────────────────────────
 // La maquette pose une métrique dentaire (occupation des fauteuils) ; la FORME
@@ -397,7 +380,10 @@ export function CrmSidebar({ active, sp, dark, onCmd }: CrmSidebarProps) {
   const tools: { id: string; icon: string; label: string; action: () => void }[] = [
     ...(onCmd ? [{ id: 'add', icon: 'plus', label: t('actions.create'), action: onCmd }] : []),
     { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
-    { id: 'import', icon: 'download', label: t('nav.importLeads'), action: () => { if (!enBanc) navigate('/dashboard/import-lead') } },
+    // ⛔ « IMPORTER DES LEADS » N'EST PLUS ICI (16 septembre 2026, Julien : « redondant »).
+    // Coller le message d'un prospect se fait désormais DANS la fiche express des Contacts
+    // (« Coller un message »), qui préremplit la fiche entière avec la même extraction.
+    // La route `/dashboard/import-lead` reste servie ; plus aucune ligne n'y mène.
     // ⚠ `openHelpFor()` SANS ARGUMENT, et c'est tout le sujet : sans clé, il
     // ouvre l'onglet Aide — les 18 articles, la recherche, Fin. La ligne « Aide
     // sur cet écran » du menu de compte, elle, passe une clé et saute à UN
@@ -580,16 +566,15 @@ export function CrmSidebar({ active, sp, dark, onCmd }: CrmSidebarProps) {
             // suivante, mais 37 px d'un groupe au suivant — la liste se resserrait
             // précisément là où elle change de sujet, un regroupement lu à l'envers.
             // « Seul l'ordre les signale » (décision du 7.09) veut un pas UNIFORME.
-            // Repliée, le filet porte ses propres marges : pas de pas en plus.
-            gap: collapsed ? 0 : 'var(--crm-space-2xs)',
+            // Repliée aussi, depuis que les filets entre groupes sont partis.
+            gap: 'var(--crm-space-2xs)',
             maskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
             WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
           }}
         >
-          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column', gap: collapsed ? 0 : 'var(--crm-space-2xs)' }}>
-            {CRM_SIDEBAR_GROUPS.map((g, i) => (
+          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
+            {CRM_SIDEBAR_GROUPS.map((g) => (
               <div key={g.labelKey} role="group" aria-label={t(g.labelKey)}>
-                <FiletDeGroupe collapsed={collapsed} first={i === 0} sp={sp} />
                 <div style={listStyle}>
                   {g.items.map(s => (
                     <SidebarRow
@@ -608,7 +593,6 @@ export function CrmSidebar({ active, sp, dark, onCmd }: CrmSidebarProps) {
           </nav>
 
           <div role="group" aria-label={t('nav.sectionTools')}>
-            <FiletDeGroupe collapsed={collapsed} sp={sp} />
             <div style={listStyle}>
             {tools.map(it => (
               <SidebarRow

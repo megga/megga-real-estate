@@ -42,11 +42,11 @@ import { crmPalette } from '@/components/crm/tokens'
 const H_BANDE = 42
 
 /**
- * Lignes d'outils sous les pages : relances, import, aide. « Créer » s'y ajoute
- * quand l'écran fournit un geste de création — sous la liste, donc sans rien
- * déplacer au-dessus.
+ * Lignes d'outils sous les pages : relances, aide (l'import de leads en est sorti le
+ * 16.09.2026). « Créer » s'y ajoute quand l'écran fournit un geste de création — sous
+ * la liste, donc sans rien déplacer au-dessus.
  */
-const TOOL_ROWS = 3
+const TOOL_ROWS = 2
 
 export default function CrmPageSkeleton() {
   const dark = useCrmDark()
@@ -79,11 +79,6 @@ export default function CrmPageSkeleton() {
         alignSelf: collapsed ? 'center' : 'stretch',
       }}
     />
-  )
-
-  /** Filet entre deux groupes, barre repliée seulement — `FiletDeGroupe`. */
-  const filet = (key: string) => (
-    <div key={key} style={{ height: 1, background: sp.frameBorder, margin: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-xs)' }} />
   )
 
   const groupes = [...CRM_SIDEBAR_GROUPS.map((g) => g.items.length), TOOL_ROWS]
@@ -146,12 +141,11 @@ export default function CrmPageSkeleton() {
             {!collapsed && <div style={{ flex: 1, height: 26, borderRadius: 'var(--crm-radius-sm)', background: sp.iconBtnBg }} />}
           </div>
 
-          {/* Nav : les groupes de `CRM_SIDEBAR_GROUPS`, puis les outils. Aucun
-              sur-titre ; repliée, un filet entre deux groupes. */}
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Nav : les groupes de `CRM_SIDEBAR_GROUPS`, puis les outils. Ni
+              sur-titre ni filet, dépliée comme repliée — le même pas partout. */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', overflow: 'hidden' }}>
             {groupes.map((n, g) => (
               <div key={g}>
-                {collapsed && g > 0 && filet(`f${g}`)}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
                   {Array.from({ length: n }).map((_, i) => row(`${g}-${i}`))}
                 </div>
