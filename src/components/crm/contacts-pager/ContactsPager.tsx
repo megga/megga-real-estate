@@ -2,9 +2,10 @@
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
 //   Page 0 → La liste (sous-nav audience, lignes)                      [en haut]
 //   Page 1 → Santé du portefeuille (agrégats + segments cliquables)   [en bas]
-// Pas de champ de recherche local : la recherche globale est assurée par
-// `openCrmSearch()` (câblé sur `onCmd` dans ContactsPage). Ne pas en
-// réintroduire un ici — ni le handoff Beta v1 ni le port n'en prévoient.
+// Recherche LOCALE depuis le 16.09.2026 (décision Julien) : elle FILTRE la liste
+// par nom, e-mail ou téléphone, `/` pour y aller. Ce n'est pas un doublon de la
+// recherche globale (⌘K, `openCrmSearch`), qui ouvre UN résultat de n'importe quel
+// genre. Le port du handoff Beta v1 n'en avait pas ; ce commentaire l'interdisait.
 // Cliquer un segment de la Santé filtre la liste et remonte en page 0.
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Réf. handoff : `crm-screen-contacts-proto.jsx` (CRMScreenContactsProto).
@@ -14,8 +15,8 @@
 
 import EtatVide from '@/components/crm/EtatVide'
 import {
-  useCallback, useEffect, useLayoutEffect, useMemo, useRef,
-  type CSSProperties, type ReactNode,
+  Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef,
+  type CSSProperties, type ReactNode, type RefObject,
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmContact } from '@/components/crm/mockData'
@@ -25,11 +26,30 @@ import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CTP_FN, FN_BUYER_INK } from '@/components/crm/contacts-pager/ctpTokens'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { modaleOuverte } from '@/lib/modaleOuverte'
+import MEIcon from '@/components/propertyx/MEIcon'
+import { grouperMilliers } from '@/lib/montantSaisi'
 
 type Audience = 'buyer' | 'seller' | 'tenant'
 
-/** Grille des colonnes de la liste — partagée par l'en-tête, les lignes et le squelette. */
+/**
+ * Grille de REPLI de la liste — squelette, et en-tête tant qu'aucun contact n'est
+ * chargé. Dès qu'il y en a, `--ctp-cols` la remplace par des colonnes MESURÉES.
+ */
 const CTP_GRID = '1.7fr .8fr 1fr 1fr 1.1fr 34px'
+const CTP_COLS = `var(--ctp-cols, ${CTP_GRID})`
+/** Bornes de la colonne Contact : un nom très long se coupe au lieu d'écraser les autres. */
+const CONTACT_MIN = 160
+const CONTACT_MAX = 360
+const CHEVRON_W = 34
+
+// Styles de texte partagés par les cellules ET leur gabarit de mesure : une largeur
+// mesurée dans un autre style que celui affiché serait fausse.
+const ST_NOM: CSSProperties = { fontSize: 'var(--crm-text-xl)', fontWeight: 600 }
+const ST_MONTANT: CSSProperties = { fontSize: 'var(--crm-text-lg)', fontWeight: 600 }
+const ST_PRECISION: CSSProperties = { fontSize: 'var(--crm-text-sm)', fontWeight: 500 }
+const ST_DERNIER: CSSProperties = { fontSize: 'var(--crm-text-lg)', fontWeight: 600 }
+const ST_ENTETE: CSSProperties = { fontSize: 'var(--crm-text-sm)', fontWeight: 500 }
 
 // ── Dérivations depuis un CrmContact ────────────────────────────────────
 function audienceOf(c: CrmContact): Audience {
@@ -46,21 +66,29 @@ const daysSince = (iso: string | undefined): number => {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
 }
 
-// Budget compact « K / M » — donnée réelle des critères (remplace le score en liste).
+// Arrondi à une décimale — ne sert plus qu’à la médiane de budget de la Santé.
 const num1 = (n: number) => (Math.round(n * 10) / 10).toString()
-const short = (n: number) =>
-  n >= 1_000_000 ? num1(n / 1_000_000) + 'M' : n >= 1_000 ? num1(n / 1_000) + 'K' : String(n)
-function budgetShort(c: CrmContact): string | null {
+
+/**
+ * Cellule « Budget » : le PLAFOND en montant complet, et une ligne de précision
+ * dessous. ⛔ Remplace le 16.09.2026 (décision Julien, « fouillis ») une écriture
+ * abrégée qui mélangeait les échelles et les symboles sur une même colonne —
+ * « 3.2K/mois », « 0.9–1.3M », « ≤ 1.1M ». Le plafond est ce qui compte pour
+ * proposer des biens ; le minimum passe dessous, en petit.
+ */
+type BudgetCell = { montant: string; precision: { cle: 'from' | 'max' | 'min' | 'perMonth'; n?: string } }
+function budgetCell(c: CrmContact): BudgetCell | null {
   const cr = c.criteria
   if (!cr) return null
-  const isRent = cr.transaction === 'location'
-  if (isRent) return cr.budgetMax ? short(cr.budgetMax) + '/mois' : null
-  const lo = cr.budgetMin
-  const hi = cr.budgetMax
-  if (lo && hi)
-    return hi >= 1_000_000 ? num1(lo / 1_000_000) + '–' + num1(hi / 1_000_000) + 'M' : short(lo) + '–' + short(hi)
-  if (hi) return '≤ ' + short(hi)
-  if (lo) return '≥ ' + short(lo)
+  const lo = cr.budgetMin || null
+  const hi = cr.budgetMax || null
+  if (cr.transaction === 'location') {
+    const loyer = hi ?? lo
+    return loyer ? { montant: grouperMilliers(Math.round(loyer)), precision: { cle: 'perMonth' } } : null
+  }
+  if (hi && lo) return { montant: grouperMilliers(Math.round(hi)), precision: { cle: 'from', n: grouperMilliers(Math.round(lo)) } }
+  if (hi) return { montant: grouperMilliers(Math.round(hi)), precision: { cle: 'max' } }
+  if (lo) return { montant: grouperMilliers(Math.round(lo)), precision: { cle: 'min' } }
   return null
 }
 
@@ -70,6 +98,22 @@ type Filter =
   | { type: 'kyc'; value: 'verified' | 'pending' | 'none'; label: string }
   | { type: 'source'; value: string; label: string }
   | { type: 'stale'; value: 'stale'; label: string }
+
+const plier = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase()
+
+/**
+ * Recherche de la liste. Chaque mot doit figurer dans le nom ou l'e-mail (sans
+ * accents : « zoe » trouve Zoé). Trois chiffres ou plus cherchent AUSSI dans le
+ * téléphone, zéro de tête ignoré — « 079 412 » trouve « +41 79 412 88 03 ».
+ */
+function matchRecherche(c: CrmContact, q: string): boolean {
+  const mots = plier(q).split(/\s+/).filter(Boolean)
+  if (!mots.length) return true
+  const texte = plier(`${c.firstName} ${c.lastName} ${c.email || ''}`)
+  if (mots.every((m) => texte.includes(m))) return true
+  const chiffres = q.replace(/\D/g, '').replace(/^0+/, '')
+  return chiffres.length >= 3 && (c.phone || '').replace(/\D/g, '').includes(chiffres)
+}
 
 function matchFilter(c: CrmContact, f: Filter): boolean {
   if (f.type === 'audience') return f.value === 'all' || audienceOf(c) === f.value
@@ -111,9 +155,9 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Crm
 /**
  * ⚠ Même règle que l'avatar. Sous le `'#fff'` qui était écrit ici, trois des
  * quatre teintes échouaient l'AA — `seller` 4,37 · `tenant` 3,68 · `ok` 3,77 ;
- * seul `buyer` passait (6,24). Les teintes elles-mêmes ne bougent PAS : elles
- * encodent le type du contact et sont partagées avec le point de couleur de la
- * page Santé.
+ * seul `buyer` passait (6,24). L'encre reste DÉRIVÉE ; ce sont `seller` et `tenant`
+ * qui ont été foncés (16.09.2026, cf. `CTP_FN`) pour que le blanc l'emporte sur les
+ * trois pastilles — la teinte, qui encode le type, n'a pas bougé.
  */
 function CtpTypePill({ aud, label }: { aud: Audience; label: string }) {
   const aplat = CTP_FN[aud]
@@ -152,9 +196,9 @@ function CtpBar({ pct, color, dark }: { pct: number; color: string; dark: boolea
 function CtpCta({ children, sp, onClick }: { children: ReactNode; sp: CrmPalette; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 34, padding: '0 var(--crm-space-2xl)',
+      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)',
       borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk, border: 0,
-      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
     }}>{children}</button>
   )
 }
@@ -184,7 +228,7 @@ function CtpSkeletonRows({ dark, hairSoft }: { dark: boolean; hairSoft: string }
             <div className="ctp-sk" style={bar(140)} />
           </div>
           <div className="ctp-sk" style={bar(60)} />
-          <div className="ctp-sk" style={bar(70)} />
+          <div className="ctp-sk" style={{ ...bar(70), justifySelf: 'end', marginRight: 'var(--crm-space-6xl)' }} />
           <div className="ctp-sk" style={bar(50)} />
           <div className="ctp-sk" style={bar(70)} />
           <div />
@@ -197,7 +241,7 @@ function CtpSkeletonRows({ dark, hairSoft }: { dark: boolean; hairSoft: string }
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — LA LISTE
 // ═══════════════════════════════════════════════════════════════════════
-function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenContact, onNewContact }: {
+function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherche, setRecherche, rechercheRef, onOpenContact, onNewContact }: {
   contacts: CrmContact[]
   sp: CrmPalette
   dark: boolean
@@ -205,12 +249,15 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
   isLoading: boolean
   filter: Filter
   setFilter: (f: Filter) => void
+  recherche: string
+  setRecherche: (q: string) => void
+  /** Posée par le pager : `/` y met le focus depuis n'importe où dans l'écran. */
+  rechercheRef: RefObject<HTMLInputElement | null>
   onOpenContact: (id: string) => void
   onNewContact: () => void
 }) {
   const { t } = useTranslation('contacts')
   const surface = dark ? sp.cardBg : '#FFFFFF'
-  const panelSh = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow
   const hairStrong = dark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.06)'
   const hairSoft = dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.05)'
 
@@ -227,7 +274,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
     seller: t('contactType.seller'),
     tenant: t('contactType.tenant'),
   }
-  const relLabel = (iso: string | undefined) => {
+  const relLabel = useCallback((iso: string | undefined) => {
     const d = daysSince(iso)
     if (d <= 0) return t('pager.today')
     if (d === 1) return t('pager.yesterday')
@@ -235,29 +282,85 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
     if (d < 365) return t('relativeTime.mois', { n: Math.round(d / 30) })
     // Au-delà d'un an, basculer en années : « il y a 36 mois » est illisible.
     return t('relativeTime.ans', { count: Math.floor(d / 365) })
-  }
+  }, [t])
+  const precisionLabel = useCallback((b: BudgetCell) => t(`pager.budget.${b.precision.cle}`, { n: b.precision.n }), [t])
 
+  /*
+   * ⚖ COLONNES MESURÉES (16.09.2026, décision Julien : « mesure chaque catégorie pour
+   * un parfait équilibre »). Des fractions fixes laissaient un vide inégal : KYC collé
+   * au budget, Type loin du nom. Chaque colonne prend désormais la largeur de son
+   * contenu le plus large, et l'espace restant se partage À PARTS ÉGALES entre elles
+   * (`justify-content: space-between`).
+   * La mesure porte sur TOUS les contacts (et les titres de colonne), jamais sur les
+   * seules lignes affichées : sans quoi les colonnes glisseraient à chaque lettre tapée
+   * dans la recherche. ⚠ Pas sur tout le vocabulaire non plus : un « En attente » que
+   * personne ne porte élargirait la colonne KYC et creuserait un vide que l'œil voit.
+   */
+  const gabarit = useMemo(() => {
+    const uniq = (xs: string[]) => [...new Set(xs)]
+    const budgets = contacts.map(budgetCell).filter((b): b is BudgetCell => b !== null)
+    return {
+      noms: uniq(contacts.map(c => `${c.firstName} ${c.lastName}`)),
+      audiences: [...new Set(contacts.map(audienceOf))],
+      kycs: [...new Set(contacts.map(kycStatusOf))],
+      montants: uniq(budgets.map(b => b.montant)),
+      sansBudget: budgets.length < contacts.length,
+      precisions: uniq(budgets.map(precisionLabel)),
+      derniers: uniq(contacts.map(c => relLabel(c.lastActivityAt))),
+    }
+  }, [contacts, precisionLabel, relLabel])
+  const listeRef = useRef<HTMLDivElement>(null)
+  const gabaritRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const liste = listeRef.current, mesure = gabaritRef.current
+    if (!liste || !mesure) return
+    const mesurer = () => {
+      if (!contacts.length) { liste.style.removeProperty('--ctp-cols'); return }
+      const [contact, type, budget, kyc, dernier] = [0, 1, 2, 3, 4].map((i) => Math.ceil(Math.max(0,
+        ...Array.from(mesure.querySelectorAll<HTMLElement>(`[data-col="${i}"] > *`), (el) => el.getBoundingClientRect().width))))
+      liste.style.setProperty('--ctp-cols',
+        `minmax(${CONTACT_MIN}px, ${Math.min(CONTACT_MAX, contact)}px) ${type}px ${budget}px ${kyc}px ${dernier}px ${CHEVRON_W}px`)
+    }
+    mesurer()
+    // Inter Tight peut arriver après le premier rendu : ses chiffres ne font pas la
+    // largeur de la police de repli.
+    let vivant = true
+    void document.fonts?.ready.then(() => { if (vivant) mesurer() })
+    return () => { vivant = false }
+  }, [contacts.length, gabarit, t])
+
+  // Les compteurs suivent la recherche : « Acheteurs 0 · Vendeurs 1 » dit où est
+  // le résultat avant qu'on change de filtre.
+  const trouves = useMemo(() => contacts.filter(c => matchRecherche(c, recherche)), [contacts, recherche])
   const tabs: { id: 'all' | Audience; label: string; n: number }[] = [
-    { id: 'all', label: t('segments.all'), n: contacts.length },
-    { id: 'buyer', label: t('segments.buyer'), n: contacts.filter(c => audienceOf(c) === 'buyer').length },
-    { id: 'seller', label: t('segments.seller'), n: contacts.filter(c => audienceOf(c) === 'seller').length },
-    { id: 'tenant', label: t('segments.tenant'), n: contacts.filter(c => audienceOf(c) === 'tenant').length },
+    { id: 'all', label: t('segments.all'), n: trouves.length },
+    { id: 'buyer', label: t('segments.buyer'), n: trouves.filter(c => audienceOf(c) === 'buyer').length },
+    { id: 'seller', label: t('segments.seller'), n: trouves.filter(c => audienceOf(c) === 'seller').length },
+    { id: 'tenant', label: t('segments.tenant'), n: trouves.filter(c => audienceOf(c) === 'tenant').length },
   ]
-  const rows = useMemo(() => contacts.filter(c => matchFilter(c, filter)), [contacts, filter])
+  const rows = useMemo(() => trouves.filter(c => matchFilter(c, filter)), [trouves, filter])
   const segActive = filter.type !== 'audience'
-  const GRID = CTP_GRID
+  // Montants calés à droite, pour que les millions tombent sous les millions.
+  const BUDGET_COL: CSSProperties = { textAlign: 'right' }
+  const ligneGrille: CSSProperties = {
+    display: 'grid', gridTemplateColumns: CTP_COLS, justifyContent: 'space-between', columnGap: 'var(--crm-space-3xl)',
+    padding: 'var(--crm-space-xl) var(--crm-space-6xl)',
+  }
+  const colonneGabarit: CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '26px 34px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden', background: sp.pageBg }}>
-      {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 500, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('pager.title')}</h1>
-        <div style={{ flex: 1 }} />
-        <CtpCta sp={sp} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
-      </div>
+    // Bord à bord (16.09.2026) : la liste n'est plus une carte posée dans le cadre du
+    // pager, avec 26 × 34 px de marge — deux cadres l'un dans l'autre. Elle PREND le
+    // cadre ; la barre et l'en-tête de colonnes s'alignent sur la marge des lignes.
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: surface }}>
+      {/* Titre pour les lecteurs d'écran seulement : l'onglet et la barre latérale disent
+          déjà « Contacts », et le titre visible poussait la liste d'une ligne entière
+          (retiré le 16.09.2026, décision Julien). */}
+      <h1 className="sr-only">{t('pager.title')}</h1>
 
-      {/* Sous-nav par audience + éventuel filtre issu de la Santé */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+      {/* Barre unique : audiences + éventuel filtre issu de la Santé, puis le bouton de
+          création au bout de la même ligne — plus d'élément isolé au-dessus de la liste. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap', padding: 'var(--crm-space-5xl) var(--crm-space-6xl) var(--crm-space-3xl)' }}>
         {tabs.map(tb => {
           const on = !segActive && (filter.type === 'audience' ? filter.value : 'all') === tb.id
           return (
@@ -267,7 +370,10 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
               background: on ? sp.accent : surface,
               color: on ? sp.accentInk : sp.soft,
               fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer', boxShadow: on ? 'none' : sp.shadowSm,
-            }}>{tb.label}</button>
+            }}>
+              {tb.label}
+              <span style={{ fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: on ? sp.accentInk : sp.sub, opacity: on ? 0.72 : 1 }}>{tb.n}</span>
+            </button>
           )
         })}
         {segActive && (
@@ -280,36 +386,111 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
             <span style={{ display: 'grid', placeItems: 'center', width: 20, height: 20, borderRadius: 'var(--crm-radius-pill)', background: dark ? 'rgba(255,255,255,.12)' : 'rgba(30,91,198,.14)', fontSize: 'var(--crm-text-lg)', lineHeight: 1 }}>{'✕'}</span>
           </button>
         )}
+        <div style={{ flex: 1 }} />
+        <label className="ctp-search" style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', width: 260, height: 36, boxSizing: 'border-box',
+          padding: '0 var(--crm-space-md) 0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)',
+          border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(3,3,3,.1)'}`, color: sp.sub, cursor: 'text',
+        }}>
+          <MEIcon name="search" size={16} strokeWidth={2} />
+          <input
+            ref={rechercheRef}
+            type="search"
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setRecherche(''); e.currentTarget.blur() } }}
+            placeholder={t('pager.search')}
+            aria-label={t('pager.searchLabel')}
+            autoComplete="off"
+            spellCheck={false}
+            style={{ flex: 1, minWidth: 0, height: '100%', padding: 0, border: 0, outline: 'none', background: 'transparent', color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500 }}
+          />
+          {recherche
+            ? (
+              <button type="button" onClick={() => { setRecherche(''); rechercheRef.current?.focus() }} aria-label={t('pager.searchClear')} style={{
+                display: 'grid', placeItems: 'center', width: 22, height: 22, padding: 0, border: 0, borderRadius: 'var(--crm-radius-pill)',
+                background: dark ? 'rgba(255,255,255,.1)' : 'rgba(3,3,3,.07)', color: sp.soft, cursor: 'pointer',
+              }}>
+                <MEIcon name="close" size={12} strokeWidth={2.4} />
+              </button>
+            )
+            : (
+              <kbd aria-hidden style={{
+                display: 'grid', placeItems: 'center', minWidth: 22, height: 22, padding: '0 var(--crm-space-xs)', boxSizing: 'border-box',
+                borderRadius: 'var(--crm-radius-xs)', border: `1px solid ${dark ? 'rgba(255,255,255,.14)' : 'rgba(3,3,3,.12)'}`,
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
+              }}>/</kbd>
+            )}
+        </label>
+        <CtpCta sp={sp} onClick={onNewContact}>{t('pager.newContact')}</CtpCta>
       </div>
 
       {/* Liste (scrollable) */}
-      <div style={{ flex: 1, minHeight: 0, background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: panelSh, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, borderBottom: `1px solid ${hairStrong}` }}>
-          <div>{t('pager.col.contact')}</div><div>{t('pager.col.type')}</div><div>{t('pager.col.budget')}</div><div>{t('pager.col.kyc')}</div><div>{t('pager.col.last')}</div><div />
+      <div ref={listeRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        {/* Gabarit de mesure : invisible, hors du flux, mêmes styles que les cellules. */}
+        <div ref={gabaritRef} aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, height: 0, overflow: 'hidden', visibility: 'hidden', pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          <div data-col="0" style={colonneGabarit}>
+            <span style={ST_ENTETE}>{t('pager.col.contact')}</span>
+            {gabarit.noms.map(n => (
+              <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+                <span style={{ width: 38, flexShrink: 0 }} /><span style={ST_NOM}>{n}</span>
+              </span>
+            ))}
+          </div>
+          <div data-col="1" style={colonneGabarit}>
+            <span style={ST_ENTETE}>{t('pager.col.type')}</span>
+            {gabarit.audiences.map(a => <CtpTypePill key={a} aud={a} label={audLabel[a]} />)}
+          </div>
+          <div data-col="2" style={{ ...colonneGabarit, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={ST_ENTETE}>{t('pager.col.budget')}</span>
+            {gabarit.sansBudget && <span style={ST_MONTANT}>—</span>}
+            {gabarit.montants.map(m => <span key={`m${m}`} style={ST_MONTANT}>{m}</span>)}
+            {gabarit.precisions.map(p => <span key={`p${p}`} style={ST_PRECISION}>{p}</span>)}
+          </div>
+          <div data-col="3" style={colonneGabarit}>
+            <span style={ST_ENTETE}>{t('pager.col.kyc')}</span>
+            {gabarit.kycs.map(k => (
+              <Fragment key={k}><CtpKyc status={k} sp={sp} dark={dark} labels={kycLabels} /></Fragment>
+            ))}
+          </div>
+          <div data-col="4" style={colonneGabarit}>
+            <span style={ST_ENTETE}>{t('pager.col.last')}</span>
+            {gabarit.derniers.map(d => <span key={d} style={ST_DERNIER}>{d}</span>)}
+          </div>
+        </div>
+        <div style={{ ...ligneGrille, ...ST_ENTETE, color: sp.sub, borderTop: `1px solid ${hairStrong}`, borderBottom: `1px solid ${hairStrong}` }}>
+          <div>{t('pager.col.contact')}</div><div>{t('pager.col.type')}</div><div style={BUDGET_COL}>{t('pager.col.budget')}</div><div>{t('pager.col.kyc')}</div><div>{t('pager.col.last')}</div><div />
         </div>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {isLoading && <CtpSkeletonRows dark={dark} hairSoft={hairSoft} />}
           {!isLoading && rows.length === 0 && (
-            <EtatVide dark={dark} titre={t('pager.emptyFilter')} />
+            <EtatVide dark={dark} titre={recherche.trim() ? t('pager.searchEmpty', { q: recherche.trim() }) : t('pager.emptyFilter')} />
           )}
           {!isLoading && rows.map((c, i) => {
             const aud = audienceOf(c)
-            const budget = budgetShort(c)
+            const budget = budgetCell(c)
             return (
               <div key={c.id} className="ctp-row" role="button" tabIndex={0}
                 onClick={() => onOpenContact(c.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenContact(c.id) } }}
-                style={{ display: 'grid', gridTemplateColumns: GRID, gap: 'var(--crm-space-xl)', alignItems: 'center', padding: 'var(--crm-space-xl) var(--crm-space-6xl)', borderBottom: i < rows.length - 1 ? `1px solid ${hairSoft}` : '0', cursor: 'pointer' }}>
+                style={{ ...ligneGrille, alignItems: 'center', borderBottom: i < rows.length - 1 ? `1px solid ${hairSoft}` : '0', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
                   <CtpAvatar c={c} sp={sp} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
+                    <div style={{ ...ST_NOM, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
                   </div>
                 </div>
                 <div><CtpTypePill aud={aud} label={audLabel[aud]} /></div>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: budget ? sp.ink : sp.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{budget || '—'}</div>
+                <div style={{ ...BUDGET_COL, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', lineHeight: 1.25 }}>
+                  {budget ? (
+                    <>
+                      <div style={{ ...ST_MONTANT, color: sp.ink }}>{budget.montant}</div>
+                      <div style={{ ...ST_PRECISION, color: sp.sub }}>{precisionLabel(budget)}</div>
+                    </>
+                  ) : <span style={{ ...ST_MONTANT, fontWeight: 400, color: sp.sub }}>—</span>}
+                </div>
                 <div><CtpKyc status={kycStatusOf(c)} sp={sp} dark={dark} labels={kycLabels} /></div>
-                <div style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 600 }}>{relLabel(c.lastActivityAt)}</div>
+                <div style={{ ...ST_DERNIER, color: sp.soft, whiteSpace: 'nowrap' }}>{relLabel(c.lastActivityAt)}</div>
                 <div style={{ color: sp.sub, opacity: 0.6, fontSize: 'var(--crm-text-3xl)', textAlign: 'center' }}>{'›'}</div>
               </div>
             )
@@ -614,6 +795,8 @@ export default function ContactsPager({
   // Le filtre de liste est une position d'écran (petit objet : type + valeur +
   // libellé), pas un jeu de données — il tient dans la tranche de l'onglet.
   const [filter, setFilter] = useTabScopedState<Filter>('filtre', { type: 'audience', value: 'all' })
+  const [recherche, setRecherche] = useTabScopedState('recherche', '')
+  const rechercheRef = useRef<HTMLInputElement>(null)
   // Premier lancement ET erreur de chargement réduisent le pager à une seule
   // page : dans les deux cas la Santé du portefeuille n'a rien à agréger.
   const mono = fresh || loadError
@@ -723,6 +906,14 @@ export default function ContactsPager({
       if (modalOpenRef.current || monoRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
+      // `/` : la recherche de la liste, depuis la Santé aussi. `preventScroll` : le
+      // pager défile par transform ; un focus qui fait défiler le cadre le décalerait.
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !modaleOuverte()) {
+        e.preventDefault()
+        setPage(0)
+        rechercheRef.current?.focus({ preventScroll: true })
+        return
+      }
       if (['ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 820) } }
       if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(-1); setTimeout(() => { lock.current = false }, 820) } }
     }
@@ -742,7 +933,7 @@ export default function ContactsPager({
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go, ecranActifRef])
+  }, [go, ecranActifRef, setPage])
 
   return (
     <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
@@ -751,6 +942,8 @@ export default function ContactsPager({
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }
         .ctp-scroll-hint:hover .ctp-hint-label, .ctp-scroll-hint:focus-visible .ctp-hint-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
         .ctp-row { transition: background .15s ease; }
+        .ctp-search:focus-within { border-color: ${sp.accent} !important; color: ${sp.ink} !important; }
+        .ctp-search input::-webkit-search-cancel-button { display: none; }
         .ctp-row:hover { background: ${dark ? 'rgba(255,255,255,.04)' : 'rgba(15,23,42,.03)'}; }
         .ctp-seg, .ctp-seg-row, .ctp-row, .ctp-scroll-hint { -webkit-tap-highlight-color: transparent; }
         /* Pas d'anneau à la souris ; anneau visible au clavier (a11y). */
@@ -771,7 +964,7 @@ export default function ContactsPager({
               ? <CtpLoadError sp={sp} dark={dark} onRetry={onRetry} title={t('pager.error.title')} message={t('pager.error.message')} retryLabel={t('pager.error.retry')} />
               : fresh
                 ? firstRunSlot
-                : <CtpTopList contacts={contacts} sp={sp} dark={dark} isLoading={isLoading} filter={filter} setFilter={setFilter} onOpenContact={onOpenContact} onNewContact={onNewContact} />}
+                : <CtpTopList contacts={contacts} sp={sp} dark={dark} isLoading={isLoading} filter={filter} setFilter={setFilter} recherche={recherche} setRecherche={setRecherche} rechercheRef={rechercheRef} onOpenContact={onOpenContact} onNewContact={onNewContact} />}
           </div>
           {!mono && (
             <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
