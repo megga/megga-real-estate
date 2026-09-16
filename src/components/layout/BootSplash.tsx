@@ -31,8 +31,7 @@
  * arrive : le jumeau HTML n'a pas accès à i18next, et deux libellés divergents
  * feraient précisément le clignotement qu'on cherche à supprimer.
  */
-import { useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useLayoutEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -57,16 +56,25 @@ function ecouleDepuisLaPremiereFrame(): number {
 
 /** Écran plein cadre : logo MEGGA, barre de progression, mention. */
 export default function BootSplash({ className }: Props) {
-  // Gelé au montage, et surtout PAS recalculé à chaque rendu : `BootCurtain`
+  // Posée UNE fois, au montage, et surtout PAS recalculée à chaque rendu : `BootCurtain`
   // re-rend cet écran pour lui passer `is-done`, et une horloge qui bougerait à
-  // ce moment-là ferait repartir les animations pendant le fondu de sortie —
-  // le saut qu'on vient de supprimer, réintroduit à la dernière image.
-  const [horloge] = useState(ecouleDepuisLaPremiereFrame)
+  // ce moment-là ferait repartir les animations pendant le fondu de sortie.
+  //
+  // ⛔ Lue au COMMIT (effet de mise en page, avant la peinture), plus au premier
+  // RENDU (`useState`) — 16.09.2026. React peut rendre un arbre bien avant de le
+  // monter : mesuré au rechargement du banc, l'horloge d'un relais était lue à 97 ms
+  // et l'écran monté à 385 ms. Il reprenait donc son halo 290 ms EN ARRIÈRE — de 0,62
+  // d'opacité à 0 — pendant que le jumeau HTML s'effaçait par-dessus : le dégradé
+  // clignotait. Au commit, l'horloge est celle de l'image où l'écran apparaît.
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    ref.current?.style.setProperty('--megga-boot-t', `${ecouleDepuisLaPremiereFrame()}ms`)
+  }, [])
 
   return (
     <div
+      ref={ref}
       className={cn('megga-boot', className)}
-      style={{ '--megga-boot-t': `${horloge}ms` } as CSSProperties}
       role="status"
       aria-live="polite"
     >

@@ -85,9 +85,12 @@
       // Les autres routes publiques (portail vendeur, KYC client, visites) sont
       // claires — un flash sombre y serait un défaut, pas une transition.
       // Décidé ici, dans <head>, pour que le corps se peigne déjà dans le bon état.
+      // `/dev/crm` : le banc du CRM rejoue la même arrivée qu'un rechargement de
+      // `/dashboard` (16.09.2026) — sans elle, il montrait un blanc, puis un spinner,
+      // puis l'écran d'un coup. Le banc n'existe pas sur app.getmegga.com.
       (function () {
         var p = location.pathname;
-        if (p === '/' || p === '/auth/callback' || p.indexOf('/dashboard') === 0) {
+        if (p === '/' || p === '/auth/callback' || p.indexOf('/dashboard') === 0 || p.indexOf('/dev/crm') === 0) {
           document.documentElement.classList.add('megga-booting');
           // Origine de l'HORLOGE PARTAGÉE de l'écran d'arrivée. Le même écran est
           // monté jusqu'à QUATRE fois de suite sur le trajet d'arrivée — jumeau

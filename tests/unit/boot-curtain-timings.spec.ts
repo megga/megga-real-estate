@@ -175,9 +175,14 @@ describe('horloge partagée de l’écran d’arrivée', () => {
     const source = readFileSync(SPLASH, 'utf8')
     expect(source).toContain('__MEGGA_BOOT_T0')
     expect(source).toMatch(/'--megga-boot-t'/)
-    // Gelée au montage : recalculée à chaque rendu, elle ferait repartir les
+    // Posée UNE fois, au COMMIT : recalculée à chaque rendu, elle ferait repartir les
     // animations quand `BootCurtain` passe `is-done` — le saut, à la dernière image.
-    expect(source).toMatch(/useState\(ecouleDepuisLaPremiereFrame\)/)
+    // ⛔ Et pas au premier RENDU (`useState(ecouleDepuisLaPremiereFrame)`, jusqu'au
+    // 16.09.2026) : React rend parfois l'arbre des centaines de ms avant de le monter
+    // — 97 ms lus pour 385 ms à l'écran, mesuré au rechargement du banc — et le relais
+    // reprenait son halo en arrière : le dégradé clignotait.
+    expect(source).toMatch(/useLayoutEffect\(\(\) => \{\s*ref\.current\?\.style\.setProperty\('--megga-boot-t', `\$\{ecouleDepuisLaPremiereFrame\(\)\}ms`\)\s*\}, \[\]\)/)
+    expect(source, 'horloge relue au rendu').not.toMatch(/useState\(ecouleDepuisLaPremiereFrame\)/)
   })
 
   it('laisse la mention s’afficher avant que le rideau ne se lève', () => {
