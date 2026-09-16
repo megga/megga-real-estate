@@ -24,6 +24,7 @@ import { useContext, useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { crmVoileAssombrissant } from '@/components/crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { MailCadreContext } from './mailCadre'
 import type { MailSurfaces } from './mailTokens'
 
@@ -99,11 +100,13 @@ export function MailCloseButton({ ms, onClick, label }: { ms: MailSurfaces; onCl
       onClick={onClick}
       style={{
         width: 32, height: 32, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`,
-        color: ms.ink, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)',
-        lineHeight: 1, fontFamily: 'inherit', transition: 'background .12s, color .12s',
+        color: ms.ink, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0,
+        transition: 'background .12s, color .12s',
       }}
     >
-      ×
+      {/* Icône et non le caractère « × » : ses métriques de police le posaient
+          sous le centre du rond (16.09.2026). */}
+      <MEIcon name="close" size={14} strokeWidth={2} style={{ display: 'block' }} />
     </button>
   )
 }
