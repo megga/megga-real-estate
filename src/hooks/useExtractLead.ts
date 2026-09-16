@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
  * Sprint 3 — Appel à l'Edge Function `extract-lead`.
  *
  * Envoie un texte libre (email, SMS, message WhatsApp transcrit) et reçoit
- * une extraction structurée. Côté serveur : redaction PII → Claude Sonnet
+ * une extraction structurée. Côté serveur : redaction PII → DeepSeek
  * → double-pass verbatim → audit. Le rawText n'est PAS stocké côté Edge —
  * le caller (modal) décide quoi en faire.
  *
@@ -29,6 +29,24 @@ export interface ExtractedLead {
   nextAction: LeadNextAction
   /** 0..1 — non affiché en UI. Si < 0.5, on enclenche le mode édition. */
   confidence: number
+  // ── Ajoutés le 16.09.2026 (`_shared/lead-extraction.ts`) : la fiche express préremplit
+  // toute la fiche client. ⚠ FACULTATIFS côté écran, et c'est voulu : `deploy-app.yml`
+  // sert le CRM AVANT que `deploy.yml` n'ait redéployé l'edge — pendant ces minutes,
+  // l'ancienne extraction répond sans eux.
+  civility?: 'mr' | 'mrs' | ''
+  language?: 'fr' | 'de' | 'en' | 'it' | ''
+  preferredChannel?: 'whatsapp' | 'sms' | 'call' | 'email' | ''
+  budgetMin?: number | null
+  surfaceMin?: number | null
+  propertyTypes?: Array<'apartment' | 'house' | 'land' | 'commercial'>
+  cantons?: string[]
+  cities?: string[]
+  /** Parmi balcon, ascenseur, parking, jardin, terrasse, cave, garage, vue lac. */
+  features?: string[]
+  nationality?: string
+  residenceCountry?: string
+  homeAddress?: string
+  propertyAddress?: string
 }
 
 export interface ExtractLeadResult {
