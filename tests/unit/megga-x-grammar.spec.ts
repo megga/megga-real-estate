@@ -252,7 +252,9 @@ const ZONES: RootSpec[] = [
     // qu'une boîte (largeur, hauteur, `inset`), aucun barreau de grammaire.
     // ⚠ `CrmAvis.tsx` entre le 16 septembre 2026 : la capsule d'avis montée par `CrmWorkspace`
     // (« Brouillon enregistré »), même forme que la notification de la Messagerie.
-    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx', 'CrmAvis.tsx'].includes(n),
+    // ⚠ `PlanBadge.tsx` le même jour : la pastille et la tuile des trois formules (menu du
+    // profil, cartes de la facturation).
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx', 'CrmAvis.tsx', 'PlanBadge.tsx'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,

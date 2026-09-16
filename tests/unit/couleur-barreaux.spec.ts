@@ -179,7 +179,10 @@ const HORS_ASSUMES = new Map<string, number>([
   // du dépôt inchangé. Puis 13 → 11 le même jour : `MlkScreens` importe l'encre
   // d'erreur au lieu de la recopier.
   ['src/components/kyc-magic-link', 11],
-  ['src/components/megga-x-crm', 11],
+  // 11 → 16 le 16.09.2026, une CROISSANCE assumée : les dégradés des trois formules
+  // (`megga-x-crm/plans.ts` — Gratuit, Pro, Custom), qui ENCODENT la formule. Cinq teintes
+  // Tailwind 700 ; le sixième bout, l'accent, est déjà un barreau.
+  ['src/components/megga-x-crm', 16],
   ['src/components/auth-bento', 22],
   // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
   // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.

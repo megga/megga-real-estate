@@ -22,9 +22,11 @@ import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { useNavigate } from 'react-router-dom'
 import { consoleAReprendre } from '@/lib/adminEntry'
+import { PlanBadge } from '../PlanBadge'
+import { formuleDepuisBase, type FormuleAffichee } from '@/components/megga-x-crm/plans'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
-type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark' | 'console' | 'external'
+type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'console' | 'external'
 
 function InlineIco({
   name, size = 18, stroke = 'currentColor', strokeWidth = 1.6,
@@ -39,7 +41,6 @@ function InlineIco({
     // bouclier de « Sécurité & sessions » juste en dessous).
     console: <><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></>,
     external: <><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></>,
-    spark:   <><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3Z"/></>,
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke}
@@ -112,10 +113,10 @@ interface ProfileHeaderProps {
   sp: CrmPalette
   name: string
   initials: string
-  planLabel: string | null
+  formule: FormuleAffichee | null
 }
 
-function ProfileHeader({ sp, name, initials, planLabel }: ProfileHeaderProps) {
+function ProfileHeader({ sp, name, initials, formule }: ProfileHeaderProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
@@ -134,18 +135,7 @@ function ProfileHeader({ sp, name, initials, planLabel }: ProfileHeaderProps) {
             fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2,
             lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{name}</span>
-          {planLabel && (
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)',
-              padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-2xs) var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)',
-              background: sp.ink, color: sp.solidBg,
-              fontSize: 'var(--crm-text-xs)', fontWeight: 500,
-              flexShrink: 0, whiteSpace: 'nowrap',
-            }}>
-              <InlineIco name="spark" size={9} stroke={sp.solidBg} strokeWidth={2} />
-              {planLabel}
-            </span>
-          )}
+          {formule && <PlanBadge formule={formule} />}
         </div>
       </div>
     </div>
@@ -204,7 +194,8 @@ export default function CrmProfileDropdown({
     .slice(0, 2)
     .join('')
     .toUpperCase() || '??'
-  const planLabel = plan ? plan.toUpperCase() : null
+  // Les noms des cartes de la facturation (Gratuit / Pro / Custom), pas le code de la base.
+  const formule = plan ? formuleDepuisBase(plan) : null
 
   const wrap = (fn?: () => void) => () => {
     if (fn) fn()
@@ -230,7 +221,7 @@ export default function CrmProfileDropdown({
       boxShadow: sp.solidShadow,
       animation: 'crm-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
-      <ProfileHeader sp={sp} name={fullName} initials={initials} planLabel={planLabel} />
+      <ProfileHeader sp={sp} name={fullName} initials={initials} formule={formule} />
 
       {/* Section « Plateforme » — libellée, pour que la console se distingue des
           réglages du compte : on ne quitte pas son agence, on change d'outil. */}
