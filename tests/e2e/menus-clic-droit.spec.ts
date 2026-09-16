@@ -12,15 +12,13 @@
 import { test, expect, type Page } from '@playwright/test'
 
 async function ouvrirEcranBancCrm(page: Page, chemin: string) {
-  await page.goto('/dev/crm')
+  // Entrée DIRECTE sur l'écran (`?entree=`) : depuis le 16.09.2026 les commandes du banc
+  // sont repliées en une pastille, et plus aucun bouton « Aperçu » ne les déplie. Le menu
+  // replié ne couvre plus le coin bas droit, où s'ouvrent les menus d'un bloc de fin de
+  // journée.
+  await page.goto(`/dev/crm?entree=${encodeURIComponent(chemin)}`)
   await page.locator('button[aria-label="Megga, Agent IA"]:visible').first().waitFor({ timeout: 30_000 })
-  const aller = page.locator(`button[title$="${chemin}"]`).first()
-  if (!(await aller.isVisible())) await page.locator('button', { hasText: 'Aperçu' }).first().click()
-  await aller.click()
-  // Replier les commandes du banc : ouvertes, elles couvrent le coin bas droit —
-  // là où s'ouvrent les menus d'un bloc de fin de journée.
-  await page.locator('button', { hasText: 'Aperçu' }).first().click()
-  await expect(aller).toBeHidden()
+  await expect(page.getByRole('menu')).toHaveCount(0)
 }
 
 test.describe('Clic droit — Messagerie', () => {
