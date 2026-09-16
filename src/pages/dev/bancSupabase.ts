@@ -116,6 +116,14 @@ const contrat = {
    * rechargement remet à neuf.
    */
   ecrivables: [] as string[],
+  /**
+   * Ce que la BASE poserait elle-même sur une ligne insérée, par table écrivable.
+   *
+   * ⚠ Un insert du banc ne passe par aucun trigger : sans ce complément, une note ajoutée
+   * au fil n'aurait ni auteur ni droit de modification — la base, elle, pose l'auteur
+   * (`tg_contact_notes_guard`). Appliqué APRÈS le corps envoyé, comme un trigger BEFORE.
+   */
+  completions: {} as Record<string, (ligne: Record<string, unknown>) => Record<string, unknown>>,
   /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
   signaler: (_appel: string) => {},
 }
@@ -325,7 +333,7 @@ function repondre(url: string, init?: RequestInit): Response | null {
   if (lignes === undefined) contrat.signaler(chemin)
   const methode = (init?.method ?? 'GET').toUpperCase()
   if (lignes && methode !== 'GET' && methode !== 'HEAD' && contrat.ecrivables.includes(chemin)) {
-    return ecrire(methode, lignes as Record<string, unknown>[], requete, init)
+    return ecrire(methode, lignes as Record<string, unknown>[], requete, init, contrat.completions[chemin])
   }
   const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
   const sortie = vide ? [] : filtrer(lignes ?? [], requete)
@@ -340,7 +348,10 @@ function repondre(url: string, init?: RequestInit): Response | null {
  * filtre que la lecture, pour qu'une écriture ne touche jamais plus de lignes que
  * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit.
  */
-function ecrire(methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit): Response {
+function ecrire(
+  methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit,
+  completer?: (ligne: Record<string, unknown>) => Record<string, unknown>,
+): Response {
   if (contrat.etat !== 'nominal') return json([], 0)
   const corps: unknown = lireCorps(init)
   const maintenant = new Date().toISOString()
@@ -348,6 +359,7 @@ function ecrire(methode: string, lignes: Record<string, unknown>[], requete: str
     const nouvelles = (Array.isArray(corps) ? corps : [corps])
       .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object')
       .map((l) => ({ id: crypto.randomUUID(), created_at: maintenant, updated_at: maintenant, ...l }))
+      .map((l) => (completer ? { ...l, ...completer(l) } : l))
     lignes.push(...nouvelles)
     return json(nouvelles, nouvelles.length)
   }

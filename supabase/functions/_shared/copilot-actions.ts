@@ -48,7 +48,7 @@ function frDateTime(iso: string): string {
   } catch { return iso }
 }
 
-/** Écrit une note dans la timeline d'un contact (activity_events, actor_kind='ai'). */
+/** Écrit une note dans le fil de notes d'un contact (`contact_notes`, author_kind='ai'). */
 export async function execWebAddNote(ctx: WebToolCtx, a: Args): Promise<string> {
   if (!ctx.agencyId) return "Erreur: aucun compte d'agence."
   const contactId = strArg(a.contact_id), body = strArg(a.body)
@@ -56,22 +56,20 @@ export async function execWebAddNote(ctx: WebToolCtx, a: Args): Promise<string> 
   const { data: c } = await ctx.supabase
     .from('contacts').select('id, first_name').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
-  const { error } = await ctx.supabase.from('activity_events').insert({
+  // ⛔ Plus dans `activity_events` seul (16.09.2026) : la note y était invisible depuis la
+  // fiche du bureau. Elle entre dans le FIL ; le trigger d'audit écrit `note_added`.
+  const { error } = await ctx.supabase.from('contact_notes').insert({
     agency_id: ctx.agencyId,
-    actor_id: null,           // contrainte : actor_id NULL si actor_kind != 'user'
-    actor_kind: 'ai',
-    action: 'note_added',
-    entity_type: 'contact',
-    entity_id: contactId,
-    object_label: body.slice(0, 500),
-    category: 'contact',
-    severity: 'info',
-    metadata: { via: 'web', profile_id: ctx.profileId },
+    contact_id: contactId,
+    author_kind: 'ai',
+    body: body.slice(0, 5000),
+    requested_by: ctx.profileId ?? null,
+    via: 'web',
   })
   if (error) return "Erreur: impossible d'enregistrer la note."
   const who = (c.first_name ?? '').trim() || 'ce contact'
   const extrait = body.length > 80 ? `${body.slice(0, 80)}…` : body
-  return `Note ajoutée à la fiche de ${who} : « ${extrait} ». (Tu peux la retrouver dans sa timeline.)`
+  return `Note ajoutée à la fiche de ${who} : « ${extrait} ». (Elle est dans ses notes.)`
 }
 
 /** Crée un rappel/tâche interne (reminders, type custom). N'envoie rien au client. */

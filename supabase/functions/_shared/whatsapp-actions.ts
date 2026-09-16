@@ -9,8 +9,9 @@
 //
 // Schéma prod confirmé (2026-05-30) :
 //  - agenda  -> table `visits` (agent_id, agency_id, scheduled_at, status, contact_id…)
-//  - note    -> `activity_events` (timeline contact : action=titre, object_label=détail,
-//               actor_kind='ai' => badge IA). PAS de table contact_notes.
+//  - note    -> `contact_notes` (author_kind='ai', requested_by = l'agent) depuis le
+//               16.09.2026 : le fil de notes de la fiche. Le `note_added` du journal est
+//               écrit par un trigger (20260916150000), plus par cet exécuteur.
 //  - contact -> `contacts` (pas de created_by ; on met source='whatsapp_ai').
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -240,8 +241,17 @@ export async function execAddNote(ctx: ActionCtx, a: Args): Promise<string> {
     .eq('agency_id', ctx.agencyId)
     .maybeSingle()
   if (!c) return 'Erreur: contact introuvable dans votre agence.'
-  const ok = await logTimeline(ctx, 'note_added', body, contactId)
-  if (!ok) return "Erreur: impossible d'enregistrer la note."
+  // Dans le FIL de notes de la fiche (où l'agent la voit), plus dans le seul journal. Le
+  // trigger d'audit de `contact_notes` écrit `note_added` — ne pas le doubler ici.
+  const { error } = await ctx.supabase.from('contact_notes').insert({
+    agency_id: ctx.agencyId,
+    contact_id: contactId,
+    author_kind: 'ai',
+    body: body.slice(0, 5000),
+    requested_by: ctx.profileId ?? null,
+    via: ctx.via === 'web' ? 'web' : 'whatsapp',
+  })
+  if (error) { console.error('contact_notes insert failed'); return "Erreur: impossible d'enregistrer la note." }
   // Écho du contact + extrait du body : le modèle a les faits exacts sous la main et n'a plus
   // à deviner le destinataire ni reformuler/inventer le contenu noté (anti-fabrication).
   const who = (c.first_name ?? '').trim() || 'ce contact'

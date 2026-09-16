@@ -2131,6 +2131,74 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_notes: {
+        Row: {
+          agency_id: string
+          author_id: string | null
+          author_kind: string
+          body: string
+          contact_id: string
+          created_at: string
+          id: string
+          requested_by: string | null
+          updated_at: string | null
+          via: string | null
+        }
+        Insert: {
+          agency_id: string
+          author_id?: string | null
+          author_kind?: string
+          body: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          requested_by?: string | null
+          updated_at?: string | null
+          via?: string | null
+        }
+        Update: {
+          agency_id?: string
+          author_id?: string | null
+          author_kind?: string
+          body?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          requested_by?: string | null
+          updated_at?: string | null
+          via?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_notes_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contact_notes_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_scores: {
         Row: {
           agency_id: string
