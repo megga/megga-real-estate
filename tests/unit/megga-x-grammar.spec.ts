@@ -148,12 +148,12 @@ const PAGES_ACQUISES = [
  * glyphes au lot 4 — et le filtre nommé qui servait de compteur pendant le
  * chantier a disparu avec le dernier fichier.
  *
- * ⚠ `ContactsFirstRun` est mono-thème PAR DÉCISION (fond sombre permanent,
- * textes blancs en dur quel que soit le thème, comme `BiensFirstRun` et la
- * couverture Pipeline). L'exception couvre ses COULEURS, pas sa grammaire : ses
- * graisses sont descendues comme partout ailleurs, et son fond a seulement
- * changé d'ALPHABET — `#0A0B0D` → `MXC_COLOR.n100`, le geste exact de
- * `BiensFirstRun`. Il reste fixe ; il ne suit toujours pas le thème.
+ * ⚠ `ContactsFirstRun` a été mono-thème PAR DÉCISION (fond sombre permanent,
+ * textes blancs en dur, comme `BiensFirstRun` et la couverture Pipeline) jusqu'au
+ * 16.09.2026 : elle suit désormais le thème — sombre à l'identique, claire sur
+ * les encres de `sp`. Sa grammaire n'a jamais relevé de l'exception : ses
+ * graisses sont descendues comme partout ailleurs, et son fond sombre est
+ * `MXC_COLOR.n100`, le geste exact de `BiensFirstRun`, qui reste mono-thème.
  */
 
 /**
@@ -975,7 +975,23 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/analytics', { hors: 13, total: 29 }],
   ['src/components/crm/biens', { hors: 43, total: 51 }],
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
-  ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],
+  // {68,92} -> {62,84} (16.09.2026) : la refonte en trois compartiments de la « Fiche
+  // express » (`NewContactModal`) écrit ses marges et paddings en jetons — `marginBottom: 7`
+  // des libellés, `marginTop: 14 / 9 / 24` et `padding: '30px 20px 18px'` de l'aperçu.
+  // {62,84} -> {56,77} (16.09.2026) : l'écran vide de Contacts (`ContactsFirstRun`) réduit à
+  // un titre et trois icônes emporte les marges de ses anciennes étapes (`padding: '30px 24px
+  // 26px'`, `marginTop: 16 / 6 / 18 / 40 / 10`) et le `padding: '56px 40px'` du bloc.
+  // {56,77} -> {55,76} (16.09.2026) : la liste de Contacts passe bord à bord — son
+  // `padding: '26px 34px'` part avec la carte intérieure qu'il écartait du cadre.
+  // {55,76} -> {50,69} (16.09.2026) : la fiche contact passe bord à bord — ses deux pages
+  // perdent leurs marges de cadre (`padding: '22px 30px 24px'`, `'26px 30px'`), l'écart
+  // `gap: editing ? 15 : 20` de l'ancienne carte des critères, ses `marginBottom: 9` et
+  // `marginTop: 4`, et `CdField` avec son `marginTop: 5`.
+  // {50,69} -> {49,68} (16.09.2026) : le journal WhatsApp de la fiche reprend les éléments
+  // du fil de notes (périodes, pastilles) et perd son `gap: 6` en littéral.
+  // {49,68} -> {47,66} (16.09.2026) : le bloc « Joignabilité WhatsApp » de la fiche refait en
+  // carte d'état perd ses deux `marginTop: 5` en littéral.
+  ['src/components/crm/contacts-pager', { hors: 47, total: 66 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
   // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,

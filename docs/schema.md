@@ -92,7 +92,7 @@ contacts (
   ai_tension_level,        -- 'calm' | 'moderate' | 'tense' | 'critical' (vendeurs)
   ai_price_reduction_probability, -- 0-100 (vendeurs)
   -- Meta
-  tags, notes, avatar_url,
+  tags, notes, avatar_url,  -- ⚠ notes = RÉSUMÉ recalculé depuis contact_notes (20260916150000), plus une saisie
   last_interaction_at,     -- Date de la dernière interaction (calculé)
   created_at, updated_at
 )
@@ -223,6 +223,19 @@ calendar_labels (id, agency_id, name, color, position, created_at, updated_at)
   -- RPC calendar_set_event_label(p_source, p_event_id, p_label_id default null) :
   --   l'ÉCRITURE, ne touche QUE la colonne du libellé (omettre p_label_id le retire)
   --   ; source 'event' (calendar_events) depuis 20260915080300
+
+-- Fil de notes d'un contact (16.09.2026, 20260916150000) : une note par ligne, datée et
+-- signée. Remplace le bloc unique contacts.notes, réécrit en entier à chaque frappe.
+contact_notes (id, agency_id → agencies, contact_id → contacts ON DELETE CASCADE,
+  author_id → profiles, author_kind, body, requested_by → profiles, via,
+  created_at, updated_at)
+  -- author_kind : 'user' | 'ai' | 'system' ; author_id non nul ⇒ 'user' ; body 1..5000
+  -- requested_by / via ('web'|'whatsapp') : qui a demandé une note à MEGGA AI, et par où
+  -- RLS : lecture agence ; insertion agence (auteur = appelant, forcé par trigger) ;
+  --   modification / suppression : SES notes d'agent seulement
+  -- Triggers : garde (auteur, contact de l'agence, seul le texte bouge) ; note_added au
+  --   journal (INVOKER) ; résumé contacts.notes (20 plus récentes, datées) ; un contact
+  --   créé avec `notes` en fait la première note
 
 -- Événements du Calendrier (15.09.2026, 20260915080300) : ni visite, ni relance, ni RDV
 -- KYC — gardés TELS QU'ON LES A SAISIS. Ils partaient en reminders et revenaient « Tâche ».

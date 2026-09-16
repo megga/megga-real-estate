@@ -734,8 +734,18 @@
     "newContact": "Nuovo contatto",
     "removeFilter": "Rimuovi il filtro",
     "emptyFilter": "Nessun contatto per questo filtro.",
+    "search": "Cerca",
+    "searchLabel": "Cerca un contatto per nome, e-mail o telefono",
+    "searchClear": "Cancella la ricerca",
+    "searchEmpty": "Nessun contatto per «{{q}}»",
     "today": "oggi",
     "yesterday": "ieri",
+    "budget": {
+      "from": "da {{n}}",
+      "max": "max",
+      "min": "min",
+      "perMonth": "al mese"
+    },
     "col": {
       "contact": "Contact",
       "type": "Type",
@@ -793,15 +803,10 @@
   },
   "firstRun": {
     "title": "I tuoi contatti, pronti al matching",
-    "subtitleLine1": "Riunisci qui acquirenti e inquilini.",
-    "subtitleLine2": "Non appena un contatto ha dei criteri, MEGGA lo avvicina ai tuoi mandati.",
-    "step1Title": "I tuoi contatti arrivano via WhatsApp",
-    "step1Sub": "Ogni conversazione in entrata diventa una scheda.",
     "step1Cta": "Connetti WhatsApp",
-    "step2Title": "MEGGA li collega ai tuoi immobili",
-    "step2Sub": "Il matching avviene da solo.",
-    "step2Cta": "Automatico",
-    "manualLink": "Crea un contatto manualmente"
+    "whatsappConnected": "WhatsApp connesso",
+    "createContact": "Crea un contatto",
+    "matchingAuto": "Matching automatico"
   },
   "waConnect": {
     "title": "Collega il tuo account WhatsApp",
@@ -843,20 +848,39 @@
       "call": "Chiamata",
       "email": "Email"
     },
-    "criteriaBuy": "Criteri · acquisto",
-    "criteriaRent": "Criteri · affitto",
-    "rentMax": "Affitto max (CHF)",
+    "criteria": "Criteri",
+    "rentMax": "Affitto max",
     "rentMaxPlaceholder": "3'500",
-    "budgetMin": "Budget min (CHF)",
+    "budgetMin": "Budget min",
     "budgetMinPlaceholder": "900'000",
-    "budgetMax": "Budget max (CHF)",
+    "budgetMax": "Budget max",
     "budgetMaxPlaceholder": "1'300'000",
     "cantonPlaceholder": "Digita un cantone: GE, VD…",
     "roomsPlaceholder": "4",
     "addressPlaceholder": "Via…, NPA Città",
     "note": "Note",
     "notePlaceholder": "Contesto, preferenze, storico della relazione…",
-    "validationError": "Nome, cognome ed e-mail valida obbligatori.",
+    "validationError": "Nome, cognome e un'e-mail o un telefono obbligatori.",
+    "emailError": "Indirizzo e-mail non valido.",
+    "budgetOrder": "Il minimo supera il massimo",
+    "stepUp": "Aumenta",
+    "stepDown": "Diminuisci",
+    "paste": {
+      "button": "Incolla un messaggio",
+      "placeholder": "Incolla un'e-mail o un messaggio WhatsApp",
+      "filled": "Da verificare"
+    },
+    "identityConfirm": {
+      "title": "Identità incompleta",
+      "body": "Senza queste informazioni, il dossier KYC di questo contatto non potrà essere convalidato.",
+      "complete": "Completare l'identità",
+      "createAnyway": "Creare senza identità"
+    },
+    "duplicate": {
+      "open": "Apri",
+      "createAnyway": "Crea comunque",
+      "exists": "esiste già"
+    },
     "cancel": "Annulla",
     "crop": {
       "title": "Ritaglia la foto",
@@ -891,6 +915,20 @@
     "dialCode": "Prefisso internazionale"
   },
   "fiche": {
+    "header": {
+      "whatsapp": "WhatsApp · {{n}}",
+      "noPhone": "WhatsApp: nessun numero",
+      "email": "Scrivi a {{n}}",
+      "noEmail": "Nessun indirizzo e-mail",
+      "lastContact": "Ultimo contatto {{quand}}",
+      "neverContacted": "Mai contattato",
+      "kyc": {
+        "verified": "KYC verificato",
+        "pending": "KYC in attesa",
+        "stale": "KYC scaduto",
+        "none": "Nessun dossier KYC"
+      }
+    },
     "back": "Contacts",
     "seal": {
       "title": "KYC verificato",
@@ -937,6 +975,8 @@
       "saveError": "Impossibile salvare l'identità. Riprova."
     },
     "coord": {
+      "identity": "Identità",
+      "toComplete": "Da completare",
       "civility": "Appellativo",
       "channel": "Canale preferito",
       "emailPlaceholder": "nome@esempio.ch",
@@ -994,10 +1034,37 @@
       "garage": "Garage",
       "vueLac": "Vista lago"
     },
-    "note": {
-      "label": "Note",
-      "placeholder": "Contesto, preferenze, storico della relazione…",
-      "saveError": "Impossibile salvare la nota. Riprova."
+    "notes": {
+      "title": "Note",
+      "older_one": "Mostra la nota precedente",
+      "older_other": "Mostra le {{count}} note precedenti",
+      "filter": {
+        "label": "Filtra le note",
+        "toutes": "Tutte",
+        "moi": "Tu",
+        "equipe": "Colleghi",
+        "ai": "MEGGA AI"
+      },
+      "today": "Oggi",
+      "yesterday": "Ieri",
+      "more": "Mostra di più",
+      "less": "Riduci",
+      "placeholder": "Aggiungi una nota…",
+      "add": "Aggiungi",
+      "edit": "Modifica",
+      "delete": "Elimina",
+      "save": "Salva",
+      "cancel": "Annulla",
+      "confirmDelete": "Eliminare questa nota?",
+      "empty": "Ancora nessuna nota.",
+      "edited": "modificata",
+      "you": "Tu",
+      "megga": "MEGGA AI",
+      "system": "MEGGA",
+      "formerAgent": "Ex membro",
+      "addError": "Non è stato possibile aggiungere la nota. Riprova.",
+      "editError": "Non è stato possibile modificare la nota. Riprova.",
+      "deleteError": "Non è stato possibile eliminare la nota. Riprova."
     },
     "page": {
       "infos": "Informazioni sul contatto",
@@ -1049,49 +1116,8 @@
     "saved": {
       "coord": "Recapiti salvati",
       "crit": "Criteri salvati",
-      "note": "Nota salvata"
-    },
-    "consent": {
-      "label": "Raggiungibilità WhatsApp",
-      "reachable": "Raggiungibile",
-      "optedOut": "Non desidera più essere contattato",
-      "blockedByAgent": "Contrassegnato «non contattare»",
-      "optedOutHelp": "La persona lo ha chiesto lei stessa. Il blocco non si toglie dal CRM.",
-      "blockedByAgentHelp": "Decisione interna. A questo numero non partirà alcun messaggio WhatsApp.",
-      "doNotContact": "Non contattare più",
-      "confirm": "A questo contatto non sarà più inviato alcun messaggio WhatsApp.",
-      "confirmYes": "Conferma",
-      "saving": "Salvataggio…",
-      "showLog": "Mostra il registro",
-      "hideLog": "Nascondi il registro",
-      "event": {
-        "opt_in": "Consenso",
-        "opt_out": "Rifiuto"
-      },
-      "source": {
-        "stop_keyword": "STOP ricevuto per messaggio",
-        "meta_block": "Pulsante di cancellazione WhatsApp",
-        "agent_manual": "Inserito da un agente",
-        "click_to_wa": "Link di consenso",
-        "web_form_doubleoptin": "Modulo con doppia conferma",
-        "qr": "Codice QR",
-        "import_repermission": "Importazione con nuovo consenso",
-        "agent_pairing": "Abbinamento agente",
-        "brief_enabled": "Brief riattivato",
-        "brief_disabled": "Brief disattivato"
-      },
-      "invite": "Invitare su WhatsApp",
-      "inviting": "Invio…",
-      "inviteHelp": "Un’e-mail le proporrà di ricevere i suoi messaggi su WhatsApp. È lei ad accettare.",
-      "inviteNoEmail": "Senza indirizzo e-mail l'invito non può partire: viaggia su quel canale.",
-      "inviteSent": "Invito inviato il {{date}}, in attesa di risposta.",
-      "inviteError": {
-        "generic": "L'invito non è partito. Riprovi tra un momento.",
-        "phone_suppressed": "Questo contatto ha chiesto di non essere più contattato: non lo invitiamo di nuovo.",
-        "contact_without_email": "Questo contatto non ha un indirizzo e-mail.",
-        "agency_wa_number_missing": "Il numero WhatsApp dell'agenzia non è registrato. Contatti il supporto.",
-        "email_send_failed": "L'e-mail non è stata inviata. Riprovi tra un momento."
-      }
+      "note": "Nota salvata",
+      "noteDeleted": "Nota eliminata"
     }
   },
   "nba": {

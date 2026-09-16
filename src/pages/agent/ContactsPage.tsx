@@ -16,6 +16,8 @@ import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
+import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
+import { useExtractLead } from '@/hooks/useExtractLead'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
@@ -57,6 +59,18 @@ export default function ContactsPage() {
   const [createdId, setCreatedId] = useState<string | null>(null)
   const createContact = useCreateContact()
 
+  // Doublons possibles pendant la saisie. La modale remonte l'identité à chaque
+  // frappe ; on n'interroge la base qu'une fois la saisie posée (400 ms), sans
+  // quoi chaque lettre du nom partirait en RPC.
+  const [identite, setIdentite] = useState({ email: '', phone: '', firstName: '', lastName: '' })
+  const [identitePosee, setIdentitePosee] = useState(identite)
+  useEffect(() => {
+    const minuterie = setTimeout(() => setIdentitePosee(identite), 400)
+    return () => clearTimeout(minuterie)
+  }, [identite])
+  const doublons = useFindContactDuplicates(modalOpen ? identitePosee : {})
+  const extraction = useExtractLead()
+
   const openModal = () => { setCreateError(null); setModalOpen(true) }
 
   // Création — mappe le NewContactData (design) vers le contrat Supabase.
@@ -83,7 +97,9 @@ export default function ContactsPage() {
       const created = await createContact.mutateAsync({
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email,
+        // Vide ⇒ NULL : l'e-mail n'est plus obligatoire, et une chaîne vide en base se
+        // lirait comme une adresse renseignée.
+        email: data.email || null,
         phone: data.phone || undefined,
         type: data.type,
         source: 'manual',
@@ -109,6 +125,8 @@ export default function ContactsPage() {
       // La liste (useContactsScreen) est un useQuery « plain » ['contacts-screen'] :
       // l'auto-invalidation cache-helpers ne la couvre pas → on invalide explicitement.
       await qc.invalidateQueries({ queryKey: ['contacts-screen'] })
+      // Sinon « Créer un autre » avec la même saisie relirait un cache d'avant la création.
+      await qc.invalidateQueries({ queryKey: ['contact-duplicates'] })
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : tr('list.toast.unknownError'))
       throw e
@@ -158,6 +176,10 @@ export default function ContactsPage() {
               onOpenMatching={openMatchingForCreated}
               onOpenKyc={openKycForCreated}
               onOpenFiche={openFicheForCreated}
+              duplicates={doublons.data ?? []}
+              onIdentityChange={setIdentite}
+              onOpenDuplicate={(id) => { setModalOpen(false); navigate(`/dashboard/contacts/${id}`) }}
+              onExtract={(texte) => extraction.mutateAsync({ text: texte })}
             />
           }
         />

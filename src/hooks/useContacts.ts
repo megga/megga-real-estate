@@ -38,7 +38,8 @@ import type { ContactScore } from '@/lib/constants'
 interface CreateContactInput {
   firstName: string
   lastName: string
-  email: string
+  /** NULL quand le contact n'a qu'un téléphone (la fiche express n'exige plus l'e-mail). */
+  email: string | null
   phone?: string
   type: ContactType
 }
@@ -125,7 +126,7 @@ export function useCreateContact() {
         {
           first_name: input.firstName,
           last_name: input.lastName,
-          email: input.email,
+          email: input.email?.trim() || null,
           phone: input.phone ?? null,
           type: input.type,
           source: input.source ?? 'manual',

@@ -1,21 +1,18 @@
 /**
- * Garde-fou : l'enregistrement de la note DIT ce qu'il a fait.
+ * Garde-fou : chaque geste du fil de notes DIT ce qu'il a fait.
  *
- * ⛔ CE QUI A MOTIVÉ CE FICHIER. `onSaveNote` était le seul écrivain de la fiche
- * à ne rien rendre — `(v: string) => void` — quand `onSaveIdentity` et
- * `onSaveCoord` rendaient des `Promise<void>` dont l'échec était traité. La page
- * l'appelait en `void … .then(refreshList)`, sans `catch`. Un refus de la base
- * n'apparaissait donc nulle part : l'agent avait tapé, et croyait que c'était
- * parti.
+ * ⛔ CE QUI A MOTIVÉ CE FICHIER (août 2026). `onSaveNote` était le seul écrivain de la
+ * fiche à ne rien rendre : un refus de la base n'apparaissait nulle part, l'agent avait
+ * tapé et croyait que c'était parti.
  *
- * ⚠ CE QUE `tsc` GARDE DÉJÀ, ET QUE CE FICHIER NE REFAIT PAS. Le type de la prop
- * est `Promise<void>` : une fonction rendant `void` n'y est pas assignable, donc
- * un retour en arrière sur le CONTRAT casse la compilation. Inutile de le
- * re-tester ici.
+ * ⚠ DEPUIS LE 16.09.2026, LA NOTE EST UN FIL (`contact_notes`) : ajouter, modifier,
+ * supprimer. Le planificateur de frappe (`notePlanner.ts`) est parti avec le bloc unique
+ * qu'il enregistrait à chaque frappe ; l'exigence, elle, reste entière et s'applique aux
+ * TROIS gestes : la promesse est attendue, l'échec est RENDU, et le texte tapé survit à
+ * un refus.
  *
- * ⚠ CE QUE `tsc` NE GARDE PAS, et qui est le défaut d'origine : garder la
- * promesse et IGNORER son issue. `void onSaveNote(v)` compile parfaitement et
- * ramène exactement le silence qu'on vient de retirer. C'est ça qu'on surveille.
+ * ⚠ CE QUE `tsc` GARDE DÉJÀ : les props rendent `Promise<void>`. CE QU'IL NE GARDE PAS :
+ * garder la promesse et IGNORER son issue — `void onAddNote(b)` compile parfaitement.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -26,66 +23,81 @@ const PAGE = 'src/pages/agent/ContactDetailPage.tsx'
 
 const fiche = readFileSync(FICHE, 'utf8')
 const page = readFileSync(PAGE, 'utf8')
-const cdNote = corpsDeFonction(fiche, 'CdNote')
+const cdNotes = corpsDeFonction(fiche, 'CdNotes')
 
-describe('Le contrat d’enregistrement de la note', () => {
+/** Les deux issues d'un appel : `.then(ok, ko)` ou `.catch(`. */
+const deuxIssues = (appel: string) =>
+  new RegExp(`${appel}\\([^)]*\\)\\s*\\.then\\([\\s\\S]{0,200}?,[\\s\\S]{0,200}?\\)`).test(cdNotes!)
+  || new RegExp(`${appel}\\([\\s\\S]{0,200}?\\.catch\\(`).test(cdNotes!)
+
+describe('Le contrat du fil de notes', () => {
   /** Sans ça, tout ce qui suit passerait par vacuité. */
-  it('les sources sont lues et CdNote est trouvé', () => {
+  it('les sources sont lues et CdNotes est trouvé', () => {
     expect(fiche.length).toBeGreaterThan(1000)
     expect(page.length).toBeGreaterThan(1000)
-    expect(cdNote, 'CdNote introuvable — la garde ne mesure plus rien').not.toBeNull()
-    expect(cdNote).toContain('onSaveNote')
+    expect(cdNotes, 'CdNotes introuvable — la garde ne mesure plus rien').not.toBeNull()
+    for (const g of ['onAddNote', 'onUpdateNote', 'onDeleteNote']) expect(cdNotes).toContain(g)
+  })
+
+  it('l’ancien bloc unique est parti : plus de CdNote, plus d’écriture de contacts.notes par la page', () => {
+    expect(fiche).not.toMatch(/function CdNote\(/)
+    expect(fiche).not.toMatch(/onSaveNote/)
+    expect(page).not.toMatch(/onSaveNote|notes:\s*note/)
+  })
+
+  /** `.then(f)` à un seul argument laisserait le rejet filer en silence. */
+  it('ajouter, modifier et supprimer traitent chacun le succès ET l’échec', () => {
+    expect(deuxIssues('onAddNote'), `ajout sans branche d'échec :\n${cdNotes}`).toBe(true)
+    expect(deuxIssues('onUpdateNote'), 'modification sans branche d’échec').toBe(true)
+    expect(deuxIssues('onDeleteNote'), 'suppression sans branche d’échec').toBe(true)
+  })
+
+  /** Un échec stocké sans être rendu donne l'illusion d'un témoin. */
+  it('chaque échec est RENDU, pas seulement stocké', () => {
+    expect(cdNotes).toMatch(/setEchec\(true\)/)
+    expect(cdNotes).toMatch(/\{\s*echec\s*&&/)
+    expect(cdNotes).toMatch(/setEchecEdition\(/)
+    expect(cdNotes).toMatch(/\{\s*echecEdition === n\.id\s*&&/)
+    expect(cdNotes).toMatch(/setEchecSuppression\(/)
+    expect(cdNotes).toMatch(/\{\s*echecSuppression === n\.id\s*&&/)
   })
 
   /**
-   * Les DEUX issues sont traitées. `.then(f)` à un seul argument laisserait le
-   * rejet filer en silence — c'est précisément la forme d'avant.
+   * ⛔ LE TEXTE TAPÉ SURVIT À UN REFUS. Vider le brouillon AVANT la réponse ferait perdre
+   * la note précisément quand l'écriture échoue — le défaut d'origine sous une autre forme.
    */
-  it('l’écriture traite le succès ET l’échec', () => {
-    const deuxIssues = /onSaveNote\([^)]*\)\s*\.then\([^)]*,[\s\S]{0,120}?\)/.test(cdNote!)
-      || /onSaveNote\([\s\S]{0,200}?\.catch\(/.test(cdNote!)
-    expect(deuxIssues, `aucune branche d'échec autour de onSaveNote :\n${cdNote}`).toBe(true)
+  it('le brouillon n’est vidé qu’après une écriture réussie', () => {
+    const ajout = /onAddNote\(body\)\.then\(\s*\(\)\s*=>\s*\{([\s\S]*?)\},\s*\(\)\s*=>\s*\{([\s\S]*?)\}/.exec(cdNotes!)
+    expect(ajout, 'forme de l’ajout non reconnue').not.toBeNull()
+    expect(ajout![1]).toMatch(/setBrouillon\(''\)/)
+    expect(ajout![2]).not.toMatch(/setBrouillon/)
   })
 
-  /**
-   * Un état d'échec qu'on stocke sans le rendre ne vaut pas mieux que pas
-   * d'état du tout — c'est même pire, parce qu'il donne l'illusion d'un témoin.
-   * On exige donc la variable ET son rendu conditionnel.
-   */
-  it('l’échec est RENDU, pas seulement stocké', () => {
-    expect(cdNote, 'aucun état d’échec').toMatch(/setEchec\(true\)/)
-    expect(cdNote, 'l’état d’échec n’est jamais rendu').toMatch(/\{\s*echec\s*&&/)
+  /** Seules SES notes portent les gestes — la base le refuse de toute façon (RLS). */
+  it('Modifier et Supprimer ne s’offrent que sur ses propres notes', () => {
+    expect(cdNotes).toMatch(/n\.mine && !enEdition/)
   })
 
-  /** Le succès emprunte le témoin des deux autres blocs, pas un troisième. */
   it('le succès emprunte le témoin déjà en place', () => {
-    expect(cdNote).toMatch(/useSavedFlash\(\)/)
-    expect(cdNote).toMatch(/CdSavedToast/)
+    expect(cdNotes).toMatch(/useSavedFlash\(\)/)
+    expect(cdNotes).toMatch(/CdSavedToast/)
   })
 
-  /**
-   * ⛔ LE DÉMONTAGE CHASSE, IL N'ANNULE PAS. Annuler perdrait la dernière frappe
-   * — un défaut plus grave que celui qu'on corrige, et invisible à la relecture.
-   * Le comportement lui-même est éprouvé dans `note-planner.spec.ts` ; ici on
-   * vérifie seulement que le composant s'y raccorde.
-   */
-  it('la frappe en attente est chassée au démontage, jamais annulée', () => {
-    expect(cdNote, 'CdNote n’utilise pas le planificateur').toMatch(/creerNotePlanner/)
-    expect(cdNote, 'aucun nettoyage au démontage').toMatch(/useEffect\(\(\)\s*=>\s*\(\)\s*=>[\s\S]{0,80}?chasser\(\)/)
-    expect(cdNote, 'un clearTimeout nu dans CdNote : la frappe serait perdue').not.toMatch(/clearTimeout/)
+  /** Une note qui disparaît sans témoin ne dit pas si la BASE l'a retirée (16.09.2026). */
+  it('une suppression réussie le dit aussi', () => {
+    const suppr = /onDeleteNote\(id\)\.then\([\s\S]*?\(\)\s*=>\s*\{([\s\S]*?)\},\s*\(\)\s*=>/.exec(cdNotes!)
+    expect(suppr, 'forme de la suppression non reconnue').not.toBeNull()
+    expect(suppr![1]).toMatch(/setToast\('deleted'\)/)
+    expect(suppr![1]).toMatch(/flashSaved\(\)/)
   })
 
-  /**
-   * ⛔ LE DÉLAI A QUITTÉ LA PAGE. Il y vivait dans un `setTimeout` que RIEN ne
-   * nettoyait — le fichier n'avait aucun `useEffect`. Le laisser revenir
-   * ramènerait les deux défauts d'un coup : le report non nettoyé et l'échec
-   * avalé.
-   */
-  it('la page n’a plus de minuteur pour la note', () => {
-    const bloc = valeurDePropJsx(page, 'onSaveNote')
-    expect(bloc, 'onSaveNote introuvable dans la page').not.toBeNull()
-    expect(bloc!, `un minuteur est revenu :\n${bloc}`).not.toMatch(/setTimeout|clearTimeout/)
-    expect(bloc!, 'l’écriture n’est plus attendue').toMatch(/await\s+update\.mutateAsync/)
-    expect(page, 'le ref de minuteur de la note est revenu').not.toMatch(/noteTimer/)
+  /** La page transmet des écritures ATTENDUES, sans minuteur. */
+  it('la page attend chaque écriture, sans minuteur', () => {
+    for (const prop of ['onAddNote', 'onUpdateNote', 'onDeleteNote']) {
+      const bloc = valeurDePropJsx(page, prop)
+      expect(bloc, `${prop} introuvable dans la page`).not.toBeNull()
+      expect(bloc!, `${prop} : écriture non attendue`).toMatch(/await\s+notesFil\./)
+      expect(bloc!, `${prop} : un minuteur est revenu`).not.toMatch(/setTimeout|clearTimeout/)
+    }
   })
 })

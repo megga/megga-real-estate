@@ -14,9 +14,10 @@
 import type { Property } from '@/types/listing'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
 import type {
-  FicheContact, FicheLoopItem, FicheNba, FicheReceptionLink,
+  FicheContact, FicheLoopItem, FicheReceptionLink,
 } from '@/components/crm/contacts-pager/ContactDetailPager'
 import type { KycCase, KycDocument } from '@/types/kyc'
+import type { ContactNoteView } from '@/hooks/useContactNotes'
 
 export const DEMO_LISTING: Property = {
   id: 'p3', agency_id: 'ag', title: 'Villa contemporaine', description: 'Villa lumineuse de 240 m² avec piscine, vue dégagée, finitions haut de gamme. Quartier résidentiel calme à Cologny, proche des écoles internationales.',
@@ -101,6 +102,8 @@ export const DEMO_FICHE: FicheContact = {
     areaMin: 90, roomsMin: 4, mustHave: ['balcon', 'ascenseur'],
   },
   notes: 'Recherche un 4-5p pour la rentrée scolaire. Décision d’achat en couple, mari basé à Lausanne en semaine.',
+  kycStatus: 'verified',
+  lastContactAt: new Date(Date.now() - 86_400_000).toISOString(),
 }
 
 /** Boucle de match — page 1 de la fiche. Les quatre états y sont représentés. */
@@ -133,12 +136,6 @@ export const DEMO_FICHE_LINKS: { items: FicheReceptionLink[]; isLoading: boolean
   ],
   isLoading: false,
   failed: false,
-}
-
-/** Prochaine action estimée — bloc additif, absent si `null` : le banc le montre. */
-export const DEMO_FICHE_NBA: FicheNba = {
-  label: 'Proposer une visite pour l’attique de Plainpalais',
-  kycNote: null,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -230,4 +227,14 @@ export const DEMO_KYC_DOCS: KycDocument[] = [
     status: 'validated', created_at: '2026-07-03T10:05:00.000Z', issued_at: null, expires_at: null,
     document_category: 'identity', sha256_hash: null,
   },
+]
+
+/**
+ * Le fil de notes de la fiche de démonstration — les trois auteurs possibles, une note
+ * modifiée, une note de l'agent connecté (la seule à porter Modifier / Supprimer).
+ */
+export const DEMO_NOTES: ContactNoteView[] = [
+  { id: 'n3', body: 'Rappelée ce matin : visite confirmée jeudi 10h, elle viendra avec son mari.', authorKind: 'user', authorName: 'Gregory Lyonnet', mine: true, createdAt: '2026-09-16T08:12:00Z', updatedAt: '2026-09-16T08:20:00Z' },
+  { id: 'n2', body: 'Financement confirmé par la BCGE, apport de 25 %.', authorKind: 'ai', authorName: null, mine: false, createdAt: '2026-09-14T17:40:00Z', updatedAt: null },
+  { id: 'n1', body: 'Cherche un 4,5 pièces lumineux, proche des écoles de Champel.\nPas de rez-de-chaussée.', authorKind: 'user', authorName: 'Sophie Keller', mine: false, createdAt: '2026-09-02T09:05:00Z', updatedAt: null },
 ]

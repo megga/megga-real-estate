@@ -21,6 +21,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
 import { redactPII, formatRedactionSummary } from '../_shared/pii-redaction.ts'
+import { LEAD_SYSTEM_PROMPT, parseLeadExtraction, type ExtractedLeadFields } from '../_shared/lead-extraction.ts'
 
 // CORS — restreint aux origines MEGGA (audit Sprint 3a §A.4).
 // La logique : on inspecte l'Origin du request et on autorise uniquement
@@ -70,147 +71,17 @@ interface ExtractRequest {
   text: string
 }
 
-type Intent = 'buyer' | 'seller' | 'tenant'
-type Urgency = 'high' | 'medium' | 'normal'
-type NextAction = 'call' | 'visit' | 'match' | 'kyc'
-
-interface ExtractedFields {
-  firstName: string
-  lastName: string
-  email: string
-  phone: string
-  intent: Intent
-  budget: number | null
-  rooms: number | null
-  zone: string
-  urgency: Urgency
-  nextAction: NextAction
-  confidence: number  // 0-1, jamais affiché en UI, log audit uniquement
-}
-
+/**
+ * ⚠ Le PROMPT, le contrat des champs et leur lecture vivent dans
+ * `_shared/lead-extraction.ts` depuis le 16.09.2026 : 25 champs au lieu de 11 (la fiche
+ * express préremplit toute la fiche client), éprouvés par `lead-extraction.test.ts`.
+ * Les 11 d'origine n'ont pas bougé — « Importer des leads » les lit tels quels.
+ */
 interface ExtractResponse {
-  extracted: ExtractedFields
+  extracted: ExtractedLeadFields
   redactionSummary: string  // ex. "AVS×1, PASSWORD×1" — affiché côté UI
   redactionCount: number
   truncated: boolean
-}
-
-const SYSTEM_PROMPT = `Tu reçois un message brut (email, SMS, formulaire web, transcription WhatsApp).
-Extrais les champs suivants au format JSON strict (uniquement du JSON, aucun texte avant ou après).
-Si un champ est absent du message, renvoie une chaîne vide "" ou null.
-
-Schéma exact attendu :
-{
-  "firstName": string,
-  "lastName": string,
-  "email": string,           // adresse email valide OU "" si absente
-  "phone": string,           // numéro tel quel (avec espaces/préfixe) OU "" si absent
-  "intent": "buyer" | "seller" | "tenant",
-  "budget": number | null,   // CHF entier (loyer mensuel si tenant)
-  "rooms": number | null,    // ex. 4, 3.5, 2.5
-  "zone": string,            // quartier ou ville mentionnés
-  "urgency": "high" | "medium" | "normal",
-  "nextAction": "call" | "visit" | "match" | "kyc",
-  "confidence": number       // 0.0 à 1.0 — TON estimation de la qualité d'extraction
-}
-
-RÈGLES :
-- intent : 'buyer' si l'auteur cherche à ACHETER ; 'seller' si "vendre / mandat / mon appartement / ma maison" ; 'tenant' si "louer / loyer / charges comprises".
-- urgency : 'high' si "rapidement / urgent / cette semaine / asap / fin du mois" ; 'medium' si "dans X mois / au printemps / cet été" ; 'normal' sinon.
-- nextAction : 'visit' si urgency=high et intent=buyer ; 'call' si intent=seller ou premier contact ; 'match' si critères clairs (budget+pièces+zone) ; 'kyc' si offre/signature/compromis mentionnés.
-- confidence : sois honnête. Court message ambigu = 0.3-0.5. Email détaillé avec nom complet, email valide, budget précis = 0.85-1.0.
-
-AUCUNE INVENTION : si une info n'est pas dans le texte, laisse vide/null. Tu ne devines pas un email plausible.
-Si le texte contient des marqueurs [REDACTED:XXX], traite-les comme des trous neutres — ne tente PAS de reconstruire la donnée.`
-
-/**
- * Double-pass : vérifie qu'un email/phone extrait apparaît bien dans le
- * texte source (case-insensitive, espaces normalisés). Sinon → "" (anti-
- * hallucination, red-team A4).
- */
-function verifyVerbatim(extractedValue: string, sourceText: string): string {
-  if (!extractedValue) return ''
-  const v = extractedValue.toLowerCase().replace(/\s+/g, '')
-  const s = sourceText.toLowerCase().replace(/\s+/g, '')
-  return s.includes(v) ? extractedValue : ''
-}
-
-interface ParseResult {
-  fields: ExtractedFields
-  /** Audit Sprint 3a §C.3 — valeurs LLM rejetées par le narrowing
-   * (ex. intent='investor' coercé en 'buyer'). Loggé en audit pour
-   * traçabilité des divergences modèle ↔ contract. */
-  coercions: Array<{ field: string; rawValue: unknown; coercedTo: string }>
-}
-
-function parseAndValidate(rawJson: string, sourceText: string): ParseResult | null {
-  // Strip d'éventuels code fences ```json ... ``` que le modèle ajoute parfois.
-  const cleaned = rawJson
-    .replace(/^```(?:json)?\s*/i, '')
-    .replace(/\s*```\s*$/i, '')
-    .trim()
-
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(cleaned)
-  } catch {
-    return null
-  }
-
-  const coercions: ParseResult['coercions'] = []
-
-  // Intent — narrow + audit coercion (§C.3)
-  let intent: Intent
-  if (parsed.intent === 'seller' || parsed.intent === 'tenant' || parsed.intent === 'buyer') {
-    intent = parsed.intent
-  } else {
-    if (parsed.intent !== undefined && parsed.intent !== '') {
-      coercions.push({ field: 'intent', rawValue: parsed.intent, coercedTo: 'buyer' })
-    }
-    intent = 'buyer'
-  }
-
-  // Urgency — narrow + audit coercion (§C.3)
-  let urgency: Urgency
-  if (parsed.urgency === 'high' || parsed.urgency === 'medium' || parsed.urgency === 'normal') {
-    urgency = parsed.urgency
-  } else {
-    if (parsed.urgency !== undefined && parsed.urgency !== '') {
-      coercions.push({ field: 'urgency', rawValue: parsed.urgency, coercedTo: 'normal' })
-    }
-    urgency = 'normal'
-  }
-
-  // NextAction — narrow + audit coercion (§C.3)
-  const validActions: NextAction[] = ['call', 'visit', 'match', 'kyc']
-  let nextAction: NextAction
-  if (validActions.includes(parsed.nextAction as NextAction)) {
-    nextAction = parsed.nextAction as NextAction
-  } else {
-    if (parsed.nextAction !== undefined && parsed.nextAction !== '') {
-      coercions.push({ field: 'nextAction', rawValue: parsed.nextAction, coercedTo: 'call' })
-    }
-    nextAction = 'call'
-  }
-
-  const fields: ExtractedFields = {
-    firstName: typeof parsed.firstName === 'string' ? parsed.firstName.trim() : '',
-    lastName:  typeof parsed.lastName === 'string'  ? parsed.lastName.trim()  : '',
-    // Double-pass verbatim (A4)
-    email: verifyVerbatim(typeof parsed.email === 'string' ? parsed.email.trim() : '', sourceText),
-    phone: verifyVerbatim(typeof parsed.phone === 'string' ? parsed.phone.trim() : '', sourceText),
-    intent,
-    budget: typeof parsed.budget === 'number' && parsed.budget > 0 ? Math.round(parsed.budget) : null,
-    rooms:  typeof parsed.rooms === 'number' && parsed.rooms > 0  ? parsed.rooms : null,
-    zone:   typeof parsed.zone === 'string' ? parsed.zone.trim() : '',
-    urgency,
-    nextAction,
-    confidence: typeof parsed.confidence === 'number'
-      ? Math.max(0, Math.min(1, parsed.confidence))
-      : 0.5,
-  }
-
-  return { fields, coercions }
 }
 
 function supabaseAdmin() {
@@ -441,8 +312,9 @@ serve(async (req) => {
   try {
     aiResponse = await callDeepSeek(
       [{ role: 'user', content: redactedText }],
-      SYSTEM_PROMPT,
-      { maxTokens: 600, temperature: 0.0, timeoutMs: 30000, responseFormat: 'json_object', agencyId: ctx.agencyId ?? undefined, module: 'extract-lead' },
+      LEAD_SYSTEM_PROMPT,
+      // 1000 et non plus 600 : le schéma est passé de 11 à 25 champs.
+      { maxTokens: 1000, temperature: 0.0, timeoutMs: 30000, responseFormat: 'json_object', agencyId: ctx.agencyId ?? undefined, module: 'extract-lead' },
     )
   } catch (err) {
     await logExtraction({
@@ -461,7 +333,7 @@ serve(async (req) => {
   }
 
   // 5. Parse + double-pass verbatim (sur redactedText pour cohérence)
-  const parseResult = parseAndValidate(aiResponse.text, redactedText)
+  const parseResult = parseLeadExtraction(aiResponse.text, redactedText)
   if (!parseResult) {
     await logExtraction({
       agencyId: ctx.agencyId,

@@ -1,13 +1,15 @@
 // MEGGA CRM — Fiche détail Contact « Pager » (refonte Claude Design, port fidèle).
 // Port 1:1 de `crm-screen-contact-detail-pager.jsx` (window.CRMScreenContactDetailPager).
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
-//   Page 0 → Ses informations (héro identité + critères + coordonnées + note)  [en haut]
-//   Page 1 → Boucle de match  (à traiter + biens transmis)                     [en bas]
+//   Page 0 → Ses informations (en-tête + coordonnées | critères | notes)      [en haut]
+//   Page 1 → Boucle de match  (à traiter | biens transmis + liens)              [en bas]
+// Les deux pages sont BORD À BORD depuis le 16.09.2026 : un en-tête, puis des colonnes
+// pleine hauteur séparées par un filet, chacune défilant seule (`.cdp-cols`).
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Gel du pager (freezeRef) pendant une édition inline ou une modale ouverte.
 //
-// Beta v1 : le bloc Coordonnées porte l'identité LBA (9 lignes, « — » si vide)
-// et la modale d'identité édite les 6 champs correspondants — toute
+// Beta v1 : le bloc Coordonnées porte l'identité LBA — les champs vides se rangent sous
+// « À compléter » (16.09.2026) — et la modale d'identité édite les 6 champs correspondants — toute
 // modification d'un d'eux invalide un KYC vérifié (cf. lib/contactIdentity).
 //
 // Conventions : inline styles (PAS de Tailwind), 'Inter Tight', composants au
@@ -26,19 +28,18 @@ import { Trans, useTranslation } from 'react-i18next'
 import type { CriteriaInput } from '@/lib/contactCriteria'
 import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
-import { type CrmPalette } from '@/components/crm/tokens'
-import { crmFmtCHF } from '@/components/crm/tokens'
+import { crmInitials, type CrmPalette } from '@/components/crm/tokens'
+import { pickAvatarBg } from '@/lib/crmAdapters'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
-import { creerNotePlanner } from '@/components/crm/contacts-pager/notePlanner'
-import { CTP_FN } from '@/components/crm/contacts-pager/ctpTokens'
+import type { ContactNoteView } from '@/hooks/useContactNotes'
+import { CTP_FN, MEGGA_AI_VIOLET } from '@/components/crm/contacts-pager/ctpTokens'
+import { AI_GLYPH_PATH } from '@/components/ai-copilot/panel/panelIcons'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
-// ⚠ `formatDate` et non `toLocaleDateString('fr-CH')` : le format suisse DD.MM.YYYY est la
-// règle de MAISON, valable dans les quatre langues (CLAUDE.md §6), et il vit dans un seul
-// helper. Figer `'fr-CH'` au site d'appel donnait le même rendu par coïncidence, en le
-// rendant insensible à toute évolution du helper — et en laissant croire, dans une carte
-// traduite, que la carte formate en français.
-import { formatDate } from '@/lib/utils'
+import { grouperMilliers } from '@/lib/montantSaisi'
+import { ChampAdresseSuisse, ChampDateNaissance, type PaletteChamps } from '@/components/crm/contacts-pager/ChampsIdentite'
+import { buildWaMeUrl } from '@/lib/waMeUrl'
+import PxSocialIcon from '@/components/propertyx/PxSocialIcon'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -66,6 +67,10 @@ export interface FicheContact {
   photo: string | null
   crit: CriteriaInput            // critères parsés (voir @/lib/contactCriteria)
   notes: string
+  /** État du dossier KYC, lu dans l'en-tête (« KYC en attente » se voyait nulle part). */
+  kycStatus: 'none' | 'pending' | 'verified' | 'stale'
+  /** Dernière interaction connue (`contacts.last_interaction_at`) ; `null` = jamais. */
+  lastContactAt: string | null
 }
 
 export interface FicheLoopItem {
@@ -101,23 +106,8 @@ export interface FicheReceptionLink {
  */
 export type FicheRevokeResult = 'ok' | 'refused' | 'failed'
 
-/** Prochaine action estimée (NBA déterministe, cerveau partagé WhatsApp ⇄ copilote) —
- *  chaînes DÉJÀ traduites par le parent (le pager reste présentation pure, sans i18n
- *  de données). Absent/null → aucun rendu (ajout additif, façon BnScoreBadge).
- *
- *  ⚠ La mention « Estimation » qui suivait le libellé a été RETIRÉE (Julien,
- *  12.08.2026). Ce que `CLAUDE.md` exige d'une sortie IA — qu'elle se signale —
- *  reste porté par l'ÉTINCELLE devant la ligne, l'autre moitié de la même règle ;
- *  et une prochaine action n'est pas un score. Ne pas la réintroduire sans
- *  redécider : elle a été enlevée, pas oubliée. */
-export interface FicheNba {
-  label: string
-  kycNote: string | null
-}
-
 export interface ContactDetailPagerProps {
   fiche: FicheContact
-  nba?: FicheNba | null
   loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number }
   /** Liens de réception émis + états de chargement (le conteneur porte la requête). */
   links: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean }
@@ -129,20 +119,21 @@ export interface ContactDetailPagerProps {
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
-  /** État de consentement WhatsApp. `null` tant que la lecture n'a pas abouti. */
-  consent?: FicheConsent | null
-  /** Geste « ne plus contacter ». Doit résoudre APRÈS l'écriture (la carte relit ensuite). */
-  onDoNotContact?: () => Promise<void>
-  /** Envoie l'invitation d'opt-in par e-mail. Rejette avec un motif exploitable. */
-  onInviteOptin?: () => Promise<void>
-  // ⚠ `Promise<void>` vient de NOUS : la base et `main` portent `void`, et le
-  // planificateur de note attend l'écriture avant de relire. Ce n'est donc pas un
-  // arbitrage, c'est notre changement que `main` n'a pas touché.
-  onSaveNote: (note: string) => Promise<void>
+  /**
+   * Le FIL de notes (`contact_notes`, 16.09.2026) — il remplace le bloc de texte unique
+   * `contacts.notes`, réécrit en entier à chaque frappe, sans date ni auteur.
+   * Chaque geste rend une promesse dont l'échec est MONTRÉ (`contacts-note-contrat.spec.ts`).
+   */
+  noteThread: ContactNoteView[]
+  onAddNote: (body: string) => Promise<void>
+  onUpdateNote: (id: string, body: string) => Promise<void>
+  onDeleteNote: (id: string) => Promise<void>
   /** Doit résoudre APRÈS la suppression réelle : la carte « Contact supprimé » n'est
    *  montrée qu'ensuite, et c'est `onBack` (pas ce callback) qui ramène à la liste. */
   onDelete: () => Promise<void>
   onOpenKyc: () => void
+  /** Écrire au contact : la page choisit la Messagerie (une boîte connectée) ou `mailto:`. */
+  onEmail?: () => void
   onOpenMatching: () => void
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
   onOpenListings: () => void
@@ -154,29 +145,6 @@ export interface ContactDetailPagerProps {
 // ═══════════════════════════════════════════════════════════════════════
 //   PALETTE dérivée (cdpPal du design)
 // ═══════════════════════════════════════════════════════════════════════
-/**
- * Ce que la fiche sait du consentement WhatsApp d'un contact.
- *
- * ⚠ Le `reason` distingue ce que la PERSONNE a demandé (`stop_keyword`, `meta_block`) de ce
- * que l'AGENT a décidé (`agent_manual`). La fiche ne doit pas les présenter pareil : le
- * premier ne se lève pas d'un clic, le second est une note interne.
- */
-export interface FicheConsent {
-  suppressed: boolean
-  reason: 'stop_keyword' | 'meta_block' | 'agent_manual' | 'bounce_hard' | null
-  suppressedAt: string | null
-  ackSentAt: string | null
-  /** La dernière déclaration est un consentement. */
-  optedIn: boolean
-  /** Invitation partie, ni acceptée ni expirée. */
-  pendingInviteAt: string | null
-  /** Sans e-mail, l'invitation ne peut PAS partir — elle voyage par ce canal-là. */
-  canInvite: boolean
-  journal: Array<{
-    id: string; createdAt: string; event: 'opt_in' | 'opt_out'; source: string; scope: string
-  }>
-}
-
 interface FichePal {
   sp: CrmPalette
   pageBg: string
@@ -232,6 +200,8 @@ const FCP_PATHS: Record<string, ReactNode> = {
   clock: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
   send: <><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></>,
   check: <path d="M20 6L9 17l-5-5" />,
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></>,
+  wallet: <><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /><path d="M16 14.5h2" /></>,
   arrowL: <path d="M19 12H5M12 19l-7-7 7-7" />,
   doc: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /></>,
   home: <><path d="m3 11 9-8 9 8" /><path d="M5 10v9h14v-9" /></>,
@@ -289,11 +259,14 @@ const CD_MUSTHAVE: { id: string; k: string }[] = [
   { id: 'garage', k: 'fiche.feature.garage' },
   { id: 'vue lac', k: 'fiche.feature.vueLac' },
 ]
+/** Hauteur COMMUNE des en-têtes des deux pages, mesurée sur « Ses informations » (nom et
+ *  actions, puis les essentiels : 68 px de contenu, 2 × 20 px de marge, 1 px de filet).
+ *  Sans elle, le filet sautait d'une page à l'autre. */
+const CD_ENTETE_H = 109
 const CD_CIV = ['mrs', 'mr']
 const CD_LANGS = ['fr', 'de', 'en', 'it']
 const CD_CANALS = ['whatsapp', 'sms', 'call', 'email']
 const cap = (s: string) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1)
-const fmtCHF = (n: number | null | undefined) => crmFmtCHF(n)
 
 // État de la boucle → clé couleur de la palette + clé i18n du pill.
 // `liked` est VERT (clé `ok`) et non rouge : le like est un signal positif, et c'est
@@ -392,15 +365,6 @@ function CdPickChip({ on, onClick, children, P }: { on?: boolean; onClick: () =>
   return <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', height: 31, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.muted, transition: 'background 140ms ease' }}>{children}</button>
 }
 
-function CdField({ label, value, mono, P }: { label: string; value: ReactNode; mono?: boolean; P: FichePal }) {
-  return (
-    <div>
-      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{label}</div>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: P.ink, marginTop: 5, fontVariantNumeric: mono ? 'tabular-nums' : 'normal' }}>{value}</div>
-    </div>
-  )
-}
-
 /**
  * Une ligne en lecture du bloc Coordonnées.
  *
@@ -455,7 +419,7 @@ function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label
  *
  * Le geste des Réglages est respecté sur ce qui compte — plus de capitale, plus
  * d'interlettrage, plus de graisse de titre sur un libellé. Ce qui change est le
- * couple taille/graisse, pas la règle. `CdField` et `CdReadRow` suivent.
+ * couple taille/graisse, pas la règle. `CdReadRow` suit.
  *
  * ⚠ Lisibilité vérifiée, pas supposée : `P.muted` mesure 4,74:1 en clair et
  * 7,89:1 en sombre sur le fond de carte. La graisse ne change pas le contraste ;
@@ -463,17 +427,21 @@ function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label
  */
 const cdLbl = (P: FichePal): CSSProperties => ({ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 7 })
 
+/** Style d'une case de la fiche. L'anneau d'erreur prime sur l'anneau de focus : une date
+ *  impossible doit rester visible même curseur dedans (c'est là que l'utilisateur la corrige). */
+const cdChamp = (P: FichePal, focus: boolean, invalid?: boolean, mono?: boolean): CSSProperties => {
+  const ring = invalid ? P.danger : focus ? P.accent : null
+  return { width: '100%', height: 38, padding: '0 var(--crm-space-xl)', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 'var(--crm-radius-lg)', color: P.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'none', transition: 'box-shadow 140ms ease' }
+}
+
 function CdTextInput({ value, onChange, placeholder, type = 'text', mono, invalid, P }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string; mono?: boolean; invalid?: boolean; P: FichePal
 }) {
   const [f, setF] = useState(false)
-  // L'anneau d'erreur prime sur l'anneau de focus : une date impossible doit rester
-  // visible même curseur dedans (c'est là que l'utilisateur la corrige).
-  const ring = invalid ? P.danger : f ? P.accent : null
   return (
     <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
       onFocus={() => setF(true)} onBlur={() => setF(false)} aria-invalid={invalid || undefined}
-      style={{ width: '100%', height: 38, padding: '0 var(--crm-space-xl)', boxSizing: 'border-box', background: P.sub, border: 0, borderRadius: 'var(--crm-radius-lg)', color: P.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', outline: 'none', fontVariantNumeric: mono ? 'tabular-nums' : 'normal', boxShadow: ring ? `inset 0 0 0 2px ${ring}` : 'none', transition: 'box-shadow 140ms ease' }} />
+      style={cdChamp(P, f, invalid, mono)} />
   )
 }
 
@@ -698,6 +666,10 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
   const birthKo = isInvalidSwissDate(draft.birth)
   const canSave = !!draft.firstName.trim() && !!draft.lastName.trim() && !birthKo
   const countryOpts = [{ v: '', l: t('fiche.identity.countryNone') }, ...COUNTRIES.map((c) => ({ v: c.code, l: c.name }))]
+  const palChamps: PaletteChamps = {
+    ink: P.ink, inkSoft: P.inkSoft, muted: P.muted, ghost: P.ghost, accent: P.accent, onAccent: P.accentInk,
+    surfaceDouce: P.sub, popoverBg: P.sp.solidBg, popoverBorder: P.sp.solidBorder, popoverShadow: P.sp.solidShadow,
+  }
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'grid', placeItems: 'center', background: 'rgba(15,20,30,0.42)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease' }}>
       <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.identity.title')} style={{ width: 452, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
@@ -713,7 +685,23 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
           </div>
           <div>
             <div style={cdLbl(P)}>{t('fiche.identity.birth')}</div>
-            <CdTextInput value={draft.birth} onChange={(val) => setDraft((s) => ({ ...s, birth: val }))} placeholder={t('fiche.identity.birthPlaceholder')} mono invalid={birthKo} P={P} />
+            {/* Même champ que la fiche express : on tape, ou on ouvre le calendrier (16.09.2026). */}
+            <ChampDateNaissance
+              pal={palChamps}
+              styleChamp={(focus) => cdChamp(P, focus, birthKo, true)}
+              ancrage="gauche"
+              value={draft.birth}
+              onChange={(val) => setDraft((s) => ({ ...s, birth: val }))}
+              invalid={birthKo}
+              placeholder={t('fiche.identity.birthPlaceholder')}
+              labels={{
+                open: t('onboarding:wizard.date.open'),
+                previousMonth: t('onboarding:wizard.date.previousMonth'),
+                nextMonth: t('onboarding:wizard.date.nextMonth'),
+                month: t('onboarding:wizard.date.month'),
+                year: t('onboarding:wizard.date.year'),
+              }}
+            />
           </div>
           <div>
             <div style={cdLbl(P)}>{t('fiche.identity.nationality')}</div>
@@ -725,7 +713,16 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
           </div>
           <div>
             <div style={cdLbl(P)}>{t('fiche.identity.address')}</div>
-            <CdTextInput value={draft.homeAddress} onChange={(val) => setDraft((s) => ({ ...s, homeAddress: val }))} placeholder={t('fiche.identity.addressPlaceholder')} P={P} />
+            {/* Suggestions du registre fédéral à la frappe ; une adresse à l'étranger se tape librement. */}
+            <ChampAdresseSuisse
+              pal={palChamps}
+              styleChamp={(focus) => cdChamp(P, focus)}
+              value={draft.homeAddress}
+              onChange={(val) => setDraft((s) => ({ ...s, homeAddress: val }))}
+              format={(a) => `${a.street}, ${a.postalCode} ${a.city}`}
+              placeholder={t('fiche.identity.addressPlaceholder')}
+              listLabel={t('onboarding:wizard.agence.address.listLabel')}
+            />
           </div>
         </div>
         {verified && (
@@ -751,164 +748,13 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
 // ═══════════════════════════════════════════════════════════════════════
 //   COORDONNÉES (éditables)
 // ═══════════════════════════════════════════════════════════════════════
-/**
- * Joignabilité WhatsApp — l'état, son MOTIF, et le geste.
- *
- * Pourquoi le motif est affiché et pas seulement l'état : un agent à qui l'on grise une
- * action sans raison réessaie, puis contourne. Et les deux origines ne se valent pas —
- * « la personne a demandé » ne se lève pas depuis le CRM, « l'agent a coché » est une note
- * interne. Les présenter pareil ferait croire l'un révocable comme l'autre.
- *
- * ⛔ AUCUN appel réseau ici : le parent lit et écrit, la carte affiche. C'est la convention
- * de tout ce pager.
- */
-function CdConsent({ P, phone, consent, onDoNotContact, onInviteOptin }: {
-  P: FichePal; phone: string
-  consent: FicheConsent | null | undefined
-  onDoNotContact?: () => Promise<void>
-  onInviteOptin?: () => Promise<void>
-}) {
-  const { t } = useTranslation('contacts')
-  const [confirming, setConfirming] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [showLog, setShowLog] = useState(false)
-  const [inviting, setInviting] = useState(false)
-  const [inviteErr, setInviteErr] = useState<string | null>(null)
-
-  // Tant que la lecture n'a pas abouti, on n'affirme RIEN. Afficher « joignable » sur une
-  // lecture en cours ferait exactement l'inverse de ce que cette carte existe pour éviter.
-  if (!consent) return null
-
-  const parLaPersonne = consent.reason === 'stop_keyword' || consent.reason === 'meta_block'
-  const teinte = consent.suppressed ? (parLaPersonne ? P.danger : P.wait) : P.ok
-  const etat = !consent.suppressed
-    ? t('fiche.consent.reachable')
-    : parLaPersonne ? t('fiche.consent.optedOut') : t('fiche.consent.blockedByAgent')
-
-  const agir = () => {
-    if (!onDoNotContact || busy) return
-    setBusy(true)
-    void onDoNotContact().finally(() => { setBusy(false); setConfirming(false) })
-  }
-
-  return (
-    <div style={{ marginTop: 'var(--crm-space-xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${P.hairline}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-        <div style={cdLbl(P)}>{t('fiche.consent.label')}</div>
-        <div style={{ flex: 1 }} />
-        {consent.journal.length > 0 && (
-          <button
-            onClick={() => setShowLog((v) => !v)}
-            style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
-              fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.muted }}
-          >{showLog ? t('fiche.consent.hideLog') : t('fiche.consent.showLog')}</button>
-        )}
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-        {/* Pastille : texte coloré sans fond (grammaire maison des badges). */}
-        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: teinte }}>{etat}</span>
-        {consent.suppressed && consent.suppressedAt && (
-          <span style={{ fontSize: 'var(--crm-text-sm)', color: P.muted, fontVariantNumeric: 'tabular-nums' }}>
-            {formatDate(consent.suppressedAt)}
-          </span>
-        )}
-      </div>
-
-      {consent.suppressed && (
-        <div style={{ fontSize: 'var(--crm-text-sm)', color: P.inkSoft, marginTop: 5 }}>
-          {parLaPersonne ? t('fiche.consent.optedOutHelp') : t('fiche.consent.blockedByAgentHelp')}
-        </div>
-      )}
-
-      {/* ── Invitation d'opt-in (click_to_wa) ──────────────────────────────────
-          Trois états, jamais deux boutons : déjà consenti → rien à demander ;
-          invitation en route → on le DIT plutôt que d'en renvoyer une (chaque envoi
-          crée une invitation valable quatorze jours, et deux liens vivants pour la
-          même personne c'est un consentement qu'on ne saura pas attribuer) ;
-          sinon → le bouton. Un contact bloqué n'est jamais invité : lui demander
-          « puis-je vous écrire ? » est le message qu'il vient de refuser. */}
-      {!consent.suppressed && !consent.optedIn && !!onInviteOptin && (
-        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
-          {consent.pendingInviteAt ? (
-            <div style={{ fontSize: 'var(--crm-text-sm)', color: P.muted }}>
-              {t('fiche.consent.inviteSent', {
-                date: formatDate(consent.pendingInviteAt),
-              })}
-            </div>
-          ) : (
-            <>
-              <CdCta
-                tone="ghost" small P={P}
-                disabled={inviting || !consent.canInvite}
-                onClick={() => {
-                  if (inviting || !consent.canInvite) return
-                  setInviting(true); setInviteErr(null)
-                  void onInviteOptin()
-                    .catch((e: unknown) => setInviteErr(String((e as Error)?.message ?? 'error')))
-                    .finally(() => setInviting(false))
-                }}
-              >{inviting ? t('fiche.consent.inviting') : t('fiche.consent.invite')}</CdCta>
-              {/* Le motif, pas seulement le grisage : sans e-mail, l'agent doit savoir QUOI
-                  corriger — l'invitation voyage par ce canal-là, pas par WhatsApp. */}
-              <div style={{ fontSize: 'var(--crm-text-sm)', color: P.muted, marginTop: 5 }}>
-                {!consent.canInvite
-                  ? t('fiche.consent.inviteNoEmail')
-                  : inviteErr
-                    ? t('fiche.consent.inviteError.' + inviteErr, { defaultValue: t('fiche.consent.inviteError.generic') })
-                    : t('fiche.consent.inviteHelp')}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Le geste n'existe QUE s'il change quelque chose : sur un contact déjà bloqué, un
-          bouton actif inviterait à un clic sans effet, donc à douter de l'état affiché. */}
-      {!consent.suppressed && !!phone && !!onDoNotContact && (
-        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
-          {!confirming ? (
-            <CdCta tone="ghost" small P={P} onClick={() => setConfirming(true)}>
-              {t('fiche.consent.doNotContact')}
-            </CdCta>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 'var(--crm-text-sm)', color: P.inkSoft }}>{t('fiche.consent.confirm')}</span>
-              <CdCta tone="ghost" small P={P} onClick={() => setConfirming(false)}>{t('cd.cancel')}</CdCta>
-              <CdCta small P={P} onClick={agir} disabled={busy}>
-                {busy ? t('fiche.consent.saving') : t('fiche.consent.confirmYes')}
-              </CdCta>
-            </div>
-          )}
-        </div>
-      )}
-
-      {showLog && (
-        <div style={{ marginTop: 'var(--crm-space-lg)', display: 'grid', gap: 6 }}>
-          {consent.journal.map((e) => (
-            <div key={e.id} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}>
-              <span style={{ color: P.muted, fontVariantNumeric: 'tabular-nums', minWidth: 78 }}>
-                {formatDate(e.createdAt)}
-              </span>
-              <span style={{ fontWeight: 600, color: e.event === 'opt_in' ? P.ok : P.inkSoft }}>
-                {t('fiche.consent.event.' + e.event)}
-              </span>
-              <span style={{ color: P.muted }}>{t('fiche.consent.source.' + e.source, { defaultValue: e.source })}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 interface CoordForm { civ: string; email: string; phone: string; lang: string; canal: string }
 
-function CdCoord({ P, fiche, editSignal, freezeRef, onSave, consent, onDoNotContact, onInviteOptin }: {
+function CdCoord({ P, fiche, editSignal, freezeRef, onSave, onEditIdentity }: {
   P: FichePal; fiche: FicheContact; editSignal: number; freezeRef: MutableRefObject<number>
   onSave: ContactDetailPagerProps['onSaveCoord']
-  consent?: FicheConsent | null
-  onDoNotContact?: () => Promise<void>; onInviteOptin?: () => Promise<void>
+  /** Les champs d'identité LBA ne s'éditent pas ici : ils passent par la modale d'identité. */
+  onEditIdentity: () => void
 }) {
   const { t } = useTranslation('contacts')
   const seed: CoordForm = { civ: fiche.civ || '', email: fiche.email || '', phone: fiche.phone || '', lang: fiche.lang || 'fr', canal: fiche.canal || '' }
@@ -928,23 +774,27 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave, consent, onDoNotCont
     void onSave({ civ: draft.civ, email: draft.email, phone: draft.phone, lang: draft.lang, canal: draft.canal }).then(flashSaved)
   }
 
+  // Identité LBA, dans l'ordre de la modale qui l'édite. `large` : sur toute la ligne.
+  const identite = [
+    { id: 'civ', label: t('fiche.coord.civility'), value: form.civ ? t('fiche.civ.' + form.civ) : '', identite: false },
+    { id: 'birth', label: t('fiche.coord.birth'), value: fiche.birth, mono: true, identite: true },
+    { id: 'nationality', label: t('fiche.coord.nationality'), value: fiche.nationality ? countryName(fiche.nationality) : '', identite: true },
+    { id: 'residence', label: t('fiche.coord.residence'), value: fiche.residence ? countryName(fiche.residence) : '', identite: true },
+    { id: 'address', label: t('fiche.coord.address'), value: fiche.homeAddress, large: true, identite: true },
+  ]
+  const aCompleter = [
+    ...(!form.email ? [{ id: 'email', label: t('detail.email'), identite: false }] : []),
+    ...(!form.phone ? [{ id: 'phone', label: t('detail.phone'), identite: false }] : []),
+    ...identite.filter((c) => !c.value),
+    ...(!form.canal ? [{ id: 'canal', label: t('fiche.coord.channel'), identite: false }] : []),
+  ]
+
   const civOpts = [{ v: '', l: t('fiche.civ.none') }, ...CD_CIV.map((v) => ({ v, l: t('fiche.civ.' + v) }))]
   const langOpts = CD_LANGS.map((v) => ({ v, l: t('fiche.lang.' + v) }))
   const canalOpts = CD_CANALS.map((v) => ({ v, l: t('fiche.canal.' + v) }))
 
   return (
-    // ⚠ `flex: '0 1 auto'` et non `flex: 1`. Ce bloc partageait la colonne à
-    // PARTS ÉGALES avec la note, alors que les deux n'ont pas la même nature :
-    // Coordonnées porte un contenu FIXE — neuf champs, toujours les mêmes —
-    // quand la note est élastique. Mesuré : 224 px de hauteur pour 407 px de
-    // contenu, et la dernière ligne coupée au milieu de ses glyphes. Le bloc
-    // prend maintenant sa hauteur naturelle et la note absorbe le reste.
-    //
-    // `overflowY: 'auto'` reste, en SOUPAPE : sur un écran trop court le bloc
-    // redevient défilant au lieu de pousser la note hors de la colonne. C'est
-    // aussi ce qui couvre le mode ÉDITION, où les champs sont plus hauts que
-    // les lignes en lecture.
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', flex: '0 0 auto', minHeight: 0, overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
         <CdGrp P={P}>{t('detail.contactInfo')}</CdGrp>
         <div style={{ flex: 1 }} />
@@ -976,29 +826,60 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave, consent, onDoNotCont
             <div style={cdLbl(P)}>{t('fiche.coord.channel')}</div>
             <CdSeg value={draft.canal} onChange={set('canal')} P={P} options={canalOpts} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'auto', paddingTop: 'var(--crm-space-xs)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', paddingTop: 'var(--crm-space-xs)' }}>
             <CdCta tone="ghost" small P={P} onClick={cancel}>{t('cd.cancel')}</CdCta>
             <div style={{ flex: 1 }} />
             <CdCta small P={P} onClick={save}>{t('cd.save')}</CdCta>
           </div>
         </>
       ) : (
-        // Une seule grille 2 colonnes, ordre du handoff : état civil → identité LBA → contact.
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
-          <CdReadRow label={t('fiche.coord.civility')} value={form.civ ? t('fiche.civ.' + form.civ) : ''} empty={!form.civ} P={P} />
-          <CdReadRow label={t('detail.language')} value={form.lang ? t('fiche.lang.' + form.lang) : ''} empty={!form.lang} P={P} />
-          <CdReadRow label={t('fiche.coord.birth')} value={fiche.birth} empty={!fiche.birth} mono P={P} />
-          <CdReadRow label={t('fiche.coord.nationality')} value={countryName(fiche.nationality)} empty={!fiche.nationality} P={P} />
-          <CdReadRow label={t('fiche.coord.residence')} value={countryName(fiche.residence)} empty={!fiche.residence} P={P} />
-          <CdReadRow label={t('fiche.coord.address')} value={fiche.homeAddress} empty={!fiche.homeAddress} P={P} />
-          <CdReadRow label={t('detail.email')} value={form.email} empty={!form.email} P={P} />
-          <CdReadRow label={t('detail.phone')} value={form.phone} empty={!form.phone} mono P={P} />
-          <CdReadRow label={t('fiche.coord.channel')} value={form.canal ? t('fiche.canal.' + form.canal) : ''} empty={!form.canal} P={P} />
-          {/* Pleine largeur : la joignabilité conditionne TOUTES les lignes au-dessus. */}
-          <div style={{ gridColumn: '1 / -1' }}>
-            <CdConsent P={P} phone={form.phone} consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
+        // ⚖ Regroupé le 16.09.2026 : d'abord de quoi la JOINDRE, puis son identité LBA.
+        // Les champs vides ne s'alignent plus en tirets (quatre « — » sur une fiche neuve,
+        // plus lourds que les valeurs) : ils se rangent sous « À compléter », chacun ouvrant
+        // l'éditeur qui le porte. Le trou de conformité reste visible — il est NOMMÉ.
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
+            {form.email && <CdReadRow label={t('detail.email')} value={form.email} P={P} />}
+            {form.phone && <CdReadRow label={t('detail.phone')} value={form.phone} mono P={P} />}
+            {(form.lang || form.canal) && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+                {form.lang && <CdReadRow label={t('detail.language')} value={t('fiche.lang.' + form.lang)} P={P} />}
+                {form.canal && <CdReadRow label={t('fiche.coord.channel')} value={t('fiche.canal.' + form.canal)} P={P} />}
+              </div>
+            )}
           </div>
-        </div>
+
+          {identite.some((c) => c.value) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-2xl)', borderTop: `1px solid ${P.hairline}` }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.muted }}>{t('fiche.coord.identity')}</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+                {identite.filter((c) => c.value).map((c) => (
+                  <div key={c.id} style={c.large ? { gridColumn: '1 / -1' } : undefined}>
+                    <CdReadRow label={c.label} value={c.value} mono={c.mono} P={P} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {aCompleter.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted }}>{t('fiche.coord.toComplete')}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
+                {aCompleter.map((c) => (
+                  <button key={c.id} type="button" onClick={c.identite ? onEditIdentity : start} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 28, padding: '0 var(--crm-space-lg)',
+                    borderRadius: 'var(--crm-radius-pill)', border: `1px dashed ${P.ghost}`, background: 'transparent',
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.inkSoft, cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}>
+                    <span aria-hidden style={{ color: P.muted }}>+</span>{c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </>
       )}
     </div>
   )
@@ -1055,15 +936,12 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
   }
 
   const budgetLabel = isTenant ? t('fiche.crit.rentMax') : t('fiche.crit.buyBudget')
-  const budgetRead = isTenant
-    ? (v.budgetMax ? `${fmtCHF(Number(v.budgetMax))} / mois` : '—')
-    : (v.budgetMin && v.budgetMax ? `${fmtCHF(Number(v.budgetMin))} – ${fmtCHF(Number(v.budgetMax))}` : (v.budgetMax ? `≤ ${fmtCHF(Number(v.budgetMax))}` : '—'))
+  const budget = budgetFiche(v.budgetMin ? Number(v.budgetMin) : null, v.budgetMax ? Number(v.budgetMax) : null, isTenant, t)
   const featLabel = (id: string) => { const o = CD_MUSTHAVE.find((x) => x.id === id); return o ? t(o.k) : cap(id) }
   const typeLabel = (id: string) => (CD_ALL_TYPES.includes(id) ? t('fiche.propType.' + id) : cap(id))
-  const mustRead = v.mustHave.length ? v.mustHave.map(featLabel).join(' · ') : '—'
 
   return (
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadow, padding: 'var(--crm-space-6xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', gap: editing ? 15 : 20, minHeight: 0, overflowY: editing ? 'auto' : 'visible' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
         <CdGrp P={P}>{isSeller ? t('fiche.crit.offers') : t('fiche.crit.wants')}</CdGrp>
         <div style={{ flex: 1 }} />
@@ -1115,27 +993,48 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
         </>
       ) : (
         <>
+          {/* Budget : même écriture que la liste — le plafond en montant complet, la
+              précision dessous (16.09.2026). L'ancien « CHF 900'000 – CHF 1'250'000 » en 32 px
+              débordait d'une colonne et répétait « CHF » deux fois. */}
           <div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{budgetLabel}</div>
-            <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1, color: P.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{budgetRead}</div>
+            <div style={cdLbl(P)}>{budgetLabel}</div>
+            {budget ? (
+              <>
+                <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: P.ink, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>{budget.montant}</div>
+                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginTop: 'var(--crm-space-xs)', fontVariantNumeric: 'tabular-nums' }}>{budget.precision}</div>
+              </>
+            ) : <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: P.ghost }}>—</div>}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-2xl)', borderTop: `1px solid ${P.hairline}` }}>
+            <CdReadRow label={t('fiche.crit.roomsMin')} value={v.roomsMin} empty={!v.roomsMin} mono P={P} />
+            <CdReadRow label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : ''} empty={!v.areaMin} mono P={P} />
+          </div>
+          {/* En lecture, seuls les types RETENUS : les quatre pastilles, trois éteintes,
+              faisaient lire une liste d'options au lieu d'un critère. */}
+          <div>
+            <div style={cdLbl(P)}>{t('detail.propertyType')}</div>
+            {v.types.length ? (
+              <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>
+                {v.types.map((tk) => <CdChip key={tk} on P={P}>{typeLabel(tk)}</CdChip>)}
+              </div>
+            ) : <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: P.ghost }}>—</div>}
           </div>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 9 }}>{t('detail.propertyType')}</div>
-            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-              {CD_ALL_TYPES.map((tk) => <CdChip key={tk} on={v.types.includes(tk)} P={P}>{typeLabel(tk)}</CdChip>)}
-            </div>
+            <div style={cdLbl(P)}>{t('fiche.crit.sectors')}</div>
+            {v.cantons.length || v.cities ? (
+              <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
+                {v.cantons.map((cn) => <CdChip key={cn} on P={P}>{cn}</CdChip>)}
+                {v.cities && <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.ink }}>{v.cities}</span>}
+              </div>
+            ) : <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: P.ghost }}>—</div>}
           </div>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted, marginBottom: 9 }}>{t('fiche.crit.sectors')}</div>
-            <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', alignItems: 'center' }}>
-              {v.cantons.map((cn) => <CdChip key={cn} on P={P}>{cn}</CdChip>)}
-              {v.cities && <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{v.cities}</span>}
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 'var(--crm-space-4xl)', alignItems: 'start' }}>
-            <CdField label={t('fiche.crit.roomsMin')} value={v.roomsMin || '—'} mono P={P} />
-            <CdField label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : '—'} mono P={P} />
-            <CdField label={t('fiche.crit.mustHave')} value={mustRead} P={P} />
+            <div style={cdLbl(P)}>{t('fiche.crit.mustHave')}</div>
+            {v.mustHave.length ? (
+              <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>
+                {v.mustHave.map((id) => <CdChip key={id} P={P}>{featLabel(id)}</CdChip>)}
+              </div>
+            ) : <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 500, color: P.ghost }}>—</div>}
           </div>
         </>
       )}
@@ -1144,58 +1043,418 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//   NOTE (sauvegarde auto façon Apple Notes — parent débounce)
+//   NOTES — un fil, une note par ligne
 // ═══════════════════════════════════════════════════════════════════════
-/**
- * ⚠ LA NOTE S'ENREGISTRE COMME LES DEUX AUTRES BLOCS — promesse attendue,
- * verdict à l'écran. Elle était le seul `(v: string) => void` de la fiche : un
- * échec d'écriture ne se voyait NULLE PART. L'agent tapait, et croyait que
- * c'était parti.
- *
- * ⚠ Le délai vit ICI et non plus dans la page. Une promesse par caractère n'a
- * pas de sens — seule la dernière frappe écrit —, alors que le composant, lui,
- * sait quand la frappe se termine et peut en montrer l'issue.
- *
- * ⚠ DEUX chemins chassent l'écriture en attente : la perte de FOCUS, qui rend
- * son verdict à l'écran, et le DÉMONTAGE, qui ne le peut plus mais écrit quand
- * même. Annuler au démontage — le geste réflexe — perdrait la frappe : voir
- * `notePlanner.ts`, dont c'est la raison d'être.
- */
-function CdNote({ P, notes, onSaveNote }: { P: FichePal; notes: string; onSaveNote: (v: string) => Promise<void> }) {
-  const { t } = useTranslation('contacts')
-  const [note, setNote] = useState(notes || '')
-  const [foc, setFoc] = useState(false)
-  const [saved, flashSaved] = useSavedFlash()
-  const [echec, setEchec] = useState(false)
-  // Initialisateur paresseux : un seul planificateur pour toute la vie du bloc.
-  const [planner] = useState(creerNotePlanner)
+/** Formate une date de note à l'heure SUISSE — le jour d'une note écrite à 23 h 30 ne dépend pas du fuseau du poste. */
+const formatNote = (iso: string, o: Intl.DateTimeFormatOptions, locale = 'fr-CH'): string => {
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat(locale, { timeZone: 'Europe/Zurich', ...o }).format(d)
+}
+/** « 16.09.2026 · 14:32 » — l'infobulle de l'heure. */
+const dateNote = (iso: string) => `${formatNote(iso, { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${heureNote(iso)}`
+const heureNote = (iso: string) => formatNote(iso, { hour: '2-digit', minute: '2-digit' })
+/** Clé de jour triable (« 2026-09-16 ») : `en-CA` rend l'ISO. */
+const jourNote = (iso: string) => formatNote(iso, { year: 'numeric', month: '2-digit', day: '2-digit' }, 'en-CA')
+/** Écart en jours CIVILS entre deux clés de jour (DST sans effet : on compte en UTC). */
+const ecartJours = (de: string, a: string) => {
+  const utc = (k: string) => Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10))
+  return Math.round((utc(a) - utc(de)) / 86_400_000)
+}
+const majuscule = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-  const ecrire = (val: string) => {
-    setEchec(false)
-    void onSaveNote(val).then(flashSaved, () => setEchec(true))
+/**
+ * Budget d'une fiche, écrit comme dans la liste : le plafond en montant complet, et sa
+ * précision (« dès 900'000 », « max », « par mois »). Partagé par l'en-tête et la colonne
+ * des critères — un même budget ne s'écrit pas de deux façons sur la même fiche.
+ */
+function budgetFiche(lo: number | null, hi: number | null, loyer: boolean, t: (k: string, o?: Record<string, unknown>) => string) {
+  const m = (n: number) => grouperMilliers(Math.round(n))
+  if (loyer) { const v = hi ?? lo; return v ? { montant: m(v), precision: t('pager.budget.perMonth') } : null }
+  if (hi && lo) return { montant: m(hi), precision: t('pager.budget.from', { n: m(lo) }) }
+  if (hi) return { montant: m(hi), precision: t('pager.budget.max') }
+  if (lo) return { montant: m(lo), precision: t('pager.budget.min') }
+  return null
+}
+
+/** Combien d'éléments un fil montre d'emblée : le récent est ce qu'on relit. */
+const FIL_PAR_PAGE = 10
+/** À partir de combien d'éléments les filtres d'un fil apparaissent. */
+const FIL_FILTRABLE = 10
+
+/**
+ * Range des éléments datés — du plus récent au plus ancien — par PÉRIODE : aujourd'hui,
+ * hier, les jours de la semaine écoulée, puis les MOIS.
+ *
+ * ⚠ Le mois commence à SEPT jours et non trente : mesuré sur 50 notes, un palier « date »
+ * entre les deux laissait encore dix-huit séparateurs pour dix-huit notes. Sous un mois,
+ * chaque ligne pose sa date devant l'heure (`parMois`).
+ */
+function grouperParPeriode<T>(items: T[], dateDe: (x: T) => string, maintenant: number, libelles: { today: string; yesterday: string }, locale: string) {
+  const aujourdhui = jourNote(new Date(maintenant).toISOString())
+  const groupes: { cle: string; libelle: string; parMois: boolean; items: T[] }[] = []
+  for (const x of items) {
+    const iso = dateDe(x)
+    const jour = jourNote(iso)
+    const ecart = ecartJours(jour, aujourdhui)
+    const parMois = ecart >= 7
+    const cle = parMois ? jour.slice(0, 7) : jour
+    if (groupes[groupes.length - 1]?.cle !== cle) {
+      const libelle = ecart <= 0 ? libelles.today
+        : ecart === 1 ? libelles.yesterday
+          : parMois ? majuscule(formatNote(iso, { month: 'long', year: 'numeric' }, locale))
+            : majuscule(formatNote(iso, { weekday: 'long' }, locale))
+      groupes.push({ cle, libelle, parMois, items: [] })
+    }
+    groupes[groupes.length - 1].items.push(x)
+  }
+  return groupes
+}
+/** Heure d'une ligne de fil ; sous un MOIS, la date la précède — l'heure seule ne dirait pas quel jour. */
+const horodatageFil = (iso: string, parMois: boolean) =>
+  `${parMois ? `${formatNote(iso, { day: '2-digit', month: '2-digit' })} · ` : ''}${heureNote(iso)}`
+
+/**
+ * Action rapide de l'en-tête (WhatsApp, e-mail) : un rond de 30 px. Lien (`href`) ou geste
+ * (`onClick`) ; sans l'un ni l'autre, éteint — et son infobulle dit POURQUOI.
+ */
+function CdJoindre({ P, icone, libelle, href, onClick }: { P: FichePal; icone: ReactNode; libelle: string; href?: string; onClick?: () => void }) {
+  const actif = !!href || !!onClick
+  const style: CSSProperties = {
+    width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center', border: 0, padding: 0,
+    background: P.sub, color: actif ? P.inkSoft : P.ghost, cursor: actif ? 'pointer' : 'not-allowed', textDecoration: 'none',
+  }
+  if (href) return <a href={href} target="_blank" rel="noopener noreferrer" title={libelle} aria-label={libelle} className="cdp-joindre" style={style}>{icone}</a>
+  return <button type="button" onClick={onClick} disabled={!actif} title={libelle} aria-label={libelle} className="cdp-joindre" style={style}>{icone}</button>
+}
+
+/** Un essentiel de l'en-tête : son icône, puis sa valeur — jamais coupé en deux. */
+function CdEssentiel({ P, icone, couleur, children }: { P: FichePal; icone: string; couleur: string; children: ReactNode }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', color: couleur, whiteSpace: 'nowrap' }}>
+      <FcpIcon name={icone} size={14} stroke={P.muted} />
+      {children}
+    </span>
+  )
+}
+
+/** Séparateur de période d'un fil : reste en haut de la colonne en défilant. */
+function CdSeparateurPeriode({ libelle, P }: { libelle: string; P: FichePal }) {
+  return (
+    <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-lg) 0 var(--crm-space-xs)', background: P.card, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.muted, whiteSpace: 'nowrap' }}>
+      {libelle}
+      <span aria-hidden style={{ flex: 1, height: 1, background: P.hairline }} />
+    </div>
+  )
+}
+
+/** Filtres d'un fil — pastilles serrées, pour tenir sur une ligne de colonne. */
+function CdFiltresFil<F extends string>({ P, label, options, actif, onChange }: {
+  P: FichePal; label: string; actif: F; onChange: (f: F) => void
+  options: { id: F; libelle: string; compte?: number }[]
+}) {
+  return (
+    <div role="group" aria-label={label} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-xs)' }}>
+      {options.map((o) => {
+        const on = actif === o.id
+        return (
+          <button key={o.id} type="button" aria-pressed={on} onClick={() => onChange(o.id)} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 28, padding: '0 var(--crm-space-md)',
+            borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600, background: on ? P.accent : P.sub, color: on ? P.accentInk : P.inkSoft,
+          }}>
+            {o.libelle}
+            {o.compte != null && <span style={{ fontWeight: 500, fontVariantNumeric: 'tabular-nums', opacity: on ? 0.75 : 1, color: on ? P.accentInk : P.muted }}>{o.compte}</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** « Voir les N … plus anciens » au pied d'un fil. */
+function CdPlusAnciens({ P, libelle, onClick }: { P: FichePal; libelle: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} style={{
+      marginTop: 'var(--crm-space-md)', height: 36, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, background: P.sub, color: P.inkSoft,
+    }}>{libelle}</button>
+  )
+}
+type FiltreNotes = 'toutes' | 'moi' | 'equipe' | 'ai'
+/** MEGGA AI et les notes système se rangent ensemble : ce sont les notes automatiques. */
+const familleNote = (n: ContactNoteView): Exclude<FiltreNotes, 'toutes'> =>
+  n.authorKind !== 'user' ? 'ai' : n.mine ? 'moi' : 'equipe'
+
+/**
+ * La marque MEGGA AI : l'étoile pleine du volet MEGGA AI, en blanc sur le dégradé accent →
+ * violet de Contacts. UNE signature pour tout ce qui vient de MEGGA AI sur la fiche — ses
+ * notes — pour qu'on la reconnaisse sans lire.
+ */
+function CdMarqueAi({ taille }: { taille: number }) {
+  return (
+    <span aria-hidden style={{
+      width: taille, height: taille, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center',
+      background: `linear-gradient(135deg, ${MXC_COLOR.accent} 0%, ${MEGGA_AI_VIOLET} 100%)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.22)',
+    }}>
+      <svg width={Math.round(taille / 2)} height={Math.round(taille / 2)} viewBox="0 0 24 24" fill="#FFFFFF"><path d={AI_GLYPH_PATH} /></svg>
+    </span>
+  )
+}
+
+/**
+ * Pastille d'auteur d'une note. C'est elle qui fait lire un long fil d'un coup d'œil :
+ * MEGGA AI porte son étoile, l'agent connecté l'accent, chaque collègue SA teinte
+ * (hachée de son nom — la même d'une fiche à l'autre), un compte supprimé un « ? ».
+ * L'encre suit l'aplat (`encreSur`), comme les avatars de contact.
+ */
+function CdNoteAvatar({ n, P }: { n: ContactNoteView; P: FichePal }) {
+  const rond: CSSProperties = {
+    width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center',
+    fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2,
+  }
+  // Sans aplat, un filet : en sombre `sub` se confond presque avec la carte.
+  const creux: CSSProperties = { ...rond, background: P.sub, boxShadow: `inset 0 0 0 1px ${P.hairline}` }
+  // MEGGA AI porte SON signe : l'étoile pleine du volet MEGGA AI, en blanc sur le dégradé
+  // accent → violet de Contacts. Un filet et une étoile au trait se lisaient comme une
+  // place vide au milieu des pastilles pleines des agents (16.09.2026).
+  if (n.authorKind === 'ai') return <CdMarqueAi taille={28} />
+  if (n.authorKind === 'system') return <span aria-hidden style={{ ...creux, color: P.inkSoft }}>M</span>
+  if (!n.authorName) return <span aria-hidden style={{ ...creux, color: P.muted }}>?</span>
+  const aplat = n.mine ? P.accent : pickAvatarBg(n.authorName)
+  return <span aria-hidden style={{ ...rond, background: aplat, color: encreSur(aplat) }}>{crmInitials(n.authorName)}</span>
+}
+
+/**
+ * Le fil de notes du contact (16.09.2026). Il remplace un bloc de texte unique que chaque
+ * frappe réécrivait en entier — ni date, ni auteur, ni historique, et deux collègues sur
+ * la même fiche s'écrasaient.
+ *
+ * Une note par ligne, la plus récente en haut : son auteur (l'agent, MEGGA AI, le
+ * système), sa date, « modifiée » si elle l'a été. On AJOUTE en tête ; on ne modifie et ne
+ * supprime que SES notes (la base le refuse de toute façon pour les autres).
+ *
+ * ⚠ CHAQUE GESTE DIT SON ISSUE. Ajouter, modifier, supprimer : la promesse est attendue,
+ * l'échec est rendu à l'endroit du geste, le texte tapé n'est pas perdu. Même exigence
+ * que l'ancien bloc (`contacts-note-contrat.spec.ts`).
+ */
+function CdNotes({ P, notes, onAddNote, onUpdateNote, onDeleteNote }: {
+  P: FichePal
+  notes: ContactNoteView[]
+  onAddNote: (body: string) => Promise<void>
+  onUpdateNote: (id: string, body: string) => Promise<void>
+  onDeleteNote: (id: string) => Promise<void>
+}) {
+  const { t, i18n } = useTranslation('contacts')
+  const [brouillon, setBrouillon] = useState('')
+  const [foc, setFoc] = useState(false)
+  const [envoi, setEnvoi] = useState(false)
+  const [echec, setEchec] = useState(false)
+  const [saved, flashSaved] = useSavedFlash()
+  const [edition, setEdition] = useState<{ id: string; body: string } | null>(null)
+  const [echecEdition, setEchecEdition] = useState<string | null>(null)
+  const [aSupprimer, setASupprimer] = useState<string | null>(null)
+  const [echecSuppression, setEchecSuppression] = useState<string | null>(null)
+  const [toast, setToast] = useState<'saved' | 'deleted'>('saved')
+  const [deplies, setDeplies] = useState<Set<string>>(() => new Set())
+  const basculer = (id: string) => setDeplies((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
+
+  // ⚖ UN LONG FIL (16.09.2026, mesuré à 50 notes : neuf hauteurs d'écran, un séparateur de
+  // date par note). Trois gestes : filtrer par auteur, ne montrer que les dix plus récentes,
+  // et regrouper par MOIS ce qui a plus d'une semaine.
+  const [filtre, setFiltre] = useState<FiltreNotes>('toutes')
+  const [limite, setLimite] = useState(FIL_PAR_PAGE)
+  const comptes = { moi: 0, equipe: 0, ai: 0 }
+  for (const n of notes) comptes[familleNote(n)]++
+  const familles = (['moi', 'equipe', 'ai'] as const).filter((f) => comptes[f] > 0)
+  // Les filtres n'ont de sens que sur un fil long ET mêlé ; un filtre vidé (dernière note
+  // supprimée) retombe sur « Toutes » au lieu d'afficher un fil vide.
+  const filtrable = notes.length >= FIL_FILTRABLE && familles.length > 1
+  const filtreActif: FiltreNotes = filtrable && filtre !== 'toutes' && comptes[filtre] > 0 ? filtre : 'toutes'
+  const filtrees = filtreActif === 'toutes' ? notes : notes.filter((n) => familleNote(n) === filtreActif)
+  const visibles = filtrees.slice(0, limite)
+  const plusAnciennes = filtrees.length - visibles.length
+  const choisirFiltre = (f: FiltreNotes) => { setFiltre(f); setLimite(FIL_PAR_PAGE) }
+
+  // « Aujourd'hui » se fige à l'ouverture de la fiche : un rendu reste pur, et une fiche
+  // restée ouverte après minuit se relit au prochain passage.
+  const [maintenant] = useState(() => Date.now())
+  const locale = `${(i18n.language || 'fr').slice(0, 2)}-CH`
+  const groupes = grouperParPeriode(visibles, (n) => n.createdAt, maintenant, { today: t('fiche.notes.today'), yesterday: t('fiche.notes.yesterday') }, locale)
+
+  const ajouter = () => {
+    const body = brouillon.trim()
+    if (!body || envoi) return
+    setEnvoi(true); setEchec(false)
+    // Le brouillon n'est vidé qu'APRÈS l'écriture : un refus le laisse sous les yeux. Et retour
+    // sur « Toutes » : sous « Équipe », la note qu'on vient d'écrire serait invisible.
+    void onAddNote(body).then(
+      () => { setBrouillon(''); setEnvoi(false); setFiltre('toutes'); setToast('saved'); flashSaved() },
+      () => { setEnvoi(false); setEchec(true) },
+    )
+  }
+  const enregistrer = () => {
+    if (!edition) return
+    const body = edition.body.trim()
+    if (!body) return
+    setEchecEdition(null)
+    void onUpdateNote(edition.id, body).then(
+      () => { setEdition(null); setToast('saved'); flashSaved() },
+      () => setEchecEdition(edition.id),
+    )
+  }
+  const supprimer = (id: string) => {
+    setEchecSuppression(null)
+    void onDeleteNote(id).then(
+      // La note disparaît du fil : sans le témoin, rien ne dit que c'est la base qui l'a
+      // retirée, et pas seulement l'écran (16.09.2026, Julien).
+      () => { setASupprimer(null); setToast('deleted'); flashSaved() },
+      () => { setASupprimer(null); setEchecSuppression(id) },
+    )
   }
 
-  const onChange = (val: string) => { setNote(val); planner.frapper(val, ecrire) }
-  // Perte de focus : on n'attend pas les 600 ms restantes pour dire à l'agent
-  // si sa note est partie.
-  const onBlur = () => { setFoc(false); planner.chasser() }
-
-  // ⚠ Au démontage on CHASSE, on n'annule pas. Le verdict, lui, est perdu — il
-  // n'y a plus d'écran pour le porter ; les `setState` qui suivent sont des
-  // non-opérations (React 18). Écrire sans témoin reste très préférable à ne
-  // pas écrire.
-  useEffect(() => () => { planner.chasser() }, [planner])
+  const champ = (actif: boolean): React.CSSProperties => ({
+    width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub,
+    borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontFamily: 'inherit',
+    fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink,
+    boxShadow: actif ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease',
+  })
+  const petitBouton = (couleur: string): React.CSSProperties => ({
+    border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+    fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: couleur,
+  })
+  const pilule = (actif: boolean): React.CSSProperties => ({
+    height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit',
+    fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: actif ? 'pointer' : 'default',
+    background: actif ? P.accent : P.sub, color: actif ? P.accentInk : P.ghost,
+  })
+  const auteur = (n: ContactNoteView) =>
+    n.authorKind === 'ai' ? t('fiche.notes.megga') : n.authorKind === 'system' ? t('fiche.notes.system') : n.mine ? t('fiche.notes.you') : n.authorName ?? t('fiche.notes.formerAgent')
 
   return (
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-2xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', flex: 1, minHeight: 148 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
-        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: P.muted }}>{t('fiche.note.label')}</span>
-        {echec && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger, textAlign: 'right' }}>{t('fiche.note.saveError')}</span>}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)' }}>
+        <CdGrp P={P}>{t('fiche.notes.title')}</CdGrp>
+        {notes.length > 0 && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.ghost }}>{notes.length}</span>}
       </div>
-      <textarea value={note} onChange={(e) => onChange(e.target.value)} placeholder={t('fiche.note.placeholder')}
-        onFocus={() => setFoc(true)} onBlur={onBlur}
-        style={{ flex: 1, minHeight: 54, width: '100%', boxSizing: 'border-box', resize: 'none', border: 0, outline: 'none', background: P.sub, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink, boxShadow: foc ? `inset 0 0 0 2px ${P.accent}` : 'none', transition: 'box-shadow 140ms ease' }} />
-      {saved && <CdSavedToast P={P} label={t('fiche.saved.note')} />}
+
+      {/* Ajouter — en tête du fil, ⌘⏎ pour valider */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+        <textarea
+          value={brouillon}
+          onChange={(e) => setBrouillon(e.target.value)}
+          onFocus={() => setFoc(true)}
+          onBlur={() => setFoc(false)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); ajouter() } }}
+          placeholder={t('fiche.notes.placeholder')}
+          aria-label={t('fiche.notes.placeholder')}
+          rows={brouillon ? 3 : 1}
+          style={champ(foc)}
+        />
+        {(brouillon.trim() || echec) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
+            {echec && <span role="alert" style={{ flex: 1, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger }}>{t('fiche.notes.addError')}</span>}
+            <div style={{ flex: echec ? 0 : 1 }} />
+            <button type="button" onClick={ajouter} disabled={!brouillon.trim() || envoi} style={pilule(!!brouillon.trim() && !envoi)}>
+              {t('fiche.notes.add')}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {filtrable && (
+        // « Toutes » ne répète pas le total, déjà à côté du titre : sans ça, « MEGGA AI »
+        // passait seul à la ligne à 1440 px.
+        <CdFiltresFil P={P} label={t('fiche.notes.filter.label')} actif={filtreActif} onChange={choisirFiltre}
+          options={[{ id: 'toutes' as FiltreNotes, libelle: t('fiche.notes.filter.toutes') }, ...familles.map((f) => ({ id: f as FiltreNotes, libelle: t(`fiche.notes.filter.${f}`), compte: comptes[f] }))]} />
+      )}
+
+      {notes.length === 0 ? (
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.ghost }}>{t('fiche.notes.empty')}</div>
+      ) : (
+        // ⚖ Refait le 16.09.2026 pour les LONGS fils (Julien : « difficile à distinguer et à
+        // lire »). Avant : des lignes identiques séparées d'un filet, la date complète
+        // répétée sur chacune. Maintenant : un séparateur par JOUR, qui reste en haut de la
+        // colonne en défilant ; sur chaque note, la pastille de son auteur et l'heure seule ;
+        // Modifier / Supprimer au survol ; une note longue repliée à six lignes.
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {groupes.map((j) => (
+            <div key={j.cle} style={{ display: 'flex', flexDirection: 'column' }}>
+              <CdSeparateurPeriode libelle={j.libelle} P={P} />
+              {j.items.map((n) => {
+                const enEdition = edition?.id === n.id
+                const longue = n.body.length > 320 || n.body.split('\n').length > 6
+                const repliee = longue && !deplies.has(n.id)
+                return (
+                  // L'écart ENTRE deux notes (2 × 12) dépasse celui qui sépare l'auteur de son texte :
+                  // l'œil regroupe chaque note avant de lire la suivante.
+                  <div key={n.id} className="cdp-note" style={{ display: 'flex', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) 0' }}>
+                    <CdNoteAvatar n={n} P={P} />
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minHeight: 28, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: n.authorKind === 'ai' ? P.buyer : P.ink }}>{auteur(n)}</span>
+                        <span title={dateNote(n.createdAt)} style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: P.muted, fontVariantNumeric: 'tabular-nums' }}>
+                          {horodatageFil(n.createdAt, j.parMois)}{n.updatedAt ? ` · ${t('fiche.notes.edited')}` : ''}
+                        </span>
+                        <div style={{ flex: 1 }} />
+                        {n.mine && !enEdition && aSupprimer !== n.id && (
+                          <span className="cdp-note-actions" style={{ display: 'inline-flex', gap: 'var(--crm-space-lg)' }}>
+                            <button type="button" onClick={() => { setEchecEdition(null); setEdition({ id: n.id, body: n.body }) }} style={petitBouton(P.muted)}>{t('fiche.notes.edit')}</button>
+                            <button type="button" onClick={() => { setEchecSuppression(null); setASupprimer(n.id) }} style={petitBouton(P.muted)}>{t('fiche.notes.delete')}</button>
+                          </span>
+                        )}
+                        {aSupprimer === n.id && (
+                          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
+                            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.ink }}>{t('fiche.notes.confirmDelete')}</span>
+                            <button type="button" onClick={() => supprimer(n.id)} style={petitBouton(P.danger)}>{t('fiche.notes.delete')}</button>
+                            <button type="button" onClick={() => setASupprimer(null)} style={petitBouton(P.muted)}>{t('fiche.notes.cancel')}</button>
+                          </span>
+                        )}
+                      </div>
+                      {enEdition ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+                          <textarea
+                            autoFocus
+                            value={edition.body}
+                            onChange={(e) => setEdition({ id: n.id, body: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); enregistrer() }
+                              if (e.key === 'Escape') { e.preventDefault(); setEdition(null) }
+                            }}
+                            rows={3}
+                            aria-label={t('fiche.notes.edit')}
+                            style={champ(true)}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
+                            {echecEdition === n.id && <span role="alert" style={{ flex: 1, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger }}>{t('fiche.notes.editError')}</span>}
+                            <div style={{ flex: echecEdition === n.id ? 0 : 1 }} />
+                            <button type="button" onClick={() => setEdition(null)} style={petitBouton(P.muted)}>{t('fiche.notes.cancel')}</button>
+                            <button type="button" onClick={enregistrer} disabled={!edition.body.trim()} style={pilule(!!edition.body.trim())}>{t('fiche.notes.save')}</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{
+                            fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.5, color: P.ink, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
+                            ...(repliee ? { display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}),
+                          }}>{n.body}</div>
+                          {longue && (
+                            <button type="button" onClick={() => basculer(n.id)} style={{ ...petitBouton(P.muted), alignSelf: 'flex-start', marginTop: 'var(--crm-space-2xs)' }}>
+                              {repliee ? t('fiche.notes.more') : t('fiche.notes.less')}
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {echecSuppression === n.id && <span role="alert" style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.danger }}>{t('fiche.notes.deleteError')}</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+          {plusAnciennes > 0 && <CdPlusAnciens P={P} libelle={t('fiche.notes.older', { count: plusAnciennes })} onClick={() => setLimite(filtrees.length)} />}
+        </div>
+      )}
+      {saved && <CdSavedToast P={P} label={toast === 'deleted' ? t('fiche.saved.noteDeleted') : t('fiche.saved.note')} />}
     </div>
   )
 }
@@ -1219,14 +1478,14 @@ function CdDots({ page, onGo, P, labels }: { page: number; onGo: (i: number) => 
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — SES INFORMATIONS
 // ═══════════════════════════════════════════════════════════════════════
-function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, consent, onDoNotContact, onInviteOptin }: {
-  P: FichePal; dark: boolean; fiche: FicheContact; nba?: FicheNba | null; freezeRef: MutableRefObject<number>
-  onBack: () => void; onOpenKyc: () => void; onOpenMatching: () => void; onOpenListings: () => void
+function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete }: {
+  P: FichePal; dark: boolean; fiche: FicheContact; freezeRef: MutableRefObject<number>
+  onBack: () => void; onOpenKyc: () => void; onEmail?: () => void; onOpenMatching: () => void; onOpenListings: () => void
   onSaveIdentity: ContactDetailPagerProps['onSaveIdentity']; onInvalidateKyc: ContactDetailPagerProps['onInvalidateKyc']
   onSaveCoord: ContactDetailPagerProps['onSaveCoord']; onSaveCriteria: ContactDetailPagerProps['onSaveCriteria']
-  onSaveNote: ContactDetailPagerProps['onSaveNote']; onDelete: ContactDetailPagerProps['onDelete']
-  consent?: FicheConsent | null
-  onDoNotContact?: () => Promise<void>; onInviteOptin?: () => Promise<void>
+  noteThread: ContactDetailPagerProps['noteThread']; onAddNote: ContactDetailPagerProps['onAddNote']
+  onUpdateNote: ContactDetailPagerProps['onUpdateNote']; onDeleteNote: ContactDetailPagerProps['onDeleteNote']
+  onDelete: ContactDetailPagerProps['onDelete']
 }) {
   const { t } = useTranslation('contacts')
   const ficheIdentity = useCallback((): ContactIdentity => ({
@@ -1327,77 +1586,120 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
 
   // CTA principal orienté par le côté marché du contact (pas d'invention de route).
   const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
+  const audienceKey = isSeller ? 'seller' : fiche.audience === 'Locataire' ? 'tenant' : 'buyer'
+  // Le bouton ouvre le WhatsApp de L'AGENT, depuis son téléphone : aucun consentement
+  // plateforme ne le gouverne (Julien, 16.09.2026). Éteint seulement sans numéro.
+  const waOff = !fiche.phone
+  const budgetEntete = isSeller ? null : budgetFiche(fiche.crit.budgetMin ?? null, fiche.crit.budgetMax ?? null, fiche.isTenant, t)
+  const kycTeinte = fiche.kycStatus === 'verified' ? P.ok : fiche.kycStatus === 'stale' ? P.danger : fiche.kycStatus === 'pending' ? P.inkSoft : P.muted
+  const [maintenant] = useState(() => Date.now())
+  const dernierContact = (() => {
+    if (!fiche.lastContactAt) return t('fiche.header.neverContacted')
+    const j = ecartJours(jourNote(fiche.lastContactAt), jourNote(new Date(maintenant).toISOString()))
+    const quand = j <= 0 ? t('pager.today') : j === 1 ? t('pager.yesterday')
+      : j < 30 ? t('relativeTime.j', { n: j }) : j < 365 ? t('relativeTime.mois', { n: Math.round(j / 30) }) : t('relativeTime.ans', { count: Math.floor(j / 365) })
+    return t('fiche.header.lastContact', { quand })
+  })()
   // Beta v1 : les deux CTA du héro sont sans icône, label seul.
   const primaryLabel = isSeller ? t('fiche.cta.viewMandate') : t('fiche.cta.transmit')
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '22px 30px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden' }}>
+    // ⚖ FICHE BORD À BORD (16.09.2026, décision Julien : « que ça prenne toute la dimension
+    // du pager, tout regrouper »). Plus de cartes posées dans le cadre avec 22 × 30 px de
+    // marge : un en-tête, puis trois colonnes pleine hauteur séparées par un filet, chacune
+    // défilant seule. Avant, la colonne de droite défilait (Coordonnées + Notes, les notes
+    // sous le pli) pendant que la moitié de la carte des critères restait vide.
+    <div className="cdp-fiche" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: P.card }}>
       {kycWarn && <CdKycWarn P={P} name={nm.firstName} onCancel={() => setKycWarn(false)} onConfirm={() => runApplyId(true)} />}
       {(delOpen || delDone) && <CdDeleteModal P={P} dark={dark} done={delDone} error={delErr} name={(nm.firstName + ' ' + nm.lastName).trim()} onCancel={() => { setDelOpen(false); setDelErr(null) }} onConfirm={() => void confirmDelete()} />}
       {idEdit && <CdIdentityModal P={P} dark={dark} draft={nmDraft} setDraft={setNmDraft} verified={verified} error={idErr} onCancel={() => { setIdEdit(false); setNmDraft(nm) }} onSave={requestSaveId} />}
 
-      {/* Retour */}
-      <div style={{ display: 'flex' }}>
-        <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: P.card, boxShadow: P.shadowSm, border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, cursor: 'pointer' }}>
-          <FcpIcon name="arrowL" size={13} stroke={P.inkSoft} /> {t('fiche.back')}
+      {/* En-tête : retour, identité, actions — une seule bande */}
+      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)', borderBottom: `1px solid ${P.hairline}`, flexShrink: 0, minHeight: CD_ENTETE_H, boxSizing: 'border-box' }}>
+        <button onClick={onBack} aria-label={t('fiche.back')} title={t('fiche.back')} style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 'var(--crm-radius-pill)', background: P.sub, border: 0, display: 'grid', placeItems: 'center', cursor: 'pointer' }}>
+          <FcpIcon name="arrowL" size={15} stroke={P.inkSoft} />
         </button>
-      </div>
-
-      {/* Héro */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
         {/* ⚠ Même avatar, même règle que la liste : la teinte vient d'un hachage
             de l'id, sept des huit échouaient l'AA sous blanc. La sonde de rendu
             ne l'a PAS signalé — la fiche de démonstration porte justement la
             seule teinte qui passait (#0041D9). Un banc ne prouve que ce qu'il
             montre ; c'est la garde de source qui tient celui-ci. */}
-        <div style={{ width: 60, height: 60, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: encreSur(fiche.avatarBg || P.buyer), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, flexShrink: 0, overflow: 'hidden' }}>
+        <div style={{ width: 52, height: 52, borderRadius: 'var(--crm-radius-pill)', background: fiche.photo ? 'transparent' : (fiche.avatarBg || P.buyer), color: encreSur(fiche.avatarBg || P.buyer), display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, flexShrink: 0, overflow: 'hidden' }}>
           {fiche.photo ? <img src={fiche.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
         </div>
-        <div style={{ minWidth: 0, flex: '0 1 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: P.ink, lineHeight: 1 }}>{nm.firstName} {nm.lastName}</h1>
-            {verified && <CdSeal title={t('fiche.seal.title')} ariaLabel={t('fiche.seal.aria')} />}
-            <button onClick={startId} title={t('fiche.menu.editIdentity')} style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
-              <FcpIcon name="pencil" size={14} stroke={P.muted} />
-            </button>
-          </div>
-          {/* NBA — prochaine action estimée (cerveau partagé). Estimation, jamais une obligation. */}
-          {nba && (
-            <div title={nba.kycNote ?? undefined} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 8, minWidth: 0 }}>
-              <FcpIcon name="sparkle" size={13} stroke={P.accent} />
-              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nba.label}</span>
+        {/* ⚖ Réorganisé le 16.09.2026 (Julien, fiche étroite) : les actions vivaient dans une
+            colonne à droite, sur toute la hauteur, et ÉCRASAIENT l'identité dès que la fiche
+            rétrécissait (volet MEGGA AI ouvert) — essentiels coupés en trois lignes avec des
+            « · » orphelins, prochaine action tronquée. Elles montent sur la ligne du NOM ; la
+            ligne des essentiels prend toute la largeur, et passe proprement à la ligne. */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-2xl)', rowGap: 'var(--crm-space-md)' }}>
+            {/* 1. Le nom, et de quoi la JOINDRE d'un clic. Pas d'appel (décision Julien). */}
+            {/* Base `auto` : la ligne se casse d'après la largeur du nom ENTIER — les actions
+                passent dessous plutôt que de tronquer le nom. Seule, la ligne peut encore
+                rétrécir (un nom très long finit en « … »). */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0, flex: '1 1 auto' }}>
+              <h1 style={{ margin: 0, minWidth: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.6, color: P.ink, lineHeight: 1.1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nm.firstName} {nm.lastName}</h1>
+              {verified && <CdSeal title={t('fiche.seal.title')} ariaLabel={t('fiche.seal.aria')} />}
+              <button onClick={startId} title={t('fiche.menu.editIdentity')} aria-label={t('fiche.menu.editIdentity')} style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'transparent', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                <FcpIcon name="pencil" size={14} stroke={P.muted} />
+              </button>
+              <span aria-hidden style={{ width: 1, height: 18, background: P.hairline, flexShrink: 0 }} />
+              <CdJoindre P={P} icone={<PxSocialIcon name="whatsapp" size={15} />}
+                href={waOff ? undefined : buildWaMeUrl(fiche.phone)}
+                libelle={waOff ? t('fiche.header.noPhone') : t('fiche.header.whatsapp', { n: fiche.phone })} />
+              <CdJoindre P={P} icone={<FcpIcon name="mail" size={15} stroke="currentColor" />}
+                onClick={fiche.email && onEmail ? onEmail : undefined}
+                libelle={fiche.email ? t('fiche.header.email', { n: fiche.email }) : t('fiche.header.noEmail')} />
             </div>
-          )}
-        </div>
-        <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-          <CdCta tone="ghost" P={P} onClick={onOpenKyc}>{t('fiche.kycDossier')}</CdCta>
-          <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}>{primaryLabel}</CdCta>
-          <div ref={moreRef} style={{ position: 'relative' }}>
-            <CdRoundBtn icon="more" P={P} label={t('fiche.menu.more')} onClick={() => setMenuOpen((o) => !o)} />
-            {menuOpen && (
-              <CdMenu P={P} dark={dark}
-                onEditId={() => { setMenuOpen(false); startId() }}
-                onEditCoord={() => { setMenuOpen(false); setCoordSig((n) => n + 1) }}
-                onEditCrit={() => { setMenuOpen(false); setCritSig((n) => n + 1) }}
-                onDelete={() => { setMenuOpen(false); setDelOpen(true) }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexShrink: 0, marginLeft: 'auto' }}>
+              <CdCta tone="ghost" P={P} onClick={onOpenKyc}>{t('fiche.kycDossier')}</CdCta>
+              <CdCta P={P} onClick={isSeller ? onOpenListings : onOpenMatching}>{primaryLabel}</CdCta>
+              <div ref={moreRef} style={{ position: 'relative' }}>
+                <CdRoundBtn icon="more" P={P} label={t('fiche.menu.more')} onClick={() => setMenuOpen((o) => !o)} />
+                {menuOpen && (
+                  <CdMenu P={P} dark={dark}
+                    onEditId={() => { setMenuOpen(false); startId() }}
+                    onEditCoord={() => { setMenuOpen(false); setCoordSig((n) => n + 1) }}
+                    onEditCrit={() => { setMenuOpen(false); setCritSig((n) => n + 1) }}
+                    onDelete={() => { setMenuOpen(false); setDelOpen(true) }} />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Les essentiels, chacun précédé de SON icône — plus de « · » entre eux : un
+                séparateur finissait seul en bout de ligne dès que la ligne se cassait.
+                ⛔ La « Prochaine action » (NBA) qui les suivait a été RETIRÉE de la fiche
+                (Julien, 16.09.2026) ; le calcul reste en base (`get_contact_next_action`). */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-2xl)', rowGap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
+            {/* Même pastille que la liste : le type se reconnaît d'un écran à l'autre. */}
+            <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: CTP_FN[audienceKey], color: encreSur(CTP_FN[audienceKey]), fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{t(`contactType.${audienceKey}`)}</span>
+            {budgetEntete && (
+              <CdEssentiel P={P} icone="wallet" couleur={P.ink}>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>{budgetEntete.montant}</span>
+                {fiche.isTenant && <span style={{ color: P.muted, fontWeight: 500 }}> {budgetEntete.precision}</span>}
+              </CdEssentiel>
             )}
+            <CdEssentiel P={P} icone="clock" couleur={P.inkSoft}>{dernierContact}</CdEssentiel>
+            <CdEssentiel P={P} icone="shield" couleur={kycTeinte}>{t(`fiche.header.kyc.${fiche.kycStatus}`)}</CdEssentiel>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Corps — 2 colonnes */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 'var(--crm-space-3xl)' }}>
-        <CdCrit key={'crit-' + fiche.id} P={P} fiche={fiche} editSignal={critSig} freezeRef={freezeRef} onSave={onSaveCriteria} />
-        {/* ⚠ La colonne DÉFILE, et c'est elle qui absorbe le trop-plein — pas ses
-            cartes. Coordonnées porte neuf champs d'identité LBA : contenu fixe,
-            hauteur naturelle. La note est élastique mais garde un plancher
-            utilisable (148 px) — sans lui elle tombait à 54 px et passait sous
-            le pli. Le pager cède déjà la molette à un enfant défilant. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', minHeight: 0, overflowY: 'auto' }}>
-          <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
-          <CdNote key={'note-' + fiche.id} P={P} notes={fiche.notes} onSaveNote={onSaveNote} />
-        </div>
+      {/* Corps — trois colonnes : la joindre, ce qu'elle cherche, ce qu'on en sait.
+          Chaque colonne défile seule ; le pager cède déjà la molette à un enfant défilant.
+          Sous 960 px de fiche, deux colonnes et les notes en dessous (cf. `.cdp-cols`). */}
+      <div className="cdp-cols">
+        <section className="cdp-col">
+          <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} onEditIdentity={startId} />
+        </section>
+        <section className="cdp-col">
+          <CdCrit key={'crit-' + fiche.id} P={P} fiche={fiche} editSignal={critSig} freezeRef={freezeRef} onSave={onSaveCriteria} />
+        </section>
+        <section className="cdp-col cdp-col-notes">
+          <CdNotes key={'notes-' + fiche.id} P={P} notes={noteThread} onAddNote={onAddNote} onUpdateNote={onUpdateNote} onDeleteNote={onDeleteNote} />
+        </section>
       </div>
     </div>
   )
@@ -1477,7 +1779,7 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
   }
 
   return (
-    <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', minHeight: 0, flexShrink: 0, maxHeight: '42%', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       <CdGrp P={P}>{t('fiche.links.title', { count: links.items.length })}</CdGrp>
       {links.isLoading ? (
         <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
@@ -1562,11 +1864,11 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
   ]
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: '26px 30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -1, color: P.ink, lineHeight: 1 }}>{t('fiche.page.loop')}</h1>
-        </div>
+    // Bord à bord, comme la page d'informations (16.09.2026) : un en-tête, puis deux
+    // colonnes pleine hauteur séparées par un filet — plus de cartes dans le cadre.
+    <div className="cdp-fiche" style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: P.card }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)', borderBottom: `1px solid ${P.hairline}`, flexShrink: 0, minHeight: CD_ENTETE_H, boxSizing: 'border-box' }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.6, color: P.ink, lineHeight: 1.1 }}>{t('fiche.page.loop')}</h1>
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
@@ -1574,21 +1876,23 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
-      </div>
+      </header>
 
       {totallyEmpty ? (
         // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
-        <EtatVide
-          dark={dark}
-          glyphe={<FcpIcon name="send" size={30} />}
-          titre={t('fiche.loop.emptyTitle')}
-          corps={<Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />}
-          action={{ libelle: t('fiche.cta.transmit'), onClick: onOpenMatching }}
-        />
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
+          <EtatVide
+            dark={dark}
+            glyphe={<FcpIcon name="send" size={30} />}
+            titre={t('fiche.loop.emptyTitle')}
+            corps={<Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />}
+            action={{ libelle: t('fiche.cta.transmit'), onClick: onOpenMatching }}
+          />
+        </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+        <div className="cdp-cols cdp-cols-2">
           {/* À traiter */}
-          <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadow, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', minHeight: 0, overflowY: 'auto' }}>
+          <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
             <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: pending.length })}</CdGrp>
             {pending.length === 0 ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)' }}>
@@ -1610,12 +1914,12 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
                 </div>
               </div>
             ))}
-          </div>
+          </section>
 
           {/* Ce qui est parti chez l'acheteur : les biens, puis les liens qui les ouvrent */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', minHeight: 0 }}>
+          <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
             {/* Biens transmis — état par bien */}
-            <div style={{ background: P.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: P.shadowSm, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
                 <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
                 <div style={{ flex: 1 }} />
@@ -1639,8 +1943,10 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
               })}
             </div>
 
-            <CdLinks P={P} dark={dark} links={links} freezeRef={freezeRef} onRevokeLink={onRevokeLink} />
-          </div>
+            <div style={{ paddingTop: 'var(--crm-space-4xl)', borderTop: `1px solid ${P.hairline}` }}>
+              <CdLinks P={P} dark={dark} links={links} freezeRef={freezeRef} onRevokeLink={onRevokeLink} />
+            </div>
+          </section>
         </div>
       )}
     </div>
@@ -1651,7 +1957,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, nba, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink, consent, onDoNotContact, onInviteOptin } = props
+  const { fiche, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -1765,13 +2071,31 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
         @keyframes cdpFade { from { opacity: 0 } to { opacity: 1 } }
         @keyframes cdpRise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
         @keyframes cdpToast { from { opacity: 0; transform: translate(-50%, 10px) } to { opacity: 1; transform: translate(-50%, 0) } }
+        /* Requête de CONTENEUR et non de fenêtre : la fiche vit dans le cadre du CRM, dont la
+           largeur dépend de la barre latérale et du dock MEGGA AI, pas de l'écran. */
+        .cdp-fiche { container-type: inline-size; }
+        /* Marge à droite : les points de page (\`CdDots\`, à 14 px du bord) passaient sur la
+           dernière colonne — « Supprimer » d'une note sous le point actif. */
+        .cdp-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-right: var(--crm-space-2xl); }
+        .cdp-col { min-height: 0; overflow-y: auto; padding: var(--crm-space-6xl); border-left: 1px solid ${P.hairline}; }
+        .cdp-col:first-child { border-left: 0; }
+        .cdp-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .cdp-joindre:not(:disabled):hover { color: ${P.ink} !important; box-shadow: inset 0 0 0 1px ${P.hairline}; }
+        /* Modifier / Supprimer d'une note : au survol ou au clavier, et toujours sur écran tactile. */
+        .cdp-note-actions { opacity: 0; transition: opacity 120ms ease; }
+        .cdp-note:hover .cdp-note-actions, .cdp-note:focus-within .cdp-note-actions { opacity: 1; }
+        @media (hover: none) { .cdp-note-actions { opacity: 1; } }
+        @container (max-width: 960px) {
+          .cdp-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: min-content; overflow-y: auto; }
+          .cdp-col { overflow: visible; }
+          .cdp-col-notes { grid-column: 1 / -1; border-left: 0; border-top: 1px solid ${P.hairline}; }
+        }
       `}</style>
       <div ref={viewportRef} style={{ position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdInfos P={P} dark={dark} fiche={fiche} nba={nba} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
-              onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete}
-              consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
+            <CdInfos P={P} dark={dark} fiche={fiche} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onEmail={onEmail} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
+              onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} noteThread={noteThread} onAddNote={onAddNote} onUpdateNote={onUpdateNote} onDeleteNote={onDeleteNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             <CdBoucle P={P} dark={dark} loop={loop} links={links} firstName={fiche.firstName} freezeRef={freezeRef}

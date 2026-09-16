@@ -55,6 +55,8 @@ interface Props {
   /** La boîte ouverte dans la Messagerie : la boîte d'envoi par défaut. */
   boiteOuverte: string | null
   draft: MailDraft | null
+  /** Destinataire posé d'avance quand il n'y a pas de brouillon (fiche contact → « E-mail »). */
+  destinataire?: string | null
   sending: boolean
   error: string | null
   /** Rend le contenu à enregistrer en brouillon, ou `null` si rien n'a été saisi. */
@@ -75,11 +77,11 @@ const champ = (liste: MailAddress[] | undefined): Champ => ({ liste: liste ?? []
 /** Ce qui PARTIRA d'un champ : ses capsules, plus l'adresse tapée qu'on n'a pas validée. */
 const aEnvoyer = (c: Champ) => ajouterDestinataires(c.liste, decouperDestinataires(c.texte))
 
-export function MailComposeModal({ ms, boites, boiteOuverte, draft, sending, error, onClose, onSend }: Props) {
+export function MailComposeModal({ ms, boites, boiteOuverte, draft, destinataire, sending, error, onClose, onSend }: Props) {
   const { t } = useTranslation('messages')
   /** La boîte choisie dans « De » ; `null` = la boîte par défaut. */
   const [choix, setChoix] = useState<string | null>(null)
-  const [to, setTo] = useState(() => champ(draft?.to))
+  const [to, setTo] = useState(() => champ(draft?.to ?? (destinataire ? [{ name: null, email: destinataire }] : undefined)))
   const [cc, setCc] = useState(() => champ(draft?.cc))
   const [bcc, setBcc] = useState(() => champ(draft?.bcc))
   // Un brouillon qui porte des copies les montre : les cacher cacherait des destinataires.
