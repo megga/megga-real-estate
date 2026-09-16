@@ -26,6 +26,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { cn, dfLocale } from '@/lib/utils'
+// Calcul de grille partagé avec le calendrier de la fiche express (CRM).
+import { compareIso, daysInMonth, fromIso, leadingBlanks, toIso } from '@/lib/calendrierMois'
 
 export interface MxDatePickerLabels {
   /** Nom accessible du bouton qui ouvre le calendrier. */
@@ -53,44 +55,6 @@ interface Props {
   max?: string
   disabled?: boolean
   labels: MxDatePickerLabels
-}
-
-/**
- * ISO `YYYY-MM-DD` depuis des composantes LOCALES.
- *
- * ⚠ Jamais `toISOString()` : il convertit en UTC, donc le 15 mai à minuit
- * heure locale ressort « 1980-05-14T22:00Z » et la date perd un jour dès qu'on
- * est à l'est de Greenwich. Une date de naissance n'a pas d'instant — elle ne
- * traverse aucun fuseau. Même raisonnement que `birthDate()` du récapitulatif.
- */
-function toIso(y: number, m: number, d: number): string {
-  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-}
-
-/** L'inverse, tout aussi local : `new Date('1980-05-15')` parserait en UTC. */
-function fromIso(iso: string | null): { y: number; m: number; d: number } | null {
-  if (!iso) return null
-  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  if (!parts) return null
-  return { y: Number(parts[1]), m: Number(parts[2]) - 1, d: Number(parts[3]) }
-}
-
-/** Jours du mois — `new Date(y, m + 1, 0)` donne le dernier jour du mois `m`. */
-function daysInMonth(y: number, m: number): number {
-  return new Date(y, m + 1, 0).getDate()
-}
-
-/**
- * Rang du 1er du mois dans une semaine qui commence LUNDI (0 = lundi).
- * `getDay()` compte à partir de dimanche : le décalage suisse est donc `+6 % 7`.
- */
-function leadingBlanks(y: number, m: number): number {
-  return (new Date(y, m, 1).getDay() + 6) % 7
-}
-
-/** Comparaison de dates-seules, sans jamais construire d'instant. */
-function compareIso(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0
 }
 
 export default function MxDatePicker({
