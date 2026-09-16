@@ -1897,7 +1897,7 @@
       "mandat": "Mandate & listing"
     },
     "brouillon": {
-      "echec": "Draft not saved — retrying on your next change",
+      "echec": "Draft not saved, retrying on your next change",
       "quitte": "Draft saved",
       "echecDepart": "Draft not saved",
       "sansAdresse": "No draft without an address"
@@ -1952,7 +1952,7 @@
       "titre": "Photos",
       "ajouter": "Add",
       "deposer": "Drop your photos here",
-      "deposerAide": "or click to choose them — JPG, PNG, HEIC",
+      "deposerAide": "or click to choose them: JPG, PNG, HEIC",
       "couverture": "Cover",
       "mettreEnCouverture": "Set as cover",
       "retirer": "Remove",
@@ -1977,7 +1977,7 @@
       "iaReecrire": "Rewrite",
       "iaEnCours": "Writing…",
       "iaEchec": "MEGGA AI could not write the description. Try again, or write it yourself.",
-      "iaRelire": "Suggested by MEGGA AI — review before publishing",
+      "iaRelire": "Suggested by MEGGA AI, review before publishing",
       "caracteres_one": "{{count}} character · {{min}} recommended",
       "caracteres_other": "{{count}} characters · {{min}} recommended",
       "atouts": "Features",

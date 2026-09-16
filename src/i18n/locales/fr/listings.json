@@ -1897,7 +1897,7 @@
       "mandat": "Mandat & diffusion"
     },
     "brouillon": {
-      "echec": "Brouillon non enregistré — nouvel essai à la prochaine saisie",
+      "echec": "Brouillon non enregistré, nouvel essai à la prochaine saisie",
       "quitte": "Brouillon enregistré",
       "echecDepart": "Brouillon non enregistré",
       "sansAdresse": "Pas de brouillon sans adresse"
@@ -1952,7 +1952,7 @@
       "titre": "Photos",
       "ajouter": "Ajouter",
       "deposer": "Déposez vos photos ici",
-      "deposerAide": "ou cliquez pour les choisir — JPG, PNG, HEIC",
+      "deposerAide": "ou cliquez pour les choisir : JPG, PNG, HEIC",
       "couverture": "Couverture",
       "mettreEnCouverture": "Mettre en couverture",
       "retirer": "Retirer",
@@ -1977,7 +1977,7 @@
       "iaReecrire": "Réécrire",
       "iaEnCours": "Rédaction…",
       "iaEchec": "MEGGA AI n’a pas pu rédiger la description. Réessayez, ou écrivez-la vous-même.",
-      "iaRelire": "Proposée par MEGGA AI — relisez avant de publier",
+      "iaRelire": "Proposée par MEGGA AI, relisez avant de publier",
       "caracteres_one": "{{count}} caractère · {{min}} conseillés",
       "caracteres_other": "{{count}} caractères · {{min}} conseillés",
       "atouts": "Atouts",

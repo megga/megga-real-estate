@@ -1897,7 +1897,7 @@
       "mandat": "Mandato e diffusione"
     },
     "brouillon": {
-      "echec": "Bozza non salvata — nuovo tentativo alla prossima modifica",
+      "echec": "Bozza non salvata, nuovo tentativo alla prossima modifica",
       "quitte": "Bozza salvata",
       "echecDepart": "Bozza non salvata",
       "sansAdresse": "Nessuna bozza senza indirizzo"
@@ -1952,7 +1952,7 @@
       "titre": "Foto",
       "ajouter": "Aggiungi",
       "deposer": "Trascini qui le foto",
-      "deposerAide": "o clicchi per sceglierle — JPG, PNG, HEIC",
+      "deposerAide": "o clicchi per sceglierle: JPG, PNG, HEIC",
       "couverture": "Copertina",
       "mettreEnCouverture": "Imposta come copertina",
       "retirer": "Rimuovi",
@@ -1977,7 +1977,7 @@
       "iaReecrire": "Riscrivi",
       "iaEnCours": "Redazione…",
       "iaEchec": "MEGGA AI non è riuscito a redigere la descrizione. Riprovi o la scriva lei.",
-      "iaRelire": "Proposta da MEGGA AI — rilegga prima di pubblicare",
+      "iaRelire": "Proposta da MEGGA AI, rilegga prima di pubblicare",
       "caracteres_one": "{{count}} carattere · {{min}} consigliati",
       "caracteres_other": "{{count}} caratteri · {{min}} consigliati",
       "atouts": "Punti di forza",

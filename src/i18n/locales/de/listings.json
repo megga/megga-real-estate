@@ -1897,7 +1897,7 @@
       "mandat": "Mandat & Verbreitung"
     },
     "brouillon": {
-      "echec": "Entwurf nicht gespeichert — neuer Versuch bei der nächsten Eingabe",
+      "echec": "Entwurf nicht gespeichert, neuer Versuch bei der nächsten Eingabe",
       "quitte": "Entwurf gespeichert",
       "echecDepart": "Entwurf nicht gespeichert",
       "sansAdresse": "Kein Entwurf ohne Adresse"
@@ -1952,7 +1952,7 @@
       "titre": "Fotos",
       "ajouter": "Hinzufügen",
       "deposer": "Fotos hier ablegen",
-      "deposerAide": "oder klicken, um sie auszuwählen — JPG, PNG, HEIC",
+      "deposerAide": "oder klicken, um sie auszuwählen: JPG, PNG, HEIC",
       "couverture": "Titelbild",
       "mettreEnCouverture": "Als Titelbild",
       "retirer": "Entfernen",
@@ -1977,7 +1977,7 @@
       "iaReecrire": "Neu formulieren",
       "iaEnCours": "Wird verfasst…",
       "iaEchec": "MEGGA AI konnte die Beschreibung nicht verfassen. Versuchen Sie es erneut oder schreiben Sie sie selbst.",
-      "iaRelire": "Von MEGGA AI vorgeschlagen — vor dem Veröffentlichen prüfen",
+      "iaRelire": "Von MEGGA AI vorgeschlagen, vor dem Veröffentlichen prüfen",
       "caracteres_one": "{{count}} Zeichen · {{min}} empfohlen",
       "caracteres_other": "{{count}} Zeichen · {{min}} empfohlen",
       "atouts": "Vorzüge",
