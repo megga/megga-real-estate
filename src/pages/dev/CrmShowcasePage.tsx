@@ -56,13 +56,15 @@ import { ToastProvider } from '@/components/ui/Toast'
 import { crmPalette } from '@/components/crm/tokens'
 import AgentLayout from '@/components/layout/AgentLayout'
 import KycLabGuard from '@/components/layout/KycLabGuard'
+import ByParam from '@/components/layout/ByParam'
 import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { NewTabPagePrechargeable } from '@/lib/pagesPrechargeables'
 import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './bancSupabase'
-import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
-import { semerSessionBanc } from './bancSession'
+import { CRM_EDGES, CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
+import { AGENT_BANC, semerSessionBanc } from './bancSession'
 import { useCrmDark, useCrmDarkPref } from '@/lib/crmDark'
 import { MailFixturesContext, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import BootCurtain, { CurtainLift } from '@/components/layout/BootCurtain'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -92,6 +94,8 @@ const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
 const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
+const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
+const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 
 /**
  * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
@@ -147,12 +151,17 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   // `/dev/messagerie` la monte sans fournisseur d'onglets, donc sans bande. Ses
   // courriels sont les fixtures de ce banc-là (`MailFixturesContext`, plus bas).
   { id: 'messagerie', chemin: '/dashboard/messagerie', label: 'Messagerie', vague: null },
+  // ⚠ HORS CHANTIER aussi : Contacts est déjà porté, et `/dev/contacts` le monte
+  // hors coquille, sur des données déjà ADAPTÉES. Ici il passe par ses vrais hooks —
+  // la barre latérale et la bande d'onglets y mènent, et y aboutissaient à vide.
+  { id: 'contacts', chemin: '/dashboard/contacts', label: 'Contacts', vague: null },
+  { id: 'contact', chemin: '/dashboard/contacts/c1', label: 'Contact · fiche', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '3 contacts, 2 biens, 2 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'nominal', label: 'Nominal', titre: '8 contacts, 2 biens, 2 rappels, 1 visite, journal à 4 lignes' },
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
@@ -321,6 +330,8 @@ const ROUTES_BANC = (
         <Route path="journey" element={<JourneyPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="messagerie" element={<MessagerieBanc />} />
+        <Route path="contacts" element={<ContactsPage />} />
+        <Route path="contacts/:id" element={<ByParam><ContactDetailPage /></ByParam>} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="import-lead" element={<ImportLeadPage />} />
         <Route path="visits/new" element={<VisitNewPage />} />
@@ -382,6 +393,7 @@ export default function CrmShowcasePage() {
       tables: CRM_TABLES,
       rpc: CRM_RPC,
       rpcVide: CRM_RPC_VIDE,
+      edges: CRM_EDGES,
       // Servie AUSSI sur `/auth/v1` : sans ça, le 401 du vrai service ferait
       // purger le jeton par `authAwareFetch`.
       session,
@@ -423,13 +435,20 @@ export default function CrmShowcasePage() {
     // garde. Elles ne sont pas de la donnée à montrer — sans elles il n'y a pas
     // d'écran du tout, donc rien de vide à regarder.
     reglerBanc({
-      tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, session,
-      socle: ['profiles', 'agencies'],
+      tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, edges: CRM_EDGES, session,
+      // `whatsapp_agent_links` aussi : le lien WhatsApp appartient au COMPTE, pas au carnet —
+      // vider les contacts ne délie pas le numéro de l'agent (écran vide des Contacts).
+      socle: ['profiles', 'agencies', 'whatsapp_agent_links'],
       // Les libellés du Calendrier se créent et se suppriment DANS le banc ; une visite ou
       // une tâche glissée d'un jour à l'autre y change de jour pour de bon — sans quoi
       // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
       // mêmes tables, la montrait encore à son ancienne place.
-      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events'],
+      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes'],
+      // Une note ajoutée dans le banc est signée de l'agent de démonstration, comme la base
+      // la signerait de l'appelant — sinon elle n'aurait ni auteur ni « Modifier ».
+      completions: {
+        contact_notes: () => ({ author_id: AGENT_BANC.id, author_kind: 'user', updated_at: null, author: { full_name: AGENT_BANC.full_name } }),
+      },
     })
     installerBanc()
     return desinstallerBanc
@@ -484,8 +503,12 @@ export default function CrmShowcasePage() {
           {/* Au-dessus des routes, comme en production : le panneau persiste
               quand on passe d'une surface à l'autre depuis les commandes. */}
           <CopilotPanel />
+          {/* Même rideau d'arrivée que ProtectedRoute : un rechargement du banc montre
+              l'écran MEGGA jusqu'à la première peinture, comme `/dashboard`. */}
+          <CurtainLift />
         </Suspense>
         </MailFixturesContext.Provider>
+        <BootCurtain />
         <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
       </AiPanelProvider>
     </MemoryRouter>

@@ -41,10 +41,78 @@ import type { KycDossierStatus } from '@/types/kyc'
 
 const ilYA = (heures: number) => new Date(Date.now() - heures * 3_600_000).toISOString()
 
+/**
+ * Une ligne `contacts` complète — les colonnes RÉELLES de la table, valeurs par défaut
+ * de la base.
+ *
+ * ⛔ LE TYPE VIT DANS `type`, PAS DANS `role`. Les trois premières lignes portaient
+ * `role: 'seller'`, une colonne qui n'existe pas : `contactToCrm` lit `type`, retombait
+ * sur « acheteur », et la liste Contacts montrait un vendeur en acheteur — sans budget
+ * ni critère, puisque rien ne les portait. `full_name`, `status` et `canton` n'existent
+ * pas non plus ; ils restent pour les lecteurs du banc qui les attendaient.
+ */
+const contact = (id: string, prenom: string, nom: string, champs: Record<string, unknown>) => ({
+  id, agency_id: AGENCE_BANC.id, entity_type: 'pp', user_id: null, deleted_user_id: null,
+  full_name: `${prenom} ${nom}`, first_name: prenom, last_name: nom, status: 'active',
+  email: null, phone: null, type: 'buyer', source: 'manual', score: null, tags: [],
+  notes: null, language: 'fr', form_data: null, search_criteria: null,
+  birth_date: null, nationality: null, residence_country: null, home_address: null,
+  wa_opt_in: false, wa_consent_at: null, wa_opt_out_at: null, wa_suppressed: false,
+  import_raw_text: null, import_raw_text_received_at: null,
+  updated_at: null, last_interaction_at: null, created_at: ilYA(900),
+  ...champs,
+})
+
 const CONTACTS = [
-  { id: 'c1', agency_id: AGENCE_BANC.id, full_name: 'Camille Rochat', first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03', role: 'buyer', status: 'active', canton: 'GE', last_interaction_at: ilYA(26), created_at: ilYA(900) },
-  { id: 'c2', agency_id: AGENCE_BANC.id, full_name: 'Théo Baumgartner', first_name: 'Théo', last_name: 'Baumgartner', email: 'theo.b@example.ch', phone: '+41 78 220 14 77', role: 'seller', status: 'active', canton: 'VD', last_interaction_at: ilYA(74), created_at: ilYA(1400) },
-  { id: 'c3', agency_id: AGENCE_BANC.id, full_name: 'Salomé Perret', first_name: 'Salomé', last_name: 'Perret', email: 's.perret@example.ch', phone: '+41 76 903 55 12', role: 'buyer', status: 'active', canton: 'GE', last_interaction_at: ilYA(191), created_at: ilYA(2100) },
+  contact('c1', 'Camille', 'Rochat', {
+    email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03', canton: 'GE',
+    type: 'buyer', score: 'hot', source: 'website', tags: ['Primo-accédante'],
+    notes: 'Cherche un 4,5 pièces lumineux, proche des écoles. Financement confirmé par sa banque.',
+    nationality: 'CH', residence_country: 'CH', wa_opt_in: true, wa_consent_at: ilYA(880),
+    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Carouge', 'GE'], budget_min: 900_000, budget_max: 1_250_000, rooms_min: 4.5, surface_min: 90, features: ['balcon', 'ascenseur'] },
+    last_interaction_at: ilYA(26), created_at: ilYA(900),
+  }),
+  contact('c2', 'Théo', 'Baumgartner', {
+    email: 'theo.b@example.ch', phone: '+41 78 220 14 77', canton: 'VD',
+    type: 'seller', score: 'warm', source: 'referral', language: 'de', tags: ['Mandat exclusif'],
+    notes: 'Vend son 5 pièces à Lutry ; souhaite signer avant la fin de l’année.',
+    last_interaction_at: ilYA(74), created_at: ilYA(1400),
+  }),
+  contact('c3', 'Salomé', 'Perret', {
+    email: 's.perret@example.ch', phone: '+41 76 903 55 12', canton: 'GE',
+    type: 'buyer', score: 'warm', source: 'manual',
+    search_criteria: { transaction_type: 'buy', type: 'house', zones: ['Collonge-Bellerive', 'Vandœuvres', 'GE'], budget_min: 1_600_000, budget_max: 2_100_000, rooms_min: 6, surface_min: 160, features: ['garden', 'parking'] },
+    last_interaction_at: ilYA(191), created_at: ilYA(2100),
+  }),
+  contact('c4', 'Luca', 'Bernasconi', {
+    email: 'luca.bernasconi@example.ch', phone: '+41 79 655 31 20', canton: 'GE',
+    type: 'tenant', score: 'hot', source: 'whatsapp_ai', language: 'it',
+    search_criteria: { transaction_type: 'rent', type: 'apartment', zones: ['Genève', 'GE'], budget_min: 2_500, budget_max: 3_200, rooms_min: 3.5 },
+    last_interaction_at: ilYA(5), created_at: ilYA(60),
+  }),
+  contact('c5', 'Nadia', 'Haddad', {
+    email: 'n.haddad@example.ch', phone: '+41 22 710 44 90', canton: 'GE',
+    type: 'landlord', score: 'cold', source: 'import', tags: ['Immeuble Plainpalais'],
+    last_interaction_at: ilYA(620), created_at: ilYA(3000),
+  }),
+  contact('c6', 'Olivier', 'Mottier', {
+    email: 'olivier.mottier@example.ch', phone: '+41 79 301 67 45', canton: 'VD',
+    type: 'both', score: 'warm', source: 'referral',
+    notes: 'Vend sa maison de Pully pour acheter plus petit en ville.',
+    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Lausanne', 'VD'], budget_max: 1_100_000, rooms_min: 3.5 },
+    last_interaction_at: ilYA(48), created_at: ilYA(400),
+  }),
+  contact('c7', 'Emma', 'Schneider', {
+    email: 'emma.schneider@example.com', phone: '+41 76 488 02 19', canton: 'ZH',
+    type: 'investor', score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
+    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Zürich', 'Genève', 'ZH', 'GE'], budget_min: 1_500_000, budget_max: 3_000_000 },
+    last_interaction_at: ilYA(12), created_at: ilYA(150),
+  }),
+  // Le prospect entré par WhatsApp que la cloche annonce (`n1`, « Léa Martin (via WhatsApp) »).
+  contact('c8', 'Léa', 'Martin', {
+    phone: '+41 78 902 11 36', type: 'lead', source: 'whatsapp_ai',
+    last_interaction_at: ilYA(0.2), created_at: ilYA(0.2),
+  }),
 ]
 
 /**
@@ -458,6 +526,85 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   documents: KYC_DOCS,
   property_scores: [],
   appointments: [],
+  // ── La fiche contact (16.09.2026) : ses quatre lectures propres. Camille a un lien
+  // de réception VU mais sans réaction, et un consentement WhatsApp déclaré — ce qui
+  // donne à la fiche ses deux blocs pleins. Les deux autres restent vides À DESSEIN :
+  // une suppression ou une invitation en cours changeraient le sens de la fiche.
+  buyer_reception_links: [
+    { id: 'rl1', agency_id: AGENCE_BANC.id, contact_id: 'c1', status: 'viewed', channel: 'whatsapp', match_ids: ['m1'], created_at: ilYA(50), expires_at: new Date(Date.now() + 12 * 86_400_000).toISOString(), viewed_at: ilYA(40), reacted_at: null, revoked_at: null },
+  ],
+  contact_suppressions: [],
+  whatsapp_consents: [
+    { id: 'wc1', subject_kind: 'contact', contact_id: 'c1', profile_id: null, agency_id: AGENCE_BANC.id, wa_phone: '41794128803', event: 'opt_in', source: 'agent_manual', legal_basis: 'consent', purpose: 'service', scope: 'all', created_at: ilYA(880) },
+  ],
+  whatsapp_optin_invites: [],
+  // Le fil de notes de Camille : les trois auteurs possibles, dont une note modifiée et une
+  // note de l'agent connecté — la seule à porter « Modifier / Supprimer ». L'auteur est
+  // EMBARQUÉ (`author`) : le banc n'applique pas le `select` et ne suit aucune clé.
+  contact_notes: [
+    { id: 'cn3', agency_id: AGENCE_BANC.id, contact_id: 'c1', author_id: AGENT_BANC.id, author_kind: 'user', body: 'Rappelée ce matin : visite confirmée jeudi 10h, elle viendra avec son mari.', created_at: ilYA(3), updated_at: ilYA(2.8), author: { full_name: AGENT_BANC.full_name } },
+    { id: 'cn2', agency_id: AGENCE_BANC.id, contact_id: 'c1', author_id: null, author_kind: 'ai', body: 'Financement confirmé par la BCGE, apport de 25 %.', created_at: ilYA(40), updated_at: null, requested_by: AGENT_BANC.id, via: 'whatsapp', author: null },
+    { id: 'cn1', agency_id: AGENCE_BANC.id, contact_id: 'c1', author_id: '00000000-0000-4000-8000-0000000000b2', author_kind: 'user', body: 'Cherche un 4,5 pièces lumineux, proche des écoles de Champel.\nPas de rez-de-chaussée.', created_at: ilYA(340), updated_at: null, author: { full_name: 'Sophie Keller' } },
+  ],
+  // Le lien WhatsApp de l'agent — VÉRIFIÉ : « Gregory » a relié son numéro dans les
+  // Intégrations. ⚠ Il traverse l'état « Vide » (`socle`) : c'est le scénario de l'écran
+  // vide des Contacts, un agent connecté qui n'a encore aucun contact.
+  whatsapp_agent_links: [
+    { profile_id: AGENT_BANC.id, verified: true, wa_number: '+41 79 *** ** 42', pairing_code: null, pairing_expires_at: null, pending_number: null, otp_expires_at: null, otp_attempts: 0 },
+  ],
+}
+
+/**
+ * Edge functions du banc.
+ *
+ * `extract-lead` — « Coller un message » de la fiche express. ⛔ PAS DE MODÈLE ICI : une
+ * lecture par motifs, assez fidèle pour éprouver le PRÉREMPLISSAGE (quelles cases se
+ * remplissent, lesquelles restent intactes), à la FORME exacte de `ExtractLeadResult`.
+ * Rien ne sort du navigateur.
+ */
+export const CRM_EDGES: Record<string, unknown> = {
+  'extract-lead': (a: Record<string, unknown>) => {
+    const texte = String(a.text ?? '')
+    const bas = texte.toLowerCase()
+    const email = /[\w.+-]+@[\w-]+(?:\.[\w-]+)+/.exec(texte)?.[0] ?? ''
+    const phone = /(?:\+|00)\d{2}[\d\s]{8,}\d|0\d{2}[\s\d]{7,}\d/.exec(texte)?.[0]?.trim() ?? ''
+    const nom = /(?:je m'appelle|je suis|moi c'est)\s+([A-ZÀ-Ý][\p{L}-]+)\s+([A-ZÀ-Ý][\p{L}-]+)/iu.exec(texte)
+    const intent = /\b(louer|location|loyer)\b/i.test(texte) ? 'tenant' : /\b(vendre|vente de mon|estimer)\b/i.test(texte) ? 'seller' : 'buyer'
+    const chf = (brut: string, unite = '') => {
+      const n = Number(brut.replace(/[^\d.]/g, ''))
+      return /mio|million/i.test(unite) ? n * 1_000_000 : /^k$/i.test(unite) ? n * 1_000 : n
+    }
+    const fourchette = /entre\s+(\d[\d'’\s.]*)\s*(k|mio)?\s*(?:chf\s*)?et\s+(\d[\d'’\s.]*)\s*(k|mio|millions?)?/i.exec(texte)
+    const montant = /(\d[\d'’\s.]*)\s*(k|mio|millions?|chf|fr)\b/i.exec(texte)
+    const budget = fourchette ? chf(fourchette[3], fourchette[4]) : montant ? chf(montant[1], montant[2]) : null
+    const budgetMin = fourchette ? chf(fourchette[1], fourchette[2] || fourchette[4]) : null
+    const pieces = /(\d(?:[.,]5)?)\s*(?:pièces|pieces|p\.)/i.exec(texte)
+    const surface = /(\d{2,4})\s*m²/i.exec(texte)
+    const LIEUX: Record<string, string> = { 'genève': 'GE', geneve: 'GE', carouge: 'GE', champel: 'GE', 'chêne-bougeries': 'GE', lausanne: 'VD', pully: 'VD', nyon: 'VD', morges: 'VD', sion: 'VS', fribourg: 'FR', 'neuchâtel': 'NE' }
+    const cites = Object.keys(LIEUX).filter((l) => bas.includes(l))
+    const nationalites: Record<string, string> = { suisse: 'CH', française: 'FR', francaise: 'FR', italienne: 'IT', allemande: 'DE', portugaise: 'PT', espagnole: 'ES' }
+    const nat = /nationalité\s+(\p{L}+)/iu.exec(texte)?.[1]?.toLowerCase()
+    const domicile = /domicilié(?:e)?\s+(?:à\s+|au\s+)?((?:rue|avenue|chemin|route|place|boulevard)[^,.\n]*\d+[a-z]?,\s*\d{4}\s+[\p{L}-]+)/iu.exec(texte)?.[1] ?? ''
+    const FEATS: Record<string, string> = { balcon: 'balcon', loggia: 'balcon', terrasse: 'terrasse', jardin: 'jardin', 'vue sur le lac': 'vue lac', 'vue lac': 'vue lac', ascenseur: 'ascenseur', 'place de parc': 'parking', parking: 'parking', garage: 'garage', cave: 'cave' }
+    return {
+      extracted: {
+        firstName: nom?.[1] ?? '', lastName: nom?.[2] ?? '', email, phone, intent,
+        budget, rooms: pieces ? Number(pieces[1].replace(',', '.')) : null,
+        zone: cites.join(', '), urgency: 'normal', nextAction: 'call', confidence: 0.8,
+        civility: /\bmadame\b|\bmme\b/i.test(texte) ? 'mrs' : /\bmonsieur\b/i.test(texte) ? 'mr' : '',
+        language: 'fr',
+        preferredChannel: /(?:sur|par)\s+whatsapp/i.test(texte) ? 'whatsapp' : /appelez-moi|par téléphone/i.test(texte) ? 'call' : '',
+        budgetMin, surfaceMin: surface ? Number(surface[1]) : null,
+        propertyTypes: [...new Set([/appartement|attique|studio|duplex/i.test(texte) && 'apartment', /maison|villa|chalet/i.test(texte) && 'house', /terrain/i.test(texte) && 'land'].filter(Boolean))],
+        cantons: [...new Set(cites.map((l) => LIEUX[l]))],
+        cities: cites.filter((l) => !['genève', 'geneve'].includes(l)).map((l) => l.charAt(0).toUpperCase() + l.slice(1)),
+        features: [...new Set(Object.keys(FEATS).filter((k) => bas.includes(k)).map((k) => FEATS[k]))],
+        nationality: nat ? nationalites[nat] ?? '' : '', residenceCountry: domicile ? 'CH' : '',
+        homeAddress: domicile, propertyAddress: '',
+      },
+      redactionSummary: '', redactionCount: 0, truncated: false,
+    }
+  },
 }
 
 /**
@@ -614,6 +761,24 @@ export const CRM_RPC: Record<string, unknown> = {
   kyc_by_contact_id: (a: Record<string, unknown>) =>
     KYC_CASES.filter((k) => k.contact_id === a.p_contact_id)
       .map(({ checks: _c, checklist: _l, decisions: _d, contact: _ct, ...row }) => row),
+  // Les doublons de la fiche express — la logique de `find_contact_duplicates` : e-mail
+  // exact (casse ignorée), téléphone normalisé (chiffres seuls, `0` suisse ⇒ `41`),
+  // prénom + nom exacts ; un contact par ligne, sa meilleure raison d'abord.
+  find_contact_duplicates: (a: Record<string, unknown>) => {
+    const bas = (v: unknown) => String(v ?? '').trim().toLowerCase()
+    const tel = (v: unknown) => String(v ?? '').replace(/\D/g, '').replace(/^00/, '').replace(/^0(?=\d{9}$)/, '41')
+    const email = bas(a.p_email)
+    const phone = tel(a.p_phone)
+    const prenom = bas(a.p_first_name)
+    const nom = bas(a.p_last_name)
+    return (CRM_TABLES.contacts as typeof CONTACTS).flatMap((c) => {
+      const kind = email && bas(c.email) === email ? ['email', 1] as const
+        : phone && tel(c.phone) === phone ? ['phone', 2] as const
+        : prenom.length >= 2 && nom.length >= 2 && bas(c.first_name) === prenom && bas(c.last_name) === nom ? ['name', 3] as const
+        : null
+      return kind ? [{ id: c.id, first_name: c.first_name, last_name: c.last_name, email: c.email, phone: c.phone, type: c.type, created_at: c.created_at, user_id: null, match_kind: kind[0], match_priority: kind[1] }] : []
+    }).sort((x, y) => x.match_priority - y.match_priority).slice(0, 5)
+  },
   kyc_latest_screening_decision: (a: Record<string, unknown>) => {
     const pour = KYC_DECISIONS.filter(
       (d) => d.kyc_case_id === a.p_kyc_case_id && d.decision_target === a.p_target,
