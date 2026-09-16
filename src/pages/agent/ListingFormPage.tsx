@@ -364,11 +364,11 @@ const PROPERTY_TYPE_ICONS: Record<string, MEIconName> = {
   apartment: 'building',
   house: 'home',
   villa: 'villa',
-  commercial: 'store',
+  commercial: 'shop',
   office: 'briefcase',
   parking: 'parking',
   storage: 'warehouse',
-  land: 'land',
+  land: 'plot',
 }
 
 // Value lists — labels resolved at render via i18n (listings:form.condition.*

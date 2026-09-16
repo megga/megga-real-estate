@@ -66,7 +66,7 @@ const TYPES: { id: WType; icon: MEIconName }[] = [
   { id: 'appartement', icon: 'building' },
   { id: 'maison', icon: 'home' },
   { id: 'villa', icon: 'villa' },
-  { id: 'terrain', icon: 'land' },
+  { id: 'terrain', icon: 'plot' },
 ]
 const ENERGY: Energy[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
 const ENERGY_TONE: Record<Energy, string> = { A: '#0E9F6E', B: '#4CAF50', C: '#8BC34A', D: '#FBC02D', E: '#FB8C00', F: '#F4511E', G: '#E53935' }
