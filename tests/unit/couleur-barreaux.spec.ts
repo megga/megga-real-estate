@@ -155,13 +155,14 @@ const HORS_ASSUMES = new Map<string, number>([
   // hors barreaux, mais DANS le SVG, que ce balayage ne lit pas ; le fichier ne sert plus
   // que de masque et les teintes sont montées dans le code. De l'ILLUSTRATION : aucun texte
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
-  ['src/components/crm', 524],
+  ['src/components/crm', 518],
   ['src/components/crm-mobile', 140],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
   // l'encre d'alerte recopiée `#8C5A00`.
   ['src/components/crm-dossiers', 58],
-  ['src/components/crm-wizard', 47],
+  // `crm-wizard` (47) est SORTI le 16.09.2026 : l'ancien wizard et sa palette sont retirés,
+  // il ne reste dans ce dossier que le modèle de saisie et deux hooks, sans une couleur.
   // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
   // WhatsApp fourni par Julien (`LogoWhatsApp`) porte son dégradé de marque, `#4AC14B` →
   // `#06853A` (`WHATSAPP_DEGRADE`, à côté de `WHATSAPP_VERT`). Des couleurs de MARQUE —
@@ -178,7 +179,10 @@ const HORS_ASSUMES = new Map<string, number>([
   // du dépôt inchangé. Puis 13 → 11 le même jour : `MlkScreens` importe l'encre
   // d'erreur au lieu de la recopier.
   ['src/components/kyc-magic-link', 11],
-  ['src/components/megga-x-crm', 11],
+  // 11 → 16 le 16.09.2026, une CROISSANCE assumée : les dégradés des trois formules
+  // (`megga-x-crm/plans.ts` — Gratuit, Pro, Custom), qui ENCODENT la formule. Cinq teintes
+  // Tailwind 700 ; le sixième bout, l'accent, est déjà un barreau.
+  ['src/components/megga-x-crm', 16],
   ['src/components/auth-bento', 22],
   // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
   // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.

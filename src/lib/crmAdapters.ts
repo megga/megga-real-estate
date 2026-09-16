@@ -293,6 +293,8 @@ export function propertyToCrmBien(p: Property, ownerContactId: string | null): C
     addr: [p.address, p.city].filter(Boolean).join(', '),
     canton: p.canton ?? '',
     city: p.city ?? undefined,
+    agentId: p.created_by ?? null,
+    partnerAgency: p.partner_agency ?? null,
     price: isRental ? null : (p.price || null),
     rent: isRental ? p.price : null,
     charges: p.charges_monthly ?? null,

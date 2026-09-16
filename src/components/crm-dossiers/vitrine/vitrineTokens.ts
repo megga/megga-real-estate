@@ -124,9 +124,3 @@ export function vxFmtNum(n: number | null | undefined): string {
   if (n == null) return '—'
   return n.toLocaleString('fr-CH').replace(/ /g, "'").replace(/[\s,]/g, "'")
 }
-export function vxCompact(n: number | null | undefined): string {
-  if (n == null) return '—'
-  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 1 : 2).replace(/\.?0+$/, '') + 'M'
-  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'k'
-  return '' + n
-}

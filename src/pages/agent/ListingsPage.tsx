@@ -16,7 +16,7 @@ import { useListingsScreen } from '@/hooks/useListingsScreen'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
-import WizardShell from '@/components/crm-wizard/WizardShell'
+import NouveauBien from '@/components/crm/biens/nouveau/NouveauBien'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ListingsPage() {
@@ -76,7 +76,7 @@ export default function ListingsPage() {
           onCreate={() => setWizardOpen(true)}
           onResumeDraft={onResumeDraft}
           wizardOpen={wizardOpen}
-          wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
+          wizardSlot={<NouveauBien dark={dark} onClose={() => setWizardOpen(false)} onOuvrirBien={onOpenBien} />}
         />
         </CrmWorkspace>
       </div>

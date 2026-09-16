@@ -7,7 +7,8 @@
     "active": "Actifs",
     "drafts": "Brouillons",
     "reserved": "Réservés",
-    "sold": "Vendus"
+    "sold": "Vendus",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Appartement",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} bien sur {{total}} dans votre catalogue",
     "subtitle_other": "{{count}} biens sur {{total}} dans votre catalogue",
     "searchPlaceholder": "Rechercher un bien, une adresse, une référence…",
+    "search": "Rechercher",
     "seller": "Vendeur",
     "unlinked": "Non lié",
     "perMonth": "/mois",
@@ -442,7 +444,8 @@
     },
     "view": {
       "gallery": "Galerie",
-      "list": "Liste"
+      "list": "Liste",
+      "label": "Affichage"
     },
     "kpi": {
       "portfolioValue": "Valeur du portefeuille",
@@ -605,6 +608,55 @@
         "sub": "Sur MEGGA en un clic."
       },
       "start": "Commencer"
+    },
+    "filtres": {
+      "bouton": "Filtres",
+      "regrouper": "Regrouper par",
+      "aucun": "Aucun",
+      "prix": "Prix",
+      "min": "Min",
+      "max": "Max",
+      "pieces": "Pièces",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ pièces",
+      "reinitialiser": "Réinitialiser",
+      "voir_one": "Voir {{count}} bien",
+      "voir_other": "Voir {{count}} biens",
+      "toutEffacer": "Tout effacer",
+      "retirer": "Retirer « {{critere}} »",
+      "groupePar": "Groupé par {{axe}}",
+      "notreAgence": "Notre agence",
+      "agentInconnu": "Agent inconnu",
+      "nonRenseigne": "Non renseigné",
+      "mandatBientot_one": "Expire sous {{count}} jour",
+      "mandatBientot_other": "Expire sous {{count}} jours",
+      "desPrix": "Dès {{prix}}",
+      "jusquaPrix": "Jusqu’à {{prix}}",
+      "axes": {
+        "canton": "Canton",
+        "ville": "Ville",
+        "agent": "Agent",
+        "agence": "Agence",
+        "type": "Type de bien",
+        "transaction": "Transaction",
+        "statut": "Statut",
+        "mandat": "Mandat"
+      },
+      "types": {
+        "appartement": "Appartement",
+        "maison": "Maison",
+        "villa": "Villa",
+        "commercial": "Commercial",
+        "office": "Bureau",
+        "parking": "Parking",
+        "storage": "Dépôt",
+        "land": "Terrain"
+      },
+      "mandats": {
+        "exclusif": "Exclusif",
+        "simple": "Simple",
+        "recherche": "Recherche"
+      }
     }
   },
   "detail": {
@@ -1697,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Titre de l'annonce",
-      "addressLabel": "Adresse"
+      "addressLabel": "Adresse",
+      "action": "Modifier"
     },
     "performance": {
       "trendShort": "+{{percent}} %"
@@ -1707,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Visites",
-      "none": "Aucune visite planifiée."
+      "none": "Aucune visite planifiée.",
+      "plan": "Planifier",
+      "past_one": "{{count}} visite passée",
+      "past_other": "{{count}} visites passées"
     },
     "mandate": {
       "renew": "Renouveler le mandat",
       "renewToastTitle": "Renouvellement du mandat",
-      "renewToastLine": "Préparez le renouvellement et transmettez-le au propriétaire pour signature."
+      "renewToastLine": "Préparez le renouvellement et transmettez-le au propriétaire pour signature.",
+      "expiresIn_one": "Expire dans {{count}} jour",
+      "expiresIn_other": "Expire dans {{count}} jours",
+      "type": "Type"
     },
     "diffusion": {
       "publish": "Diffuser",
@@ -1720,6 +1779,245 @@
       "previewToastTitle": "Aperçu public",
       "previewOnlineLine": "L'annonce est diffusée sur immobilier.ch.",
       "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement."
+    },
+    "back": "Retour à Mes biens",
+    "cta": {
+      "propose": "Proposer à des acheteurs"
+    },
+    "header": {
+      "mandateExpires_one": "Mandat {{type}} · expire dans {{count}} jour",
+      "mandateExpires_other": "Mandat {{type}} · expire dans {{count}} jours",
+      "mandateOverdue_one": "Mandat {{type}} · échu depuis {{count}} jour",
+      "mandateOverdue_other": "Mandat {{type}} · échu depuis {{count}} jours"
+    },
+    "suggestions": {
+      "title": "Suggestions MEGGA AI",
+      "affinity": "{{score}} % d’affinité estimée"
+    },
+    "photos": {
+      "none": "Aucune photo",
+      "add": "Ajouter des photos",
+      "open": "Voir les photos"
+    },
+    "specs": {
+      "pricePerM2": "Prix au m²",
+      "yearBuilt": "Année de construction"
+    },
+    "visite": {
+      "planifiee": "Visite planifiée",
+      "planifier": "Planifier la visite",
+      "enCours": "Planification…",
+      "erreur": "La visite n’a pas pu être enregistrée.",
+      "dansCalendrier": "Elle apparaît dans votre Calendrier et dans les visites du bien.",
+      "demo": "Aperçu : rien n’a été enregistré.",
+      "ouvrir": "Ouvrir la visite",
+      "termine": "Terminé",
+      "qui": {
+        "titre": "Qui visite ?",
+        "surCeBien": "Sur ce bien",
+        "enCours": "Acheteur en cours",
+        "score": "{{score}} % estimé",
+        "rechercher": "Rechercher un contact",
+        "aucun": "Aucun contact ne correspond.",
+        "nouveau": "Nouveau visiteur",
+        "prenom": "Prénom",
+        "nom": "Nom",
+        "telephone": "Téléphone",
+        "email": "E-mail",
+        "nouveauAide": "Prénom, nom et un moyen de le joindre. Il rejoint vos contacts.",
+        "changer": "Changer",
+        "sansCoordonnees": "Aucune coordonnée",
+        "rattacheDeal": "Rattachée à son deal sur ce bien",
+        "accompagnants": "Accompagné de (facultatif)"
+      },
+      "quand": {
+        "titre": "Quand ?",
+        "jour": "Jour",
+        "heure": "Heure",
+        "duree": "Durée",
+        "minutes_one": "{{count}} min",
+        "minutes_other": "{{count}} min",
+        "uneHeure": "1 h",
+        "uneHeureTrente": "1 h 30",
+        "dejaPris": "Déjà pris : {{quoi}}",
+        "dejaCeJour_one": "{{count}} visite déjà prévue ce jour",
+        "dejaCeJour_other": "{{count}} visites déjà prévues ce jour",
+        "conflit": "Ce créneau chevauche une visite à {{heure}}. Vous pouvez le garder.",
+        "moisPrecedent": "Mois précédent",
+        "moisSuivant": "Mois suivant",
+        "heurePrecise": "Heure précise"
+      },
+      "ou": {
+        "titre": "Où ?",
+        "surPlace": "Sur place",
+        "video": "En visio",
+        "rendezVous": "Point de rendez-vous, accès",
+        "rendezVousExemple": "Ex. devant l’entrée, code 4521, 3e étage",
+        "lien": "Lien de la visio",
+        "lienExemple": "Lien Google Meet, FaceTime…"
+      },
+      "preparer": {
+        "titre": "Préparer",
+        "bon": "Bon de visite à faire signer",
+        "bonAide": "Prêt sur la fiche de la visite, à signer sur place par le visiteur."
+      },
+      "confirmer": {
+        "titre": "Confirmer au visiteur",
+        "aide": "Rien n’est envoyé automatiquement : relisez, puis envoyez depuis votre WhatsApp ou votre messagerie.",
+        "whatsapp": "Envoyer par WhatsApp",
+        "email": "Envoyer par e-mail",
+        "aucunCanal": "Pas de téléphone ni d’e-mail pour ce visiteur."
+      },
+      "message": {
+        "surPlace": "Bonjour {{prenom}}, je vous confirme la visite de « {{bien}} » {{jour}} à {{heure}}, {{adresse}}.{{acces}}\nÀ bientôt,\n{{agent}}",
+        "video": "Bonjour {{prenom}}, je vous confirme la visite en visio de « {{bien}} » {{jour}} à {{heure}}. Lien : {{lien}}\nÀ bientôt,\n{{agent}}",
+        "acces": "Rendez-vous : {{acces}}.",
+        "sujet": "Visite de « {{bien}} »"
+      }
+    }
+  },
+  "nouveauBien": {
+    "titre": "Nouveau bien",
+    "etapesAria": "Étapes de la création",
+    "apercu": "Aperçu dans Mes biens",
+    "completude": "Annonce complète",
+    "requis": "Requis",
+    "modifier": "Modifier",
+    "continuer": "Continuer",
+    "retour": "Retour",
+    "garder": "Enregistrer sans publier",
+    "publier": "Publier l’annonce",
+    "enCours": "Enregistrement…",
+    "adresseAvant": "Ajoutez d’abord une adresse.",
+    "manque": "Encore requis pour publier : {{liste}}",
+    "etapes": {
+      "bien": "Le bien",
+      "photos": "Photos",
+      "annonce": "L’annonce",
+      "mandat": "Mandat & diffusion"
+    },
+    "brouillon": {
+      "echec": "Brouillon non enregistré, nouvel essai à la prochaine saisie",
+      "quitte": "Brouillon enregistré",
+      "echecDepart": "Brouillon non enregistré",
+      "sansAdresse": "Pas de brouillon sans adresse"
+    },
+    "points": {
+      "adresse": "Adresse",
+      "bien": "Surface et pièces",
+      "prix": "Prix",
+      "photos": "5 photos",
+      "description": "Description (200 caractères)",
+      "vendeur": "Vendeur",
+      "mandat": "Mandat et commission"
+    },
+    "types": {
+      "appartement": "Appartement",
+      "maison": "Maison",
+      "villa": "Villa",
+      "attique": "Attique",
+      "duplex": "Duplex",
+      "triplex": "Triplex",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Terrain",
+      "commerce": "Commerce"
+    },
+    "bien": {
+      "transaction": "Vente ou location ?",
+      "type": "Type de bien",
+      "adresse": "Adresse",
+      "adressePlaceholder": "Rue et numéro, localité",
+      "adresseTrouvee": "Adresse trouvée",
+      "recherche": "Recherche…",
+      "recherchePanne": "La recherche d’adresse ne répond pas. Saisissez l’adresse à la main.",
+      "saisieManuelle": "Saisir l’adresse à la main",
+      "rechercherAdresse": "Rechercher l’adresse",
+      "rue": "Rue",
+      "numero": "N°",
+      "npa": "NPA",
+      "localite": "Localité",
+      "canton": "Canton",
+      "chiffres": "Chiffres clés",
+      "surface": "Surface habitable",
+      "surfaceTerrain": "Surface du terrain",
+      "etage": "Étage",
+      "prix": "Prix",
+      "loyer": "Loyer",
+      "loyerMensuel": "Loyer mensuel",
+      "chargesMensuelles": "Charges mensuelles",
+      "prixM2": "Soit {{prix}} par m²"
+    },
+    "photos": {
+      "titre": "Photos",
+      "ajouter": "Ajouter",
+      "deposer": "Déposez vos photos ici",
+      "deposerAide": "ou cliquez pour les choisir : JPG, PNG, HEIC",
+      "couverture": "Couverture",
+      "mettreEnCouverture": "Mettre en couverture",
+      "retirer": "Retirer",
+      "encore_one": "Encore {{count}} photo pour pouvoir publier",
+      "encore_other": "Encore {{count}} photos pour pouvoir publier",
+      "assez_one": "{{count}} photo",
+      "assez_other": "{{count}} photos",
+      "glisser": "Glissez pour changer l’ordre"
+    },
+    "annonce": {
+      "titre": "Titre",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez le bien : luminosité, espaces, quartier, état…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Neutre",
+        "premium": "Premium",
+        "famille": "Famille",
+        "invest": "Investisseur"
+      },
+      "iaRediger": "Rédiger",
+      "iaReecrire": "Réécrire",
+      "iaEnCours": "Rédaction…",
+      "iaEchec": "MEGGA AI n’a pas pu rédiger la description. Réessayez, ou écrivez-la vous-même.",
+      "iaRelire": "Proposée par MEGGA AI, relisez avant de publier",
+      "caracteres_one": "{{count}} caractère · {{min}} conseillés",
+      "caracteres_other": "{{count}} caractères · {{min}} conseillés",
+      "atouts": "Atouts",
+      "tousAtouts_one": "Voir {{count}} autre atout",
+      "tousAtouts_other": "Voir les {{count}} autres atouts"
+    },
+    "mandat": {
+      "vendeur": "Vendeur",
+      "rechercherVendeur": "Rechercher un contact",
+      "nouveauVendeur": "Nouveau vendeur",
+      "vendeurNeuf": "Nouveau contact, créé à l’enregistrement",
+      "prenom": "Prénom",
+      "nom": "Nom",
+      "email": "E-mail",
+      "telephone": "Téléphone",
+      "ajouterVendeur": "Ajouter le vendeur",
+      "mandat": "Mandat",
+      "types": {
+        "exclusive": "Exclusif",
+        "simple": "Simple",
+        "co": "Co-mandat"
+      },
+      "duree": "Durée",
+      "mois_one": "{{count}} mois",
+      "mois_other": "{{count}} mois",
+      "signe": "Mandat signé",
+      "agence": "Agence",
+      "diffusion": "Diffusion",
+      "publierTitre": "Publier l’annonce",
+      "publierAide": "Le bien passe en Actif et peut être diffusé.",
+      "garderTitre": "Réseau Off-market"
+    },
+    "fini": {
+      "publie": "Annonce publiée",
+      "garde": "Bien enregistré",
+      "publieAide": "« {{titre}} » est en ligne dans Mes biens.",
+      "gardeAide": "« {{titre}} » est enregistré Off-market. Publiez-le depuis sa fiche quand il est prêt.",
+      "ouvrir": "Ouvrir la fiche",
+      "autre": "Créer un autre bien",
+      "retour": "Retour à Mes biens"
     }
   }
 }

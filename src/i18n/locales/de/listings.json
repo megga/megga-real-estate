@@ -7,7 +7,8 @@
     "active": "Aktiv",
     "drafts": "Entwürfe",
     "reserved": "Reserviert",
-    "sold": "Verkauft"
+    "sold": "Verkauft",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Wohnung",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} Objekt von {{total}} in Ihrem Katalog",
     "subtitle_other": "{{count}} Objekte von {{total}} in Ihrem Katalog",
     "searchPlaceholder": "Objekt, Adresse oder Referenz suchen…",
+    "search": "Suchen",
     "seller": "Verkäufer",
     "unlinked": "Nicht verknüpft",
     "perMonth": "/Monat",
@@ -437,12 +439,13 @@
       "recent": "Neueste",
       "priceDesc": "Preis absteigend",
       "priceAsc": "Preis aufsteigend",
-      "surface": "Surface",
+      "surface": "Fläche",
       "views": "Meistgesehen"
     },
     "view": {
       "gallery": "Galerie",
-      "list": "Liste"
+      "list": "Liste",
+      "label": "Ansicht"
     },
     "kpi": {
       "portfolioValue": "Portfoliowert",
@@ -605,6 +608,55 @@
         "sub": "Auf MEGGA mit einem Klick."
       },
       "start": "Loslegen"
+    },
+    "filtres": {
+      "bouton": "Filter",
+      "regrouper": "Gruppieren nach",
+      "aucun": "Keine",
+      "prix": "Preis",
+      "min": "Min.",
+      "max": "Max.",
+      "pieces": "Zimmer",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ Zimmer",
+      "reinitialiser": "Zurücksetzen",
+      "voir_one": "{{count}} Objekt anzeigen",
+      "voir_other": "{{count}} Objekte anzeigen",
+      "toutEffacer": "Alle entfernen",
+      "retirer": "«{{critere}}» entfernen",
+      "groupePar": "Gruppiert nach {{axe}}",
+      "notreAgence": "Unsere Agentur",
+      "agentInconnu": "Unbekannter Makler",
+      "nonRenseigne": "Nicht angegeben",
+      "mandatBientot_one": "Läuft in {{count}} Tag ab",
+      "mandatBientot_other": "Läuft in {{count}} Tagen ab",
+      "desPrix": "Ab {{prix}}",
+      "jusquaPrix": "Bis {{prix}}",
+      "axes": {
+        "canton": "Kanton",
+        "ville": "Ort",
+        "agent": "Makler",
+        "agence": "Agentur",
+        "type": "Objektart",
+        "transaction": "Transaktion",
+        "statut": "Objektstatus",
+        "mandat": "Mandat"
+      },
+      "types": {
+        "appartement": "Wohnung",
+        "maison": "Haus",
+        "villa": "Villa",
+        "commercial": "Gewerbe",
+        "office": "Büro",
+        "parking": "Parkplatz",
+        "storage": "Lager",
+        "land": "Grundstück"
+      },
+      "mandats": {
+        "exclusif": "Exklusiv",
+        "simple": "Einfach",
+        "recherche": "Suche"
+      }
     }
   },
   "detail": {
@@ -1697,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Titel des Inserats",
-      "addressLabel": "Adresse"
+      "addressLabel": "Adresse",
+      "action": "Bearbeiten"
     },
     "performance": {
       "trendShort": "+{{percent}} %"
@@ -1707,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Besichtigungen",
-      "none": "Keine Besichtigung geplant."
+      "none": "Keine Besichtigung geplant.",
+      "plan": "Planen",
+      "past_one": "{{count}} vergangene Besichtigung",
+      "past_other": "{{count}} vergangene Besichtigungen"
     },
     "mandate": {
       "renew": "Mandat erneuern",
       "renewToastTitle": "Mandatserneuerung",
-      "renewToastLine": "Bereiten Sie die Erneuerung vor und übermitteln Sie sie dem Eigentümer zur Unterschrift."
+      "renewToastLine": "Bereiten Sie die Erneuerung vor und übermitteln Sie sie dem Eigentümer zur Unterschrift.",
+      "expiresIn_one": "Läuft in {{count}} Tag ab",
+      "expiresIn_other": "Läuft in {{count}} Tagen ab",
+      "type": "Art"
     },
     "diffusion": {
       "publish": "Veröffentlichen",
@@ -1720,6 +1779,245 @@
       "previewToastTitle": "Öffentliche Vorschau",
       "previewOnlineLine": "Das Inserat ist auf immobilier.ch veröffentlicht.",
       "previewOfflineLine": "Das Inserat ist noch nicht öffentlich veröffentlicht."
+    },
+    "back": "Zurück zu Meine Objekte",
+    "cta": {
+      "propose": "Käufern vorschlagen"
+    },
+    "header": {
+      "mandateExpires_one": "Mandat {{type}} · läuft in {{count}} Tag ab",
+      "mandateExpires_other": "Mandat {{type}} · läuft in {{count}} Tagen ab",
+      "mandateOverdue_one": "Mandat {{type}} · seit {{count}} Tag abgelaufen",
+      "mandateOverdue_other": "Mandat {{type}} · seit {{count}} Tagen abgelaufen"
+    },
+    "suggestions": {
+      "title": "MEGGA AI Vorschläge",
+      "affinity": "{{score}} % geschätzte Übereinstimmung"
+    },
+    "photos": {
+      "none": "Keine Fotos",
+      "add": "Fotos hinzufügen",
+      "open": "Fotos ansehen"
+    },
+    "specs": {
+      "pricePerM2": "Preis pro m²",
+      "yearBuilt": "Baujahr"
+    },
+    "visite": {
+      "planifiee": "Besichtigung geplant",
+      "planifier": "Besichtigung planen",
+      "enCours": "Wird geplant…",
+      "erreur": "Die Besichtigung konnte nicht gespeichert werden.",
+      "dansCalendrier": "Sie erscheint in Ihrem Kalender und bei den Besichtigungen des Objekts.",
+      "demo": "Vorschau: Es wurde nichts gespeichert.",
+      "ouvrir": "Besichtigung öffnen",
+      "termine": "Fertig",
+      "qui": {
+        "titre": "Wer besichtigt?",
+        "surCeBien": "Zu diesem Objekt",
+        "enCours": "Käufer im Prozess",
+        "score": "{{score}} % geschätzt",
+        "rechercher": "Kontakt suchen",
+        "aucun": "Kein passender Kontakt.",
+        "nouveau": "Neuer Besucher",
+        "prenom": "Vorname",
+        "nom": "Nachname",
+        "telephone": "Telefon",
+        "email": "E-Mail",
+        "nouveauAide": "Vorname, Nachname und eine Kontaktmöglichkeit. Er wird zu Ihren Kontakten hinzugefügt.",
+        "changer": "Ändern",
+        "sansCoordonnees": "Keine Kontaktdaten",
+        "rattacheDeal": "Mit seinem Deal zu diesem Objekt verknüpft",
+        "accompagnants": "Begleitet von (optional)"
+      },
+      "quand": {
+        "titre": "Wann?",
+        "jour": "Tag",
+        "heure": "Uhrzeit",
+        "duree": "Dauer",
+        "minutes_one": "{{count}} Min.",
+        "minutes_other": "{{count}} Min.",
+        "uneHeure": "1 Std.",
+        "uneHeureTrente": "1 Std. 30",
+        "dejaPris": "Bereits belegt: {{quoi}}",
+        "dejaCeJour_one": "{{count}} Besichtigung an diesem Tag",
+        "dejaCeJour_other": "{{count}} Besichtigungen an diesem Tag",
+        "conflit": "Dieser Termin überschneidet sich mit einer Besichtigung um {{heure}}. Sie können ihn trotzdem behalten.",
+        "moisPrecedent": "Vorheriger Monat",
+        "moisSuivant": "Nächster Monat",
+        "heurePrecise": "Genaue Uhrzeit"
+      },
+      "ou": {
+        "titre": "Wo?",
+        "surPlace": "Vor Ort",
+        "video": "Per Video",
+        "rendezVous": "Treffpunkt, Zugang",
+        "rendezVousExemple": "z. B. vor dem Eingang, Code 4521, 3. Stock",
+        "lien": "Link zum Videoanruf",
+        "lienExemple": "Google-Meet-, FaceTime-Link…"
+      },
+      "preparer": {
+        "titre": "Vorbereiten",
+        "bon": "Besichtigungsschein zur Unterschrift",
+        "bonAide": "Bereit auf der Besichtigungsseite, vom Besucher vor Ort zu unterschreiben."
+      },
+      "confirmer": {
+        "titre": "Dem Besucher bestätigen",
+        "aide": "Nichts wird automatisch gesendet: Lesen Sie die Nachricht und senden Sie sie über Ihr WhatsApp oder Ihr E-Mail-Programm.",
+        "whatsapp": "Per WhatsApp senden",
+        "email": "Per E-Mail senden",
+        "aucunCanal": "Keine Telefonnummer und keine E-Mail für diesen Besucher."
+      },
+      "message": {
+        "surPlace": "Guten Tag {{prenom}}, hiermit bestätige ich die Besichtigung von «{{bien}}» am {{jour}} um {{heure}}, {{adresse}}.{{acces}}\nBis bald\n{{agent}}",
+        "video": "Guten Tag {{prenom}}, hiermit bestätige ich die Video-Besichtigung von «{{bien}}» am {{jour}} um {{heure}}. Link: {{lien}}\nBis bald\n{{agent}}",
+        "acces": "Treffpunkt: {{acces}}.",
+        "sujet": "Besichtigung von «{{bien}}»"
+      }
+    }
+  },
+  "nouveauBien": {
+    "titre": "Neues Objekt",
+    "etapesAria": "Schritte der Erfassung",
+    "apercu": "Vorschau in Meine Objekte",
+    "completude": "Inserat vollständig",
+    "requis": "Erforderlich",
+    "modifier": "Ändern",
+    "continuer": "Weiter",
+    "retour": "Zurück",
+    "garder": "Speichern ohne Veröffentlichung",
+    "publier": "Inserat veröffentlichen",
+    "enCours": "Wird gespeichert…",
+    "adresseAvant": "Fügen Sie zuerst eine Adresse hinzu.",
+    "manque": "Zum Veröffentlichen noch erforderlich: {{liste}}",
+    "etapes": {
+      "bien": "Das Objekt",
+      "photos": "Fotos",
+      "annonce": "Das Inserat",
+      "mandat": "Mandat & Verbreitung"
+    },
+    "brouillon": {
+      "echec": "Entwurf nicht gespeichert, neuer Versuch bei der nächsten Eingabe",
+      "quitte": "Entwurf gespeichert",
+      "echecDepart": "Entwurf nicht gespeichert",
+      "sansAdresse": "Kein Entwurf ohne Adresse"
+    },
+    "points": {
+      "adresse": "Adresse",
+      "bien": "Fläche und Zimmer",
+      "prix": "Preis",
+      "photos": "5 Fotos",
+      "description": "Beschreibung (200 Zeichen)",
+      "vendeur": "Verkäufer",
+      "mandat": "Mandat und Provision"
+    },
+    "types": {
+      "appartement": "Wohnung",
+      "maison": "Haus",
+      "villa": "Villa",
+      "attique": "Attika",
+      "duplex": "Maisonette",
+      "triplex": "Triplex-Wohnung",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Grundstück",
+      "commerce": "Gewerbe"
+    },
+    "bien": {
+      "transaction": "Verkauf oder Vermietung?",
+      "type": "Objektart",
+      "adresse": "Adresse",
+      "adressePlaceholder": "Strasse und Nummer, Ort",
+      "adresseTrouvee": "Adresse gefunden",
+      "recherche": "Suche…",
+      "recherchePanne": "Die Adresssuche antwortet nicht. Geben Sie die Adresse von Hand ein.",
+      "saisieManuelle": "Adresse von Hand eingeben",
+      "rechercherAdresse": "Adresse suchen",
+      "rue": "Strasse",
+      "numero": "Nr.",
+      "npa": "PLZ",
+      "localite": "Ort",
+      "canton": "Kanton",
+      "chiffres": "Eckdaten",
+      "surface": "Wohnfläche",
+      "surfaceTerrain": "Grundstücksfläche",
+      "etage": "Stockwerk",
+      "prix": "Preis",
+      "loyer": "Miete",
+      "loyerMensuel": "Monatliche Miete",
+      "chargesMensuelles": "Monatliche Nebenkosten",
+      "prixM2": "Also {{prix}} pro m²"
+    },
+    "photos": {
+      "titre": "Fotos",
+      "ajouter": "Hinzufügen",
+      "deposer": "Fotos hier ablegen",
+      "deposerAide": "oder klicken, um sie auszuwählen: JPG, PNG, HEIC",
+      "couverture": "Titelbild",
+      "mettreEnCouverture": "Als Titelbild",
+      "retirer": "Entfernen",
+      "encore_one": "Noch {{count}} Foto zum Veröffentlichen",
+      "encore_other": "Noch {{count}} Fotos zum Veröffentlichen",
+      "assez_one": "{{count}} Foto",
+      "assez_other": "{{count}} Fotos",
+      "glisser": "Ziehen, um die Reihenfolge zu ändern"
+    },
+    "annonce": {
+      "titre": "Titel",
+      "description": "Beschreibung",
+      "descriptionPlaceholder": "Beschreiben Sie das Objekt: Helligkeit, Räume, Quartier, Zustand…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Sachlich",
+        "premium": "Premium",
+        "famille": "Familie",
+        "invest": "Anleger"
+      },
+      "iaRediger": "Verfassen",
+      "iaReecrire": "Neu formulieren",
+      "iaEnCours": "Wird verfasst…",
+      "iaEchec": "MEGGA AI konnte die Beschreibung nicht verfassen. Versuchen Sie es erneut oder schreiben Sie sie selbst.",
+      "iaRelire": "Von MEGGA AI vorgeschlagen, vor dem Veröffentlichen prüfen",
+      "caracteres_one": "{{count}} Zeichen · {{min}} empfohlen",
+      "caracteres_other": "{{count}} Zeichen · {{min}} empfohlen",
+      "atouts": "Vorzüge",
+      "tousAtouts_one": "{{count}} weiteren Vorzug anzeigen",
+      "tousAtouts_other": "Die {{count}} weiteren Vorzüge anzeigen"
+    },
+    "mandat": {
+      "vendeur": "Verkäufer",
+      "rechercherVendeur": "Kontakt suchen",
+      "nouveauVendeur": "Neuer Verkäufer",
+      "vendeurNeuf": "Neuer Kontakt, wird beim Speichern erstellt",
+      "prenom": "Vorname",
+      "nom": "Nachname",
+      "email": "E-Mail",
+      "telephone": "Telefon",
+      "ajouterVendeur": "Verkäufer hinzufügen",
+      "mandat": "Mandat",
+      "types": {
+        "exclusive": "Exklusiv",
+        "simple": "Einfach",
+        "co": "Co-Mandat"
+      },
+      "duree": "Dauer",
+      "mois_one": "{{count}} Monat",
+      "mois_other": "{{count}} Monate",
+      "signe": "Mandat unterzeichnet",
+      "agence": "Agentur",
+      "diffusion": "Verbreitung",
+      "publierTitre": "Inserat veröffentlichen",
+      "publierAide": "Das Objekt wird Aktiv und kann verbreitet werden.",
+      "garderTitre": "Off-market-Netzwerk"
+    },
+    "fini": {
+      "publie": "Inserat veröffentlicht",
+      "garde": "Objekt gespeichert",
+      "publieAide": "«{{titre}}» ist in Meine Objekte online.",
+      "gardeAide": "«{{titre}}» ist Off-market gespeichert. Veröffentlichen Sie es über die Objektseite, sobald es bereit ist.",
+      "ouvrir": "Objektseite öffnen",
+      "autre": "Weiteres Objekt erfassen",
+      "retour": "Zurück zu Meine Objekte"
     }
   }
 }

@@ -6,6 +6,7 @@
 //   - partner_agency       (none / naef / cardis / bernard)
 
 import type { CSSProperties, ReactNode } from 'react'
+import { AGENCES_PARTENAIRES } from '@/lib/biensFiltres'
 import { useTranslation } from 'react-i18next'
 
 const M = {
@@ -299,9 +300,9 @@ export function PartnerAgencyPicker({ value, onChange }: PartnerAgencyPickerProp
   const { t } = useTranslation('listings')
   // Partner names + taglines are brand identity (proper nouns) — not translated.
   const PARTNERS: Array<{ key: PartnerAgencyKey; name: string; tagline: string; color: string; mono: string }> = [
-    { key: 'naef', name: 'Naef Immobilier', tagline: 'Depuis 1881', color: '#0E1410', mono: 'N' },
-    { key: 'cardis', name: "Cardis Sotheby's", tagline: 'International Realty', color: '#0B2545', mono: 'C' },
-    { key: 'bernard', name: 'Bernard Nicod', tagline: 'Régie immobilière', color: '#9C1B2C', mono: 'BN' },
+    { key: 'naef', name: AGENCES_PARTENAIRES.naef, tagline: 'Depuis 1881', color: '#0E1410', mono: 'N' },
+    { key: 'cardis', name: AGENCES_PARTENAIRES.cardis, tagline: 'International Realty', color: '#0B2545', mono: 'C' },
+    { key: 'bernard', name: AGENCES_PARTENAIRES.bernard, tagline: 'Régie immobilière', color: '#9C1B2C', mono: 'BN' },
   ]
   const opts: VariantOption<PartnerAgencyKey>[] = PARTNERS.map((p) => ({
     value: p.key,

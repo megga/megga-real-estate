@@ -135,6 +135,12 @@ export interface CreateVisitInput {
     emailVisitor: boolean
     askSignature: boolean
   }
+  /** Sur place (défaut) ou en visio — colonne `visit_type`. */
+  visitType?: 'sur_place' | 'video'
+  /** Lien de la visio — colonne `video_link`. */
+  videoLink?: string | null
+  /** Point de rendez-vous / accès (code, étage…) — sans colonne, rangé dans `qualification`. */
+  rendezVous?: string | null
 }
 
 /** Crée une visite côté agent ; génère optionnellement le bon de visite et les toggles d'automatisation. */
@@ -157,13 +163,14 @@ export function useCreateAgentVisit() {
         : null
 
       const qualification =
-        input.automations || input.generateBon
+        input.automations || input.generateBon || input.rendezVous
           ? {
               automations: {
                 generateBon: !!input.generateBon,
                 emailVisitor: input.automations?.emailVisitor ?? false,
                 askSignature: input.automations?.askSignature ?? false,
               },
+              ...(input.rendezVous ? { rendezVous: input.rendezVous } : {}),
             }
           : null
 
@@ -178,6 +185,8 @@ export function useCreateAgentVisit() {
           duration_minutes: input.durationMinutes,
           agent_id: user?.id ?? null,
           status: 'planned',
+          visit_type: input.visitType ?? 'sur_place',
+          video_link: input.videoLink ?? null,
           bon: bon as unknown as Json,
           rapport: null,
           qualification: qualification as unknown as Json,

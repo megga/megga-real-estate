@@ -7,7 +7,8 @@
     "active": "Active",
     "drafts": "Drafts",
     "reserved": "Reserved",
-    "sold": "Sold"
+    "sold": "Sold",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Apartment",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} property of {{total}} in your catalogue",
     "subtitle_other": "{{count}} properties of {{total}} in your catalogue",
     "searchPlaceholder": "Search a property, an address, a reference…",
+    "search": "Search",
     "seller": "Seller",
     "unlinked": "Unlinked",
     "perMonth": "/mo",
@@ -437,12 +439,13 @@
       "recent": "Recent",
       "priceDesc": "Price descending",
       "priceAsc": "Price ascending",
-      "surface": "Surface",
+      "surface": "Surface area",
       "views": "Most viewed"
     },
     "view": {
       "gallery": "Gallery",
-      "list": "List"
+      "list": "List",
+      "label": "View"
     },
     "kpi": {
       "portfolioValue": "Portfolio value",
@@ -605,6 +608,55 @@
         "sub": "On MEGGA in one click."
       },
       "start": "Get started"
+    },
+    "filtres": {
+      "bouton": "Filters",
+      "regrouper": "Group by",
+      "aucun": "None",
+      "prix": "Price",
+      "min": "Min",
+      "max": "Max",
+      "pieces": "Rooms",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ rooms",
+      "reinitialiser": "Reset",
+      "voir_one": "Show {{count}} property",
+      "voir_other": "Show {{count}} properties",
+      "toutEffacer": "Clear all",
+      "retirer": "Remove “{{critere}}”",
+      "groupePar": "Grouped by {{axe}}",
+      "notreAgence": "Our agency",
+      "agentInconnu": "Unknown agent",
+      "nonRenseigne": "Not specified",
+      "mandatBientot_one": "Expires within {{count}} day",
+      "mandatBientot_other": "Expires within {{count}} days",
+      "desPrix": "From {{prix}}",
+      "jusquaPrix": "Up to {{prix}}",
+      "axes": {
+        "canton": "Canton",
+        "ville": "City",
+        "agent": "Agent",
+        "agence": "Agency",
+        "type": "Property type",
+        "transaction": "Transaction",
+        "statut": "Status",
+        "mandat": "Mandate"
+      },
+      "types": {
+        "appartement": "Apartment",
+        "maison": "House",
+        "villa": "Villa",
+        "commercial": "Commercial",
+        "office": "Office",
+        "parking": "Parking",
+        "storage": "Storage",
+        "land": "Land"
+      },
+      "mandats": {
+        "exclusif": "Exclusive",
+        "simple": "Simple",
+        "recherche": "Search"
+      }
     }
   },
   "detail": {
@@ -1697,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Listing title",
-      "addressLabel": "Address"
+      "addressLabel": "Address",
+      "action": "Edit"
     },
     "performance": {
       "trendShort": "+{{percent}}%"
@@ -1707,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Visits",
-      "none": "No visit scheduled."
+      "none": "No visit scheduled.",
+      "plan": "Schedule",
+      "past_one": "{{count}} past visit",
+      "past_other": "{{count}} past visits"
     },
     "mandate": {
       "renew": "Renew the mandate",
       "renewToastTitle": "Mandate renewal",
-      "renewToastLine": "Prepare the renewal and hand it to the owner for signature."
+      "renewToastLine": "Prepare the renewal and hand it to the owner for signature.",
+      "expiresIn_one": "Expires in {{count}} day",
+      "expiresIn_other": "Expires in {{count}} days",
+      "type": "Type"
     },
     "diffusion": {
       "publish": "Publish",
@@ -1720,6 +1779,245 @@
       "previewToastTitle": "Public preview",
       "previewOnlineLine": "The listing is live on immobilier.ch.",
       "previewOfflineLine": "The listing is not published publicly yet."
+    },
+    "back": "Back to My properties",
+    "cta": {
+      "propose": "Propose to buyers"
+    },
+    "header": {
+      "mandateExpires_one": "{{type}} mandate · expires in {{count}} day",
+      "mandateExpires_other": "{{type}} mandate · expires in {{count}} days",
+      "mandateOverdue_one": "{{type}} mandate · expired {{count}} day ago",
+      "mandateOverdue_other": "{{type}} mandate · expired {{count}} days ago"
+    },
+    "suggestions": {
+      "title": "MEGGA AI suggestions",
+      "affinity": "{{score}}% estimated affinity"
+    },
+    "photos": {
+      "none": "No photos",
+      "add": "Add photos",
+      "open": "View photos"
+    },
+    "specs": {
+      "pricePerM2": "Price per m²",
+      "yearBuilt": "Year built"
+    },
+    "visite": {
+      "planifiee": "Viewing scheduled",
+      "planifier": "Schedule the viewing",
+      "enCours": "Scheduling…",
+      "erreur": "The viewing could not be saved.",
+      "dansCalendrier": "It appears in your Calendar and in the property’s viewings.",
+      "demo": "Preview: nothing was saved.",
+      "ouvrir": "Open the viewing",
+      "termine": "Done",
+      "qui": {
+        "titre": "Who is visiting?",
+        "surCeBien": "On this property",
+        "enCours": "Buyer in progress",
+        "score": "{{score}}% estimated",
+        "rechercher": "Search a contact",
+        "aucun": "No matching contact.",
+        "nouveau": "New visitor",
+        "prenom": "First name",
+        "nom": "Last name",
+        "telephone": "Phone",
+        "email": "Email",
+        "nouveauAide": "First name, last name and a way to reach them. They join your contacts.",
+        "changer": "Change",
+        "sansCoordonnees": "No contact details",
+        "rattacheDeal": "Linked to their deal on this property",
+        "accompagnants": "Accompanied by (optional)"
+      },
+      "quand": {
+        "titre": "When?",
+        "jour": "Day",
+        "heure": "Time",
+        "duree": "Duration",
+        "minutes_one": "{{count}} min",
+        "minutes_other": "{{count}} min",
+        "uneHeure": "1 h",
+        "uneHeureTrente": "1 h 30",
+        "dejaPris": "Already booked: {{quoi}}",
+        "dejaCeJour_one": "{{count}} viewing already planned that day",
+        "dejaCeJour_other": "{{count}} viewings already planned that day",
+        "conflit": "This slot overlaps a viewing at {{heure}}. You can keep it.",
+        "moisPrecedent": "Previous month",
+        "moisSuivant": "Next month",
+        "heurePrecise": "Exact time"
+      },
+      "ou": {
+        "titre": "Where?",
+        "surPlace": "On site",
+        "video": "Video call",
+        "rendezVous": "Meeting point, access",
+        "rendezVousExemple": "E.g. at the entrance, code 4521, 3rd floor",
+        "lien": "Video call link",
+        "lienExemple": "Google Meet, FaceTime link…"
+      },
+      "preparer": {
+        "titre": "Prepare",
+        "bon": "Viewing slip to be signed",
+        "bonAide": "Ready on the viewing page, signed on site by the visitor."
+      },
+      "confirmer": {
+        "titre": "Confirm to the visitor",
+        "aide": "Nothing is sent automatically: review it, then send it from your WhatsApp or your email.",
+        "whatsapp": "Send via WhatsApp",
+        "email": "Send by email",
+        "aucunCanal": "No phone or email for this visitor."
+      },
+      "message": {
+        "surPlace": "Hello {{prenom}}, I confirm the viewing of “{{bien}}” on {{jour}} at {{heure}}, {{adresse}}.{{acces}}\nSee you soon,\n{{agent}}",
+        "video": "Hello {{prenom}}, I confirm the video viewing of “{{bien}}” on {{jour}} at {{heure}}. Link: {{lien}}\nSee you soon,\n{{agent}}",
+        "acces": "Meeting point: {{acces}}.",
+        "sujet": "Viewing of “{{bien}}”"
+      }
+    }
+  },
+  "nouveauBien": {
+    "titre": "New property",
+    "etapesAria": "Creation steps",
+    "apercu": "Preview in My properties",
+    "completude": "Listing complete",
+    "requis": "Required",
+    "modifier": "Edit",
+    "continuer": "Continue",
+    "retour": "Back",
+    "garder": "Save without publishing",
+    "publier": "Publish the listing",
+    "enCours": "Saving…",
+    "adresseAvant": "Add an address first.",
+    "manque": "Still required to publish: {{liste}}",
+    "etapes": {
+      "bien": "The property",
+      "photos": "Photos",
+      "annonce": "The listing",
+      "mandat": "Mandate & listing"
+    },
+    "brouillon": {
+      "echec": "Draft not saved, retrying on your next change",
+      "quitte": "Draft saved",
+      "echecDepart": "Draft not saved",
+      "sansAdresse": "No draft without an address"
+    },
+    "points": {
+      "adresse": "Address",
+      "bien": "Area and rooms",
+      "prix": "Price",
+      "photos": "5 photos",
+      "description": "Description (200 characters)",
+      "vendeur": "Seller",
+      "mandat": "Mandate and commission"
+    },
+    "types": {
+      "appartement": "Apartment",
+      "maison": "House",
+      "villa": "Villa",
+      "attique": "Penthouse",
+      "duplex": "Duplex",
+      "triplex": "Triplex",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Land",
+      "commerce": "Commercial"
+    },
+    "bien": {
+      "transaction": "Sale or rental?",
+      "type": "Property type",
+      "adresse": "Address",
+      "adressePlaceholder": "Street and number, locality",
+      "adresseTrouvee": "Address found",
+      "recherche": "Searching…",
+      "recherchePanne": "Address search is not responding. Enter the address manually.",
+      "saisieManuelle": "Enter the address manually",
+      "rechercherAdresse": "Search for the address",
+      "rue": "Street",
+      "numero": "No.",
+      "npa": "Postcode",
+      "localite": "Locality",
+      "canton": "Canton",
+      "chiffres": "Key figures",
+      "surface": "Living area",
+      "surfaceTerrain": "Plot area",
+      "etage": "Floor",
+      "prix": "Price",
+      "loyer": "Rent",
+      "loyerMensuel": "Monthly rent",
+      "chargesMensuelles": "Monthly charges",
+      "prixM2": "That is {{prix}} per m²"
+    },
+    "photos": {
+      "titre": "Photos",
+      "ajouter": "Add",
+      "deposer": "Drop your photos here",
+      "deposerAide": "or click to choose them: JPG, PNG, HEIC",
+      "couverture": "Cover",
+      "mettreEnCouverture": "Set as cover",
+      "retirer": "Remove",
+      "encore_one": "{{count}} more photo needed to publish",
+      "encore_other": "{{count}} more photos needed to publish",
+      "assez_one": "{{count}} photo",
+      "assez_other": "{{count}} photos",
+      "glisser": "Drag to reorder"
+    },
+    "annonce": {
+      "titre": "Title",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the property: light, spaces, neighbourhood, condition…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Neutral",
+        "premium": "Premium",
+        "famille": "Family",
+        "invest": "Investor"
+      },
+      "iaRediger": "Write",
+      "iaReecrire": "Rewrite",
+      "iaEnCours": "Writing…",
+      "iaEchec": "MEGGA AI could not write the description. Try again, or write it yourself.",
+      "iaRelire": "Suggested by MEGGA AI, review before publishing",
+      "caracteres_one": "{{count}} character · {{min}} recommended",
+      "caracteres_other": "{{count}} characters · {{min}} recommended",
+      "atouts": "Features",
+      "tousAtouts_one": "Show {{count}} more feature",
+      "tousAtouts_other": "Show {{count}} more features"
+    },
+    "mandat": {
+      "vendeur": "Seller",
+      "rechercherVendeur": "Search a contact",
+      "nouveauVendeur": "New seller",
+      "vendeurNeuf": "New contact, created when saving",
+      "prenom": "First name",
+      "nom": "Last name",
+      "email": "Email",
+      "telephone": "Phone",
+      "ajouterVendeur": "Add the seller",
+      "mandat": "Mandate",
+      "types": {
+        "exclusive": "Exclusive",
+        "simple": "Simple",
+        "co": "Co-mandate"
+      },
+      "duree": "Duration",
+      "mois_one": "{{count}} month",
+      "mois_other": "{{count}} months",
+      "signe": "Mandate signed",
+      "agence": "Agency",
+      "diffusion": "Visibility",
+      "publierTitre": "Publish the listing",
+      "publierAide": "The property becomes Active and can be distributed.",
+      "garderTitre": "Off-market network"
+    },
+    "fini": {
+      "publie": "Listing published",
+      "garde": "Property saved",
+      "publieAide": "“{{titre}}” is live in My properties.",
+      "gardeAide": "“{{titre}}” is saved Off-market. Publish it from its page when it is ready.",
+      "ouvrir": "Open the property page",
+      "autre": "Create another property",
+      "retour": "Back to My properties"
     }
   }
 }

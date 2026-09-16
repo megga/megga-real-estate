@@ -5,11 +5,9 @@
 
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
-import { crmInitials } from '@/components/crm/tokens'
-import { galStatus } from '@/components/crm/biens/gallery/galHelpers'
-// Palette + formatters déplacés dans vitrineTokens.ts (contrainte Fast
-// Refresh : ce fichier n'exporte que des composants). Voir son en-tête.
+import { crmInitials, crmVoileEncre } from '@/components/crm/tokens'
 import { vxPalette } from './vitrineTokens'
+import { galStatus } from '@/components/crm/biens/gallery/galHelpers'
 import { useEcranActif } from '@/hooks/useEcranActif'
 
 // ─── Icônes ──────────────────────────────────────────────────────────────
@@ -298,72 +296,6 @@ export function VxPhoto({
   )
 }
 
-// ─── Galerie mosaïque (1 grande + 2×2) ────────────────────────────────────
-export function VxGallery({
-  photos,
-  count,
-  dark,
-  onOpen,
-}: {
-  photos: string[]
-  count: number
-  dark: boolean
-  onOpen: (i: number) => void
-}) {
-  const sp = vxPalette(dark)
-  const tile = (i: number, extra?: ReactNode) => (
-    <button
-      key={i}
-      onClick={() => onOpen(i)}
-      className="vx-tile"
-      style={{
-        position: 'relative',
-        border: 0,
-        padding: 0,
-        cursor: 'pointer',
-        overflow: 'hidden',
-        borderRadius: 0,
-        background: sp.cardSub,
-        fontFamily: 'inherit',
-      }}
-    >
-      <VxPhoto src={photos[i]} index={i} dark={dark} />
-      {extra}
-    </button>
-  )
-  return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gap: 'var(--crm-space-sm)', height: 460 }}>
-      {tile(0)}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-sm)' }}>
-        {tile(1)}
-        {tile(2)}
-        {tile(3)}
-        {tile(
-          4,
-          count > 5 ? (
-            <span
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'grid',
-                placeItems: 'center',
-                background: 'rgba(8,10,14,.52)',
-                color: '#fff',
-                backdropFilter: 'blur(2px)',
-                fontSize: 'var(--crm-text-2xl)',
-                fontWeight: 600,
-                letterSpacing: -0.3,
-              }}
-            >
-              +{count - 5}
-            </span>
-          ) : undefined,
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ─── Lightbox plein écran ─────────────────────────────────────────────────
 export function VxLightbox({
   open,
@@ -373,6 +305,7 @@ export function VxLightbox({
   onClose,
   onIndex,
   contained = false,
+  dark = true,
 }: {
   open: boolean
   index: number
@@ -382,6 +315,12 @@ export function VxLightbox({
   onIndex: (i: number) => void
   /** Clippé à son parent positionné (le bento fiche) au lieu du plein écran. */
   contained?: boolean
+  /**
+   * Thème du voile. ⚠ Il était NOIR dans les deux thèmes : en clair, ouvrir une photo
+   * plongeait la fiche dans un drap sombre (Julien, 16.09.2026). En clair, le voile est
+   * désormais le fond clair de la page, flouté ; en sombre, rien ne change.
+   */
+  dark?: boolean
 }) {
   // ⛔ Écran caché muet : ←/→ changeaient la photo d'une galerie invisible.
   const ecranActif = useEcranActif()
@@ -396,6 +335,11 @@ export function VxLightbox({
     return () => document.removeEventListener('keydown', onKey)
   }, [open, index, count, onClose, onIndex, ecranActif])
   if (!open) return null
+  const P = vxPalette(dark)
+  // Encre et pastilles suivent le voile : blanc sur le drap sombre, encre sur le voile clair.
+  const encre = dark ? '#fff' : P.ink
+  const pastille = crmVoileEncre(dark, 0.1)
+  const pastilleSurvol = crmVoileEncre(dark, 0.2)
   const navBtn = (dir: 'prev' | 'next', name: VxIconName) => (
     <button
       onClick={() => onIndex((index + (dir === 'next' ? 1 : count - 1)) % count)}
@@ -405,18 +349,18 @@ export function VxLightbox({
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
         cursor: 'pointer',
-        background: 'rgba(255,255,255,.10)',
-        color: '#fff',
+        background: pastille,
+        color: encre,
         display: 'grid',
         placeItems: 'center',
         backdropFilter: 'blur(8px)',
         transition: 'background .15s',
         flexShrink: 0,
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,.2)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,.10)')}
+      onMouseEnter={e => (e.currentTarget.style.background = pastilleSurvol)}
+      onMouseLeave={e => (e.currentTarget.style.background = pastille)}
     >
-      <VxIcon name={name} size={22} stroke="#fff" sw={1.8} />
+      <VxIcon name={name} size={22} stroke={encre} sw={1.8} />
     </button>
   )
   return (
@@ -426,15 +370,17 @@ export function VxLightbox({
         position: contained ? 'absolute' : 'fixed',
         inset: 0,
         zIndex: contained ? 60 : 200,
-        background: 'rgba(8,9,12,.92)',
+        // Clair : le fond de la page à 82 %, sous un vrai flou — la fiche reste devinée derrière.
+        background: dark ? 'rgba(8,9,12,.92)' : `color-mix(in srgb, ${P.bg} 82%, transparent)`,
         display: 'flex',
         flexDirection: 'column',
         animation: 'vxFade .2s ease-out',
-        backdropFilter: 'blur(4px)',
+        backdropFilter: dark ? 'blur(4px)' : 'blur(16px)',
+        WebkitBackdropFilter: dark ? 'blur(4px)' : 'blur(16px)',
       }}
     >
       <div
-        style={{ display: 'flex', alignItems: 'center', padding: '20px 26px', color: '#fff', flexShrink: 0 }}
+        style={{ display: 'flex', alignItems: 'center', padding: '20px 26px', color: encre, flexShrink: 0 }}
         onClick={e => e.stopPropagation()}
       >
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 'var(--crm-text-lg)'}}>
@@ -450,13 +396,13 @@ export function VxLightbox({
             borderRadius: 'var(--crm-radius-pill)',
             border: 0,
             cursor: 'pointer',
-            background: 'rgba(255,255,255,.1)',
-            color: '#fff',
+            background: pastille,
+            color: encre,
             display: 'grid',
             placeItems: 'center',
           }}
         >
-          <VxIcon name="close" size={20} stroke="#fff" sw={1.8} />
+          <VxIcon name="close" size={20} stroke={encre} sw={1.8} />
         </button>
       </div>
       <div
@@ -488,7 +434,7 @@ export function VxLightbox({
               padding: 0,
               cursor: 'pointer',
               opacity: i === index ? 1 : 0.5,
-              outline: i === index ? '2px solid #fff' : 'none',
+              outline: i === index ? `2px solid ${encre}` : 'none',
               outlineOffset: 2,
               transition: 'opacity .15s',
             }}
@@ -530,89 +476,6 @@ export function VxStatusPill({ status, dark }: { status: string; dark: boolean }
     >
       {m.label}
     </span>
-  )
-}
-
-// ─── Pilule méta (icône + label, neutre) ──────────────────────────────────
-export function VxMetaPill({
-  icon,
-  children,
-  dark,
-}: {
-  icon?: VxIconName
-  children: ReactNode
-  dark: boolean
-}) {
-  const sp = vxPalette(dark)
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 'var(--crm-space-sm)',
-        height: 27,
-        padding: '0 var(--crm-space-xl)',
-        borderRadius: 'var(--crm-radius-pill)',
-        fontSize: 'var(--crm-text-md)',
-        fontWeight: 600,
-        color: sp.inkSoft,
-        background: sp.cardSub,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {icon && <VxIcon name={icon} size={12} stroke={sp.inkSoft} sw={1.9} />}
-      {children}
-    </span>
-  )
-}
-
-// ─── Eyebrow + titre de section ───────────────────────────────────────────
-export function VxSectionHead({
-  eyebrow,
-  title,
-  right,
-  dark,
-}: {
-  eyebrow?: string
-  title?: string
-  right?: ReactNode
-  dark: boolean
-}) {
-  const sp = vxPalette(dark)
-  return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', marginBottom: 18 }}>
-      <div>
-        {eyebrow && (
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.muted}}>
-            {eyebrow}
-          </div>
-        )}
-        {title && (
-          <h2 style={{ margin: eyebrow ? '9px 0 0' : 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.4 }}>
-            {title}
-          </h2>
-        )}
-      </div>
-      {right}
-    </div>
-  )
-}
-
-// ─── Sparkline (avec aire) ────────────────────────────────────────────────
-export function VxSpark({ points, color, h = 38 }: { points: number[]; color: string; h?: number }) {
-  const max = Math.max(...points)
-  const min = Math.min(...points)
-  const span = max - min || 1
-  const w = 240
-  const d = points
-    .map((p, i) => `${(i / (points.length - 1)) * w},${h - ((p - min) / span) * (h - 6) - 3}`)
-    .join(' ')
-  const area = `0,${h} ` + d + ` ${w},${h}`
-  return (
-    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" fill="none" style={{ display: 'block', overflow: 'visible' }}>
-      <polygon points={area} fill={color} opacity="0.10" />
-      <polyline points={d} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-    </svg>
   )
 }
 

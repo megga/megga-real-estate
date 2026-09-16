@@ -16,6 +16,8 @@
 //   · Custom sur devis) ; le portail Stripe reste la source de vérité du montant facturé.
 
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { formuleDepuisBase, type FormuleAffichee } from '@/components/megga-x-crm/plans'
+import { PlanTuile } from '@/components/crm/PlanBadge'
 import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
@@ -35,11 +37,10 @@ const V = {
   onBrand: '#FFFFFF',
 }
 
-type PlanId = 'free' | 'pro' | 'custom'
+type PlanId = FormuleAffichee
 
 interface PlanDef {
   id: PlanId
-  icon: string
   nameKey: string
   taglineKey: string
   monthly: number | null
@@ -49,24 +50,18 @@ interface PlanDef {
 
 const PLANS: PlanDef[] = [
   {
-    id: 'free', icon: '/billing/plan-free.png', nameKey: 'billing.plans.free.name', taglineKey: 'billing.plans.free.tagline', monthly: 0,
+    id: 'free', nameKey: 'billing.plans.free.name', taglineKey: 'billing.plans.free.tagline', monthly: 0,
     featureKeys: ['billing.plans.free.features.properties', 'billing.plans.free.features.crm', 'billing.plans.free.features.aiSearch', 'billing.plans.free.features.emailSupport'],
   },
   {
-    id: 'pro', icon: '/billing/plan-pro.png', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 49, popular: true,
+    id: 'pro', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 49, popular: true,
     featureKeys: ['billing.plans.pro.features.unlimitedProperties', 'billing.plans.pro.features.fullCrm', 'billing.plans.pro.features.pipeline', 'billing.plans.pro.features.compliance', 'billing.plans.pro.features.docGeneration', 'billing.plans.pro.features.multichannel', 'billing.plans.pro.features.copilot', 'billing.plans.pro.features.prioritySupport'],
   },
   {
-    id: 'custom', icon: '/billing/plan-custom.png', nameKey: 'billing.plans.custom.name', taglineKey: 'billing.plans.custom.tagline', monthly: null,
+    id: 'custom', nameKey: 'billing.plans.custom.name', taglineKey: 'billing.plans.custom.tagline', monthly: null,
     featureKeys: ['billing.plans.custom.features.allPro', 'billing.plans.custom.features.multiAgency', 'billing.plans.custom.features.api', 'billing.plans.custom.features.sso', 'billing.plans.custom.features.branding', 'billing.plans.custom.features.accountManager', 'billing.plans.custom.features.sla'],
   },
 ]
-
-function planIdFromDb(dbPlan: string): PlanId {
-  if (dbPlan === 'pro') return 'pro'
-  if (dbPlan === 'entreprise') return 'custom'
-  return 'free'
-}
 
 function CheckDot({ pro }: { pro?: boolean }) {
   return (
@@ -82,7 +77,7 @@ export function BillingSection() {
   const [period, setPeriod] = useState<'monthly' | 'yearly'>('monthly')
   const toast = useToast()
 
-  const currentPlanId: PlanId = isActive ? planIdFromDb(currentPlan) : 'free'
+  const currentPlanId: PlanId = isActive ? formuleDepuisBase(currentPlan) : 'free'
 
   const handlePortal = async () => {
     try { await openPortal() } catch (err) {
@@ -184,7 +179,7 @@ function PlanCard({ plan, period, isCurrent, onPortal, onUpgrade, busy }: PlanCa
     }}>
       {/* En-tête : icône + nom + tagline */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
-        <img src={plan.icon} alt="" width={44} height={44} style={{ flexShrink: 0, objectFit: 'contain' }} />
+        <PlanTuile formule={plan.id} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: V.head, letterSpacing: -0.4, lineHeight: 1.15 }}>{t(plan.nameKey)}</div>
           <div style={{ fontSize: 'var(--crm-text-lg)', color: V.mut, fontWeight: 500, marginTop: 1 }}>{t(plan.taglineKey)}</div>

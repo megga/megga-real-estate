@@ -14,7 +14,6 @@ import { describe, it, expect } from 'vitest'
 import { readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 import { CRM_GRAPHITE, CRM_TOKENS, crmPalette } from '@/components/crm/tokens'
 import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { WizardTokens, setWizardDark } from '@/components/crm-wizard/tokens'
 import { TK, applyTK } from '@/components/crm/today/tk'
 import { SET_PALETTE, applySetTheme } from '@/components/crm/settings/data'
 import { buildCalPalette } from '@/components/crm/calendar/data'
@@ -140,8 +139,8 @@ describe('palettes d’écran dérivées', () => {
   const NEUTRES = Object.values(MXC_COLOR) as string[]
 
   const cases: { name: string; read: () => string; attendu: string }[] = [
-    { name: 'wizard WizardTokens.card', read: () => { setWizardDark(true); return WizardTokens.card }, attendu: MXC_COLOR.n300 },
-    { name: 'wizard WizardTokens.rail', read: () => { setWizardDark(true); return WizardTokens.rail }, attendu: MXC_COLOR.n200 },
+    // (Le wizard de création avait sa palette ici ; il est retiré depuis le 16.09.2026 —
+    // « Nouveau bien » peint avec `crmPalette`, déjà gardé plus haut.)
     { name: 'cockpit TK.frame', read: () => { applyTK(true); return TK.frame }, attendu: MXC_COLOR.n200 },
     { name: 'cockpit TK.cardHi', read: () => { applyTK(true); return TK.cardHi }, attendu: MXC_COLOR.n400 },
     { name: 'calendrier popBg', read: () => buildCalPalette(true).popBg, attendu: MXC_COLOR.n300 },
@@ -231,25 +230,6 @@ describe('palettes d’écran dérivées', () => {
   // verrait comme une bande posée sur la surface au lieu de la prolonger.
   it('le voile de chrome mobile suit le palier du cadre', () => {
     expect(MT_DARK.headerBg).toBe('rgba(5,5,5,0.82)')
-  })
-
-  /**
-   * Le wizard en clair descend de MEGGA X, et pas de Graphite.
-   *
-   * Cette assertion figeait `'#FFFFFF'` en littéral, pour vérifier que la
-   * bascule Graphite — qui ne visait que le SOMBRE — n'avait pas débordé sur la
-   * branche claire du wizard. Le 11 août 2026 cette branche a été migrée
-   * exprès : elle vaut la même couleur, mais elle la tient désormais de
-   * `mxCrmPalette`. Le littéral ne disait plus d'où venait la valeur, seulement
-   * qu'elle coïncidait. Ce que la palette du wizard doit respecter est
-   * verrouillé par `wizard-palette.spec.ts` ; ici on garde ce que ce fichier-ci
-   * a pour rôle de dire — aucune surface n'est restée sur Graphite.
-   */
-  it('le wizard en clair descend de MEGGA X, pas de Graphite', () => {
-    setWizardDark(false)
-    expect(WizardTokens.card).toBe(mxCrmPalette(false).cardBg)
-    expect(Object.values(CRM_GRAPHITE) as string[]).not.toContain(WizardTokens.card)
-    setWizardDark(null)
   })
 
   /**

@@ -18,29 +18,40 @@ interface GalCardProps {
   onOpen: () => void
   /** Brouillon → « Finir » : reprend l'édition (sinon retombe sur onOpen). */
   onFinish?: () => void
+  /**
+   * Aperçu (« Nouveau bien ») : la carte se MONTRE, elle ne s'ouvre pas — ni survol, ni
+   * clic, ni « Finir », qui n'aurait rien à reprendre.
+   */
+  apercu?: boolean
   sp: CrmPalette
   surf: GalSurfaces
   dark: boolean
 }
 
-export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps) {
+export function GalCard({ bien, onOpen, onFinish, apercu, sp, surf, dark }: GalCardProps) {
   const { t } = useTranslation('listings')
   const [hov, setHov] = useState(false)
   const isRent = bien.transaction === 'location'
   const isDraft = bien.status === 'draft'
   const price = isRent ? bien.rent : bien.price
   const noPhoto = isDraft && bien.photoCount === 0
+  // Pièces et surface : ce qu'un agent lit d'abord sur une carte, avant le prix.
+  // Une valeur à 0 est une donnée absente, pas un studio de zéro mètre.
+  const specs = [
+    bien.rooms > 0 ? t('form.preview.roomsCount', { count: bien.rooms }) : null,
+    bien.area > 0 ? `${bien.area} m²` : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <div
-      onMouseEnter={() => setHov(true)}
+      onMouseEnter={() => !apercu && setHov(true)}
       onMouseLeave={() => setHov(false)}
-      onClick={onOpen}
+      onClick={apercu ? undefined : onOpen}
       style={{
         background: surf.card,
         borderRadius: 'var(--crm-radius-3xl)',
         overflow: 'hidden',
-        cursor: 'pointer',
+        cursor: apercu ? 'default' : 'pointer',
         border: surf.hairline,
         boxShadow: hov ? surf.shadowHov : surf.shadow,
         transition: 'box-shadow .22s',
@@ -117,7 +128,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
               minWidth: 0,
             }}
           >
-            {bien.title}
+            <span title={bien.title}>{bien.title}</span>
           </div>
         </div>
         <div
@@ -132,6 +143,11 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
         >
           {bien.addr}
         </div>
+        {specs && (
+          <div style={{ fontSize: 'var(--crm-text-md)', color: sp.ink, fontWeight: 500, marginTop: 'var(--crm-space-sm)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+            {specs}
+          </div>
+        )}
 
         <div style={{ flex: 1, minHeight: 14 }} />
 
@@ -166,7 +182,7 @@ export function GalCard({ bien, onOpen, onFinish, sp, surf, dark }: GalCardProps
             </div>
           </div>
 
-          {isDraft ? (
+          {isDraft && !apercu ? (
             <button
               onClick={e => {
                 e.stopPropagation()

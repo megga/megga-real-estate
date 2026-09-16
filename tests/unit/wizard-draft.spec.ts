@@ -91,9 +91,13 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
    * et `'house'` dans une copie — d'où l'unique `TYPE_TO_ENUM` ci-dessous.
    */
   it('la coquille publie la charge utile du brouillon, pas une copie', () => {
-    const shell = lire('WizardShell.tsx')
-    expect(shell).toMatch(/wizardPayload\(data, 'active'\)/)
-    expect(shell).not.toMatch(/TYPE_TO_ENUM/)
+    // ⚠ La publication vit dans `usePublierWizard` depuis le 16.09.2026, partagée par les
+    // deux wizards (l'ancien et « Nouveau bien ») : c'est là que la règle se vérifie.
+    const publication = lire('usePublierWizard.ts')
+    expect(publication).toMatch(/wizardPayload\(data, statut\)/)
+    expect(publication).not.toMatch(/TYPE_TO_ENUM/)
+    // L'écran de création de bureau (« Nouveau bien », qui a remplacé `WizardShell`) passe par lui.
+    expect(readFileSync('src/components/crm/biens/nouveau/NouveauBien.tsx', 'utf-8')).toMatch(/usePublierWizard/)
   })
 
   /**
@@ -111,7 +115,7 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
    * attendre l'enregistrement automatique, et publier sur l'identifiant qu'il rend.
    */
   it('la publication ATTEND le brouillon en vol avant de choisir créer ou mettre à jour', () => {
-    const shell = sansCommentaires(lire('WizardShell.tsx'))
+    const shell = sansCommentaires(lire('usePublierWizard.ts'))
     // L'attente précède la décision, et la décision porte sur ce qu'elle a rendu.
     expect(shell).toMatch(/await attendreEcriture\(\)[\s\S]{0,200}updateProperty\.mutateAsync/)
     // ⛔ Et la fermeture périmée n'est plus consultée pour cette décision.
@@ -125,9 +129,12 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
    * promesse.
    */
   it('aucun mode de publication ne revient', () => {
-    for (const f of ['tokens.ts', 'WizardShell.tsx', 'steps/Step7Publish.tsx', 'steps/Step8Success.tsx']) {
+    for (const f of ['tokens.ts', 'usePublierWizard.ts']) {
       expect(sansCommentaires(lire(f)), `${f} reparle de publishMode`).not.toMatch(/publishMode|scheduledAt/)
     }
+    // « Nouveau bien » n'offre que deux issues RÉELLES : publier, ou garder en brouillon.
+    const nouveau = sansCommentaires(readFileSync('src/components/crm/biens/nouveau/NouveauBien.tsx', 'utf-8'))
+    expect(nouveau).not.toMatch(/publishMode|scheduledAt/)
   })
 
   it('le titre synthétisé n’est jamais vide — la colonne est NOT NULL', () => {
@@ -175,7 +182,9 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
  * honnête était fermée et celle qui fabriquait, ouverte — à un écran d'écart.
  */
 describe('Mandat — aucune valeur fabriquée', () => {
-  const MANDAT = 'src/components/crm-wizard/steps/Step1Mandate.tsx'
+  // ⚠ L'étape Mandat de l'ancien wizard (`Step1Mandate`) est partie avec lui le 16.09.2026 ;
+  // la règle garde désormais celle de « Nouveau bien ».
+  const MANDAT = 'src/components/crm/biens/nouveau/EtapeMandat.tsx'
   const src = () => sansCommentaires(readFileSync(MANDAT, 'utf-8'))
 
   it('l’extraction simulée ne revient pas', () => {

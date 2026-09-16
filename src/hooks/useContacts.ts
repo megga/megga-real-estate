@@ -105,6 +105,12 @@ export function useCreateContact() {
   return {
     mutateAsync: async (
       input: CreateContactInput & {
+        /**
+         * Identifiant choisi par l'appelant. ⚠ La réponse de `useInsertMutation` ne rend
+         * pas toujours la ligne créée (d'où le `created?.id` de ContactsPage) : l'appelant
+         * qui doit ENCHAÎNER sur ce contact — une visite, un deal — pose l'id lui-même.
+         */
+        id?: string
         agency_id?: string
         source?: string
         score?: ContactScore
@@ -124,6 +130,7 @@ export function useCreateContact() {
     ) => {
       const rows = await insert.mutateAsync([
         {
+          ...(input.id ? { id: input.id } : {}),
           first_name: input.firstName,
           last_name: input.lastName,
           email: input.email?.trim() || null,

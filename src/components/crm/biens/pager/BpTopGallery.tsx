@@ -1,24 +1,31 @@
 // MEGGA CRM Sugar v2 — Mes biens · Page 0 « Galerie »
 // Port fidèle du handoff Claude Design (crm-screen-biens-proto.jsx, BpTopGallery).
 //
-// Version finale ÉPURÉE : en-tête (titre + « Créer un bien ») + toolbar
-// (recherche · statut · tri · bascule Galerie/Liste) + grille de cartes / liste.
+// Une SEULE barre (16.09.2026, décision Julien) : statuts avec compteurs, puis
+// recherche · tri · vue · « Créer un bien » au bout de la même ligne — la
+// grammaire de Contacts. Le titre visible est retiré : l'onglet et la barre
+// latérale disent déjà « Mes biens », et il laissait le bouton seul dans le vide.
 // Le rôle analytique (ex-bandeau KPI à sparklines illustratives) passe à la page
 // « À suivre ». En-tête + toolbar épinglés ; contenu scrollable (le pager laisse
 // le scroll interne l'emporter avant de changer de page).
 
 import EtatVide from '@/components/crm/EtatVide'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmBien } from '@/components/crm/mockData'
 import type { CrmPalette } from '@/components/crm/tokens'
 import type { GalSurfaces } from '@/components/crm/biens/gallery/galHelpers'
-import {
-  GalSegmented, GalSortDropdown, type SegOption, type SortOption,
-} from '@/components/crm/biens/gallery/GalleryAtoms'
+import { GalSortDropdown, type SortOption } from '@/components/crm/biens/gallery/GalleryAtoms'
 import { GalCard } from '@/components/crm/biens/gallery/GalCard'
 import { GalRow } from '@/components/crm/biens/gallery/GalRow'
+import { BpFiltres, BpFiltresActifs } from './BpFiltres'
+import { useTeamMembers } from '@/hooks/useTeam'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
+import {
+  AGENCES_PARTENAIRES, FILTRES_VIDES, filtrerBiens, grouperBiens,
+  type DimensionBien, type FiltresBiens, type GroupeBiens,
+} from '@/lib/biensFiltres'
 
 interface BpTopGalleryProps {
   biens: CrmBien[]
@@ -31,14 +38,53 @@ interface BpTopGalleryProps {
   onOpenBien: (id: string) => void
   onCreate: () => void
   onResumeDraft: (b: CrmBien) => void
+  /** Focalisée par `/` depuis le pager (qui ramène d'abord à cette page). */
+  searchRef: RefObject<HTMLInputElement | null>
 }
 
+/**
+ * Filtres de statut, dans l'ordre de la barre.
+ *
+ * ⚠ « Off-market » regroupe `paused` ET `sold` (16.09.2026) : sans lui, ces biens
+ * comptaient dans « Tous » sans qu'aucun filtre les isole — la somme des pastilles
+ * ne tombait pas juste. Pas « Archivés » : un bien en pause revient sur le marché.
+ * La pilule de la carte continue de dire lequel des deux.
+ * ⚠ Le libellé n'est PAS traduit : « Off-market » est le terme du métier, écrit
+ * ainsi dans les quatre langues, comme sur la fiche (`fiche.offMarket`).
+ */
+const STATUTS = ['all', 'active', 'reserved', 'draft', 'offMarket'] as const
+type Statut = typeof STATUTS[number]
+const STATUT_LABEL: Record<Statut, string> = { all: 'tab.all', active: 'tab.active', reserved: 'tab.reserved', draft: 'tab.drafts', offMarket: 'tab.offMarket' }
+const dansStatut = (b: CrmBien, st: Statut) =>
+  st === 'all' || (st === 'offMarket' ? b.status === 'paused' || b.status === 'sold' : b.status === st)
+
 export function BpTopGallery({
-  biens, sp, surf, dark, isLoading, isError, refetch, onOpenBien, onCreate, onResumeDraft,
+  biens, sp, surf, dark, isLoading, isError, refetch, onOpenBien, onCreate, onResumeDraft, searchRef,
 }: BpTopGalleryProps) {
-  const { t } = useTranslation('listings')
+  const { t, i18n } = useTranslation('listings')
+  const locale = `${(i18n.language || 'fr').slice(0, 2)}-CH`
+  // Filtres et regroupement RANGÉS DANS L'ONGLET : ils survivent à un aller-retour.
+  const [filtres, setFiltres] = useTabScopedState<FiltresBiens>('biens-filtres', FILTRES_VIDES)
+  const [groupe, setGroupe] = useTabScopedState<GroupeBiens>('biens-groupe', 'aucun')
+  // Horloge figée au montage : « expire dans 60 jours » ne bascule pas pendant qu'on lit.
+  const [maintenant] = useState(() => Date.now())
+  const { data: equipe } = useTeamMembers()
+  const nomsAgents = useMemo(() => new Map((equipe ?? []).map((m) => [m.id, m.full_name])), [equipe])
+  /** Le libellé d'une valeur sur un axe — la palette, les pastilles et les en-têtes de groupe. */
+  const libelle = useCallback((dim: DimensionBien, cle: string): string => {
+    if (cle === '') return dim === 'agence' ? t('biens.filtres.notreAgence') : t('biens.filtres.nonRenseigne')
+    switch (dim) {
+      case 'agent': return nomsAgents.get(cle) ?? t('biens.filtres.agentInconnu')
+      case 'agence': return AGENCES_PARTENAIRES[cle] ?? cle
+      case 'type': return t(`biens.filtres.types.${cle}`, { defaultValue: cle })
+      case 'transaction': return cle === 'location' ? t('detail.transactionRent') : t('detail.transactionSale')
+      case 'statut': return t(`status.${cle}`, { defaultValue: cle })
+      case 'mandat': return t(`biens.filtres.mandats.${cle}`, { defaultValue: cle })
+      default: return cle
+    }
+  }, [nomsAgents, t])
   const [search, setSearch] = useState('')
-  const [fStatus, setFStatus] = useState('all')
+  const [fStatus, setFStatus] = useState<Statut>('all')
   const [sort, setSort] = useState('recent')
   const [view, setView] = useState<string>(() => {
     if (typeof window === 'undefined') return 'galerie'
@@ -49,33 +95,30 @@ export function BpTopGallery({
     try { window.localStorage.setItem('megga_biens_view', v) } catch { /* ignore */ }
   }
 
+  // Les compteurs suivent la recherche ET les filtres : « Actifs 0 · Brouillons 1 » dit
+  // où est le résultat avant qu'on change de statut — même règle que Contacts.
+  const trouves = useMemo<CrmBien[]>(() => {
+    const q = search.trim().toLowerCase()
+    const retenus = filtrerBiens(biens, filtres, maintenant)
+    if (!q) return retenus
+    return retenus.filter(
+      (b) =>
+        b.title.toLowerCase().includes(q) ||
+        b.addr.toLowerCase().includes(q) ||
+        b.ref.toLowerCase().includes(q),
+    )
+  }, [biens, search, filtres, maintenant])
+
   const filtered = useMemo<CrmBien[]>(() => {
-    let l = [...biens]
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      l = l.filter(
-        (b) =>
-          b.title.toLowerCase().includes(q) ||
-          b.addr.toLowerCase().includes(q) ||
-          b.ref.toLowerCase().includes(q),
-      )
-    }
-    if (fStatus !== 'all') l = l.filter((b) => b.status === fStatus)
+    const l = trouves.filter((b) => dansStatut(b, fStatus))
     const pv = (b: CrmBien) => b.price || (b.rent ? b.rent * 300 : 0)
     if (sort === 'price-desc') l.sort((a, b) => pv(b) - pv(a))
     else if (sort === 'price-asc') l.sort((a, b) => pv(a) - pv(b))
     else if (sort === 'views') l.sort((a, b) => (b.stats?.views || 0) - (a.stats?.views || 0))
     else if (sort === 'surface') l.sort((a, b) => b.area - a.area)
     return l
-  }, [biens, search, fStatus, sort])
+  }, [trouves, fStatus, sort])
 
-  // Pilules de statut SANS compteur (le proto final les affiche en label seul).
-  const statusOpts: SegOption[] = [
-    { value: 'all', label: t('tab.all') },
-    { value: 'active', label: t('tab.active') },
-    { value: 'reserved', label: t('tab.reserved') },
-    { value: 'draft', label: t('tab.drafts') },
-  ]
   const sortOpts: SortOption[] = [
     { value: 'recent', label: t('biens.sort.recent') },
     { value: 'price-desc', label: t('biens.sort.priceDesc') },
@@ -83,10 +126,33 @@ export function BpTopGallery({
     { value: 'surface', label: t('biens.sort.surface') },
     { value: 'views', label: t('biens.sort.views') },
   ]
-  const viewOpts: SegOption[] = [
-    { value: 'galerie', label: t('biens.view.gallery'), icon: 'gallery' },
-    { value: 'liste', label: t('biens.view.list'), icon: 'menu' },
+  const vues = [
+    { value: 'galerie', label: t('biens.view.gallery'), icon: 'gallery' as const },
+    { value: 'liste', label: t('biens.view.list'), icon: 'menu' as const },
   ]
+
+  /** Une liste de biens dans la vue choisie — la page entière, ou un groupe. */
+  const rendre = (liste: CrmBien[]): ReactNode => view === 'galerie' ? (
+    <div className="bpg-grid">
+      {liste.map((b) => (
+        <GalCard
+          key={b.id}
+          bien={b}
+          sp={sp}
+          surf={surf}
+          dark={dark}
+          onOpen={() => onOpenBien(b.id)}
+          onFinish={b.status === 'draft' ? () => onResumeDraft(b) : undefined}
+        />
+      ))}
+    </div>
+  ) : (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
+      {liste.map((b) => (
+        <GalRow key={b.id} bien={b} sp={sp} surf={surf} dark={dark} onOpen={() => onOpenBien(b.id)} />
+      ))}
+    </div>
+  )
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: sp.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -97,40 +163,105 @@ export function BpTopGallery({
         .bpg-search::placeholder { color: ${sp.sub}; }
       `}</style>
 
-      {/* En-tête + toolbar (épinglés) */}
-      <div style={{ flexShrink: 0, padding: '26px 34px 16px', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 500, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('title')}</h1>
-          <div style={{ flex: 1 }} />
-          <button
-            onClick={onCreate}
-            style={{ height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit', cursor: 'pointer', boxShadow: sp.focusShadow, display: 'inline-flex', alignItems: 'center' }}
-          >
-            {t('biens.create')}
-          </button>
+      {/* Titre pour les lecteurs d'écran seulement : l'onglet et la barre latérale
+          disent déjà « Mes biens ». */}
+      <h1 className="sr-only">{t('title')}</h1>
+
+      {/* Barre unique (épinglée) : statuts à gauche, outils et création à droite.
+          ⚠ DEUX groupes, pas une rangée plate : quand la largeur manque, les outils
+          passent à la ligne ENSEMBLE et restent calés à droite (`marginLeft: auto`).
+          À plat, « Créer un bien » retombait seul à gauche de la seconde ligne. */}
+      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', columnGap: 'var(--crm-space-3xl)', rowGap: 'var(--crm-space-md)', flexWrap: 'wrap', padding: 'var(--crm-space-5xl) var(--crm-space-6xl) var(--crm-space-3xl)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+        {STATUTS.map((st) => {
+          const on = fStatus === st
+          const n = trouves.filter((b) => dansStatut(b, st)).length
+          return (
+            <button key={st} type="button" onClick={() => setFStatus(st)} aria-pressed={on} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)',
+              borderRadius: 'var(--crm-radius-pill)', border: on ? 0 : surf.hairline,
+              background: on ? sp.accent : surf.card, color: on ? sp.accentInk : sp.soft,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
+              boxShadow: on ? 'none' : sp.shadowSm,
+            }}>
+              {t(STATUT_LABEL[st])}
+              <span style={{ fontWeight: 500, fontVariantNumeric: 'tabular-nums', color: on ? sp.accentInk : sp.sub, opacity: on ? 0.72 : 1 }}>{n}</span>
+            </button>
+          )
+        })}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 240 }}>
-            <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', display: 'grid', placeItems: 'center' }}>
-              <MEIcon name="search" size={15} color={sp.sub} />
-            </span>
-            <input
-              className="bpg-search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('biens.searchPlaceholder')}
-              style={{ width: '100%', height: 42, padding: '0 16px 0 42px', borderRadius: 'var(--crm-radius-pill)', outline: 'none', background: surf.card, border: surf.hairline, boxShadow: surf.shadow, color: sp.ink, fontSize: 'var(--crm-text-lg)', fontFamily: 'inherit' }}
-            />
-          </div>
-          <GalSegmented options={statusOpts} value={fStatus} onChange={setFStatus} sp={sp} surf={surf} dark={dark} />
-          <GalSortDropdown value={sort} options={sortOpts} onChange={setSort} sp={sp} surf={surf} />
-          <GalSegmented options={viewOpts} value={view} onChange={setViewP} sp={sp} surf={surf} dark={dark} />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', flex: '0 1 240px', minWidth: 150, height: 36, boxSizing: 'border-box',
+          padding: '0 var(--crm-space-md) 0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)',
+          border: surf.hairline, color: sp.sub, cursor: 'text',
+        }}>
+          <MEIcon name="search" size={16} strokeWidth={2} />
+          <input
+            ref={searchRef}
+            className="bpg-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setSearch(''); e.currentTarget.blur() } }}
+            placeholder={t('biens.search')}
+            aria-label={t('biens.searchPlaceholder')}
+            autoComplete="off"
+            spellCheck={false}
+            style={{ flex: 1, minWidth: 0, height: '100%', padding: 0, border: 0, outline: 'none', background: 'transparent', color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500 }}
+          />
+          {search ? (
+            <button type="button" onClick={() => { setSearch(''); searchRef.current?.focus() }} aria-label={t('common:search.clearSearch')} style={{
+              display: 'grid', placeItems: 'center', width: 22, height: 22, padding: 0, border: 0, borderRadius: 'var(--crm-radius-pill)',
+              background: sp.focusSurface, color: sp.soft, cursor: 'pointer',
+            }}>
+              <MEIcon name="close" size={12} strokeWidth={2.4} />
+            </button>
+          ) : (
+            <kbd aria-hidden style={{
+              display: 'grid', placeItems: 'center', minWidth: 22, height: 22, padding: '0 var(--crm-space-xs)', boxSizing: 'border-box',
+              borderRadius: 'var(--crm-radius-xs)', border: surf.hairline,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
+            }}>/</kbd>
+          )}
+        </label>
+
+        <BpFiltres biens={biens} filtres={filtres} setFiltres={setFiltres} groupe={groupe} setGroupe={setGroupe}
+          libelle={libelle} nbResultats={filtered.length} sp={sp} surf={surf} />
+        <GalSortDropdown value={sort} options={sortOpts} onChange={setSort} sp={sp} surf={surf} />
+
+        {/* Vue : deux icônes, le libellé en infobulle — il répétait ce que l'icône dit. */}
+        <div role="group" aria-label={t('biens.view.label')} style={{ display: 'inline-flex', height: 36, boxSizing: 'border-box', padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', border: surf.hairline }}>
+          {vues.map((v) => {
+            const on = view === v.value
+            return (
+              <button key={v.value} type="button" onClick={() => setViewP(v.value)} aria-pressed={on} aria-label={v.label} title={v.label} style={{
+                display: 'grid', placeItems: 'center', width: 36, height: '100%', padding: 0, border: 0,
+                borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer',
+                background: on ? sp.focusSurface : 'transparent', color: on ? sp.ink : sp.sub,
+                transition: 'background .15s, color .15s',
+              }}>
+                <MEIcon name={v.icon} size={15} />
+              </button>
+            )
+          })}
+        </div>
+
+        <button type="button" onClick={onCreate} style={{
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)',
+          borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk, border: 0,
+          fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer',
+        }}>
+          {t('biens.create')}
+        </button>
         </div>
       </div>
 
+      <BpFiltresActifs filtres={filtres} setFiltres={setFiltres} groupe={groupe} setGroupe={setGroupe} libelle={libelle} sp={sp} />
+
       {/* Contenu (scrollable) */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '6px 34px 30px' }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 var(--crm-space-6xl) var(--crm-space-6xl)' }}>
         {filtered.length === 0 ? (
           <EtatVide
             dark={dark}
@@ -140,24 +271,19 @@ export function BpTopGallery({
             corps={isError ? t('biens.error.message') : undefined}
             action={isError ? { libelle: t('biens.error.retry'), onClick: () => { void refetch() } } : undefined}
           />
-        ) : view === 'galerie' ? (
-          <div className="bpg-grid">
-            {filtered.map((b) => (
-              <GalCard
-                key={b.id}
-                bien={b}
-                sp={sp}
-                surf={surf}
-                dark={dark}
-                onOpen={() => onOpenBien(b.id)}
-                onFinish={b.status === 'draft' ? () => onResumeDraft(b) : undefined}
-              />
-            ))}
-          </div>
+        ) : groupe === 'aucun' ? (
+          rendre(filtered)
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
-            {filtered.map((b) => (
-              <GalRow key={b.id} bien={b} sp={sp} surf={surf} dark={dark} onOpen={() => onOpenBien(b.id)} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-6xl)' }}>
+            {grouperBiens(filtered, groupe, (cle) => libelle(groupe, cle), locale).map((g) => (
+              <section key={g.cle || '∅'}>
+                {/* En-tête collant : dans un long groupe, on sait toujours où l'on est. */}
+                <div style={{ position: 'sticky', top: 0, zIndex: 2, display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) 0', marginBottom: 'var(--crm-space-md)', background: sp.pageBg }}>
+                  <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink }}>{g.libelle}</h2>
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{g.biens.length}</span>
+                </div>
+                {rendre(g.biens)}
+              </section>
             ))}
           </div>
         )}

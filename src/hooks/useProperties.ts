@@ -79,7 +79,7 @@ export function useAgencyProperties() {
       // PostgREST rendait 400 PGRST200 à CHAQUE chargement — « Mes biens », le
       // Matching et le sélecteur de bien du Calendrier restaient en erreur. Les
       // compteurs vivent sur le bien lui-même, comme les lit `usePropertyStats`.
-      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, views_count, favorites_count')
+      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, views_count, favorites_count, created_by, partner_agency')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
   )
@@ -128,6 +128,8 @@ export interface CreatePropertyInput {
   floor_plan_hotspots?: FloorPlanHotspot[]
   photo_tags?: PhotoTag[]
   published_at?: string
+  /** Agence partenaire en co-mandat ; NULL = l'agence du compte. */
+  partner_agency?: string | null
 }
 
 /** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */

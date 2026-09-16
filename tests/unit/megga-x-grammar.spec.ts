@@ -63,6 +63,8 @@ import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type RootSpec } f
  */
 const PAGES = new Set([
   'ListingDetailPage.tsx', 'ListingsPage.tsx',
+  // Née portée (16.09.2026) : la création d'annonce en quatre étapes, écrite en jetons.
+  'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
   // Le pager Matching et son conteneur d'atelier — les deux dernières surfaces
   // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
@@ -86,11 +88,12 @@ const PAGES = new Set([
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
   // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
   // ⚠ `IdentityPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
-  // `ListingWizardPage` et `KycReportRenderPage` sont en styles en ligne, donc
-  // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
-  // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
+  // `KycReportRenderPage` est en styles en ligne, donc pleinement vue ; les autres
+  // sont en CLASSES et ne sont mesurées que sur la casse, la graisse et
+  // l'interlettrage — voir l'inventaire de cécité plus bas. (`ListingWizardPage`
+  // en faisait partie ; elle est partie avec l'ancien wizard le 16.09.2026.)
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
-  'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
+  'OnboardingCallPage.tsx',
   // Messagerie (lot 2, T2.1). `MessageriePage` ne fait que monter l'app et porter
   // la préférence sombre ; `MailOAuthCallbackPage` ne peint rien du tout — elles
   // entrent quand même, parce qu'un cliquet ne sert pas qu'à constater.
@@ -119,7 +122,7 @@ const PAGES = new Set([
  * `PAGES`. Même idiome que la liste des racines acquises.
  */
 const PAGES_ACQUISES = [
-  'ListingDetailPage.tsx', 'ListingsPage.tsx',
+  'ListingDetailPage.tsx', 'ListingsPage.tsx', 'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
   'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
   'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
@@ -132,11 +135,12 @@ const PAGES_ACQUISES = [
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
   // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
   // ⚠ `IdentityPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
-  // `ListingWizardPage` et `KycReportRenderPage` sont en styles en ligne, donc
-  // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
-  // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
+  // `KycReportRenderPage` est en styles en ligne, donc pleinement vue ; les autres
+  // sont en CLASSES et ne sont mesurées que sur la casse, la graisse et
+  // l'interlettrage — voir l'inventaire de cécité plus bas. (`ListingWizardPage`
+  // en faisait partie ; elle est partie avec l'ancien wizard le 16.09.2026.)
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
-  'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
+  'OnboardingCallPage.tsx',
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
   'NewTabPage.tsx', 'DashboardNotFoundPage.tsx',
 ]
@@ -246,7 +250,11 @@ const ZONES: RootSpec[] = [
     // ⚠ `IconeTheme.tsx` entre le 12 septembre 2026 avec la bascule de thème animée :
     // le glyphe soleil/lune de la bande d'onglets et du menu du profil. Il n'écrit
     // qu'une boîte (largeur, hauteur, `inset`), aucun barreau de grammaire.
-    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx'].includes(n),
+    // ⚠ `CrmAvis.tsx` entre le 16 septembre 2026 : la capsule d'avis montée par `CrmWorkspace`
+    // (« Brouillon enregistré »), même forme que la notification de la Messagerie.
+    // ⚠ `PlanBadge.tsx` le même jour : la pastille et la tuile des trois formules (menu du
+    // profil, cartes de la facturation).
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx', 'CrmAvis.tsx', 'PlanBadge.tsx'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
@@ -970,10 +978,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm-dossiers/kyc-wizard', { hors: 36, total: 46 }],
   ['src/components/crm-dossiers/offer-modal', { hors: 15, total: 19 }],
   ['src/components/crm-dossiers/visite-detail', { hors: 23, total: 30 }],
-  ['src/components/crm-dossiers/vitrine', { hors: 4, total: 4 }],
-  ['src/components/crm-wizard', { hors: 64, total: 100 }],
+  ['src/components/crm-dossiers/vitrine', { hors: 3, total: 3 }],
+  // 64/100 → 0/0 le 16.09.2026 : l'ancien wizard (`WizardShell` + étapes) est retiré ; ne
+  // restent que le modèle et les hooks partagés, sans style.
+  ['src/components/crm-wizard', { hors: 0, total: 0 }],
   ['src/components/crm/analytics', { hors: 13, total: 29 }],
-  ['src/components/crm/biens', { hors: 43, total: 51 }],
+  ['src/components/crm/biens', { hors: 40, total: 48 }],
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
   // {68,92} -> {62,84} (16.09.2026) : la refonte en trois compartiments de la « Fiche
   // express » (`NewContactModal`) écrit ses marges et paddings en jetons — `marginBottom: 7`
@@ -1088,7 +1098,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // littéraux hors échelle (`gap: 32`, `marginBottom: 36`, `padding: '18px 22px'`,
   // `padding: '80px 40px'`…). ⚠ Il en ajoute UN, le même que ses pages sœurs : le rayon 26
   // du cadre de travail, qui répond à `CrmPageSkeleton` et au coin que mesurent les popovers.
-  ['src/pages/agent', { hors: 292, total: 891 }],
+  // 292/891 → 217/784 le 16.09.2026 : la fiche bien refaite bord à bord écrit ses marges,
+  // rayons et tailles en jetons (`ListingDetailPage`). Puis 216/783 le même jour :
+  // `ListingWizardPage` est retirée avec l'ancien wizard.
+  ['src/pages/agent', { hors: 216, total: 783 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])
@@ -1197,16 +1210,13 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/components/crm-mobile/more/MrNotifSheet.tsx', 1],
   ['src/components/crm-mobile/tokens.ts', 4],
   ['src/components/crm-dossiers/vitrine/vitrineTokens.ts', 3],
-  ['src/components/crm-wizard/steps/Step4Photos.tsx', 1],
-  ['src/components/crm-wizard/tokens.ts', 4],
   ['src/components/crm/biens/gallery/GalCard.tsx', 2],
-  ['src/components/crm/biens/gallery/GalleryAtoms.tsx', 1],
   ['src/components/crm/biens/pager/BpFollowupPage.tsx', 4],
   ['src/components/crm/biens/pager/BpRenewModal.tsx', 1],
   ['src/components/crm/contacts-pager/ContactDetailPager.tsx', 1],
   ['src/components/crm/contacts-pager/ContactsPager.tsx', 4],
   ['src/components/crm/contacts-pager/NewContactModal.tsx', 5],
-  ['src/pages/agent/ListingDetailPage.tsx', 4],
+  ['src/pages/agent/ListingDetailPage.tsx', 2],
 ])
 
 // ⚠ `today/data.ts` (lot A1) et `analytics/tokens.ts` (lot A4) en sont SORTIS
@@ -1219,7 +1229,8 @@ const HORS_ZONE_ATTENDUS = [
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
-const TEMOIN = 'src/components/crm-wizard/steps/Step7Publish.tsx'
+// ⚠ Était `crm-wizard/steps/Step7Publish.tsx`, retiré avec l'ancien wizard le 16.09.2026.
+const TEMOIN = 'src/components/crm/biens/nouveau/NouveauBien.tsx'
 
 /**
  * Littéraux de taille assumés, EXPRESSION PAR EXPRESSION — pas par fichier.
@@ -1294,9 +1305,6 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     motif: /fontSize:\s*(?:Math\.\w+\([^)]*?)?\w+ \* 0\.\d+/,
     raison: 'calculée : une initiale suit le diamètre de sa pastille',
   },
-  { motif: /fontSize:\s*104\b/, raison: '104 px — le prix en grand, au-dessus du dernier barreau' },
-  { motif: /fontSize:\s*72\b/, raison: '72 px — la saisie chiffrée en grand, au-dessus du barreau' },
-  { motif: /fontSize:\s*q === 6 \? 32 : 40\b/, raison: '32/40 px — un même titre à deux densités' },
   {
     // ⚠ RAISON RÉÉCRITE LE 14 AOÛT 2026, et c'est une correction de garde, pas
     // de code. Elle disait « le titre de confirmation » — un site — alors que

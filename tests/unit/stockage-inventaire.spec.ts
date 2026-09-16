@@ -48,7 +48,6 @@ const INVENTAIRE: Record<string, { classe: Classe; motif: string }> = {
   'src/lib/supabase.ts': { classe: 'auth', motif: 'purge des jetons d’auth-js' },
   'src/pages/agent/CalendarPage.tsx': { classe: 'appareil', motif: 'invitation à connecter l’agenda déjà écartée' },
   'src/pages/agent/ImportLeadPage.tsx': { classe: 'compte', motif: 'brouillon d’import (clé exacte du registre)' },
-  'src/pages/agent/ListingDetailPage.tsx': { classe: 'appareil', motif: 'prochaine visite d’un bien (date, heure, identifiant de contact — aucun nom)' },
   'src/pages/dev/bancSession.ts': { classe: 'auth', motif: 'banc : session de démonstration (absent du bundle de production)' },
   'src/pages/public/AuthCallbackPage.tsx': { classe: 'compte', motif: 'consomme la clé de passage OAuth (megga_oauth_role)' },
 }

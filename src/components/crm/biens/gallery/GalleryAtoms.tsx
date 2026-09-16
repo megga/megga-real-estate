@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '../../tokens'
 import { galStatus, type GalSurfaces } from './galHelpers'
 
@@ -113,92 +113,6 @@ export function GalStatusPill({
   )
 }
 
-// ─── Contrôle segmenté (statut + bascule Galerie/Liste), accent noir ─────────
-export interface SegOption {
-  value: string
-  label: string
-  icon?: MEIconName
-  count?: number
-}
-
-export function GalSegmented({
-  options,
-  value,
-  onChange,
-  sp,
-  surf,
-  dark,
-}: {
-  options: SegOption[]
-  value: string
-  onChange: (v: string) => void
-  sp: CrmPalette
-  surf: GalSurfaces
-  dark: boolean
-}) {
-  return (
-    <div
-      style={{
-        display: 'inline-flex',
-        gap: 'var(--crm-space-2xs)',
-        padding: 'var(--crm-space-2xs)',
-        borderRadius: 'var(--crm-radius-pill)',
-        background: surf.cardSub,
-        border: surf.hairline,
-      }}
-    >
-      {options.map(o => {
-        const on = o.value === value
-        return (
-          <button
-            key={o.value}
-            onClick={() => onChange(o.value)}
-            style={{
-              height: 32,
-              padding: '0 var(--crm-space-2xl)',
-              borderRadius: 'var(--crm-radius-pill)',
-              border: 0,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: 'var(--crm-text-md)',
-              fontWeight: 600,
-              background: on ? sp.accent : 'transparent',
-              color: on ? sp.accentInk : sp.sub,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 'var(--crm-space-sm)',
-              whiteSpace: 'nowrap',
-              transition: 'background .15s, color .15s',
-            }}
-          >
-            {o.icon && <MEIcon name={o.icon} size={14} color={on ? sp.pageBg : sp.sub} />}
-            {o.label}
-            {o.count != null && (
-              <span
-                style={{
-                  fontSize: 'var(--crm-text-xs)',
-                  fontWeight: 600,
-                  fontVariantNumeric: 'tabular-nums',
-                  padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
-                  borderRadius: 'var(--crm-radius-pill)',
-                  background: on
-                    ? 'rgba(255,255,255,.18)'
-                    : dark
-                      ? 'rgba(255,255,255,.08)'
-                      : 'rgba(15,23,42,.06)',
-                  color: on ? sp.pageBg : sp.sub,
-                }}
-              >
-                {o.count}
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 // ─── Dropdown de tri : surface OPAQUE (sp.solid*) ────────────────────────────
 export interface SortOption {
   value: string
@@ -231,28 +145,33 @@ export function GalSortDropdown({
   const cur = options.find(o => o.value === value)
   return (
     <div ref={ref} style={{ position: 'relative' }}>
+      {/* 36 px et filet seul : la hauteur et le trait de la barre de « Mes biens ».
+          « Trier » passe en nom accessible — l'icône le dit déjà à l'œil. */}
       <button
+        type="button"
         onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`${t('gallery.sort')} : ${cur?.label ?? ''}`}
         style={{
-          height: 38,
-          padding: '0 var(--crm-space-2xl)',
+          height: 36,
+          boxSizing: 'border-box',
+          padding: '0 var(--crm-space-xl)',
           borderRadius: 'var(--crm-radius-pill)',
           cursor: 'pointer',
           fontFamily: 'inherit',
-          background: surf.card,
+          background: 'transparent',
           border: surf.hairline,
-          boxShadow: surf.shadow,
           color: sp.ink,
-          fontSize: 'var(--crm-text-md)',
+          fontSize: 'var(--crm-text-lg)',
           fontWeight: 600,
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 'var(--crm-space-md)',
+          gap: 'var(--crm-space-sm)',
           whiteSpace: 'nowrap',
         }}
       >
-        <MEIcon name="filter" size={13} color={sp.sub} />
-        <span style={{ color: sp.sub, fontWeight: 500 }}>{t('gallery.sort')}</span>
+        <MEIcon name="sort" size={14} color={sp.sub} />
         <span>{cur?.label}</span>
         <MEIcon name="chevron-down" size={12} color={sp.sub} />
       </button>

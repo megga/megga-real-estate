@@ -54,6 +54,10 @@ export type MEIconName =
   // Le dossier Spam (15.09.2026) : l'octogone de Gmail (« signaler comme spam »), pas le
   // triangle d'`alert` — le rail l'aurait lu comme un avertissement.
   | 'spam'
+  // Types de bien (16.09.2026) — un dessin PAR MOT : attique, duplex et triplex partageaient
+  // `layers` (une pile de feuilles), chalet reprenait `home`, et `villa` / `land` / `store`
+  // étaient des glyphes PLEINS de la fonte au milieu de pastilles tracées.
+  | 'penthouse' | 'duplex' | 'triplex' | 'plot' | 'chalet' | 'shop'
 
 const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -157,6 +161,15 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   'file-text': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6" /><path d="M8 13h8M8 17h5" /></>,
   // Même gabarit que `inbox` et `archive` (2 → 22) : le rail aligne six dossiers.
   spam: <><path d="M15.31 2a2 2 0 0 1 1.42.59l4.68 4.68A2 2 0 0 1 22 8.69v6.62a2 2 0 0 1-.59 1.42l-4.68 4.68a2 2 0 0 1-1.42.59H8.69a2 2 0 0 1-1.42-.59l-4.68-4.68A2 2 0 0 1 2 15.31V8.69a2 2 0 0 1 .59-1.42l4.68-4.68A2 2 0 0 1 8.69 2Z" /><path d="M12 8v4" /><path d="M12 16h.01" /></>,
+  // Types de bien. Attique : l'étage du haut en retrait. Duplex / triplex : la COUPE, un palier
+  // et l'escalier qui relie les niveaux. Terrain : la parcelle et son jalon.
+  villa: <><path d="M2 21h20" /><path d="M1.5 11 8 6l6.5 5" /><path d="M3.5 10v11M12.5 10v11" /><path d="M12.5 13H21v8" /><path d="M7 21v-4h2v4" /><path d="M15.5 16h2.5" /></>,
+  penthouse: <><path d="M3 21h18" /><path d="M5 21V9h14v12" /><path d="M8 9V4h8v5" /><path d="M9 13h.01M12 13h.01M15 13h.01M9 17h.01M12 17h.01M15 17h.01" /></>,
+  duplex: <><rect x="4" y="3" width="16" height="18" rx="1.5" /><path d="M4 12h8" /><path d="M12 21v-3h2.5v-3H17v-3h3" /></>,
+  triplex: <><rect x="4" y="3" width="16" height="18" rx="1.5" /><path d="M4 15h8M12 9h8" /><path d="M12 21v-2h3v-2h3v-2h2" /><path d="M12 15v-2H9.5v-2H7V9H4" /></>,
+  plot: <><path d="M2 20 6 11h16l-4 9Z" /><path d="M12 16V4l5 2.5L12 9" /></>,
+  chalet: <><path d="M2 12 12 3l10 9" /><path d="M5 9.5V21h14V9.5" /><path d="M5 15h14M9 15v6M15 15v6" /><path d="M11 9h2v2h-2z" /></>,
+  shop: <><path d="M3 9 4.5 4h15L21 9" /><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" /><path d="M5 11.5V20h14v-8.5" /><path d="M10 20v-5h4v5" /></>,
 }
 
 const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {
@@ -166,7 +179,7 @@ const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {
   'trending-up': 'chart', 'trending-down': 'chart',
   'more-horizontal': 'options', grip: 'drag', spinner: 'spinner',
   dashboard: 'dashboard', 'chevron-up-down': 'sort-asc',
-  villa: 'buildings', land: 'mountain', warehouse: 'archive',
+  land: 'mountain', warehouse: 'archive',
   layers: 'layers', bolt: 'lightning',
   broadcast: 'broadcast', flowchart: 'flowchart', megaphone: 'megaphone',
   'magic-wand': 'magic-wand', 'close-circle': 'close-circle',

@@ -89,7 +89,7 @@ export function wizardTitre(data: {
  */
 export function wizardPayload(data: WizardData, status: 'draft' | 'active'): CreatePropertyInput {
   return {
-    title: wizardTitre(data),
+    title: data.title?.trim() || wizardTitre(data),
     type: TYPE_TO_ENUM[data.type] ?? 'apartment',
     transaction_type: data.transaction === 'location' ? 'rent' : 'buy',
     status,
@@ -115,6 +115,7 @@ export function wizardPayload(data: WizardData, status: 'draft' | 'active'): Cre
     canton: data.cantonShort ?? data.canton,
     postal_code: data.postCode,
     features: data.features,
+    partner_agency: data.partnerAgency ?? null,
   }
 }
 
@@ -145,7 +146,12 @@ export function useWizardDraft<T extends WizardDraftable>(
   set: (patch: Partial<T>) => void,
   actif: boolean,
   payload: (d: T, status: 'draft' | 'active') => CreatePropertyInput,
-): { etat: EtatBrouillon; attendreEcriture: () => Promise<string | null> } {
+): {
+  etat: EtatBrouillon
+  attendreEcriture: () => Promise<string | null>
+  enregistrerMaintenant: () => Promise<{ id: string | null; ok: boolean }>
+  nonEcrit: () => boolean
+} {
   const createProperty = useCreateProperty()
   const updateProperty = useUpdateProperty()
 
@@ -192,11 +198,14 @@ export function useWizardDraft<T extends WizardDraftable>(
   /** Lu dans le timer sans le relancer à chaque frappe. */
   const dernier = useRef(data)
   dernier.current = data
+  /** La saisie de la dernière écriture RÉUSSIE — ce qui dit s'il reste quelque chose à écrire en partant. */
+  const ecrit = useRef<T | null>(null)
+  const echec = useRef(false)
 
   const ecrire = useCallback(function ecrireImpl(): Promise<void> {
     if (enVol.current) { enAttente.current = true; return enVolPromesse.current ?? Promise.resolve() }
     const d = dernier.current
-    if (!d.addr?.trim()) return Promise.resolve()
+    if (!d.addr?.trim() || memeSaisie(d, ecrit.current)) return Promise.resolve()
     enVol.current = true
     enAttente.current = false
     setEtat('enregistrement')
@@ -217,11 +226,14 @@ export function useWizardDraft<T extends WizardDraftable>(
           })
           version.current = (maj as { updated_at?: string })?.updated_at ?? null
         }
+        ecrit.current = d
+        echec.current = false
         setEtat('enregistre')
       } catch (err) {
         // Un échec doit se VOIR : c'est tout l'objet de ce fichier. Le conflit de
         // verrou (édition concurrente) tombe ici comme le reste.
         console.warn('[wizard] brouillon non enregistré:', err)
+        echec.current = true
         setEtat('echec')
       } finally {
         enVol.current = false
@@ -261,5 +273,36 @@ export function useWizardDraft<T extends WizardDraftable>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actif, data])
 
-  return { etat, attendreEcriture }
+  /**
+   * Écrit TOUT DE SUITE ce que le minuteur n'a pas encore écrit — au départ de l'écran,
+   * dont le démontage annulerait le minuteur et perdrait les dernières frappes. Rend
+   * l'identifiant du brouillon et si la dernière écriture a réussi.
+   */
+  const enregistrerMaintenant = useCallback(async (): Promise<{ id: string | null; ok: boolean }> => {
+    await ecrire()
+    await enVolPromesse.current?.catch(() => {})
+    return { id: draftId.current, ok: !echec.current }
+  }, [ecrire])
+
+  /** Une saisie avec adresse reste à écrire (ou s'écrit en ce moment). */
+  const nonEcrit = useCallback(
+    () => !!dernier.current.addr?.trim() && (enVol.current || !memeSaisie(dernier.current, ecrit.current)),
+    [],
+  )
+
+  return { etat, attendreEcriture, enregistrerMaintenant, nonEcrit }
+}
+
+/**
+ * Deux saisies identiques, champ par champ — hors `_draftId`, que la création pose APRÈS
+ * l'écriture et qui ne change rien à ce qui est enregistré. Les champs sont remplacés, jamais
+ * mutés : la comparaison par référence suffit.
+ */
+function memeSaisie<T extends WizardDraftable>(a: T, b: T | null): boolean {
+  if (!b) return false
+  const ra = a as unknown as Record<string, unknown>
+  const rb = b as unknown as Record<string, unknown>
+  const cles = new Set([...Object.keys(ra), ...Object.keys(rb)])
+  for (const k of cles) if (k !== '_draftId' && !Object.is(ra[k], rb[k])) return false
+  return true
 }

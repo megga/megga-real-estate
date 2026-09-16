@@ -42,7 +42,8 @@ describe('quota de biens — interrupteur', () => {
 
 describe('quota de biens — le refus se lit à l’écran', () => {
   it('le wizard traduit plan_property_limit au lieu d’afficher le code', () => {
-    const wizard = readFileSync('src/components/crm-wizard/WizardShell.tsx', 'utf8')
+    // La publication vit dans le hook partagé depuis le 16.09.2026 (l'ancien `WizardShell` est retiré).
+    const wizard = readFileSync('src/components/crm-wizard/usePublierWizard.ts', 'utf8')
     expect(wizard).toContain("message.includes('plan_property_limit') ? t('wizard.shell.planLimit')")
     for (const l of ['fr', 'de', 'en', 'it']) {
       const j = JSON.parse(readFileSync(`src/i18n/locales/${l}/listings.json`, 'utf8')) as {

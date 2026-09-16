@@ -61,6 +61,8 @@ export interface Property {
   floor_plan_hotspots?: FloorPlanHotspot[]
   photo_tags?: PhotoTag[]
   created_by: string
+  /** Agence partenaire en co-mandat (`naef` · `cardis` · `bernard`) ; NULL = l'agence du compte. */
+  partner_agency?: string | null
   created_at: string
   published_at: string | null
   updated_at?: string
