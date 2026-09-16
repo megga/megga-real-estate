@@ -39,7 +39,7 @@ import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
 import WhatsAppConnectModal from '@/components/crm/contacts-pager/WhatsAppConnectModal'
 import ContactDetailPager from '@/components/crm/contacts-pager/ContactDetailPager'
 import {
-  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_FICHE_NBA,
+  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_NOTES,
 } from './demoFixtures'
 import { readCrmDark } from '@/lib/crmDark'
 
@@ -158,7 +158,6 @@ export default function ContactsShowcasePage() {
         {surface === 'fiche' || surface === 'fiche-vide' ? (
           <ContactDetailPager
             fiche={DEMO_FICHE}
-            nba={DEMO_FICHE_NBA}
             loop={surface === 'fiche-vide' ? { ...DEMO_FICHE_LOOP, items: [], pendingLikes: [] } : DEMO_FICHE_LOOP}
             links={surface === 'fiche-vide' ? { ...DEMO_FICHE_LINKS, items: [] } : DEMO_FICHE_LINKS}
             sp={sp}
@@ -168,7 +167,10 @@ export default function ContactsShowcasePage() {
             onInvalidateKyc={NOOP_ASYNC}
             onSaveCoord={NOOP_ASYNC}
             onSaveCriteria={NOOP_ASYNC}
-            onSaveNote={ecritureCasse ? REFUS : NOOP_ASYNC}
+            noteThread={DEMO_NOTES}
+            onAddNote={ecritureCasse ? REFUS : NOOP_ASYNC}
+            onUpdateNote={ecritureCasse ? REFUS : NOOP_ASYNC}
+            onDeleteNote={ecritureCasse ? REFUS : NOOP_ASYNC}
             onDelete={NOOP_ASYNC}
             onOpenKyc={NOOP}
             onOpenMatching={NOOP}

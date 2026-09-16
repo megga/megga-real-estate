@@ -16,7 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { useTabLabel } from '@/hooks/useCrmTabs'
+import { useCrmTabsOptionnel, useTabLabel } from '@/hooks/useCrmTabs'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
@@ -26,16 +26,15 @@ import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useK
 import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import { formatSwissDate, identityToColumns } from '@/lib/contactIdentity'
-import { pickAvatarBg } from '@/lib/crmAdapters'
+import { mapKycStatus, pickAvatarBg } from '@/lib/crmAdapters'
+import type { KycDossierStatus } from '@/types/kyc'
+import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { supabase } from '@/lib/supabase'
 import ContactDetailPager, {
   type FicheContact,
-  type FicheNba,
   type FicheRevokeResult,
 } from '@/components/crm/contacts-pager/ContactDetailPager'
-import { useContactNextAction } from '@/hooks/useContactNextAction'
-import { useContactConsent, useSetDoNotContact, useSendOptinInvite } from '@/hooks/useContactConsent'
-import { nbaToI18n } from '@/lib/contactNba'
+import { useContactNotes } from '@/hooks/useContactNotes'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ContactDetailPage() {
@@ -61,13 +60,11 @@ export default function ContactDetailPage() {
   const receptionLinks = useReceptionLinks(id)
   const revokeLink = useRevokeReceptionLink()
   const { data: kyc } = useKycDossierByContact(id)
-  // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
-  const { data: nbaRaw } = useContactNextAction(id)
-  // Joignabilité WhatsApp : l'état, son motif et le journal. Le pager ne fait aucun appel
-  // réseau — il reçoit la donnée normalisée et le geste, comme tout le reste de la fiche.
-  const { data: consent } = useContactConsent(id)
-  const doNotContact = useSetDoNotContact()
-  const inviteOptin = useSendOptinInvite()
+  const notesFil = useContactNotes(id)
+  // Écrire au contact depuis l'en-tête : dans la Messagerie si une boîte est connectée
+  // (le courrier part de chez l'agent et se range sur la fiche), sinon `mailto:`.
+  const boites = useMailAccounts()
+  const onglets = useCrmTabsOptionnel()
   const update = useUpdateContact()
   const del = useDeleteContact()
   const invalidateKyc = useInvalidateKycForContact()
@@ -150,40 +147,30 @@ export default function ContactDetailPage() {
       ? (fd.offer as CriteriaInput)
       : parseSearchCriteria(contact.search_criteria),
     notes: contact.notes ?? '',
+    kycStatus: mapKycStatus((kyc?.dossier_status ?? undefined) as KycDossierStatus | undefined),
+    lastContactAt: contact.last_interaction_at ?? null,
   }
-
-  // ── NBA → ligne du héro (chaînes traduites ici ; le pager reste présentationnel).
-  // `none` → null (sobre, pas de bruit « aucune action »).
-  const nbaI = nbaRaw ? nbaToI18n(nbaRaw) : null
-  const nba: FicheNba | null = nbaI
-    ? {
-        label: tr(nbaI.key, nbaI.params as Record<string, string | number>),
-        kycNote: nbaRaw?.hasKycNote ? tr('nba.kycNote') : null,
-      }
-    : null
+  const ecrire = () => {
+    const email = contact.email?.trim()
+    if (!email) return
+    if (boites.list.length === 0) { window.location.href = `mailto:${email}`; return }
+    // Un jeton par demande : la Messagerie n'ouvre le composeur qu'une fois par clic,
+    // même si l'onglet est remonté (cf. `?add=` des Réglages).
+    // Chemin écrit EN LITTÉRAL au point de navigation : la garde des redirections ouvertes
+    // (`redirection-ouverte.spec.ts`) y lit une destination interne, pas une variable.
+    const requete = `ecrire=${encodeURIComponent(email)}&j=${Date.now().toString(36)}`
+    if (onglets) onglets.ouvrirDans(`/dashboard/messagerie?${requete}`)
+    else navigate(`/dashboard/messagerie?${requete}`)
+  }
 
   return shell(
     <ContactDetailPager
       fiche={fiche}
-      nba={nba}
       loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, opened: loop.opened }}
       links={{ items: receptionLinks.data ?? [], isLoading: receptionLinks.isLoading, failed: receptionLinks.isError }}
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
-      consent={consent
-        ? {
-            ...consent,
-            pendingInviteAt: consent.pendingInvite?.createdAt ?? null,
-            // L'invitation voyage par E-MAIL : sans adresse, elle ne peut pas partir, et la
-            // carte doit le dire plutôt que de griser sans motif.
-            canInvite: !!contact?.email && !!contact?.phone,
-          }
-        : null}
-      onDoNotContact={contact?.phone
-        ? async () => { await doNotContact.mutateAsync({ contactId: id, phone: contact.phone as string }) }
-        : undefined}
-      onInviteOptin={async () => { await inviteOptin.mutateAsync({ contactId: id }) }}
       onSaveIdentity={async (v) => {
         const cols = identityToColumns(v)
         await update.mutateAsync({ id, first_name: v.firstName, last_name: v.lastName, ...cols })
@@ -236,14 +223,13 @@ export default function ContactDetailPage() {
         }
         refreshList()
       }}
-      // Écriture NUE : ni délai, ni report. Le pager porte le débounce (il sait
-      // quand la frappe s'arrête) et remonte le verdict à l'agent. La page
-      // gardait auparavant un `setTimeout` que rien ne nettoyait, et avalait
-      // l'échec — cf. `notePlanner.ts`.
-      onSaveNote={async (note) => {
-        await update.mutateAsync({ id, notes: note.trim() || null })
-        refreshList()
-      }}
+      // Le FIL de notes (`contact_notes`). Écritures NUES, promesses rendues : le pager
+      // attend chaque geste et en montre l'issue. `contacts.notes` n'est plus écrit
+      // ici — la base en tient le résumé.
+      noteThread={notesFil.notes}
+      onAddNote={async (body) => { await notesFil.add(body) }}
+      onUpdateNote={async (noteId, body) => { await notesFil.update(noteId, body) }}
+      onDeleteNote={async (noteId) => { await notesFil.remove(noteId) }}
       // Pas de navigate ici : le pager affiche « Contact supprimé » puis appelle
       // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).
       onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
@@ -259,6 +245,7 @@ export default function ContactDetailPage() {
         }
       }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
+      onEmail={ecrire}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
       onOpenListings={() => navigate('/dashboard/listings')}
       onProposeVisit={() => navigate(`/dashboard/matching?contact=${id}`)}

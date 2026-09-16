@@ -149,7 +149,13 @@ const HORS_ASSUMES = new Map<string, number>([
   // deux types d'un même domaine se confondaient (Visite / Rappel, Étape / Mandat…).
   // Des teintes qui ENCODENT, la famille que l'en-tête range hors de la direction par
   // nature ; `agent-notifications-scenarios.spec.ts` les veut distinctes et lisibles.
-  ['src/components/crm', 519],
+  // 519 → 524 le 16.09.2026, CROISSANCE assumée elle aussi : les deux vagues de points de
+  // l'écran vide de Contacts (`ContactsFirstRun`) passent d'aplats à des DÉGRADÉS (violet,
+  // fuchsia, rose, lavande, plus le violet de jonction nommé une fois). Elles vivaient déjà
+  // hors barreaux, mais DANS le SVG, que ce balayage ne lit pas ; le fichier ne sert plus
+  // que de masque et les teintes sont montées dans le code. De l'ILLUSTRATION : aucun texte
+  // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
+  ['src/components/crm', 524],
   ['src/components/crm-mobile', 140],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
