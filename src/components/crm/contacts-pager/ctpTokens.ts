@@ -15,8 +15,23 @@
  * Même rôle que `galHelpers.ts` pour la galerie de « Mes biens ».
  */
 
-/** Teintes par audience. Partagées avec le point de couleur de la page Santé. */
-export const CTP_FN = { buyer: '#1E5BC6', seller: '#C45A00', tenant: '#0891B2', ok: '#059669' } as const
+/**
+ * Teintes par audience. Partagées avec le point de couleur de la page Santé.
+ *
+ * ⚠ `seller` et `tenant` FONCÉS le 16.09.2026, à teinte constante (#C45A00 → #BA4C00,
+ * #0891B2 → #0E7490). Clairs, ils ne portaient pas le blanc à l'AA (4,37 et 3,68:1) :
+ * `encreSur` leur donnait l'encre NOIRE, et « Acheteur » en blanc à côté de « Vendeur » et
+ * « Locataire » en noir se lisait comme un défaut (Julien). Foncés, le blanc y rend 5,10
+ * et 5,36:1 et l'emporte sur le noir : les trois pastilles portent la même encre.
+ */
+export const CTP_FN = { buyer: '#1E5BC6', seller: '#BA4C00', tenant: '#0E7490', ok: '#059669' } as const
+
+/**
+ * Le violet de MEGGA AI dans Contacts : là où se rejoignent les vagues de l'écran vide,
+ * et la fin du dégradé de la pastille MEGGA AI des notes. Nommé une fois pour les deux.
+ * Illustration, pas un barreau d'interface — sous l'encre blanche il rend 5,7:1.
+ */
+export const MEGGA_AI_VIOLET = '#7c3aed'
 
 /**
  * Encre bleue des libellés TEXTE (KYC vérifié, pilule de filtre).

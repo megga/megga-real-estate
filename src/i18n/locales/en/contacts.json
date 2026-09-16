@@ -734,8 +734,18 @@
     "newContact": "New contact",
     "removeFilter": "Remove filter",
     "emptyFilter": "No contact for this filter.",
+    "search": "Search",
+    "searchLabel": "Search contacts by name, email or phone",
+    "searchClear": "Clear search",
+    "searchEmpty": "No contacts for “{{q}}”",
     "today": "today",
     "yesterday": "yesterday",
+    "budget": {
+      "from": "from {{n}}",
+      "max": "max",
+      "min": "min",
+      "perMonth": "per month"
+    },
     "col": {
       "contact": "Contact",
       "type": "Type",
@@ -793,15 +803,10 @@
   },
   "firstRun": {
     "title": "Your contacts, ready to match",
-    "subtitleLine1": "Bring your buyers and tenants together here.",
-    "subtitleLine2": "As soon as a contact has criteria, MEGGA brings them closer to your mandates.",
-    "step1Title": "Your contacts arrive via WhatsApp",
-    "step1Sub": "Every incoming conversation becomes a record.",
     "step1Cta": "Connect WhatsApp",
-    "step2Title": "MEGGA links them to your properties",
-    "step2Sub": "Matching happens on its own.",
-    "step2Cta": "Automatic",
-    "manualLink": "Create a contact manually"
+    "whatsappConnected": "WhatsApp connected",
+    "createContact": "Create a contact",
+    "matchingAuto": "Automatic matching"
   },
   "waConnect": {
     "title": "Connect your WhatsApp account",
@@ -843,20 +848,39 @@
       "call": "Call",
       "email": "Email"
     },
-    "criteriaBuy": "Criteria · purchase",
-    "criteriaRent": "Criteria · rental",
-    "rentMax": "Max rent (CHF)",
+    "criteria": "Criteria",
+    "rentMax": "Max rent",
     "rentMaxPlaceholder": "3'500",
-    "budgetMin": "Min budget (CHF)",
+    "budgetMin": "Min budget",
     "budgetMinPlaceholder": "900'000",
-    "budgetMax": "Max budget (CHF)",
+    "budgetMax": "Max budget",
     "budgetMaxPlaceholder": "1'300'000",
     "cantonPlaceholder": "Type a canton: GE, VD…",
     "roomsPlaceholder": "4",
     "addressPlaceholder": "Street…, ZIP City",
     "note": "Note",
     "notePlaceholder": "Context, preferences, relationship history…",
-    "validationError": "First name, last name and a valid email are required.",
+    "validationError": "First name, last name, and an email or a phone number are required.",
+    "emailError": "Invalid email address.",
+    "budgetOrder": "Min is above max",
+    "stepUp": "Increase",
+    "stepDown": "Decrease",
+    "paste": {
+      "button": "Paste a message",
+      "placeholder": "Paste an email or a WhatsApp message",
+      "filled": "To check"
+    },
+    "identityConfirm": {
+      "title": "Incomplete identity",
+      "body": "Without this information, this contact's KYC file cannot be validated.",
+      "complete": "Complete identity",
+      "createAnyway": "Create without identity"
+    },
+    "duplicate": {
+      "open": "Open",
+      "createAnyway": "Create anyway",
+      "exists": "already exists"
+    },
     "cancel": "Cancel",
     "crop": {
       "title": "Crop the photo",
@@ -891,6 +915,20 @@
     "dialCode": "Country dialling code"
   },
   "fiche": {
+    "header": {
+      "whatsapp": "WhatsApp · {{n}}",
+      "noPhone": "WhatsApp: no number",
+      "email": "Write to {{n}}",
+      "noEmail": "No email address",
+      "lastContact": "Last contact {{quand}}",
+      "neverContacted": "Never contacted",
+      "kyc": {
+        "verified": "KYC verified",
+        "pending": "KYC pending",
+        "stale": "KYC expired",
+        "none": "No KYC file"
+      }
+    },
     "back": "Contacts",
     "seal": {
       "title": "KYC verified",
@@ -937,6 +975,8 @@
       "saveError": "The identity could not be saved. Please try again."
     },
     "coord": {
+      "identity": "Identity",
+      "toComplete": "To complete",
       "civility": "Title",
       "channel": "Preferred channel",
       "emailPlaceholder": "name@example.ch",
@@ -994,10 +1034,37 @@
       "garage": "Garage",
       "vueLac": "Lake view"
     },
-    "note": {
-      "label": "Note",
-      "placeholder": "Context, preferences, relationship history…",
-      "saveError": "The note could not be saved. Try again."
+    "notes": {
+      "title": "Notes",
+      "older_one": "Show the older note",
+      "older_other": "Show {{count}} older notes",
+      "filter": {
+        "label": "Filter notes",
+        "toutes": "All",
+        "moi": "You",
+        "equipe": "Team",
+        "ai": "MEGGA AI"
+      },
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "more": "Show more",
+      "less": "Show less",
+      "placeholder": "Add a note…",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirmDelete": "Delete this note?",
+      "empty": "No notes yet.",
+      "edited": "edited",
+      "you": "You",
+      "megga": "MEGGA AI",
+      "system": "MEGGA",
+      "formerAgent": "Former member",
+      "addError": "The note could not be added. Please try again.",
+      "editError": "The note could not be edited. Please try again.",
+      "deleteError": "The note could not be deleted. Please try again."
     },
     "page": {
       "infos": "Their information",
@@ -1049,49 +1116,8 @@
     "saved": {
       "coord": "Contact details saved",
       "crit": "Criteria saved",
-      "note": "Note saved"
-    },
-    "consent": {
-      "label": "WhatsApp reachability",
-      "reachable": "Reachable",
-      "optedOut": "Asked not to be contacted",
-      "blockedByAgent": "Marked “do not contact”",
-      "optedOutHelp": "This person asked for it themselves. The block cannot be lifted from the CRM.",
-      "blockedByAgentHelp": "Internal decision. No WhatsApp message will go to this number.",
-      "doNotContact": "Do not contact",
-      "confirm": "No further WhatsApp message will be sent to this contact.",
-      "confirmYes": "Confirm",
-      "saving": "Saving…",
-      "showLog": "Show log",
-      "hideLog": "Hide log",
-      "event": {
-        "opt_in": "Consent",
-        "opt_out": "Refusal"
-      },
-      "source": {
-        "stop_keyword": "STOP received by message",
-        "meta_block": "WhatsApp unsubscribe button",
-        "agent_manual": "Entered by an agent",
-        "click_to_wa": "Consent link",
-        "web_form_doubleoptin": "Form with double confirmation",
-        "qr": "QR code",
-        "import_repermission": "Import with re-consent",
-        "agent_pairing": "Agent pairing",
-        "brief_enabled": "Brief re-enabled",
-        "brief_disabled": "Brief disabled"
-      },
-      "invite": "Invite on WhatsApp",
-      "inviting": "Sending…",
-      "inviteHelp": "An email will offer them to receive your messages on WhatsApp. They accept, not you.",
-      "inviteNoEmail": "Without an email address the invitation cannot go out: it travels on that channel.",
-      "inviteSent": "Invitation sent on {{date}}, awaiting their reply.",
-      "inviteError": {
-        "generic": "The invitation did not go out. Try again in a moment.",
-        "phone_suppressed": "This contact asked not to be contacted: we do not invite them again.",
-        "contact_without_email": "This contact has no email address.",
-        "agency_wa_number_missing": "The agency's WhatsApp number is not registered. Contact support.",
-        "email_send_failed": "The email could not be sent. Try again in a moment."
-      }
+      "note": "Note saved",
+      "noteDeleted": "Note deleted"
     }
   },
   "nba": {
