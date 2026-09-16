@@ -56,6 +56,7 @@
  * page des surfaces défilantes restent au pixel près.
  */
 
+import { CrmAvis } from './CrmAvis'
 import { useEffect } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { CrmSidebar, type CrmSidebarProps } from './CrmSidebar'
@@ -189,6 +190,8 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
           display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0,
         }}>
           {children}
+          {/* L'avis (« Brouillon enregistré ») : centré sous le contenu, quel que soit l'écran qui l'a émis. */}
+          <CrmAvis sp={sidebar.sp} />
         </div>
       </div>
     </div>

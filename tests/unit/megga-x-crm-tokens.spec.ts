@@ -479,7 +479,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * chantier Contacts, qui traitent précisément les polices en dur.
    */
   const POLICES_ASSUMEES = new Set([
-    'src/components/crm-wizard/WizardShell.tsx',
     'src/components/crm/biens/pager/BiensFirstRun.tsx',
     'src/components/crm/biens/pager/BpRenewModal.tsx',
     'src/components/matching-atelier/MatchingFirstRun.tsx',

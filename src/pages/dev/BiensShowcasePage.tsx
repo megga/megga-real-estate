@@ -39,7 +39,7 @@ import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
-import WizardShell from '@/components/crm-wizard/WizardShell'
+import NouveauBien from '@/components/crm/biens/nouveau/NouveauBien'
 import ListingDetailPage from '@/pages/agent/ListingDetailPage'
 import { DEMO_LISTING } from './demoFixtures'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -135,7 +135,7 @@ export default function BiensShowcasePage() {
               onCreate={() => setWizardOpen(true)}
               onResumeDraft={() => {}}
               wizardOpen={wizardOpen}
-              wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
+              wizardSlot={<NouveauBien dark={dark} onClose={() => setWizardOpen(false)} onOuvrirBien={() => setWizardOpen(false)} />}
             />
             </CrmWorkspace>
           </div>

@@ -138,7 +138,7 @@ const MobileMessagerieScreen = lazy(() => import('@/components/crm-mobile/messag
 const MailOAuthCallbackPage = lazy(() => import('@/pages/agent/MailOAuthCallbackPage'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
-const ListingWizardPage = lazy(() => import('@/pages/agent/ListingWizardPage'))
+const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 // Refonte KYC (handoff) — onboarding « Première ouverture » (empty-state).
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
@@ -384,7 +384,8 @@ const ROUTES_TABLEAU_DE_BORD = (
   {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
   <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
   <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-  <Route path="listings/new" element={<ResponsiveRoute desktop={<ListingWizardPage />} mobile={<MobileWizardPage />} />} />
+  {/* Créer un bien : « Nouveau bien » en quatre étapes (16.09.2026), l'ancien wizard est retiré. */}
+  <Route path="listings/new" element={<ResponsiveRoute desktop={<NouveauBienPage />} mobile={<MobileWizardPage />} />} />
   <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
   {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
       Sous AgentLayout (chrome Sugar auto-porté) pour cohérence

@@ -1875,5 +1875,149 @@
         "sujet": "Visita di «{{bien}}»"
       }
     }
+  },
+  "nouveauBien": {
+    "titre": "Nuovo immobile",
+    "etapesAria": "Passaggi della creazione",
+    "apercu": "Anteprima in I miei immobili",
+    "completude": "Annuncio completo",
+    "requis": "Richiesto",
+    "modifier": "Modifica",
+    "continuer": "Continua",
+    "retour": "Indietro",
+    "garder": "Salva senza pubblicare",
+    "publier": "Pubblica l’annuncio",
+    "enCours": "Salvataggio…",
+    "adresseAvant": "Aggiunga prima un indirizzo.",
+    "manque": "Ancora richiesto per pubblicare: {{liste}}",
+    "etapes": {
+      "bien": "L’immobile",
+      "photos": "Foto",
+      "annonce": "L’annuncio",
+      "mandat": "Mandato e diffusione"
+    },
+    "brouillon": {
+      "echec": "Bozza non salvata — nuovo tentativo alla prossima modifica",
+      "quitte": "Bozza salvata",
+      "echecDepart": "Bozza non salvata",
+      "sansAdresse": "Nessuna bozza senza indirizzo"
+    },
+    "points": {
+      "adresse": "Indirizzo",
+      "bien": "Superficie e locali",
+      "prix": "Prezzo",
+      "photos": "5 foto",
+      "description": "Descrizione (200 caratteri)",
+      "vendeur": "Venditore",
+      "mandat": "Mandato e provvigione"
+    },
+    "types": {
+      "appartement": "Appartamento",
+      "maison": "Casa",
+      "villa": "Villa",
+      "attique": "Attico",
+      "duplex": "Duplex",
+      "triplex": "Triplex",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Terreno",
+      "commerce": "Commerciale"
+    },
+    "bien": {
+      "transaction": "Vendita o affitto?",
+      "type": "Tipo di immobile",
+      "adresse": "Indirizzo",
+      "adressePlaceholder": "Via e numero, località",
+      "adresseTrouvee": "Indirizzo trovato",
+      "recherche": "Ricerca…",
+      "recherchePanne": "La ricerca dell’indirizzo non risponde. Inserisca l’indirizzo a mano.",
+      "saisieManuelle": "Inserire l’indirizzo a mano",
+      "rechercherAdresse": "Cercare l’indirizzo",
+      "rue": "Via",
+      "numero": "N.",
+      "npa": "NPA",
+      "localite": "Località",
+      "canton": "Cantone",
+      "chiffres": "Dati principali",
+      "surface": "Superficie abitabile",
+      "surfaceTerrain": "Superficie del terreno",
+      "etage": "Piano",
+      "prix": "Prezzo",
+      "loyer": "Affitto",
+      "loyerMensuel": "Affitto mensile",
+      "chargesMensuelles": "Spese mensili",
+      "prixM2": "Ovvero {{prix}} al m²"
+    },
+    "photos": {
+      "titre": "Foto",
+      "ajouter": "Aggiungi",
+      "deposer": "Trascini qui le foto",
+      "deposerAide": "o clicchi per sceglierle — JPG, PNG, HEIC",
+      "couverture": "Copertina",
+      "mettreEnCouverture": "Imposta come copertina",
+      "retirer": "Rimuovi",
+      "encore_one": "Ancora {{count}} foto per poter pubblicare",
+      "encore_other": "Ancora {{count}} foto per poter pubblicare",
+      "assez_one": "{{count}} foto",
+      "assez_other": "{{count}} foto",
+      "glisser": "Trascini per cambiare l’ordine"
+    },
+    "annonce": {
+      "titre": "Titolo",
+      "description": "Descrizione",
+      "descriptionPlaceholder": "Descriva l’immobile: luminosità, spazi, quartiere, stato…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Neutro",
+        "premium": "Premium",
+        "famille": "Famiglia",
+        "invest": "Investitore"
+      },
+      "iaRediger": "Redigi",
+      "iaReecrire": "Riscrivi",
+      "iaEnCours": "Redazione…",
+      "iaEchec": "MEGGA AI non è riuscito a redigere la descrizione. Riprovi o la scriva lei.",
+      "iaRelire": "Proposta da MEGGA AI — rilegga prima di pubblicare",
+      "caracteres_one": "{{count}} carattere · {{min}} consigliati",
+      "caracteres_other": "{{count}} caratteri · {{min}} consigliati",
+      "atouts": "Punti di forza",
+      "tousAtouts_one": "Mostra {{count}} altro punto di forza",
+      "tousAtouts_other": "Mostra gli altri {{count}} punti di forza"
+    },
+    "mandat": {
+      "vendeur": "Venditore",
+      "rechercherVendeur": "Cerca un contatto",
+      "nouveauVendeur": "Nuovo venditore",
+      "vendeurNeuf": "Nuovo contatto, creato al salvataggio",
+      "prenom": "Nome",
+      "nom": "Cognome",
+      "email": "E-mail",
+      "telephone": "Telefono",
+      "ajouterVendeur": "Aggiungi il venditore",
+      "mandat": "Mandato",
+      "types": {
+        "exclusive": "Esclusivo",
+        "simple": "Semplice",
+        "co": "Co-mandato"
+      },
+      "duree": "Durata",
+      "mois_one": "{{count}} mese",
+      "mois_other": "{{count}} mesi",
+      "signe": "Mandato firmato",
+      "agence": "Agenzia",
+      "diffusion": "Diffusione",
+      "publierTitre": "Pubblica l’annuncio",
+      "publierAide": "L’immobile diventa Attivo e può essere diffuso.",
+      "garderTitre": "Rete Off-market"
+    },
+    "fini": {
+      "publie": "Annuncio pubblicato",
+      "garde": "Immobile salvato",
+      "publieAide": "«{{titre}}» è online in I miei immobili.",
+      "gardeAide": "«{{titre}}» è salvato Off-market. Lo pubblichi dalla sua scheda quando è pronto.",
+      "ouvrir": "Apri la scheda",
+      "autre": "Crea un altro immobile",
+      "retour": "Torna a I miei immobili"
+    }
   }
 }

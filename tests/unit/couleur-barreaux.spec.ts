@@ -161,7 +161,8 @@ const HORS_ASSUMES = new Map<string, number>([
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
   // l'encre d'alerte recopiée `#8C5A00`.
   ['src/components/crm-dossiers', 58],
-  ['src/components/crm-wizard', 47],
+  // `crm-wizard` (47) est SORTI le 16.09.2026 : l'ancien wizard et sa palette sont retirés,
+  // il ne reste dans ce dossier que le modèle de saisie et deux hooks, sans une couleur.
   // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
   // WhatsApp fourni par Julien (`LogoWhatsApp`) porte son dégradé de marque, `#4AC14B` →
   // `#06853A` (`WHATSAPP_DEGRADE`, à côté de `WHATSAPP_VERT`). Des couleurs de MARQUE —

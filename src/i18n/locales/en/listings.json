@@ -1875,5 +1875,149 @@
         "sujet": "Viewing of “{{bien}}”"
       }
     }
+  },
+  "nouveauBien": {
+    "titre": "New property",
+    "etapesAria": "Creation steps",
+    "apercu": "Preview in My properties",
+    "completude": "Listing complete",
+    "requis": "Required",
+    "modifier": "Edit",
+    "continuer": "Continue",
+    "retour": "Back",
+    "garder": "Save without publishing",
+    "publier": "Publish the listing",
+    "enCours": "Saving…",
+    "adresseAvant": "Add an address first.",
+    "manque": "Still required to publish: {{liste}}",
+    "etapes": {
+      "bien": "The property",
+      "photos": "Photos",
+      "annonce": "The listing",
+      "mandat": "Mandate & listing"
+    },
+    "brouillon": {
+      "echec": "Draft not saved — retrying on your next change",
+      "quitte": "Draft saved",
+      "echecDepart": "Draft not saved",
+      "sansAdresse": "No draft without an address"
+    },
+    "points": {
+      "adresse": "Address",
+      "bien": "Area and rooms",
+      "prix": "Price",
+      "photos": "5 photos",
+      "description": "Description (200 characters)",
+      "vendeur": "Seller",
+      "mandat": "Mandate and commission"
+    },
+    "types": {
+      "appartement": "Apartment",
+      "maison": "House",
+      "villa": "Villa",
+      "attique": "Penthouse",
+      "duplex": "Duplex",
+      "triplex": "Triplex",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Land",
+      "commerce": "Commercial"
+    },
+    "bien": {
+      "transaction": "Sale or rental?",
+      "type": "Property type",
+      "adresse": "Address",
+      "adressePlaceholder": "Street and number, locality",
+      "adresseTrouvee": "Address found",
+      "recherche": "Searching…",
+      "recherchePanne": "Address search is not responding. Enter the address manually.",
+      "saisieManuelle": "Enter the address manually",
+      "rechercherAdresse": "Search for the address",
+      "rue": "Street",
+      "numero": "No.",
+      "npa": "Postcode",
+      "localite": "Locality",
+      "canton": "Canton",
+      "chiffres": "Key figures",
+      "surface": "Living area",
+      "surfaceTerrain": "Plot area",
+      "etage": "Floor",
+      "prix": "Price",
+      "loyer": "Rent",
+      "loyerMensuel": "Monthly rent",
+      "chargesMensuelles": "Monthly charges",
+      "prixM2": "That is {{prix}} per m²"
+    },
+    "photos": {
+      "titre": "Photos",
+      "ajouter": "Add",
+      "deposer": "Drop your photos here",
+      "deposerAide": "or click to choose them — JPG, PNG, HEIC",
+      "couverture": "Cover",
+      "mettreEnCouverture": "Set as cover",
+      "retirer": "Remove",
+      "encore_one": "{{count}} more photo needed to publish",
+      "encore_other": "{{count}} more photos needed to publish",
+      "assez_one": "{{count}} photo",
+      "assez_other": "{{count}} photos",
+      "glisser": "Drag to reorder"
+    },
+    "annonce": {
+      "titre": "Title",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the property: light, spaces, neighbourhood, condition…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Neutral",
+        "premium": "Premium",
+        "famille": "Family",
+        "invest": "Investor"
+      },
+      "iaRediger": "Write",
+      "iaReecrire": "Rewrite",
+      "iaEnCours": "Writing…",
+      "iaEchec": "MEGGA AI could not write the description. Try again, or write it yourself.",
+      "iaRelire": "Suggested by MEGGA AI — review before publishing",
+      "caracteres_one": "{{count}} character · {{min}} recommended",
+      "caracteres_other": "{{count}} characters · {{min}} recommended",
+      "atouts": "Features",
+      "tousAtouts_one": "Show {{count}} more feature",
+      "tousAtouts_other": "Show {{count}} more features"
+    },
+    "mandat": {
+      "vendeur": "Seller",
+      "rechercherVendeur": "Search a contact",
+      "nouveauVendeur": "New seller",
+      "vendeurNeuf": "New contact, created when saving",
+      "prenom": "First name",
+      "nom": "Last name",
+      "email": "Email",
+      "telephone": "Phone",
+      "ajouterVendeur": "Add the seller",
+      "mandat": "Mandate",
+      "types": {
+        "exclusive": "Exclusive",
+        "simple": "Simple",
+        "co": "Co-mandate"
+      },
+      "duree": "Duration",
+      "mois_one": "{{count}} month",
+      "mois_other": "{{count}} months",
+      "signe": "Mandate signed",
+      "agence": "Agency",
+      "diffusion": "Visibility",
+      "publierTitre": "Publish the listing",
+      "publierAide": "The property becomes Active and can be distributed.",
+      "garderTitre": "Off-market network"
+    },
+    "fini": {
+      "publie": "Listing published",
+      "garde": "Property saved",
+      "publieAide": "“{{titre}}” is live in My properties.",
+      "gardeAide": "“{{titre}}” is saved Off-market. Publish it from its page when it is ready.",
+      "ouvrir": "Open the property page",
+      "autre": "Create another property",
+      "retour": "Back to My properties"
+    }
   }
 }

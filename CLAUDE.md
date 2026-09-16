@@ -322,17 +322,18 @@ d'écran n'est restée sur Graphite).
   d'underline**, et l'accent a remplacé le monochrome le 10 août. Elle décrivait
   Sugar Pure, pas MEGGA X. Trois idiomes coexistent, chacun justifié par le NOMBRE
   d'étapes — ne pas en inventer un quatrième :
-  - **barre segmentée** quand les étapes n'ont pas de nom utile (`WizardShell`,
-    7 étapes : segments de 4 px, `i <= etape ? accent : line`) ;
+  - **barre segmentée** quand les étapes n'ont pas de nom utile (segments de 4 px,
+    `i <= etape ? accent : line`). ⚠ Son exemple était `WizardShell` (7 étapes),
+    **retiré le 16.09.2026** avec l'ancien wizard « Créer un bien » ;
   - **pilules à libellé** quand elles en ont un et qu'on peut revenir en arrière
     (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
-    = sourdine) ;
+    = sourdine ; « Nouveau bien », 4 étapes : actif = pilule d'accent, fait = coche) ;
   - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
     dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
     AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
     `DealDetailPage:100` et `MobileDealDetailScreen:179` rendent tous deux
     `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
-    la même forme que `WizardShell`. Le « 8 » était juste (8 colonnes UI pour 14
+    la même forme que la barre segmentée. Le « 8 » était juste (8 colonnes UI pour 14
     stades DB), la forme non.
     ⚠ Et les deux segments ne se peignent pas pareil : le mobile met l'étape
     courante en `accent`, le bureau la peint en `ink` — donc **le bureau n'applique
@@ -671,7 +672,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
 
 **Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
 mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
@@ -704,10 +705,11 @@ portaient déjà la coquille ; ⚠ sur téléphone elle s'en passe, la route n'a
 mobile. Et les trois écrans d'état de `KycLabGuard` (attente, lecture impossible, blocage LAB —
 12.09.2026) : pour une agence bloquée, l'onglet KYC perdait le chrome à CHAQUE bascule. Les trois
 restantes gardent leur choix : `visits/new`, `transactions/:id/offre/:kind` et `import-lead` sont des
-modales de plein écran (`position: fixed`, une croix pour sortir), pas des fiches. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:46` calcule
-`height: calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl) - var(--crm-tabs-h, 0px))`, et sans
-son dernier terme la page débordait de la hauteur de la bande, le pied du wizard passant sous le pli.
-Il en est aujourd'hui le **seul** lecteur.
+modales de plein écran (`position: fixed`, une croix pour sortir), pas des fiches. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:46` en était le **seul**
+lecteur (`height: calc(100vh - … - var(--crm-tabs-h, 0px))`, sans quoi le pied du wizard passait sous
+le pli). ⛔ **Cette page est retirée depuis le 16.09.2026** avec l'ancien wizard : « Nouveau bien »
+(`NouveauBienPage`) prend sa hauteur du cadre flex, comme la fiche bien. La variable n'a donc plus de
+lecteur — ne pas en déduire qu'elle est inutile : une surface qui calcule contre `100vh` en aurait besoin.
 
 ⛔ **LES ÉCRANS D'ONGLET RESTENT VIVANTS** (`EcransVivants`, `AgentLayout`) : jusqu'à **six**
 (`VIVANTS_MAX`, un seul sur téléphone) restent montés, les autres en `visibility: hidden`. ⚠ **Ce
@@ -901,9 +903,11 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > quiconque dans le bundle public — doit être restreint à `app.getmegga.com`.
 >
 > ⚠ **Le code appelle Geocoding v6, jamais v5.** Mapbox a classé `geocoding/v5/mapbox.places`
-> *legacy* : un compte créé aujourd'hui reçoit `403 {"message":"Forbidden"}`. Trois appels sont
-> concernés (`_shared/kyb-sources.ts`, `src/lib/mapbox.ts`, `Step2Address.tsx`) et la forme de la
-> réponse diffère — détails dans le cerveau, `megga/mapbox-geocoding-v6`.
+> *legacy* : un compte créé aujourd'hui reçoit `403 {"message":"Forbidden"}`. Deux appels restent
+> concernés (`_shared/kyb-sources.ts`, `src/lib/mapbox.ts`) et la forme de la réponse diffère —
+> détails dans le cerveau, `megga/mapbox-geocoding-v6`. ⚠ Le troisième, `Step2Address.tsx`, est
+> parti avec l'ancien wizard le 16.09.2026 : « Nouveau bien » cherche ses adresses dans le registre
+> fédéral (`useSwissAddress`, geo.admin.ch, sans clé), comme les contacts et l'onboarding.
 >
 > Effet mesuré une fois posé : `address_geocode` rend `match`, et `verification_score` cesse d'être
 > `NULL` (1.000 sur les deux dossiers de test, contre 13 dossiers à `NULL` depuis toujours). ⚠ Ce
@@ -918,7 +922,8 @@ CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 
 > ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
 > les **263 chunks** réellement servis par `app.getmegga.com` : le jeton (`pk.eyJ…`) est dans
-> `ListingFormPage-*.js` et `WizardShell-*.js`, aux côtés de `search/geocode/v6/forward`.
+> `ListingFormPage-*.js` et `WizardShell-*.js` (ce dernier retiré le 16.09.2026 ; « Nouveau bien » ne
+> géocode plus par Mapbox, il n'en garde que la vignette de carte), aux côtés de `search/geocode/v6/forward`.
 >
 > ⛔ **NE PAS CHERCHER LE JETON DANS `index-*.js`** : ce fichier ne contient pas une ligne de
 > Mapbox, le code étant découpé en morceaux chargés à la demande. C'est ce raccourci qui a fait
@@ -1099,8 +1104,9 @@ Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des s
    Dupliquer, et restreindre la copie navigateur à `app.getmegga.com`.
 3. **Registre UID** (`UID_REGISTER_API_URL` / `_CREDENTIAL`) : sans lui `vat_lookup` reste
    `unavailable` et le score suisse ne repose que sur UN check.
-4. **`Step2Address.tsx` invente des adresses** quand le géocodage échoue : son `catch` retombe
-   sur `mockSuggestions` sans rien dire à l'écran. Décider ce que l'utilisateur doit voir.
+4. ✅ **Résolu le 16.09.2026 — `Step2Address.tsx` inventait des adresses** quand le géocodage
+   échouait. Il est retiré avec l'ancien wizard ; « Nouveau bien » interroge le registre fédéral,
+   dit une panne à l'écran et garde la saisie à la main à un clic.
 
 ---
 

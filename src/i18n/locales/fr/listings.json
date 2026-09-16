@@ -1875,5 +1875,149 @@
         "sujet": "Visite de « {{bien}} »"
       }
     }
+  },
+  "nouveauBien": {
+    "titre": "Nouveau bien",
+    "etapesAria": "Étapes de la création",
+    "apercu": "Aperçu dans Mes biens",
+    "completude": "Annonce complète",
+    "requis": "Requis",
+    "modifier": "Modifier",
+    "continuer": "Continuer",
+    "retour": "Retour",
+    "garder": "Enregistrer sans publier",
+    "publier": "Publier l’annonce",
+    "enCours": "Enregistrement…",
+    "adresseAvant": "Ajoutez d’abord une adresse.",
+    "manque": "Encore requis pour publier : {{liste}}",
+    "etapes": {
+      "bien": "Le bien",
+      "photos": "Photos",
+      "annonce": "L’annonce",
+      "mandat": "Mandat & diffusion"
+    },
+    "brouillon": {
+      "echec": "Brouillon non enregistré — nouvel essai à la prochaine saisie",
+      "quitte": "Brouillon enregistré",
+      "echecDepart": "Brouillon non enregistré",
+      "sansAdresse": "Pas de brouillon sans adresse"
+    },
+    "points": {
+      "adresse": "Adresse",
+      "bien": "Surface et pièces",
+      "prix": "Prix",
+      "photos": "5 photos",
+      "description": "Description (200 caractères)",
+      "vendeur": "Vendeur",
+      "mandat": "Mandat et commission"
+    },
+    "types": {
+      "appartement": "Appartement",
+      "maison": "Maison",
+      "villa": "Villa",
+      "attique": "Attique",
+      "duplex": "Duplex",
+      "triplex": "Triplex",
+      "loft": "Loft",
+      "chalet": "Chalet",
+      "terrain": "Terrain",
+      "commerce": "Commerce"
+    },
+    "bien": {
+      "transaction": "Vente ou location ?",
+      "type": "Type de bien",
+      "adresse": "Adresse",
+      "adressePlaceholder": "Rue et numéro, localité",
+      "adresseTrouvee": "Adresse trouvée",
+      "recherche": "Recherche…",
+      "recherchePanne": "La recherche d’adresse ne répond pas. Saisissez l’adresse à la main.",
+      "saisieManuelle": "Saisir l’adresse à la main",
+      "rechercherAdresse": "Rechercher l’adresse",
+      "rue": "Rue",
+      "numero": "N°",
+      "npa": "NPA",
+      "localite": "Localité",
+      "canton": "Canton",
+      "chiffres": "Chiffres clés",
+      "surface": "Surface habitable",
+      "surfaceTerrain": "Surface du terrain",
+      "etage": "Étage",
+      "prix": "Prix",
+      "loyer": "Loyer",
+      "loyerMensuel": "Loyer mensuel",
+      "chargesMensuelles": "Charges mensuelles",
+      "prixM2": "Soit {{prix}} par m²"
+    },
+    "photos": {
+      "titre": "Photos",
+      "ajouter": "Ajouter",
+      "deposer": "Déposez vos photos ici",
+      "deposerAide": "ou cliquez pour les choisir — JPG, PNG, HEIC",
+      "couverture": "Couverture",
+      "mettreEnCouverture": "Mettre en couverture",
+      "retirer": "Retirer",
+      "encore_one": "Encore {{count}} photo pour pouvoir publier",
+      "encore_other": "Encore {{count}} photos pour pouvoir publier",
+      "assez_one": "{{count}} photo",
+      "assez_other": "{{count}} photos",
+      "glisser": "Glissez pour changer l’ordre"
+    },
+    "annonce": {
+      "titre": "Titre",
+      "description": "Description",
+      "descriptionPlaceholder": "Décrivez le bien : luminosité, espaces, quartier, état…",
+      "iaTon": "MEGGA AI",
+      "tons": {
+        "neutre": "Neutre",
+        "premium": "Premium",
+        "famille": "Famille",
+        "invest": "Investisseur"
+      },
+      "iaRediger": "Rédiger",
+      "iaReecrire": "Réécrire",
+      "iaEnCours": "Rédaction…",
+      "iaEchec": "MEGGA AI n’a pas pu rédiger la description. Réessayez, ou écrivez-la vous-même.",
+      "iaRelire": "Proposée par MEGGA AI — relisez avant de publier",
+      "caracteres_one": "{{count}} caractère · {{min}} conseillés",
+      "caracteres_other": "{{count}} caractères · {{min}} conseillés",
+      "atouts": "Atouts",
+      "tousAtouts_one": "Voir {{count}} autre atout",
+      "tousAtouts_other": "Voir les {{count}} autres atouts"
+    },
+    "mandat": {
+      "vendeur": "Vendeur",
+      "rechercherVendeur": "Rechercher un contact",
+      "nouveauVendeur": "Nouveau vendeur",
+      "vendeurNeuf": "Nouveau contact, créé à l’enregistrement",
+      "prenom": "Prénom",
+      "nom": "Nom",
+      "email": "E-mail",
+      "telephone": "Téléphone",
+      "ajouterVendeur": "Ajouter le vendeur",
+      "mandat": "Mandat",
+      "types": {
+        "exclusive": "Exclusif",
+        "simple": "Simple",
+        "co": "Co-mandat"
+      },
+      "duree": "Durée",
+      "mois_one": "{{count}} mois",
+      "mois_other": "{{count}} mois",
+      "signe": "Mandat signé",
+      "agence": "Agence",
+      "diffusion": "Diffusion",
+      "publierTitre": "Publier l’annonce",
+      "publierAide": "Le bien passe en Actif et peut être diffusé.",
+      "garderTitre": "Réseau Off-market"
+    },
+    "fini": {
+      "publie": "Annonce publiée",
+      "garde": "Bien enregistré",
+      "publieAide": "« {{titre}} » est en ligne dans Mes biens.",
+      "gardeAide": "« {{titre}} » est enregistré Off-market. Publiez-le depuis sa fiche quand il est prêt.",
+      "ouvrir": "Ouvrir la fiche",
+      "autre": "Créer un autre bien",
+      "retour": "Retour à Mes biens"
+    }
   }
 }
