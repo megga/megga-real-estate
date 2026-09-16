@@ -201,6 +201,17 @@ export function MessagerieApp({ dark, setDark }: Props) {
     dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } })
   }, [ajoutDemande, ajoutTraite, setAjoutTraite])
 
+  // `?ecrire=<adresse>&j=<jeton>` (« E-mail » de la fiche contact) ouvre le composeur sur ce
+  // destinataire — une fois par jeton, pour la même raison que `?add=`.
+  const [ecrireA] = useState(() => params.get('ecrire'))
+  const [ecrireJeton] = useState(() => params.get('j'))
+  const [ecrireTraite, setEcrireTraite] = useTabScopedState<string | null>('ecrire-a', null)
+  useEffect(() => {
+    if (!ecrireA || !ecrireJeton || ecrireTraite === ecrireJeton) return
+    setEcrireTraite(ecrireJeton)
+    dispatch({ type: 'modal', modal: { kind: 'compose', to: ecrireA } })
+  }, [ecrireA, ecrireJeton, ecrireTraite, setEcrireTraite])
+
   const editLabel = labels.labels.find((l) => l.id === state.editLabelId) ?? null
   /**
    * Le brouillon rouvert depuis le dossier « Brouillons » ; `null` = message neuf.
@@ -606,6 +617,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
               boites={accounts.list}
               boiteOuverte={state.accountId}
               draft={brouillonCompose}
+              destinataire={state.modal.to ?? null}
               sending={send.isPending}
               error={send.error ? t(`mail.sendError.${codeErreurEnvoi(send.error.message)}`) : null}
               onClose={(contenu) => {
