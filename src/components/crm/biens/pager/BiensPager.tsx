@@ -16,6 +16,7 @@ import { BpFollowupPage } from './BpFollowupPage'
 import { BiensFirstRun, BiensFollowEmpty } from './BiensFirstRun'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { modaleOuverte } from '@/lib/modaleOuverte'
 
 const PAGE_COUNT = 2
 
@@ -80,6 +81,7 @@ export function BiensPager({
   const pageLabels = [t('title'), t('biens.followUp.title')]
   const [page, setPage] = useTabScopedState('pager', 0)
   const [childModal, setChildModal] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   // ⚠ Initialisé sur `page`, pas sur 0 : c'est la valeur que lit le
   // `useLayoutEffect` de placement, et un onglet rouvert sur la page « à suivre »
@@ -176,6 +178,15 @@ export function BiensPager({
       if (frozenRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
+      // `/` : la recherche de la galerie, depuis « À suivre » aussi — comme Contacts.
+      // `preventScroll` : le pager défile par transform ; un focus qui ferait défiler
+      // le cadre le décalerait.
+      if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey && !modaleOuverte()) {
+        e.preventDefault()
+        setPage(0)
+        searchRef.current?.focus({ preventScroll: true })
+        return
+      }
       if (['ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 820) } }
       if (['ArrowUp', 'PageUp'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(-1); setTimeout(() => { lock.current = false }, 820) } }
     }
@@ -195,7 +206,7 @@ export function BiensPager({
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go, ecranActifRef])
+  }, [go, ecranActifRef, setPage])
 
   return (
     <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
@@ -224,6 +235,7 @@ export function BiensPager({
                 onOpenBien={onOpenBien}
                 onCreate={onCreate}
                 onResumeDraft={onResumeDraft}
+                searchRef={searchRef}
               />
             )}
           </div>

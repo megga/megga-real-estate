@@ -55,6 +55,10 @@ export interface CrmBien {
   canton: string
   /** Ville seule (properties.city) — bonus de proximité du matching fiche deal V4. */
   city?: string
+  /** Agent qui a créé le bien (`properties.created_by`) — axe « Agent » des filtres de Mes biens. */
+  agentId?: string | null
+  /** Agence partenaire en co-mandat (`properties.partner_agency`) ; NULL = l'agence du compte. */
+  partnerAgency?: string | null
   price: number | null
   rent?: number | null
   charges: number | null

@@ -7,7 +7,8 @@
     "active": "Actifs",
     "drafts": "Brouillons",
     "reserved": "Réservés",
-    "sold": "Vendus"
+    "sold": "Vendus",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Appartement",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} bien sur {{total}} dans votre catalogue",
     "subtitle_other": "{{count}} biens sur {{total}} dans votre catalogue",
     "searchPlaceholder": "Rechercher un bien, une adresse, une référence…",
+    "search": "Rechercher",
     "seller": "Vendeur",
     "unlinked": "Non lié",
     "perMonth": "/mois",
@@ -442,7 +444,8 @@
     },
     "view": {
       "gallery": "Galerie",
-      "list": "Liste"
+      "list": "Liste",
+      "label": "Affichage"
     },
     "kpi": {
       "portfolioValue": "Valeur du portefeuille",
@@ -605,6 +608,55 @@
         "sub": "Sur MEGGA en un clic."
       },
       "start": "Commencer"
+    },
+    "filtres": {
+      "bouton": "Filtres",
+      "regrouper": "Regrouper par",
+      "aucun": "Aucun",
+      "prix": "Prix",
+      "min": "Min",
+      "max": "Max",
+      "pieces": "Pièces",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ pièces",
+      "reinitialiser": "Réinitialiser",
+      "voir_one": "Voir {{count}} bien",
+      "voir_other": "Voir {{count}} biens",
+      "toutEffacer": "Tout effacer",
+      "retirer": "Retirer « {{critere}} »",
+      "groupePar": "Groupé par {{axe}}",
+      "notreAgence": "Notre agence",
+      "agentInconnu": "Agent inconnu",
+      "nonRenseigne": "Non renseigné",
+      "mandatBientot_one": "Expire sous {{count}} jour",
+      "mandatBientot_other": "Expire sous {{count}} jours",
+      "desPrix": "Dès {{prix}}",
+      "jusquaPrix": "Jusqu’à {{prix}}",
+      "axes": {
+        "canton": "Canton",
+        "ville": "Ville",
+        "agent": "Agent",
+        "agence": "Agence",
+        "type": "Type de bien",
+        "transaction": "Transaction",
+        "statut": "Statut",
+        "mandat": "Mandat"
+      },
+      "types": {
+        "appartement": "Appartement",
+        "maison": "Maison",
+        "villa": "Villa",
+        "commercial": "Commercial",
+        "office": "Bureau",
+        "parking": "Parking",
+        "storage": "Dépôt",
+        "land": "Terrain"
+      },
+      "mandats": {
+        "exclusif": "Exclusif",
+        "simple": "Simple",
+        "recherche": "Recherche"
+      }
     }
   },
   "detail": {

@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar v2 — Mes biens · Galerie — helpers
 // Port fidèle du handoff Claude Design (crm-screen-biens-galerie.jsx).
 // Surfaces Sugar Pure (blanc opaque en clair, verre subtil en sombre) +
-// pilule de statut « façon KYC » (fond plein opaque + texte blanc).
+// pilule de statut « façon KYC » (fond plein foncé + texte blanc).
 //
 // i18n : galStatus produit un libellé d'affichage consommé par GalStatusPill.
 // On lit la langue via l'instance i18n singleton (cf helpers.ts / bnStatus) —
@@ -10,6 +10,7 @@
 import i18n from '@/i18n'
 import type { CrmPalette } from '../../tokens'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /** « CHF 850'000 » — apostrophe suisse, valeur pleine (cartes). */
 export function galFmtCHF(n: number | null | undefined): string {
@@ -39,15 +40,21 @@ export interface GalStatusMeta {
   ink: string
 }
 
-/** Statut → libellé + ton (couleur fonctionnelle, adaptatif clair/sombre) + encre. */
+/** Statut → libellé + ton (couleur fonctionnelle) + encre. */
 export function galStatus(s: string, dark: boolean): GalStatusMeta {
-  // Tons fonctionnels stables ; le libellé est traduit via listings:status.*.
+  // ⚠ Tons FONCÉS, pour que l'encre dérivée soit BLANCHE sur les deux thèmes
+  // (16.09.2026, décision Julien : « les textes en blanc »). Les verts et orange
+  // d'avant (#0E9F6E, #D97A1E…) étaient trop clairs : `encreSur` y choisissait le
+  // noir, seul lisible. On ne force pas le blanc — on fonce l'aplat jusqu'à ce que
+  // le blanc passe l'AA, et l'encre reste dérivée (`biens-contraste.spec.ts`).
+  // Vert et ambre : les encres d'état du CRM (`STATUT_CLAIR`), 5,48 et 5,02:1.
   const tones: Record<string, string> = {
-    active: dark ? '#0E9F6E' : '#059669',
-    reserved: dark ? '#D97A1E' : '#C45A00',
+    active: STATUT_CLAIR.okInk,
+    reserved: STATUT_CLAIR.warnInk,
     draft: '#6B7280',
-    paused: dark ? '#7C8593' : '#7A8088',
-    sold: dark ? MXC_COLOR.n800 : MXC_COLOR.n100,
+    paused: MXC_COLOR.n500,
+    // En sombre, le noir de la vitrine se confondrait avec la carte : palier élevé.
+    sold: dark ? MXC_COLOR.n400 : MXC_COLOR.n100,
   }
   const tone = tones[s] ?? tones.draft
   return { label: i18n.t('listings:status.' + s, { defaultValue: s }), tone, ink: encreSur(tone) }

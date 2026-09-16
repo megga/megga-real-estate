@@ -7,7 +7,8 @@
     "active": "Aktiv",
     "drafts": "Entwürfe",
     "reserved": "Reserviert",
-    "sold": "Verkauft"
+    "sold": "Verkauft",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Wohnung",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} Objekt von {{total}} in Ihrem Katalog",
     "subtitle_other": "{{count}} Objekte von {{total}} in Ihrem Katalog",
     "searchPlaceholder": "Objekt, Adresse oder Referenz suchen…",
+    "search": "Suchen",
     "seller": "Verkäufer",
     "unlinked": "Nicht verknüpft",
     "perMonth": "/Monat",
@@ -437,12 +439,13 @@
       "recent": "Neueste",
       "priceDesc": "Preis absteigend",
       "priceAsc": "Preis aufsteigend",
-      "surface": "Surface",
+      "surface": "Fläche",
       "views": "Meistgesehen"
     },
     "view": {
       "gallery": "Galerie",
-      "list": "Liste"
+      "list": "Liste",
+      "label": "Ansicht"
     },
     "kpi": {
       "portfolioValue": "Portfoliowert",
@@ -605,6 +608,55 @@
         "sub": "Auf MEGGA mit einem Klick."
       },
       "start": "Loslegen"
+    },
+    "filtres": {
+      "bouton": "Filter",
+      "regrouper": "Gruppieren nach",
+      "aucun": "Keine",
+      "prix": "Preis",
+      "min": "Min.",
+      "max": "Max.",
+      "pieces": "Zimmer",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ Zimmer",
+      "reinitialiser": "Zurücksetzen",
+      "voir_one": "{{count}} Objekt anzeigen",
+      "voir_other": "{{count}} Objekte anzeigen",
+      "toutEffacer": "Alle entfernen",
+      "retirer": "«{{critere}}» entfernen",
+      "groupePar": "Gruppiert nach {{axe}}",
+      "notreAgence": "Unsere Agentur",
+      "agentInconnu": "Unbekannter Makler",
+      "nonRenseigne": "Nicht angegeben",
+      "mandatBientot_one": "Läuft in {{count}} Tag ab",
+      "mandatBientot_other": "Läuft in {{count}} Tagen ab",
+      "desPrix": "Ab {{prix}}",
+      "jusquaPrix": "Bis {{prix}}",
+      "axes": {
+        "canton": "Kanton",
+        "ville": "Ort",
+        "agent": "Makler",
+        "agence": "Agentur",
+        "type": "Objektart",
+        "transaction": "Transaktion",
+        "statut": "Objektstatus",
+        "mandat": "Mandat"
+      },
+      "types": {
+        "appartement": "Wohnung",
+        "maison": "Haus",
+        "villa": "Villa",
+        "commercial": "Gewerbe",
+        "office": "Büro",
+        "parking": "Parkplatz",
+        "storage": "Lager",
+        "land": "Grundstück"
+      },
+      "mandats": {
+        "exclusif": "Exklusiv",
+        "simple": "Einfach",
+        "recherche": "Suche"
+      }
     }
   },
   "detail": {

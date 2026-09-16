@@ -155,7 +155,7 @@ const HORS_ASSUMES = new Map<string, number>([
   // hors barreaux, mais DANS le SVG, que ce balayage ne lit pas ; le fichier ne sert plus
   // que de masque et les teintes sont montées dans le code. De l'ILLUSTRATION : aucun texte
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
-  ['src/components/crm', 524],
+  ['src/components/crm', 518],
   ['src/components/crm-mobile', 140],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de

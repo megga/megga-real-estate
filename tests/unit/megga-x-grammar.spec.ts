@@ -973,7 +973,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm-dossiers/vitrine', { hors: 4, total: 4 }],
   ['src/components/crm-wizard', { hors: 64, total: 100 }],
   ['src/components/crm/analytics', { hors: 13, total: 29 }],
-  ['src/components/crm/biens', { hors: 43, total: 51 }],
+  ['src/components/crm/biens', { hors: 40, total: 48 }],
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
   // {68,92} -> {62,84} (16.09.2026) : la refonte en trois compartiments de la « Fiche
   // express » (`NewContactModal`) écrit ses marges et paddings en jetons — `marginBottom: 7`
@@ -1200,7 +1200,6 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/components/crm-wizard/steps/Step4Photos.tsx', 1],
   ['src/components/crm-wizard/tokens.ts', 4],
   ['src/components/crm/biens/gallery/GalCard.tsx', 2],
-  ['src/components/crm/biens/gallery/GalleryAtoms.tsx', 1],
   ['src/components/crm/biens/pager/BpFollowupPage.tsx', 4],
   ['src/components/crm/biens/pager/BpRenewModal.tsx', 1],
   ['src/components/crm/contacts-pager/ContactDetailPager.tsx', 1],

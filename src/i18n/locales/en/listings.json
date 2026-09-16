@@ -7,7 +7,8 @@
     "active": "Active",
     "drafts": "Drafts",
     "reserved": "Reserved",
-    "sold": "Sold"
+    "sold": "Sold",
+    "offMarket": "Off-market"
   },
   "type": {
     "apartment": "Apartment",
@@ -427,6 +428,7 @@
     "subtitle_one": "{{count}} property of {{total}} in your catalogue",
     "subtitle_other": "{{count}} properties of {{total}} in your catalogue",
     "searchPlaceholder": "Search a property, an address, a reference…",
+    "search": "Search",
     "seller": "Seller",
     "unlinked": "Unlinked",
     "perMonth": "/mo",
@@ -437,12 +439,13 @@
       "recent": "Recent",
       "priceDesc": "Price descending",
       "priceAsc": "Price ascending",
-      "surface": "Surface",
+      "surface": "Surface area",
       "views": "Most viewed"
     },
     "view": {
       "gallery": "Gallery",
-      "list": "List"
+      "list": "List",
+      "label": "View"
     },
     "kpi": {
       "portfolioValue": "Portfolio value",
@@ -605,6 +608,55 @@
         "sub": "On MEGGA in one click."
       },
       "start": "Get started"
+    },
+    "filtres": {
+      "bouton": "Filters",
+      "regrouper": "Group by",
+      "aucun": "None",
+      "prix": "Price",
+      "min": "Min",
+      "max": "Max",
+      "pieces": "Rooms",
+      "piecesMin": "{{n}}+",
+      "piecesChip": "{{n}}+ rooms",
+      "reinitialiser": "Reset",
+      "voir_one": "Show {{count}} property",
+      "voir_other": "Show {{count}} properties",
+      "toutEffacer": "Clear all",
+      "retirer": "Remove “{{critere}}”",
+      "groupePar": "Grouped by {{axe}}",
+      "notreAgence": "Our agency",
+      "agentInconnu": "Unknown agent",
+      "nonRenseigne": "Not specified",
+      "mandatBientot_one": "Expires within {{count}} day",
+      "mandatBientot_other": "Expires within {{count}} days",
+      "desPrix": "From {{prix}}",
+      "jusquaPrix": "Up to {{prix}}",
+      "axes": {
+        "canton": "Canton",
+        "ville": "City",
+        "agent": "Agent",
+        "agence": "Agency",
+        "type": "Property type",
+        "transaction": "Transaction",
+        "statut": "Status",
+        "mandat": "Mandate"
+      },
+      "types": {
+        "appartement": "Apartment",
+        "maison": "House",
+        "villa": "Villa",
+        "commercial": "Commercial",
+        "office": "Office",
+        "parking": "Parking",
+        "storage": "Storage",
+        "land": "Land"
+      },
+      "mandats": {
+        "exclusif": "Exclusive",
+        "simple": "Simple",
+        "recherche": "Search"
+      }
     }
   },
   "detail": {
