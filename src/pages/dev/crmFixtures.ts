@@ -421,9 +421,124 @@ export const ANNONCE_MARCHE_BANC = {
   visit_contact_name: 'Mme Dupont', agency_reference: 'RL-1180-42',
 }
 
+/**
+ * Le reste du portefeuille de « Mes biens » : 48 biens, pour un total de 50.
+ *
+ * ⚠ Pourquoi 50 : à deux biens, la galerie ne montrait ni le défilement, ni une
+ * ligne de cartes pleine, ni un filtre qui trie vraiment (Julien, 16.09.2026).
+ *
+ * ⚠ DÉTERMINISTE — aucun `Math.random` : une capture du banc doit se refaire à
+ * l'identique. La variété vient de rotations sur des tables premières entre elles.
+ * Mélange voulu : ~un tiers de locations, des réservés, des brouillons (trois sans
+ * photo : « Photos à ajouter »), deux en pause, deux vendus, et des mandats qui
+ * expirent dans les 60 jours pour peupler « À suivre ».
+ */
+const PHOTOS_MAISON = [
+  '1600596542815-ffad4c1539a9', '1600585154340-be6161a56a0c', '1600047509807-ba8f99d2cdde',
+  '1570129477492-45c003edd2be', '1580587771525-78b9dba3b914', '1564013799919-ab600027ffc6',
+  '1605276374104-dee2a0ed3cd6', '1523217582562-09d0def993a6', '1576941089067-2de3c901e126',
+  '1599809275671-b5942cabc7a2', '1494526585095-c41746248156', '1449844908441-8829872d2607',
+  '1518780664697-55e3ad937233', '1568605114967-8130f3a36994', '1512917774080-9991f1c4c750',
+]
+const PHOTOS_APPART = [
+  '1600607687939-ce8a6c25118c', '1600566753190-17f0baa2a6c3', '1502005229762-cf1b2da7c5d6',
+  '1505691938895-1758d7feb511', '1556911220-bff31c812dba', '1616594039964-ae9021a400a0',
+  '1600210492486-724fe5c67fb0', '1600573472550-8090b5e0745e', '1512918728675-ed5a9ecdebfd',
+  '1507089947368-19c1da9775ae', '1554995207-c18c203602cb', '1522708323590-d24dbb6b0267',
+  '1484154218962-a197022b5858', '1545324418-cc1a3fa10c00',
+]
+const PHOTOS_BUREAU = ['1486406146926-c627a92ad1ab', '1497366216548-37526070297c']
+const PHOTOS_CHALET = ['1510798831971-661eb04b3739', '1542718610-a1d656d1884c']
+const unsplash = (id: string) => `https://images.unsplash.com/photo-${id}?w=1000&q=80`
+
+/** Ville, canton, NPA, rue, prix de vente au m², loyer mensuel au m². */
+const LIEUX: [string, string, string, string, number, number][] = [
+  ['Carouge', 'GE', '1227', 'Rue Saint-Joseph', 13_500, 32],
+  ['Genève', 'GE', '1207', 'Rue des Eaux-Vives', 15_000, 36],
+  ['Lausanne', 'VD', '1003', 'Avenue de Rumine', 11_000, 29],
+  ['Nyon', 'VD', '1260', 'Route de Divonne', 10_500, 27],
+  ['Cologny', 'GE', '1223', 'Chemin de Ruth', 19_000, 42],
+  ['Montreux', 'VD', '1820', 'Grand-Rue', 9_500, 25],
+  ['Vevey', 'VD', '1800', 'Rue du Simplon', 9_800, 26],
+  ['Fribourg', 'FR', '1700', 'Boulevard de Pérolles', 7_200, 21],
+  ['Neuchâtel', 'NE', '2000', 'Rue du Seyon', 6_800, 20],
+  ['Sion', 'VS', '1950', 'Avenue de la Gare', 6_500, 19],
+  ['Morges', 'VD', '1110', 'Rue Louis-de-Savoie', 10_200, 27],
+  ['Chêne-Bougeries', 'GE', '1224', 'Chemin de la Montagne', 16_000, 37],
+  ['Verbier', 'VS', '1936', 'Route de Médran', 18_000, 45],
+  ['Pully', 'VD', '1009', 'Avenue de Lavaux', 12_500, 31],
+  ['Lancy', 'GE', '1212', 'Route du Pont-Butin', 12_000, 30],
+  ['Yverdon-les-Bains', 'VD', '1400', 'Rue du Lac', 7_000, 21],
+]
+
+/** Gabarit : type DB, libellé du titre, pièces, surface, famille de photo. */
+const GABARITS: { type: string; libelle: (pieces: number) => string; pieces: number; surface: number; photos: string[] }[] = [
+  { type: 'apartment', libelle: (n) => `Appartement ${String(n).replace('.', ',')} pièces`, pieces: 3.5, surface: 82, photos: PHOTOS_APPART },
+  { type: 'house', libelle: () => 'Villa individuelle', pieces: 6.5, surface: 210, photos: PHOTOS_MAISON },
+  { type: 'apartment', libelle: (n) => `Attique ${String(n).replace('.', ',')} pièces`, pieces: 5.5, surface: 145, photos: PHOTOS_APPART },
+  { type: 'apartment', libelle: () => 'Studio', pieces: 1, surface: 34, photos: PHOTOS_APPART },
+  { type: 'house', libelle: () => 'Maison mitoyenne', pieces: 5.5, surface: 160, photos: PHOTOS_MAISON },
+  { type: 'apartment', libelle: (n) => `Appartement ${String(n).replace('.', ',')} pièces`, pieces: 4.5, surface: 108, photos: PHOTOS_APPART },
+  { type: 'office', libelle: () => 'Bureaux', pieces: 0, surface: 180, photos: PHOTOS_BUREAU },
+  { type: 'apartment', libelle: (n) => `Loft ${String(n).replace('.', ',')} pièces`, pieces: 2.5, surface: 74, photos: PHOTOS_APPART },
+  { type: 'villa', libelle: () => 'Chalet', pieces: 6, surface: 190, photos: PHOTOS_CHALET },
+  { type: 'commercial', libelle: () => 'Arcade commerciale', pieces: 0, surface: 95, photos: PHOTOS_BUREAU },
+  { type: 'house', libelle: () => 'Maison de maître', pieces: 9, surface: 340, photos: PHOTOS_MAISON },
+]
+
+/**
+ * Deux collègues de Gregory — de quoi éprouver les axes « Agent » des filtres de Mes biens.
+ * ⚠ Même agence que l'agent du banc : `useTeamMembers` lit `profiles` par `agency_id`.
+ */
+const COLLEGUES_BANC = [
+  { id: '00000000-0000-4000-8000-000000000902', email: 'sophie.keller@megga.local', full_name: 'Sophie Keller', role: 'agent', avatar_url: null, phone: null, canton: 'GE', agency_id: AGENCE_BANC.id, created_at: '2026-02-01T00:00:00Z' },
+  { id: '00000000-0000-4000-8000-000000000903', email: 'marc.favre@megga.local', full_name: 'Marc Favre', role: 'agent', avatar_url: null, phone: null, canton: 'VD', agency_id: AGENCE_BANC.id, created_at: '2026-03-01T00:00:00Z' },
+]
+const AGENTS_BANC = [AGENT_BANC.id, COLLEGUES_BANC[0].id, COLLEGUES_BANC[1].id]
+/** Un bien sur cinq en co-mandat avec une agence partenaire ; les autres sont en propre. */
+const PARTENAIRES_BANC = ['naef', null, 'cardis', null, null, 'bernard', null, null, null, null] as const
+
+const BIENS_CATALOGUE = Array.from({ length: 48 }, (_, i) => {
+  const [ville, canton, npa, rue, venteM2, loyerM2] = LIEUX[(i * 5) % LIEUX.length]
+  const g = GABARITS[i % GABARITS.length]
+  // Une location sur trois — jamais une villa de maître ni un chalet.
+  const location = i % 3 === 1 && g.type !== 'villa' && g.surface < 300
+  const surface = g.surface + ((i * 7) % 5) * 4
+  const statut = i % 23 === 7 || i % 23 === 18 ? 'paused'
+    : i === 41 || i === 45 ? 'sold'
+      : i % 9 === 4 ? 'reserved'
+        : i % 10 === 8 ? 'draft'
+          : 'active'
+  // Trois brouillons sans photo — l'état « Photos à ajouter » de la carte.
+  const sansPhoto = statut === 'draft' && i % 20 === 8
+  const jours = 3 + ((i * 11) % 320)
+  // Un mandat sur sept expire dans les 60 jours : c'est ce que « À suivre » relève.
+  const echeanceJours = i % 7 === 3 ? 10 + ((i * 3) % 50) : 90 + ((i * 13) % 300)
+  return {
+    id: `pb${i + 3}`, agency_id: AGENCE_BANC.id,
+    created_by: AGENTS_BANC[(i * 7) % AGENTS_BANC.length], partner_agency: PARTENAIRES_BANC[i % PARTENAIRES_BANC.length],
+    title: `${g.libelle(g.pieces)} · ${ville}`, type: g.type,
+    address: `${rue} ${2 + ((i * 7) % 40)}`, postal_code: npa, city: ville, canton,
+    price: location
+      ? Math.round((surface * loyerM2) / 50) * 50
+      : Math.round((surface * venteM2) / 10_000) * 10_000,
+    charges_monthly: location ? Math.round(surface * 3.5 / 10) * 10 : null,
+    rooms: g.pieces || null, bedrooms: g.pieces ? Math.max(0, Math.floor(g.pieces) - 1) : null,
+    bathrooms: g.pieces ? 1 + (g.pieces >= 5 ? 1 : 0) : null, surface_m2: surface,
+    year_built: 1905 + ((i * 17) % 118), energy_class: 'ABCDEFG'[(i * 3) % 7],
+    mandate_type: i % 4 === 0 ? 'exclusive' : 'simple', mandate_commission_pct: location ? null : 2 + ((i % 3) * 0.5),
+    mandate_signed_at: statut === 'draft' ? null : ilYA(24 * (jours + 10)),
+    mandate_expires_at: statut === 'draft' ? null : ilYA(-24 * echeanceJours),
+    views_count: statut === 'draft' ? 0 : (i * 37) % 620, favorites_count: statut === 'draft' ? 0 : (i * 7) % 41,
+    status: statut, transaction_type: location ? 'rent' : 'sale',
+    published_at: statut === 'draft' ? null : ilYA(24 * jours), created_at: ilYA(24 * jours + 5),
+    photos: sansPhoto ? [] : [unsplash(g.photos[(i * 3) % g.photos.length])], photos_cf: null,
+  }
+})
+
 export const CRM_TABLES: Record<string, unknown[]> = {
   market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE],
-  profiles: [AGENT_BANC],
+  profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
   activity_events: [...EVENEMENTS, ...TRAINE_JOURNAL],
@@ -472,8 +587,33 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     { id: 'cl3', agency_id: AGENCE_BANC.id, name: 'Personnel', color: MXC_COLOR.accent, position: 2, created_at: ilYA(280), updated_at: ilYA(280) },
   ],
   properties: [
-    { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null },
-    { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null },
+    // ⚠ Colonnes RÉELLES de `properties` (`surface_m2`, `energy_class`, `mandate_*`…) :
+    // `propertyToCrmBien` tourne pour de vrai dessus. Avec un `surface` inventé, la
+    // fiche « Bien » du banc rendait « — » dans sept caractéristiques sur huit.
+    // p2 a un mandat qui expire dans 20 jours : il peuple « Mandats à renouveler ».
+    {
+      id: 'p1', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Appartement 4,5 pièces · Champel', type: 'apartment',
+      address: 'Avenue de Champel 12', postal_code: '1206', city: 'Genève', canton: 'GE',
+      price: 1_450_000, charges_monthly: 420, rooms: 4.5, bedrooms: 3, bathrooms: 2, surface_m2: 118,
+      year_built: 1968, energy_class: 'C', floor: 4,
+      description: 'Lumineux, traversant, deux balcons. Cuisine refaite en 2022, cave et place de parc.',
+      features: ['Balcon', 'Ascenseur', 'Cave', 'Parking'],
+      mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 120), mandate_expires_at: ilYA(-24 * 180),
+      views_count: 214, favorites_count: 12,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null,
+    },
+    {
+      id: 'p2', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Villa individuelle · Cologny', type: 'house',
+      address: 'Chemin de Ruth 8', postal_code: '1223', city: 'Cologny', canton: 'GE',
+      price: 3_200_000, charges_monthly: null, rooms: 7, bedrooms: 5, bathrooms: 3, surface_m2: 260,
+      year_built: 2011, energy_class: 'B', floor: null,
+      description: 'Villa contemporaine avec piscine, jardin arboré de 1 200 m² et vue sur le lac.',
+      features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'],
+      mandate_type: 'simple', mandate_commission_pct: 2.5, mandate_signed_at: ilYA(24 * 340), mandate_expires_at: ilYA(-24 * 20),
+      views_count: 486, favorites_count: 31,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null,
+    },
+    ...BIENS_CATALOGUE,
   ],
   transactions: [],
   // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut

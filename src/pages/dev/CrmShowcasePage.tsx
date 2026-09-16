@@ -45,9 +45,9 @@
  *
  * ⛔ Données de DÉMONSTRATION. Rien ne vient de la base, aucun geste n'écrit.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
-import { MemoryRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ROUTER_FUTURE } from '@/lib/routerFuture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
@@ -96,6 +96,9 @@ const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
 const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
 const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
+const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
+const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
+const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 
 /**
  * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
@@ -156,12 +159,19 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   // la barre latérale et la bande d'onglets y mènent, et y aboutissaient à vide.
   { id: 'contacts', chemin: '/dashboard/contacts', label: 'Contacts', vague: null },
   { id: 'contact', chemin: '/dashboard/contacts/c1', label: 'Contact · fiche', vague: null },
+  // ⚠ HORS CHANTIER : « Mes biens » a son banc hors coquille (`/dev/biens`, sur
+  // `CRM_BIENS` déjà adaptés). Ici il passe par ses vrais hooks et les `properties`
+  // du banc — la barre latérale y menait, et y aboutissait à vide.
+  { id: 'biens', chemin: '/dashboard/listings', label: 'Mes biens', vague: null },
+  { id: 'bien', chemin: '/dashboard/listings/p1', label: 'Bien · fiche', vague: null },
+  // La création d'annonce en quatre étapes — elle a remplacé l'ancien wizard le 16.09.2026.
+  { id: 'nouveau-bien', chemin: '/dashboard/listings/new', label: 'Nouveau bien', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '8 contacts, 2 biens, 2 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'nominal', label: 'Nominal', titre: '8 contacts, 50 biens, 2 rappels, 1 visite, journal à 4 lignes' },
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
@@ -174,78 +184,96 @@ function Commandes({ etat, setEtat, sansFixture }: {
   sansFixture: string[]
 }) {
   const navigate = useNavigate()
-  const [replie, setReplie] = useState(false)
+  const { pathname } = useLocation()
+  // ⚖ MINIMALISTE (Julien, 16.09.2026 : « il me gâche la vue ») : une seule pastille
+  // discrète dans le coin, qui dit où l'on est ; les 22 surfaces, les trois états et le
+  // compte des appels sans fixture vivent dans un menu REPLIÉ par défaut. Avant, un pavé
+  // de quatre lignes couvrait le coin bas-droit de chaque écran — là où vivent justement
+  // les boutons d'action et les dernières lignes des listes.
+  const [ouvert, setOuvert] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
   // ⚠ Le banc SUIT le thème et ne le décide jamais : ses propres commandes seraient
   // sinon peintes dans le thème d'avant la dernière bascule — un banc qui fabrique
   // lui-même l'incohérence qu'il sert à débusquer. Abonné à la bascule, comme le dock.
   const dark = useCrmDark()
   const sp = crmPalette(dark)
 
-  const pilule = (actif: boolean) => ({
-    border: 0, cursor: 'pointer', fontFamily: 'inherit',
-    padding: 'var(--crm-space-xs) var(--crm-space-lg)',
-    borderRadius: 'var(--crm-radius-pill)',
-    fontSize: 'var(--crm-text-sm)', fontWeight: 600,
-    background: actif ? sp.accent : 'transparent',
-    color: actif ? sp.accentInk : sp.sub,
-    whiteSpace: 'nowrap' as const,
-  })
-  const groupe = {
-    display: 'inline-flex', gap: 'var(--crm-space-2xs)', flexWrap: 'wrap' as const,
-    background: sp.solidBg, borderRadius: 'var(--crm-radius-lg)',
-    padding: 'var(--crm-space-2xs)', border: `1px solid ${sp.cardBorder}`,
-    maxWidth: 560, justifyContent: 'flex-end' as const,
-  }
+  useEffect(() => {
+    if (!ouvert) return
+    const dehors = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOuvert(false) }
+    const echap = (e: KeyboardEvent) => { if (e.key === 'Escape') setOuvert(false) }
+    document.addEventListener('mousedown', dehors)
+    document.addEventListener('keydown', echap)
+    return () => { document.removeEventListener('mousedown', dehors); document.removeEventListener('keydown', echap) }
+  }, [ouvert])
+
+  // La surface courante : le chemin le plus long qui préfixe l'URL du routeur mémoire.
+  const courante = [...SURFACES]
+    .filter((x) => pathname === x.chemin || pathname.startsWith(x.chemin + '/'))
+    .sort((a, b) => b.chemin.length - a.chemin.length)[0]
+  const etatCourant = ETATS.find((e) => e.id === etat)
 
   return (
-    <div style={{
-      position: 'fixed', bottom: 14, right: 14, zIndex: 9500,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-      gap: 'var(--crm-space-2xs)',
+    <div ref={ref} className="banc-commandes" style={{
+      position: 'fixed', bottom: 12, right: 12, zIndex: 9500,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--crm-space-xs)',
+      fontFamily: 'var(--crm-font), system-ui, sans-serif',
     }}>
-      {!replie && (
-        <>
-          <div style={groupe}>
-            {SURFACES.map((s) => (
-              <button key={s.id} type="button" title={s.vague ? `vague ${s.vague} · ${s.chemin}` : s.chemin}
-                onClick={() => navigate(s.chemin)} style={pilule(false)}>{s.label}</button>
+      <style>{`
+        .banc-pastille { opacity: .55; transition: opacity .15s ease; }
+        .banc-pastille:hover, .banc-pastille[aria-expanded="true"] { opacity: 1; }
+        .banc-item:hover { background: ${sp.focusSurface} !important; }
+      `}</style>
+      {ouvert && (
+        <div role="menu" style={{
+          width: 240, maxHeight: '60vh', display: 'flex', flexDirection: 'column',
+          background: sp.solidBg, border: `1px solid ${sp.solidBorder}`, borderRadius: 'var(--crm-radius-lg)',
+          boxShadow: sp.solidShadow, overflow: 'hidden',
+        }}>
+          <div style={{ display: 'flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs)', borderBottom: `1px solid ${sp.solidBorder}` }}>
+            {ETATS.map((e) => (
+              <button key={e.id} type="button" title={e.titre} onClick={() => setEtat(e.id)} aria-pressed={etat === e.id} style={{
+                flex: 1, border: 0, cursor: 'pointer', fontFamily: 'inherit', height: 26,
+                borderRadius: 'var(--crm-radius-md)', fontSize: 'var(--crm-text-xs)', fontWeight: 600,
+                background: etat === e.id ? sp.accent : 'transparent', color: etat === e.id ? sp.accentInk : sp.sub,
+              }}>{e.label}</button>
             ))}
           </div>
-          <div style={{ ...groupe, maxWidth: 'none' }}>
-            {ETATS.map((e) => (
-              <button key={e.id} type="button" title={e.titre}
-                onClick={() => setEtat(e.id)} aria-pressed={etat === e.id}
-                style={pilule(etat === e.id)}>{e.label}</button>
-            ))}
+          <div style={{ overflowY: 'auto', padding: 'var(--crm-space-2xs)' }}>
+            {SURFACES.map((s) => {
+              const actif = s.id === courante?.id
+              return (
+                <button key={s.id} type="button" role="menuitem" className="banc-item" title={s.chemin}
+                  onClick={() => { navigate(s.chemin); setOuvert(false) }} style={{
+                    display: 'block', width: '100%', textAlign: 'left', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+                    padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-md)',
+                    fontSize: 'var(--crm-text-sm)', fontWeight: actif ? 600 : 500,
+                    background: actif ? sp.focusSurface : 'transparent', color: actif ? sp.ink : sp.sub,
+                  }}>{s.label}</button>
+              )
+            })}
           </div>
           {sansFixture.length > 0 && (
-            // ⚠ Un banc qui borne sa couverture doit le DIRE : une troncature
-            // silencieuse se lit « tout couvert ». Le lot 0 ne pose que le socle
-            // et « Aujourd'hui » — cette ligne est la liste de courses des vagues
-            // suivantes, mesurée à l'écran plutôt que devinée.
-            <div
-              title={sansFixture.join('\n')}
-              style={{
-                ...groupe, padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
-                fontSize: 'var(--crm-text-xs)', color: sp.sub, maxWidth: 360,
-              }}>
+            // ⚠ Un banc qui borne sa couverture doit le DIRE : une troncature silencieuse se
+            // lit « tout couvert ». Replié, le compte reste là, dans le menu.
+            <div title={sansFixture.join('\n')} style={{
+              padding: 'var(--crm-space-xs) var(--crm-space-md)', borderTop: `1px solid ${sp.solidBorder}`,
+              fontSize: 'var(--crm-text-xs)', color: sp.sub,
+            }}>
               {sansFixture.length} appel{sansFixture.length > 1 ? 's' : ''} sans fixture → vide
             </div>
           )}
-        </>
+        </div>
       )}
-      <button
-        type="button"
-        onClick={() => setReplie((v) => !v)}
-        aria-expanded={!replie}
-        title={replie ? 'Déplier les commandes du banc' : 'Replier — dégage le coin bas-droit'}
-        style={{
-          border: 0, cursor: 'pointer', fontFamily: 'inherit',
-          padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
-          borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk,
-          fontSize: 'var(--crm-text-xs)', fontWeight: 600,
+      <button type="button" className="banc-pastille" onClick={() => setOuvert((v) => !v)} aria-expanded={ouvert} aria-haspopup="menu"
+        title="Banc · données de démonstration" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', height: 24,
+          padding: '0 var(--crm-space-md)', border: `1px solid ${sp.solidBorder}`, cursor: 'pointer', fontFamily: 'inherit',
+          borderRadius: 'var(--crm-radius-pill)', background: sp.solidBg, color: sp.sub,
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600, whiteSpace: 'nowrap',
         }}>
-        {replie ? 'Aperçu ▸' : 'Aperçu · données de démonstration'}
+        <span aria-hidden style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: etat === 'nominal' ? sp.accent : sp.sub }} />
+        {courante?.label ?? 'Banc'}{etat !== 'nominal' && etatCourant ? ` · ${etatCourant.label}` : ''}
       </button>
     </div>
   )
@@ -332,6 +360,9 @@ const ROUTES_BANC = (
         <Route path="messagerie" element={<MessagerieBanc />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:id" element={<ByParam><ContactDetailPage /></ByParam>} />
+        <Route path="listings" element={<ListingsPage />} />
+        <Route path="listings/new" element={<NouveauBienPage />} />
+        <Route path="listings/:id" element={<ByParam><ListingDetailPage /></ByParam>} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="import-lead" element={<ImportLeadPage />} />
         <Route path="visits/new" element={<VisitNewPage />} />
@@ -443,11 +474,18 @@ export default function CrmShowcasePage() {
       // une tâche glissée d'un jour à l'autre y change de jour pour de bon — sans quoi
       // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
       // mêmes tables, la montrait encore à son ancienne place.
-      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes'],
+      // `contacts` aussi : un visiteur créé depuis « Planifier une visite » doit exister ensuite.
+      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes', 'contacts'],
       // Une note ajoutée dans le banc est signée de l'agent de démonstration, comme la base
       // la signerait de l'appelant — sinon elle n'aurait ni auteur ni « Modifier ».
       completions: {
         contact_notes: () => ({ author_id: AGENT_BANC.id, author_kind: 'user', updated_at: null, author: { full_name: AGENT_BANC.full_name } }),
+        // Le banc n'applique pas `select` : sans la jointure portée par la ligne, une visite
+        // posée depuis la fiche d'un bien s'y affichait sans nom de visiteur.
+        visits: (l) => {
+          const c = (CRM_TABLES.contacts as { id: string; first_name: string; last_name: string }[]).find((x) => x.id === l.contact_id)
+          return c ? { contact: { first_name: c.first_name, last_name: c.last_name } } : {}
+        },
       },
     })
     installerBanc()
