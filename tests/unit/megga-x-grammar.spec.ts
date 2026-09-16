@@ -970,7 +970,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm-dossiers/kyc-wizard', { hors: 36, total: 46 }],
   ['src/components/crm-dossiers/offer-modal', { hors: 15, total: 19 }],
   ['src/components/crm-dossiers/visite-detail', { hors: 23, total: 30 }],
-  ['src/components/crm-dossiers/vitrine', { hors: 4, total: 4 }],
+  ['src/components/crm-dossiers/vitrine', { hors: 3, total: 3 }],
   ['src/components/crm-wizard', { hors: 64, total: 100 }],
   ['src/components/crm/analytics', { hors: 13, total: 29 }],
   ['src/components/crm/biens', { hors: 40, total: 48 }],
@@ -1088,7 +1088,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // littéraux hors échelle (`gap: 32`, `marginBottom: 36`, `padding: '18px 22px'`,
   // `padding: '80px 40px'`…). ⚠ Il en ajoute UN, le même que ses pages sœurs : le rayon 26
   // du cadre de travail, qui répond à `CrmPageSkeleton` et au coin que mesurent les popovers.
-  ['src/pages/agent', { hors: 292, total: 891 }],
+  // 292/891 → 217/784 le 16.09.2026 : la fiche bien refaite bord à bord écrit ses marges,
+  // rayons et tailles en jetons (`ListingDetailPage`).
+  ['src/pages/agent', { hors: 217, total: 784 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])
@@ -1205,7 +1207,7 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/components/crm/contacts-pager/ContactDetailPager.tsx', 1],
   ['src/components/crm/contacts-pager/ContactsPager.tsx', 4],
   ['src/components/crm/contacts-pager/NewContactModal.tsx', 5],
-  ['src/pages/agent/ListingDetailPage.tsx', 4],
+  ['src/pages/agent/ListingDetailPage.tsx', 2],
 ])
 
 // ⚠ `today/data.ts` (lot A1) et `analytics/tokens.ts` (lot A4) en sont SORTIS

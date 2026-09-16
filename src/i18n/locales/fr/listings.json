@@ -1749,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Titre de l'annonce",
-      "addressLabel": "Adresse"
+      "addressLabel": "Adresse",
+      "action": "Modifier"
     },
     "performance": {
       "trendShort": "+{{percent}} %"
@@ -1759,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Visites",
-      "none": "Aucune visite planifiée."
+      "none": "Aucune visite planifiée.",
+      "plan": "Planifier",
+      "past_one": "{{count}} visite passée",
+      "past_other": "{{count}} visites passées"
     },
     "mandate": {
       "renew": "Renouveler le mandat",
       "renewToastTitle": "Renouvellement du mandat",
-      "renewToastLine": "Préparez le renouvellement et transmettez-le au propriétaire pour signature."
+      "renewToastLine": "Préparez le renouvellement et transmettez-le au propriétaire pour signature.",
+      "expiresIn_one": "Expire dans {{count}} jour",
+      "expiresIn_other": "Expire dans {{count}} jours",
+      "type": "Type"
     },
     "diffusion": {
       "publish": "Diffuser",
@@ -1772,6 +1779,101 @@
       "previewToastTitle": "Aperçu public",
       "previewOnlineLine": "L'annonce est diffusée sur immobilier.ch.",
       "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement."
+    },
+    "back": "Retour à Mes biens",
+    "cta": {
+      "propose": "Proposer à des acheteurs"
+    },
+    "header": {
+      "mandateExpires_one": "Mandat {{type}} · expire dans {{count}} jour",
+      "mandateExpires_other": "Mandat {{type}} · expire dans {{count}} jours",
+      "mandateOverdue_one": "Mandat {{type}} · échu depuis {{count}} jour",
+      "mandateOverdue_other": "Mandat {{type}} · échu depuis {{count}} jours"
+    },
+    "suggestions": {
+      "title": "Suggestions MEGGA AI",
+      "affinity": "{{score}} % d’affinité estimée"
+    },
+    "photos": {
+      "none": "Aucune photo",
+      "add": "Ajouter des photos",
+      "open": "Voir les photos"
+    },
+    "specs": {
+      "pricePerM2": "Prix au m²",
+      "yearBuilt": "Année de construction"
+    },
+    "visite": {
+      "planifiee": "Visite planifiée",
+      "planifier": "Planifier la visite",
+      "enCours": "Planification…",
+      "erreur": "La visite n’a pas pu être enregistrée.",
+      "dansCalendrier": "Elle apparaît dans votre Calendrier et dans les visites du bien.",
+      "demo": "Aperçu : rien n’a été enregistré.",
+      "ouvrir": "Ouvrir la visite",
+      "termine": "Terminé",
+      "qui": {
+        "titre": "Qui visite ?",
+        "surCeBien": "Sur ce bien",
+        "enCours": "Acheteur en cours",
+        "score": "{{score}} % estimé",
+        "rechercher": "Rechercher un contact",
+        "aucun": "Aucun contact ne correspond.",
+        "nouveau": "Nouveau visiteur",
+        "prenom": "Prénom",
+        "nom": "Nom",
+        "telephone": "Téléphone",
+        "email": "E-mail",
+        "nouveauAide": "Prénom, nom et un moyen de le joindre. Il rejoint vos contacts.",
+        "changer": "Changer",
+        "sansCoordonnees": "Aucune coordonnée",
+        "rattacheDeal": "Rattachée à son deal sur ce bien",
+        "accompagnants": "Accompagné de (facultatif)"
+      },
+      "quand": {
+        "titre": "Quand ?",
+        "jour": "Jour",
+        "heure": "Heure",
+        "duree": "Durée",
+        "minutes_one": "{{count}} min",
+        "minutes_other": "{{count}} min",
+        "uneHeure": "1 h",
+        "uneHeureTrente": "1 h 30",
+        "dejaPris": "Déjà pris : {{quoi}}",
+        "dejaCeJour_one": "{{count}} visite déjà prévue ce jour",
+        "dejaCeJour_other": "{{count}} visites déjà prévues ce jour",
+        "conflit": "Ce créneau chevauche une visite à {{heure}}. Vous pouvez le garder.",
+        "moisPrecedent": "Mois précédent",
+        "moisSuivant": "Mois suivant",
+        "heurePrecise": "Heure précise"
+      },
+      "ou": {
+        "titre": "Où ?",
+        "surPlace": "Sur place",
+        "video": "En visio",
+        "rendezVous": "Point de rendez-vous, accès",
+        "rendezVousExemple": "Ex. devant l’entrée, code 4521, 3e étage",
+        "lien": "Lien de la visio",
+        "lienExemple": "Lien Google Meet, FaceTime…"
+      },
+      "preparer": {
+        "titre": "Préparer",
+        "bon": "Bon de visite à faire signer",
+        "bonAide": "Prêt sur la fiche de la visite, à signer sur place par le visiteur."
+      },
+      "confirmer": {
+        "titre": "Confirmer au visiteur",
+        "aide": "Rien n’est envoyé automatiquement : relisez, puis envoyez depuis votre WhatsApp ou votre messagerie.",
+        "whatsapp": "Envoyer par WhatsApp",
+        "email": "Envoyer par e-mail",
+        "aucunCanal": "Pas de téléphone ni d’e-mail pour ce visiteur."
+      },
+      "message": {
+        "surPlace": "Bonjour {{prenom}}, je vous confirme la visite de « {{bien}} » {{jour}} à {{heure}}, {{adresse}}.{{acces}}\nÀ bientôt,\n{{agent}}",
+        "video": "Bonjour {{prenom}}, je vous confirme la visite en visio de « {{bien}} » {{jour}} à {{heure}}. Lien : {{lien}}\nÀ bientôt,\n{{agent}}",
+        "acces": "Rendez-vous : {{acces}}.",
+        "sujet": "Visite de « {{bien}} »"
+      }
     }
   }
 }

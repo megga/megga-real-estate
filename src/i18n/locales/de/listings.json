@@ -1749,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Titel des Inserats",
-      "addressLabel": "Adresse"
+      "addressLabel": "Adresse",
+      "action": "Bearbeiten"
     },
     "performance": {
       "trendShort": "+{{percent}} %"
@@ -1759,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Besichtigungen",
-      "none": "Keine Besichtigung geplant."
+      "none": "Keine Besichtigung geplant.",
+      "plan": "Planen",
+      "past_one": "{{count}} vergangene Besichtigung",
+      "past_other": "{{count}} vergangene Besichtigungen"
     },
     "mandate": {
       "renew": "Mandat erneuern",
       "renewToastTitle": "Mandatserneuerung",
-      "renewToastLine": "Bereiten Sie die Erneuerung vor und übermitteln Sie sie dem Eigentümer zur Unterschrift."
+      "renewToastLine": "Bereiten Sie die Erneuerung vor und übermitteln Sie sie dem Eigentümer zur Unterschrift.",
+      "expiresIn_one": "Läuft in {{count}} Tag ab",
+      "expiresIn_other": "Läuft in {{count}} Tagen ab",
+      "type": "Art"
     },
     "diffusion": {
       "publish": "Veröffentlichen",
@@ -1772,6 +1779,101 @@
       "previewToastTitle": "Öffentliche Vorschau",
       "previewOnlineLine": "Das Inserat ist auf immobilier.ch veröffentlicht.",
       "previewOfflineLine": "Das Inserat ist noch nicht öffentlich veröffentlicht."
+    },
+    "back": "Zurück zu Meine Objekte",
+    "cta": {
+      "propose": "Käufern vorschlagen"
+    },
+    "header": {
+      "mandateExpires_one": "Mandat {{type}} · läuft in {{count}} Tag ab",
+      "mandateExpires_other": "Mandat {{type}} · läuft in {{count}} Tagen ab",
+      "mandateOverdue_one": "Mandat {{type}} · seit {{count}} Tag abgelaufen",
+      "mandateOverdue_other": "Mandat {{type}} · seit {{count}} Tagen abgelaufen"
+    },
+    "suggestions": {
+      "title": "MEGGA AI Vorschläge",
+      "affinity": "{{score}} % geschätzte Übereinstimmung"
+    },
+    "photos": {
+      "none": "Keine Fotos",
+      "add": "Fotos hinzufügen",
+      "open": "Fotos ansehen"
+    },
+    "specs": {
+      "pricePerM2": "Preis pro m²",
+      "yearBuilt": "Baujahr"
+    },
+    "visite": {
+      "planifiee": "Besichtigung geplant",
+      "planifier": "Besichtigung planen",
+      "enCours": "Wird geplant…",
+      "erreur": "Die Besichtigung konnte nicht gespeichert werden.",
+      "dansCalendrier": "Sie erscheint in Ihrem Kalender und bei den Besichtigungen des Objekts.",
+      "demo": "Vorschau: Es wurde nichts gespeichert.",
+      "ouvrir": "Besichtigung öffnen",
+      "termine": "Fertig",
+      "qui": {
+        "titre": "Wer besichtigt?",
+        "surCeBien": "Zu diesem Objekt",
+        "enCours": "Käufer im Prozess",
+        "score": "{{score}} % geschätzt",
+        "rechercher": "Kontakt suchen",
+        "aucun": "Kein passender Kontakt.",
+        "nouveau": "Neuer Besucher",
+        "prenom": "Vorname",
+        "nom": "Nachname",
+        "telephone": "Telefon",
+        "email": "E-Mail",
+        "nouveauAide": "Vorname, Nachname und eine Kontaktmöglichkeit. Er wird zu Ihren Kontakten hinzugefügt.",
+        "changer": "Ändern",
+        "sansCoordonnees": "Keine Kontaktdaten",
+        "rattacheDeal": "Mit seinem Deal zu diesem Objekt verknüpft",
+        "accompagnants": "Begleitet von (optional)"
+      },
+      "quand": {
+        "titre": "Wann?",
+        "jour": "Tag",
+        "heure": "Uhrzeit",
+        "duree": "Dauer",
+        "minutes_one": "{{count}} Min.",
+        "minutes_other": "{{count}} Min.",
+        "uneHeure": "1 Std.",
+        "uneHeureTrente": "1 Std. 30",
+        "dejaPris": "Bereits belegt: {{quoi}}",
+        "dejaCeJour_one": "{{count}} Besichtigung an diesem Tag",
+        "dejaCeJour_other": "{{count}} Besichtigungen an diesem Tag",
+        "conflit": "Dieser Termin überschneidet sich mit einer Besichtigung um {{heure}}. Sie können ihn trotzdem behalten.",
+        "moisPrecedent": "Vorheriger Monat",
+        "moisSuivant": "Nächster Monat",
+        "heurePrecise": "Genaue Uhrzeit"
+      },
+      "ou": {
+        "titre": "Wo?",
+        "surPlace": "Vor Ort",
+        "video": "Per Video",
+        "rendezVous": "Treffpunkt, Zugang",
+        "rendezVousExemple": "z. B. vor dem Eingang, Code 4521, 3. Stock",
+        "lien": "Link zum Videoanruf",
+        "lienExemple": "Google-Meet-, FaceTime-Link…"
+      },
+      "preparer": {
+        "titre": "Vorbereiten",
+        "bon": "Besichtigungsschein zur Unterschrift",
+        "bonAide": "Bereit auf der Besichtigungsseite, vom Besucher vor Ort zu unterschreiben."
+      },
+      "confirmer": {
+        "titre": "Dem Besucher bestätigen",
+        "aide": "Nichts wird automatisch gesendet: Lesen Sie die Nachricht und senden Sie sie über Ihr WhatsApp oder Ihr E-Mail-Programm.",
+        "whatsapp": "Per WhatsApp senden",
+        "email": "Per E-Mail senden",
+        "aucunCanal": "Keine Telefonnummer und keine E-Mail für diesen Besucher."
+      },
+      "message": {
+        "surPlace": "Guten Tag {{prenom}}, hiermit bestätige ich die Besichtigung von «{{bien}}» am {{jour}} um {{heure}}, {{adresse}}.{{acces}}\nBis bald\n{{agent}}",
+        "video": "Guten Tag {{prenom}}, hiermit bestätige ich die Video-Besichtigung von «{{bien}}» am {{jour}} um {{heure}}. Link: {{lien}}\nBis bald\n{{agent}}",
+        "acces": "Treffpunkt: {{acces}}.",
+        "sujet": "Besichtigung von «{{bien}}»"
+      }
     }
   }
 }

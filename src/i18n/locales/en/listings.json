@@ -1749,7 +1749,8 @@
     "offMarket": "Off-market",
     "edit": {
       "titleLabel": "Listing title",
-      "addressLabel": "Address"
+      "addressLabel": "Address",
+      "action": "Edit"
     },
     "performance": {
       "trendShort": "+{{percent}}%"
@@ -1759,12 +1760,18 @@
     },
     "visits": {
       "eyebrow": "Visits",
-      "none": "No visit scheduled."
+      "none": "No visit scheduled.",
+      "plan": "Schedule",
+      "past_one": "{{count}} past visit",
+      "past_other": "{{count}} past visits"
     },
     "mandate": {
       "renew": "Renew the mandate",
       "renewToastTitle": "Mandate renewal",
-      "renewToastLine": "Prepare the renewal and hand it to the owner for signature."
+      "renewToastLine": "Prepare the renewal and hand it to the owner for signature.",
+      "expiresIn_one": "Expires in {{count}} day",
+      "expiresIn_other": "Expires in {{count}} days",
+      "type": "Type"
     },
     "diffusion": {
       "publish": "Publish",
@@ -1772,6 +1779,101 @@
       "previewToastTitle": "Public preview",
       "previewOnlineLine": "The listing is live on immobilier.ch.",
       "previewOfflineLine": "The listing is not published publicly yet."
+    },
+    "back": "Back to My properties",
+    "cta": {
+      "propose": "Propose to buyers"
+    },
+    "header": {
+      "mandateExpires_one": "{{type}} mandate · expires in {{count}} day",
+      "mandateExpires_other": "{{type}} mandate · expires in {{count}} days",
+      "mandateOverdue_one": "{{type}} mandate · expired {{count}} day ago",
+      "mandateOverdue_other": "{{type}} mandate · expired {{count}} days ago"
+    },
+    "suggestions": {
+      "title": "MEGGA AI suggestions",
+      "affinity": "{{score}}% estimated affinity"
+    },
+    "photos": {
+      "none": "No photos",
+      "add": "Add photos",
+      "open": "View photos"
+    },
+    "specs": {
+      "pricePerM2": "Price per m²",
+      "yearBuilt": "Year built"
+    },
+    "visite": {
+      "planifiee": "Viewing scheduled",
+      "planifier": "Schedule the viewing",
+      "enCours": "Scheduling…",
+      "erreur": "The viewing could not be saved.",
+      "dansCalendrier": "It appears in your Calendar and in the property’s viewings.",
+      "demo": "Preview: nothing was saved.",
+      "ouvrir": "Open the viewing",
+      "termine": "Done",
+      "qui": {
+        "titre": "Who is visiting?",
+        "surCeBien": "On this property",
+        "enCours": "Buyer in progress",
+        "score": "{{score}}% estimated",
+        "rechercher": "Search a contact",
+        "aucun": "No matching contact.",
+        "nouveau": "New visitor",
+        "prenom": "First name",
+        "nom": "Last name",
+        "telephone": "Phone",
+        "email": "Email",
+        "nouveauAide": "First name, last name and a way to reach them. They join your contacts.",
+        "changer": "Change",
+        "sansCoordonnees": "No contact details",
+        "rattacheDeal": "Linked to their deal on this property",
+        "accompagnants": "Accompanied by (optional)"
+      },
+      "quand": {
+        "titre": "When?",
+        "jour": "Day",
+        "heure": "Time",
+        "duree": "Duration",
+        "minutes_one": "{{count}} min",
+        "minutes_other": "{{count}} min",
+        "uneHeure": "1 h",
+        "uneHeureTrente": "1 h 30",
+        "dejaPris": "Already booked: {{quoi}}",
+        "dejaCeJour_one": "{{count}} viewing already planned that day",
+        "dejaCeJour_other": "{{count}} viewings already planned that day",
+        "conflit": "This slot overlaps a viewing at {{heure}}. You can keep it.",
+        "moisPrecedent": "Previous month",
+        "moisSuivant": "Next month",
+        "heurePrecise": "Exact time"
+      },
+      "ou": {
+        "titre": "Where?",
+        "surPlace": "On site",
+        "video": "Video call",
+        "rendezVous": "Meeting point, access",
+        "rendezVousExemple": "E.g. at the entrance, code 4521, 3rd floor",
+        "lien": "Video call link",
+        "lienExemple": "Google Meet, FaceTime link…"
+      },
+      "preparer": {
+        "titre": "Prepare",
+        "bon": "Viewing slip to be signed",
+        "bonAide": "Ready on the viewing page, signed on site by the visitor."
+      },
+      "confirmer": {
+        "titre": "Confirm to the visitor",
+        "aide": "Nothing is sent automatically: review it, then send it from your WhatsApp or your email.",
+        "whatsapp": "Send via WhatsApp",
+        "email": "Send by email",
+        "aucunCanal": "No phone or email for this visitor."
+      },
+      "message": {
+        "surPlace": "Hello {{prenom}}, I confirm the viewing of “{{bien}}” on {{jour}} at {{heure}}, {{adresse}}.{{acces}}\nSee you soon,\n{{agent}}",
+        "video": "Hello {{prenom}}, I confirm the video viewing of “{{bien}}” on {{jour}} at {{heure}}. Link: {{lien}}\nSee you soon,\n{{agent}}",
+        "acces": "Meeting point: {{acces}}.",
+        "sujet": "Viewing of “{{bien}}”"
+      }
     }
   }
 }

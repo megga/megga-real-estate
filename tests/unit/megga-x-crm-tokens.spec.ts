@@ -483,7 +483,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     'src/components/crm/biens/pager/BiensFirstRun.tsx',
     'src/components/crm/biens/pager/BpRenewModal.tsx',
     'src/components/matching-atelier/MatchingFirstRun.tsx',
-    'src/pages/agent/ListingDetailPage.tsx',
     'src/pages/agent/ListingsPage.tsx',
     'src/pages/agent/KycExportPage.tsx',
     'src/pages/dev/BiensShowcasePage.tsx',
