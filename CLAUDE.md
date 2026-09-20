@@ -214,21 +214,56 @@ du deal), pas parce qu'elles décorent.
 `crmStep`, le choix de teinte (Graphite / Noir pur), `useDarkTone` et
 `megga.darkTone` sont supprimés. Le **mode** sombre est conservé.
 
-Correspondance appliquée, **par rôle et non par numéro** — Graphite *montait* ses
-sous-surfaces, MEGGA X les *creuse* :
+⛔ **UNE SEULE SURFACE DEPUIS LE 20.09.2026** (décision Julien : « il faut
+vraiment tout uniformiser, on doit juste voir les filets »). Le tableau
+ci-dessous a listé SIX paliers distincts jusqu'à cette date ; il n'en reste
+qu'un. Et l'échelle a quitté les barreaux de la vitrine — `#030303` y descend
+parce qu'une page marketing se PARCOURT, le CRM s'HABITE. Valeurs dans
+`MXC_DARK_SURFACE` ([megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts)).
 
 | Rôle | Token | Valeur |
 |---|---|---|
-| canvas | `sp.pageBg` | `#030303` |
-| cadre bento, rail, top nav | `sp.frameBg` | `#050505` |
-| carte, colonne, ligne | `sp.cardBg` | `#090909` |
-| sous-carte **creusée** | `sp.cardSubBg` | `#050505` |
-| survol, **élevée** | `sp.focusSurface` | `#181818` |
-| flottante (modale, popover) | `sp.solidBg` | `#090909` |
+| canvas | `sp.pageBg` | `#16181c` |
+| cadre bento, rail, barre d'onglets | `sp.frameBg` | `#16181c` |
+| carte, colonne, ligne | `sp.cardBg` | `#16181c` |
+| sous-carte | `sp.cardSubBg` | `#16181c` |
+| flottante (modale, popover) | `sp.solidBg` | `#16181c` |
+| survol — un **ÉTAT**, pas un palier | `sp.focusSurface` | `#1b1e23` |
+| **LE FILET** — un seul, discret | `sp.cardBorder` | `#2b2d30` |
 
-1. **La séparation vient de la BORDURE**, pas de l'écart de luminance —
-   `sp.shadow` vaut `'none'` en sombre, comme la vitrine. Écart mesuré
-   canvas↔carte : 1,078:1 (Graphite) → **1,036:1** (MEGGA X).
+⚠ **La grammaire du Pipeline est LIGNÉE** : les colonnes ne se remplissent plus,
+leur teinte d'étape est mélangée à **0,94 vers le canvas** — assez pour que le
+balayage indigo→orange reste lisible (ΔL\* 2,73 à 3,93), quatre fois plus faible
+que le filet. Ne pas monter ce facteur sans remesurer les DEUX bouts du
+balayage : à 0,95 l'indigo passe sous le seuil et le bout froid s'efface avant
+le chaud.
+
+1. **La séparation vient de la BORDURE**, et désormais d'ELLE SEULE —
+   `sp.shadow` vaut `'none'` en sombre. Il n'y a plus d'écart de luminance du
+   tout entre canvas et carte : le filet rend **ΔL\* 10,13** sur le canvas,
+   contre 7,43 pour l'ancien `#181818` sur `#030303`.
+   ⛔ **ET IL Y EN AVAIT CINQ, DE ΔL\* 7,95 À 16,45** — plus du simple au double
+   sur un seul écran, pour un rôle unique : le jeton à 16,45, deux voiles à
+   15,43 et 9,04, un anneau à 7,95. Aucune porte ne comparait les filets ENTRE
+   EUX, chacun étant plausible isolément. Ils rendent tous `#2b2d30` depuis le
+   20.09.2026. ⚠ Deux NOTATIONS subsistent, et c'est voulu : un opaque
+   (`line`) pour une surface neutre, un voile `rgba(255,255,255,0.09)` pour une
+   surface TEINTÉE, où un aplat ferait une tache. Elles se comparent APRÈS
+   composition, jamais sur leur écriture. ⚠ Le plancher est mesuré : à 0,07
+   (ΔL\* 7,95) la ligne devient limite, en dessous elle s'efface — ne pas
+   descendre sous 0,08 en cherchant « plus discret ».
+   ⛔ **AUCUNE OMBRE PORTÉE NOIRE**, et cinq vivaient encore ici : le dock MEGGA
+   AI (70 px de flou à 75 % de noir), le pager du cockpit, ses cartes, les blocs
+   d'agenda. Toutes invisibles sur `#030303` — du noir sur du noir — et toutes
+   révélées par le plancher relevé. Un RING (`0 0 0 1px`, flou nul) n'en est pas
+   une : c'est un filet dessiné en `box-shadow` pour ne pas décaler la mise en
+   page. C'est ce chiffre qui a
+   imposé `#16181c` plutôt qu'un gris plus sombre — sans fond pour séparer, un
+   filet faible ne laisse plus aucune structure.
+1bis. ⛔ **L'ENCRE COURANTE N'EST PLUS BLANCHE** : `sp.ink` vaut `n800`
+   (`#ededed`), et la rampe descend n800 → n700 → n600. Le blanc pur est la
+   SOURCE de la bave sur fond sombre ; APCA passe de Lc 108 à **Lc 95**, encore
+   au-dessus du seuil préféré pour du texte courant.
 2. ⛔ **Un élément posé sur une surface TEINTÉE reste un VOILE translucide**, pas
    un palier opaque. La migration Graphite avait converti mécaniquement les
    pastilles « + » des colonnes du pipeline en S3 opaque : des blocs gris au
@@ -239,6 +274,50 @@ sous-surfaces, MEGGA X les *creuse* :
 4. ⛔ **Les couleurs de système de la vitrine sont PÂLES** — réglées pour un
    canvas `#030303`. Sous encre blanche : 1,7:1. Sous `n100` : 11–19:1. Un
    remplissage pâle prend TOUJOURS l'encre sombre.
+
+⛔ **L'ONBOARDING N'EST PAS UNE SURFACE DU CRM, et sa couture est assumée.**
+`IdentityShell` vit dans le scope **`.megga-x`** — la transcription verbatim de la
+feuille de la vitrine, qui déclare ses propres neutres. Son canvas sombre
+`#030303` n'est pas un reste du chantier : c'est **le canvas de la vitrine**,
+imposé par le scope. Le repeindre en `#16181c` désynchroniserait l'onboarding de
+ce qu'il prolonge.
+
+Conséquence mesurée le 20.09.2026, à connaître avant de la « corriger » :
+
+| passage | avant le chantier | après |
+|---|---|---|
+| CRM **sombre** → onboarding | ΔL\* **0,00** | ΔL\* **7,37** |
+| CRM **clair** → onboarding | ΔL\* 97,10 | ΔL\* **~0** |
+
+Le sombre du CRM collait à l'onboarding **par accident** — il empruntait le
+canvas de la vitrine. Maintenant qu'il a le sien, le joint se voit en sombre.
+Il est laissé tel quel : entrer dans l'onboarding, c'est changer de mode (on
+configure l'agence, on ne travaille pas ses deals), et un seuil visible est
+honnête. ⚠ La couture INVERSE, elle, a disparu : en clair l'onboarding rendait
+du `#030303` sur un CRM à `#f9f9f9` — ΔL\* 97 — depuis toujours.
+
+✅ **Le parcours suit désormais le thème du CRM, clair ET sombre** (décision
+Julien, 20.09.2026). Il était mono-thème : aucun fichier de `crm-identity/` ne
+connaissait `dark`. Mécanique — `IdentityShell` stampe `data-mx-theme` sur
+`<html>` d'après `useCrmDark()`, et un bloc de
+[megga-x-additions.css](src/styles/megga-x-additions.css) redéclare les **dix
+variables neutres** en MIROIR DE RÔLE (n100↔n1000, n200↔n900, n300↔n800,
+n400↔n700). Aucune règle de la feuille transcrite n'est touchée.
+
+⚠ Trois pièges, tous mesurés au rendu, tous documentés dans ce bloc CSS :
+1. **Le stamp est sur `<html>`**, pas sur le `<MeggaX>` : `.megga-x` déclare les
+   dix variables, donc un `<MeggaX>` IMBRIQUÉ les remettrait au sombre — et le
+   parcours en monte un par écran, modale et carte de rendez-vous.
+2. **`n500` sort du miroir.** Il lui donnerait `#a3a3a3`, soit **2,52:1** sur
+   blanc : un gris moyen ne contraste pas symétriquement, il rend mieux sur noir.
+   Il prend `#686868` (5,57:1) et se confond donc avec `n600` en clair.
+3. **L'accent n'est pas un neutre, donc son encre non plus.** Mesuré : le bouton
+   primaire rendait `#030303` sur `#424bfb` — **3,57:1**. Les sept règles dont le
+   remplissage est `--primary-colors--100` gardent l'encre BLANCHE.
+   ⚠ Et **cinq fonds sombres sont écrits en DUR** dans la feuille, hors de portée
+   d'un remappage de variables : deux concernent l'onboarding et sont surchargés
+   (`.card.sign-in-card`, `.input.select-input`), trois ne doivent pas basculer
+   (un voile de lightbox, deux couleurs de marque).
 
 Garde-fous : [megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts)
 (couleurs = barreaux réels de la vitrine, seuils AA, aucune police en dur, aucun
@@ -360,7 +439,12 @@ d'écran n'est restée sur Graphite).
 
 **Thème CSS Variables :**
 ```
-Dark mode :   Page #1C1C1C | Cards #2A2A2A | Borders #383838 | Text #ECECEF | Muted #8E8E96
+Dark mode :   ⚠ APLATI le 20.09.2026 — ce bloc était un SECOND thème sombre parallèle,
+              complet et distinct de MEGGA X (5 gris de surface, #1C1C1C page / #2A2A2A carte).
+              Mesuré au rendu, #1C1C1C peignait encore 582k px² du cockpit.
+              Les six rôles de surface rendent le canvas : Page = Cards = Section = Sidebar
+              = Input = Elevated = #16181c | Hover #1b1e23 | Border #2b2d30 (filet unique)
+              | Text #ededed | Secondary #cccccc | Muted #a3a3a3
 Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, bg-theme-hover, bg-theme-active
               text-theme-primary, text-theme-secondary, text-theme-tertiary, text-theme-muted
               border-theme-border, border-theme-border-subtle
