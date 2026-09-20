@@ -297,10 +297,10 @@
     {
       "id": "modales-portees",
       "section": "§3 — Modals",
-      "phrase": "33 des 36 fichiers de modale/panneau/dialogue",
+      "phrase": "41 fichiers appellent `createPortal`",
       "severite": "derive",
       "tolerance": 0.1,
-      "mesureLe": "2026-09-05",
+      "mesureLe": "2026-09-20",
       "mesure": {
         "motif": "createPortal",
         "mot": true,
@@ -312,7 +312,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 36
+        "fichiers": 41
       }
     },
     {
@@ -634,7 +634,7 @@
     {
       "id": "sm-edge-functions-entete",
       "section": "§0 — En une phrase",
-      "phrase": "87 edge functions",
+      "phrase": "90 edge functions",
       "severite": "derive",
       "mesureLe": "2026-09-04",
       "mesure": {
@@ -652,7 +652,7 @@
     {
       "id": "sm-edge-functions-titre",
       "section": "§5 — Edge functions",
-      "phrase": "Edge functions (87) — catalogue par domaine",
+      "phrase": "Edge functions (90) — catalogue par domaine",
       "severite": "derive",
       "mesureLe": "2026-09-04",
       "mesure": {

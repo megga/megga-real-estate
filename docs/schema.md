@@ -97,6 +97,31 @@ contacts (
   created_at, updated_at
 )
 
+-- Labs — le studio de génération (20260920120000). Dossiers et productions d'une agence.
+labs_folders (
+  id, agency_id → agencies, created_by → auth.users,
+  name,             -- 1..80 caractères, trigger tg_labs_folders_guard (auteur + horodatages posés en base)
+  sort_order, created_at, updated_at
+)
+labs_assets (
+  id, agency_id → agencies, folder_id → labs_folders ON DELETE SET NULL, created_by,
+  kind,             -- 'image' (Nano Banana 2) | 'video' (Seedance via fal.ai) | 'upload' (photo importée)
+  status,           -- 'pending' | 'generating' | 'ready' | 'failed'
+  prompt, voiceover_text, voiceover_voice, voiceover_url,   -- voix off Gemini TTS, WAV sur R2
+  source_asset_id → labs_assets,   -- l'image de départ d'une vidéo ou d'une retouche
+  url, thumbnail_url, width, height, duration_s, aspect_ratio,
+  model, provider,  -- 'gemini' | 'fal' | 'upload'
+  provider_request_id, provider_status_url, provider_response_url,   -- file d'attente fal.ai (pas des secrets)
+  error_code, cost_chf, is_favorite, metadata,
+  created_at, completed_at,
+  deleted_at        -- suppression DOUCE : le fichier R2 vit encore, aucune policy DELETE
+)
+  -- RLS agence (get_my_agency_id) ; le client n'INSÈRE que kind='upload' (les générations
+  -- viennent des edges labs-image / labs-video sous le rôle de service) ; un agent ne
+  -- modifie que folder_id, is_favorite, deleted_at (trigger tg_labs_assets_guard rétablit le reste).
+  -- Publiée en Realtime (replica identity full). Bucket Storage `labs` (public, {agency_id}/{uuid}.ext)
+  -- pour les imports ; productions sur R2 sous labs/{agency_id}/.
+
 -- Biens immobiliers
 properties (
   id, agency_id,

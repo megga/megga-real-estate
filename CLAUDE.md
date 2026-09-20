@@ -384,8 +384,9 @@ d'écran n'est restée sur Graphite).
   doit épouser le pager ») : leur voile couvre la Messagerie et non l'écran, et elles se
   masquent avec l'écran de leur onglet. Les ramener dans `<body>` rendrait le voile plein écran.
   ⚠ **« TOUJOURS … avec `z-[100]` » n'est
-  vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
-  modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
+  vrai ni pour l'un ni pour l'autre.** Mesuré le 20.09.2026 : **41 fichiers appellent
+  `createPortal`** (36 le 05.09.2026, dont 33 nommés modale/panneau/dialogue — la règle
+  tenait à trois près ; les trois du studio Labs la suivent) —
   mais le z-index est un **désordre assumé nulle part** : **185 sites `zIndex`
   portant 50 valeurs DISTINCTES** (remesuré le 14.09.2026 au motif du registre,
   commentaires blanchis ; 175 et 44 le 16.08 — les deux dernières valeurs venues, 4099
@@ -828,6 +829,8 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
+
+**Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. Quota vidéo = nouveau poste `labs_video` (Pro 10 · Entreprise 40) à valider. Détail : system-map §6quater, cerveau `megga/labs-studio`.
 
 **Messagerie (e-mail) : ✅ LOT 1 EN PRODUCTION depuis le 04.09.2026.** ⛔ **Ce paragraphe a affirmé l'inverse pendant vingt-quatre heures, et ses quatre mesures étaient inversées.** Il donnait la [PR #1274](https://github.com/megga/megga-real-estate/pull/1274) pour « OUVERTE au 04.09.2026 » et la production pour vide — « 0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%` » — alors qu'elle a été **mergée ce jour-là à 08:55 UTC** (`26187ba7`). Remesuré en production le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, 1 job cron `mail%`** (`mail-sync-2min`). La prétention n'était pas vague, elle était fausse sur chacun de ses chiffres — et aucune porte ne la mesurait.
 
