@@ -447,7 +447,11 @@ export function CrmSidebar({ active, sp, dark, onCmd }: CrmSidebarProps) {
           margin: 'var(--crm-space-lg) 0 0 var(--crm-space-lg)',
           background: sp.frameBg,
           border: `1px solid ${sp.frameBorder}`,
-          borderRadius: 'var(--crm-radius-6xl)',
+          // ⚠ 6xl (24 px) → 4xl (20 px) le 20.09.2026 : la carte latérale était le
+          // dernier des trois panneaux à garder son propre rayon, le pager et le
+          // dock MEGGA AI rendant tous deux 20. Ce n'était pas un littéral — un
+          // jeton réel, donc une décision — d'où l'alignement explicite.
+          borderRadius: 'var(--crm-radius-4xl)',
           boxShadow: sp.shadow,
           padding: 'var(--crm-space-4xl) var(--crm-space-2xl)',
           display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)',

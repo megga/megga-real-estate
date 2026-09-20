@@ -5,14 +5,38 @@
 
 import type { CSSProperties } from 'react'
 import { crmVoileAssombrissant, crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
-import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { MXC_CARD_SHADOW, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
 export const PANEL_W = 372
-// Largeur réservée dans le contenu = panneau + marges (respire à 16px du bord
-// droit + ~16px de gouttière). Le contenu se comprime de COPILOT_WIDTH → la
-// carte n'est jamais recouverte ni collée au contenu (comportement « pousse »).
-export const COPILOT_WIDTH = PANEL_W + 32
+/** La marge du dock au bord droit de la fenêtre (`CopilotPanel`, `const margin`). */
+export const DOCK_MARGIN = 16
+/**
+ * Gouttière VISIBLE entre le cadre du contenu et le dock — la même que celle
+ * entre la barre latérale et le contenu, qui vaut le `padding-left` du `<main>`.
+ */
+export const DOCK_GAP = 12
+/** Le `padding-right` que le contenu porte DÉJÀ, dock ouvert ou non. */
+const CONTENU_PAD_R = 24
+
+/**
+ * Largeur réservée dans le contenu quand le dock s'ouvre.
+ *
+ * ⛔ ELLE VALAIT `PANEL_W + 32`, ET L'ÉCART RENDU ÉTAIT DE 40 px — plus du
+ * triple des 12 px qui séparent la barre latérale du contenu (relevé au rendu
+ * par Julien le 20.09.2026). Le commentaire d'alors annonçait « 16 px du bord
+ * droit + ~16 px de gouttière » : l'intention était bonne, elle ignorait
+ * simplement que le contenu porte DÉJÀ son propre `padding-right` de 24 px.
+ * Les deux s'additionnaient.
+ *
+ * Mesuré : `écart = poussée − 364`. D'où l'arithmétique ci-dessous, écrite au
+ * lieu d'un nombre — la poussée réserve le dock et sa marge, MOINS ce que le
+ * contenu gouttière déjà en trop.
+ *
+ * ⚠ Si le `padding-right` du contenu change, ce calcul suit tout seul ; c'est
+ * précisément ce qu'un `+ 32` en dur ne faisait pas.
+ */
+export const COPILOT_WIDTH = PANEL_W + DOCK_MARGIN - (CONTENU_PAD_R - DOCK_GAP)
 
 /**
  * La poussée, publiée en variable CSS : `0px` dock fermé, `COPILOT_WIDTH` ouvert.
@@ -94,8 +118,22 @@ export function deriveAiPalette(base: CrmPalette, dark: boolean): AiPalette {
       // au-dessus de l'app, et se sépare par son filet — pas par un blanc
       // translucide, que la direction interdit en remplissage.
       panelBg: base.solidBg,
-      panelShadow:
-        `0 0 0 1px ${base.solidBorder}, 0 24px 70px -10px rgba(0,0,0,.7), 0 6px 22px -8px rgba(0,0,0,.55)`,
+      /**
+       * ⛔ DEUX OMBRES PORTÉES NOIRES VIVAIENT ICI, et elles peignaient une
+       * ZONE D'OMBRE autour du dock (relevé par Julien, 20.09.2026) :
+       * `rgba(0,0,0,.7)` sur 70 px de flou et `rgba(0,0,0,.55)` sur 22 px.
+       *
+       * Elles étaient INVISIBLES tant que le canvas valait `#030303` — on ne
+       * voit pas du noir sur du noir. Le plancher monté à `#16181c` (L* 8,20),
+       * elles assombrissent le canvas tout autour du panneau : le dock ne se
+       * pose plus SUR l'app, il y creuse un halo.
+       *
+       * C'est aussi ce que la direction interdit depuis toujours — `CLAUDE.md`
+       * §3 : en sombre `shadow` vaut `'none'`, on sépare par la BORDURE. La
+       * barre latérale le fait déjà (`boxShadow: sp.shadow`, donc rien).
+       * Il ne reste donc que le filet, à la même valeur que partout ailleurs.
+       */
+      panelShadow: `0 0 0 1px ${base.solidBorder}`,
       fill: base.solidBgSub,
       fillStrong: base.focusSurface,
       cardBg2: base.solidBgSub,
@@ -117,8 +155,12 @@ export function deriveAiPalette(base: CrmPalette, dark: boolean): AiPalette {
     onAccent: base.accentInk,
     aiInk: base.accent,
     panelBg: base.solidBg,
-    panelShadow:
-      `0 28px 80px -16px ${crmVoileEncre(false, 0.22)}, 0 8px 26px -12px ${crmVoileEncre(false, 0.12)}`,
+    // ⛛ 80 px DE FLOU POUR UNE GOUTTIÈRE DE 12 px — le halo du dock se
+    // superposait à celui du pager et noircissait l'espace entre les deux.
+    // Il prend l'ombre de carte de la direction, et son FILET, que la branche
+    // claire n'avait pas : le panneau porte `border: 'none'`, donc sans anneau
+    // il n'aurait plus aucun contour une fois le halo retiré.
+    panelShadow: `0 0 0 1px ${base.cardBorder}, ${MXC_CARD_SHADOW}`,
     fill: base.cardSubBg,
     fillStrong: base.focusSurface,
     cardBg2: base.cardSubBg,
@@ -137,13 +179,11 @@ export interface ContextAction {
   p: string
 }
 export interface ContextPack {
-  label: string
   actions: ContextAction[]
 }
 
 export const CONTEXT_PACK: Record<string, ContextPack> = {
   today: {
-    label: "Aujourd'hui",
     actions: [
       { icon: 'draft', t: 'Prépare mes relances du jour', p: "Quelles relances dois-je envoyer aujourd'hui et à qui ?" },
       { icon: 'calendar', t: 'Résume mon agenda', p: "Résume mon agenda d'aujourd'hui en 3 lignes." },
@@ -152,7 +192,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   pipeline: {
-    label: 'Pipeline',
     actions: [
       { icon: 'pipeline', t: 'Résume mes deals en cours', p: 'Résume l’état de mes deals en cours, étape par étape.' },
       { icon: 'draft', t: 'Rédige une relance', p: 'Rédige une relance pour un deal bloqué à l’étape Offre.' },
@@ -161,7 +200,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   contacts: {
-    label: 'Contacts',
     actions: [
       { icon: 'user', t: 'Qualifie ce lead', p: 'Qualifie ce lead à partir des dernières interactions.' },
       { icon: 'draft', t: 'Email de premier contact', p: 'Rédige un email de premier contact chaleureux et bref.' },
@@ -170,7 +208,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   biens: {
-    label: 'Mes biens',
     actions: [
       { icon: 'draft', t: 'Rédige une annonce', p: 'Rédige une annonce vendeuse pour un 4 pièces aux Eaux-Vives.' },
       { icon: 'folder', t: 'Résume ce bien', p: 'Résume les points forts de ce bien pour un acheteur.' },
@@ -179,7 +216,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   matching: {
-    label: 'Matching',
     actions: [
       { icon: 'user', t: 'Pourquoi ça matche ?', p: 'Explique-moi pourquoi ce bien matche cet acheteur.' },
       { icon: 'draft', t: 'Message d’envoi de sélection', p: 'Rédige un message pour envoyer cette sélection à l’acheteur.' },
@@ -188,7 +224,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   calendar: {
-    label: 'Calendrier',
     actions: [
       { icon: 'calendar', t: 'Optimise ma semaine', p: 'Comment optimiser mon planning de la semaine ?' },
       { icon: 'draft', t: 'Confirme une visite', p: 'Rédige un message de confirmation de visite.' },
@@ -197,7 +232,6 @@ export const CONTEXT_PACK: Record<string, ContextPack> = {
     ],
   },
   _default: {
-    label: 'MEGGA',
     actions: [
       { icon: 'folder', t: 'Résume mes dossiers', p: 'Résume l’état de mes dossiers en cours.' },
       { icon: 'draft', t: 'Rédige un email de suivi', p: 'Rédige un email de suivi après une visite.' },
