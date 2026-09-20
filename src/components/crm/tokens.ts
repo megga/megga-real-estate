@@ -235,13 +235,52 @@ export function crmMix(hex: string, target: string, amt: number): string {
   return '#' + [m(r, tr), m(g, tg), m(b, tb)].map((v) => v.toString(16).padStart(2, '0')).join('')
 }
 
-/** Teinte dérivée d'une colonne kanban : fond pastel (`panel`) + libellé de
- *  compteur teinté (`tintInk`) + teinte vive (`hue`). */
+/**
+ * Teinte dérivée d'une colonne kanban : fond (`panel`) + libellé de compteur
+ * teinté (`tintInk`) + teinte vive (`hue`).
+ *
+ * ⛔ **EN SOMBRE, LA COLONNE N'A PLUS DE FOND DU TOUT** — grammaire LIGNÉE
+ * menée au bout (décision Julien, 20.09.2026 : « mets les colonnes en
+ * transparent »). Le CRM sombre ne rend qu'un gris, `MXC_DARK_SURFACE.s0`, et
+ * la colonne le laisse passer : ce qui la délimite est son séparateur, rien
+ * d'autre.
+ *
+ * ⚠ **CE QUE ÇA COÛTE, ET C'EST ASSUMÉ.** Le commentaire de `StageColumn`
+ * décrit le kanban comme une FEUILLE CONTINUE dont les panneaux, mis bout à
+ * bout, forment « la PROGRESSION de l'entonnoir, du bleu au brun ». Sans fond,
+ * ce balayage ne vit plus que dans la pastille de 9 px de chaque en-tête et
+ * dans l'anneau de survol au glissé. L'étape reste LUE (la pastille, le
+ * libellé, la position), elle n'est plus BALAYÉE. Les valeurs intermédiaires
+ * essayées avant : 0,85 rendait ΔL* 6,6–10,2 (panneaux pleins), 0,94 rendait
+ * 2,7–3,9 (un murmure). Y revenir est un geste d'une ligne.
+ *
+ * ⚠ **`panel` n'est donc plus une couleur mesurable en sombre.** Ne rien en
+ * dériver : `encreSur` et les gardes de contraste attendent un APLAT, et
+ * `'transparent'` leur rendrait `NaN` en silence. L'encre d'une colonne se
+ * calcule sur le CANVAS (`sp.pageBg`), qui est ce qu'on voit réellement
+ * derrière — c'est le même piège que le voile translucide signalé sur
+ * `encreSur`.
+ *
+ * ⚠ **LE MODE CLAIR GARDE SES COLONNES PLEINES, ET C'EST UNE DÉCISION** (Julien,
+ * 20.09.2026) — pas un reste de périmètre, ce que disait la version précédente
+ * de cette ligne. Le motif est mesuré, et il vaut d'être lu avant d'« harmoniser »
+ * les deux thèmes : **la grammaire suit le MÉDIUM, pas la symétrie**.
+ *
+ * Sur blanc, une teinte pâle porte l'information sans rien coûter — elle ne
+ * concurrence pas l'encre, et le clair n'a jamais eu le problème de plancher qui
+ * a motivé tout ce chantier. Sur sombre, la même teinte devait se battre contre
+ * le canvas : il fallait choisir entre la lisibilité du balayage et l'uniformité
+ * des surfaces. Deux médiums, deux réponses.
+ *
+ * ⛔ Donc : ne PAS aligner le clair sur le sombre « pour la cohérence ». Ce
+ * serait échanger une asymétrie justifiée contre une perte sèche d'information
+ * sur le seul thème où elle ne coûtait rien.
+ */
 export function crmStageTint(stage: StageId, dark: boolean): { hue: string; panel: string; tintInk: string } {
   const hue = CRM_STAGE_HUE[stage] || '#8A93A5'
   return {
     hue,
-    panel: dark ? crmMix(hue, '#141517', 0.85) : crmMix(hue, '#FFFFFF', 0.81),
+    panel: dark ? 'transparent' : crmMix(hue, '#FFFFFF', 0.81),
     tintInk: dark ? crmMix(hue, '#FFFFFF', 0.35) : crmMix(hue, ENCRE_POLE, 0.45),
   }
 }

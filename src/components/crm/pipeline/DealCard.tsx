@@ -106,14 +106,27 @@ function DealCardImpl({
         onDragEnd={onDragEnd}
         onClick={!isDragging && !signing ? onClick : undefined}
         style={{
-          // Carte de deal : trois paliers selon l'état — au repos S2, au survol
-          // S3, et S1 (creusée) quand elle n'a pas d'action suivante.
+          // ⛔ CETTE CARTE N'AVAIT PLUS AUCUNE FRONTIÈRE EN SOMBRE, et c'est
+          // l'objet qu'on GLISSE. Le commentaire précédent disait « trois
+          // paliers selon l'état — au repos S2, au survol S3, et S1 (creusée)
+          // quand elle n'a pas d'action suivante » : vrai tant que la palette
+          // empilait des surfaces. Depuis le 20.09.2026 le CRM sombre n'en rend
+          // qu'une — `cardBg`, `cardSubBg` et `pageBg` sont le MÊME gris — et
+          // `shadowSm` y vaut `'none'`. Mesuré au rendu : la carte rendait
+          // `#16181c` sur un canvas `#16181c`, sans bordure ni ombre. Du texte
+          // posé sur le fond, rien à saisir.
+          //
+          // Elle reprend donc la grammaire de la direction : un FILET, dessiné
+          // en `inset` pour ne pas décaler la mise en page (même idiome que
+          // `SET_PALETTE.shadow`). Le survol reste le seul palier — un ÉTAT.
           background: na
             ? (hover ? sp.focusSurface : sp.cardBg)
             : sp.cardSubBg,
           borderRadius: 'var(--crm-radius-3xl)',
           padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
-          boxShadow: isDragging ? 'none' : sp.shadowSm,
+          boxShadow: isDragging
+            ? 'none'
+            : sp.isDark ? `inset 0 0 0 1px ${sp.cardBorder}` : sp.shadowSm,
           cursor: signing ? 'default' : isDragging ? 'grabbing' : 'grab',
           position: 'relative',
           overflow: signing ? 'hidden' : 'visible',
