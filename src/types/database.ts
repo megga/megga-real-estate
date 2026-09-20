@@ -3580,6 +3580,165 @@ export type Database = {
           },
         ]
       }
+      labs_assets: {
+        Row: {
+          agency_id: string
+          aspect_ratio: string | null
+          completed_at: string | null
+          cost_chf: number | null
+          created_at: string
+          created_by: string | null
+          deleted_at: string | null
+          duration_s: number | null
+          error_code: string | null
+          folder_id: string | null
+          height: number | null
+          id: string
+          is_favorite: boolean
+          kind: string
+          metadata: Json
+          model: string | null
+          prompt: string | null
+          provider: string | null
+          provider_request_id: string | null
+          provider_response_url: string | null
+          provider_status_url: string | null
+          source_asset_id: string | null
+          status: string
+          thumbnail_url: string | null
+          url: string | null
+          voiceover_lang: string | null
+          voiceover_text: string | null
+          voiceover_url: string | null
+          voiceover_voice: string | null
+          width: number | null
+        }
+        Insert: {
+          agency_id: string
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          cost_chf?: number | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          duration_s?: number | null
+          error_code?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean
+          kind: string
+          metadata?: Json
+          model?: string | null
+          prompt?: string | null
+          provider?: string | null
+          provider_request_id?: string | null
+          provider_response_url?: string | null
+          provider_status_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          url?: string | null
+          voiceover_lang?: string | null
+          voiceover_text?: string | null
+          voiceover_url?: string | null
+          voiceover_voice?: string | null
+          width?: number | null
+        }
+        Update: {
+          agency_id?: string
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          cost_chf?: number | null
+          created_at?: string
+          created_by?: string | null
+          deleted_at?: string | null
+          duration_s?: number | null
+          error_code?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean
+          kind?: string
+          metadata?: Json
+          model?: string | null
+          prompt?: string | null
+          provider?: string | null
+          provider_request_id?: string | null
+          provider_response_url?: string | null
+          provider_status_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          url?: string | null
+          voiceover_lang?: string | null
+          voiceover_text?: string | null
+          voiceover_url?: string | null
+          voiceover_voice?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labs_assets_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_assets_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "labs_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_assets_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "labs_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labs_folders: {
+        Row: {
+          agency_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labs_folders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       legal_document_versions: {
         Row: {
           consent_type: string
