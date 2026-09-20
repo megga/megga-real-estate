@@ -196,10 +196,13 @@ describe('Contraste DossierTokens — les encres d’un objet partagé par cinq 
     // elles que se pose chaque encre.
     expect(clair.card, 'la carte ne bascule pas').not.toBe(sombre.card)
     expect(clair.cardSubtle, 'la sous-carte ne bascule pas').not.toBe(sombre.cardSubtle)
-    // ⛔ La sous-carte se CREUSE en sombre — plus sombre que la carte, quand en
-    // clair elle est plus grise que le blanc (CLAUDE.md §3, « MEGGA X les creuse »).
-    expect(canal(sombre.cardSubtle)![0], 'la sous-carte sombre doit être CREUSÉE sous la carte')
-      .toBeLessThan(canal(sombre.card)![0])
+    // ⛔ « LA SOUS-CARTE SE CREUSE » EST MORT LE 20.09.2026. Le CRM sombre n'a
+    // plus qu'une surface : la sous-carte ne descend plus sous la carte, elle lui
+    // est ÉGALE et s'en sépare par un filet. En CLAIR la règle tient toujours —
+    // c'est pour ça que les deux lignes ci-dessus vérifient encore que les deux
+    // thèmes basculent.
+    expect(canal(sombre.cardSubtle)![0], 'la sous-carte sombre rend le gris unique')
+      .toBe(canal(sombre.card)![0])
   })
 
   /**

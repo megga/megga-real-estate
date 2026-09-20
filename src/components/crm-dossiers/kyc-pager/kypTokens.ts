@@ -10,7 +10,7 @@
 import { DOSSIER_FONT, KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
 import type { KycRiskLevel } from '@/lib/constants'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 
 /** Police du pager / fiche / wizard (déjà en usage côté KYC). */
@@ -77,15 +77,15 @@ export interface KypSurf {
 
 export function kypSurf(dark: boolean): KypSurf {
   return {
-    card: dark ? MXC_COLOR.n300 : '#FFFFFF',
-    cardSub: dark ? MXC_COLOR.n200 : '#F7F8FA',
+    card: dark ? MXC_DARK_SURFACE.s0 : '#FFFFFF',
+    cardSub: dark ? MXC_DARK_SURFACE.s0 : '#F7F8FA',
     // ⛔ L'APPEL, pas une chaîne qui le cite. Écrit en guillemets simples, ce
     // `${…}` n'était que du texte : `border: 1px solid ${…}` devenait invalide et
     // les filets de la fiche stricte disparaissaient en CLAIR.
     hairline: dark ? 'rgba(255,255,255,0.06)' : crmVoileEncre(false, 0.05),
     ghost: dark ? 'rgba(255,255,255,0.28)' : '#B5BAC2',
     late: dark ? '#E08A2E' : '#C45A00',
-    ringAvatar: dark ? MXC_COLOR.n300 : '#FFFFFF',
+    ringAvatar: dark ? MXC_DARK_SURFACE.s0 : '#FFFFFF',
     avatar: dark ? MXC_COLOR.n600 : MXC_COLOR.n100,
     destructive: dark ? '#E0738C' : '#8E1F3D',
     dark,

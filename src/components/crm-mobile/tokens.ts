@@ -20,7 +20,7 @@
 //
 // Garde-fou : `tests/unit/mobile-palette.spec.ts`.
 
-import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, mxCrmPalette, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 const MX_LIGHT = mxCrmPalette(false)
@@ -166,7 +166,11 @@ export const MT_DARK: MobileTokens = {
   shadowSm: '0 2px 10px rgba(0,0,0,0.4)',
   shadow: '0 12px 34px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.4)',
   shadowLg: '0 24px 56px rgba(0,0,0,0.62), 0 6px 18px rgba(0,0,0,0.5)',
-  relanceBg: MXC_COLOR.n200,
+  // ⛔ ÉTAIT `n200` (#050505) — PLUS SOMBRE QUE LE CANVAS depuis que celui-ci
+  // est monté à #16181c : un trou noir au milieu de l'écran. « Bento immersif
+  // sombre » garde son sens en CLAIR (carte inversée) ; en sombre, avec une
+  // seule surface, ça ne veut plus rien dire. Sa bordure le délimite déjà.
+  relanceBg: MXC_DARK_SURFACE.s0,
   relanceBorder: 'rgba(255,255,255,0.08)',
   relanceInk: MXC_COLOR.n1000,
   relanceMuted: MXC_COLOR.n600,

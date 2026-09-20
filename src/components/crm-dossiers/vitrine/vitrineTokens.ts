@@ -4,7 +4,7 @@
 // Un fichier mixte composants + constantes casse le Fast Refresh de Vite —
 // toute édition recharge la page au lieu de préserver l'état (galerie ouverte,
 // lightbox, scroll de la fiche).
-import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, mxCrmPalette, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { crmMix } from '@/components/crm/tokens'
 
@@ -87,7 +87,7 @@ export const VxSP_LIGHT: VxPalette = {
 // face à une modale ouverte par-dessus, le redescendre à s3 (noté au handoff).
 export const VxSP_DARK: VxPalette = {
   bg: MX_DARK.pageBg,
-  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_COLOR.n400} 0%, ${MXC_COLOR.n200} 55%, ${MXC_COLOR.n100} 100%)`,
+  bgGradient: `radial-gradient(ellipse 120% 80% at 50% 100%, ${MXC_DARK_SURFACE.s3} 0%, ${MXC_DARK_SURFACE.s1} 55%, ${MXC_DARK_SURFACE.s0} 100%)`,
   card: MX_DARK.cardBg,
   cardSub: MX_DARK.cardSubBg,
   cardSub2: MX_DARK.focusSurface,

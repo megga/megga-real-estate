@@ -26,14 +26,18 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
-import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { crmPalette } from '@/components/crm/tokens'
 import { dsPalette } from '@/components/crm-dossiers/dealTokens'
 import { omPalette } from '@/components/crm-dossiers/offer-modal/omTokens'
 
 /** Tout ce qu'une palette d'écran a le droit de contenir, sans le nommer. */
 const BARREAUX = new Set<string>([
+  // ⚠ TROISIÈME JEU depuis le 20.09.2026 : les SURFACES sombres du CRM ne sortent
+  // plus des barreaux de la vitrine mais de `MXC_DARK_SURFACE` — décision écrite
+  // sur ce module. Hors de ces trois jeux, une valeur reste un littéral inventé.
   ...Object.values(MXC_COLOR),
+  ...Object.values(MXC_DARK_SURFACE),
   ...Object.values(MXC_SYSTEM),
 ].map((v) => v.toLowerCase()))
 

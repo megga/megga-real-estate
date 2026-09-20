@@ -349,27 +349,35 @@
   [data-theme="dark"] {
     /* Logo filter — invert to white in dark mode */
     --logo-filter: invert(1);
-    /* Backgrounds */
-    --color-bg-page: 28 28 28;            /* #1C1C1C */
-    --color-bg-card: 42 42 42;            /* #2A2A2A */
-    --color-bg-section: 34 34 34;         /* #222222 */
-    --color-bg-sidebar: 22 22 22;         /* #161616 */
-    --color-bg-input: 50 50 50;           /* #323232 */
+    /* ─── Backgrounds — UNE SEULE SURFACE (20.09.2026) ───
+       ⛔ CE BLOC ÉTAIT UN SECOND THÈME SOMBRE, COMPLET ET PARALLÈLE : cinq gris
+       de surface (#1C1C1C page, #2A2A2A carte, #222222 section, #161616 rail,
+       #323232 champ) qui vivaient à côté de l'échelle MEGGA X sans jamais la
+       croiser. Mesuré au rendu le 20.09.2026, `#1C1C1C` peignait encore 582k px²
+       du cockpit — le seul gris qui dépassait une fois le reste aplati.
+       Les six rôles de surface rendent désormais le canvas, et ce qui sépare est
+       `--color-border`. Les deux derniers jetons sont des ÉTATS, pas des paliers.
+       Valeurs : `MXC_DARK_SURFACE` de `src/components/megga-x-crm/tokens.ts`. */
+    --color-bg-page: 22 24 28;            /* #16181c — s0 */
+    --color-bg-card: 22 24 28;            /* #16181c — s0 */
+    --color-bg-section: 22 24 28;         /* #16181c — s0 */
+    --color-bg-sidebar: 22 24 28;         /* #16181c — s0 */
+    --color-bg-input: 22 24 28;           /* #16181c — s0 */
     --color-bg-overlay: 0 0 0;
-    --color-bg-elevated: 42 42 42;        /* #2A2A2A */
-    --color-bg-hover: 50 50 50;           /* #323232 */
-    --color-bg-active: 56 56 56;          /* #383838 */
+    --color-bg-elevated: 22 24 28;        /* #16181c — s0 */
+    --color-bg-hover: 27 30 35;           /* #1b1e23 — s1, un ÉTAT */
+    --color-bg-active: 32 36 42;          /* #20242a — s2, un ÉTAT */
 
-    /* Text — WCAG 2.1 AA compliant on bg-card #2A2A2A */
-    --color-text-primary: 236 236 239;    /* #ECECEF — 13.6:1 ✅ */
-    --color-text-secondary: 163 163 170;  /* #A3A3AA — 5.34:1 ✅ (était #8E8E96 = 4.42:1, borderline) */
-    --color-text-tertiary: 154 154 162;   /* #9A9AA2 — 4.85:1 ✅ (était #6B6B6B = 2.69:1 ❌) */
-    --color-text-inverse: 28 28 28;       /* #1C1C1C */
-    --color-text-muted: 154 154 162;      /* #9A9AA2 — 4.85:1 ✅ */
+    /* Text — mesuré sur le canvas #16181c, plus sur #2A2A2A */
+    --color-text-primary: 237 237 237;    /* #ededed — n800, 15.18:1 ✅ (plus de blanc pur) */
+    --color-text-secondary: 204 204 204;  /* #cccccc — n700, 11.07:1 ✅ */
+    --color-text-tertiary: 163 163 163;   /* #a3a3a3 — n600, 7.05:1 ✅ */
+    --color-text-inverse: 22 24 28;       /* #16181c */
+    --color-text-muted: 163 163 163;      /* #a3a3a3 — n600, 7.05:1 ✅ */
 
-    /* Borders */
-    --color-border: 56 56 56;             /* #383838 */
-    --color-border-subtle: 42 42 42;      /* #2A2A2A */
+    /* Borders — c'est EUX qui portent la structure désormais */
+    --color-border: 43 45 48;             /* #2b2d30 — s.line, ΔL* 10,13 : un seul filet, discret */
+    --color-border-subtle: 43 45 48;      /* #2b2d30 — même filet : une seule force */
     /* Suit l'encre — ici #8dc1ff, la seule valeur qui tienne le seuil des
        filets sur la page sombre (l'accent y rend 2,95:1). */
     --color-border-focus: var(--color-accent);

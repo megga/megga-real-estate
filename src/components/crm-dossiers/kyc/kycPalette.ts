@@ -19,7 +19,7 @@
 
 import { createContext, useContext } from 'react'
 import { CRM_TOKENS, type CrmPalette, crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
@@ -160,11 +160,12 @@ export function buildKycPalette(
   if (!dark) return KYC_LIGHT
   return {
     bgGradient: sp.pageBg,
-    card: MXC_COLOR.n300,
-    cardSubtle: MXC_COLOR.n200,
+    // Échelle sombre du CRM — sans quoi la carte passe sous son propre canvas.
+    card: MXC_DARK_SURFACE.s0,
+    cardSubtle: MXC_DARK_SURFACE.s0,
     // En graphite la card est OPAQUE : le « tour blanc » redescend au filet,
     // sinon la bordure devient le seul relief visible et durcit le bento.
-    cardBorder: 'rgba(255,255,255,0.06)',
+    cardBorder: 'rgba(255,255,255,0.09)',
     black: sp.accent, // l'actif porte l'accent dans les DEUX thèmes
     // ⛔ BLANC, PAS LE CANVAS — et ce n'était pas une étourderie mais un
     // commentaire PÉRIMÉ. « texte sombre posé sur la pilule claire » disait vrai
@@ -182,7 +183,7 @@ export function buildKycPalette(
     // ⚠ OPAQUE, plus un voile blanc à 20 %. En sombre MEGGA X sépare par la
     // bordure et n'empile pas de voiles sur une surface neutre — et un voile ne
     // se mesure qu'après composition, ce qui masque son vrai palier.
-    ghost: MXC_COLOR.n400,
+    ghost: MXC_DARK_SURFACE.s1,
     // ⛔ AUCUNE OMBRE EN SOMBRE, et la palette le dit déjà : `mxCrmPalette(true)`
     // rend `shadow` et `shadowSm` à `'none'`, comme la vitrine. `CLAUDE.md` §3 :
     // « la séparation vient de la BORDURE, pas de l'écart de luminance » — et la

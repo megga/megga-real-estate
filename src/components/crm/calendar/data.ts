@@ -10,7 +10,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
-import { MXC_COLOR, MXC_SYSTEM, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, encreSur, mxCrmPalette, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -364,17 +364,20 @@ export const CAL_LIGHT: CalPalette = {
 export const CAL_DARK: CalPalette = {
   bg: MXC_COLOR.n100,
   // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
-  card: '#17181A',
-  popBg: '#1E1F21',
-  cardSubtle: '#1E1F21',
-  cardHover: '#26272A',
-  hoverSubtle: '#1E1F21',
+  // ⚠ Défauts MORTS : `buildCalPalette` les écrase tous par l'échelle. Alignés
+  // quand même — un défaut périmé finit par être recopié ailleurs.
+  card: MXC_DARK_SURFACE.s0,
+  popBg: MXC_DARK_SURFACE.s0,
+  cardSubtle: MXC_DARK_SURFACE.s0,
+  cardHover: MXC_DARK_SURFACE.s1,
+  hoverSubtle: MXC_DARK_SURFACE.s1,
   ink: '#FFFFFF',
   inkSoft: '#C8CCD2',
   muted: '#7E828A',
   ghost: MXC_COLOR.n500,
-  line: 'rgba(255,255,255,0.07)',
-  line2: 'rgba(255,255,255,0.11)',
+  // Même force que partout : une seule ligne, discrète.
+  line: 'rgba(255,255,255,0.09)',
+  line2: 'rgba(255,255,255,0.09)',
   accent: MXC_COLOR.accent,
   accentInk: MXC_SYSTEM.blue300,
   onAccent: MXC_COLOR.n1000,
@@ -414,11 +417,15 @@ export function buildCalPalette(dark: boolean): CalPalette {
     bg: mx.pageBg,
     // Surfaces OPAQUES de MEGGA X. On ne dérive PAS d'un thème : il teintait
     // tout en bleu-violet, et il n'existe plus.
-    card: MXC_COLOR.n300,
-    cardSubtle: MXC_COLOR.n200,
-    hoverSubtle: MXC_COLOR.n400,
-    cardHover: MXC_COLOR.n400,
-    popBg: MXC_COLOR.n300,
+    // ⛔ L'ÉCHELLE SOMBRE DU CRM, PAS LES BARREAUX DE LA VITRINE. Ces cinq
+    // surfaces lisaient n300/n200/n400 en dur pendant que `bg` suivait la
+    // palette : le canvas passé à `#16181c`, les cartes seraient restées à
+    // `#090909` — donc PLUS SOMBRES que le fond, des trous au lieu de cartes.
+    card: MXC_DARK_SURFACE.s0,
+    cardSubtle: MXC_DARK_SURFACE.s0,
+    hoverSubtle: MXC_DARK_SURFACE.s1,
+    cardHover: MXC_DARK_SURFACE.s1,
+    popBg: MXC_DARK_SURFACE.s0,
     ink: mx.ink,
     inkSoft: mx.soft,
     muted: mx.sub,
