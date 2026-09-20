@@ -40,7 +40,9 @@
     "favTitle": "No favourites",
     "favBody": "Star a production to find it here.",
     "filterTitle": "Nothing of this type here",
-    "filterBody": "Change the filter, or generate a production of this type."
+    "filterBody": "Change the filter, or generate a production of this type.",
+    "searchTitle": "No results",
+    "searchBody": "Search reads prompts and voice-overs. An imported photo has neither: open its folder."
   },
   "error": {
     "title": "The studio could not be loaded",
@@ -77,7 +79,11 @@
     "listen": "Listen",
     "listenPartial": "Listen to the first {{n}} characters",
     "listenStop": "Stop",
-    "listenEmpty": "Write the text first"
+    "listenEmpty": "Write the text first",
+    "variations": "Variations",
+    "variationsValue_one": "{{count}} image",
+    "variationsValue_other": "{{count}} images",
+    "estimateMany": "≈ CHF {{chf}} · {{n}} images"
   },
   "voices": {
     "Kore": "Kore, composed",
@@ -98,7 +104,9 @@
     "unfavorite": "Remove from favourites",
     "animate": "Animate as video",
     "useSource": "Use as source photo",
-    "download": "Download"
+    "download": "Download",
+    "move": "Move to a folder",
+    "redo": "Redo"
   },
   "lightbox": {
     "close": "Close",
@@ -125,7 +133,11 @@
     "download": "Download",
     "delete": "Delete",
     "listen": "Listen",
-    "listenStop": "Stop"
+    "listenStop": "Stop",
+    "redo": "Redo identically",
+    "compare": "Before / after",
+    "before": "Before",
+    "after": "After"
   },
   "folderModal": {
     "createTitle": "New folder",
@@ -142,7 +154,10 @@
     "deleteAssetTitle": "Delete this production?",
     "deleteAssetBody": "It leaves the studio. A copy placed on a property record is not affected.",
     "delete": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "deleteLotTitle_one": "Delete this production?",
+    "deleteLotTitle_other": "Delete these {{count}} productions?",
+    "deleteLotBody": "They disappear from the studio. A copy placed on a listing is untouched."
   },
   "errors": {
     "upgrade_required": "Generation is available from the Pro plan.",
@@ -168,10 +183,71 @@
     "network": "Connection error.",
     "unknown": "Something went wrong.",
     "too_many_previews": "Too many previews in a row: wait a moment.",
-    "playback": "Playback failed."
+    "playback": "Playback failed.",
+    "quota_partial": "Only {{n}} generation(s) were left this month: that is what was launched."
   },
   "mobile": {
     "readOnly": "Generation happens on a computer. Here you browse the studio.",
     "empty": "No production yet."
+  },
+  "search": {
+    "placeholder": "Search a prompt…",
+    "aria": "Search the prompts",
+    "clear": "Clear search"
+  },
+  "selection": {
+    "count_one": "{{count}} selected",
+    "count_other": "{{count}} selected",
+    "all": "Select all",
+    "none": "Deselect all",
+    "cancel": "Leave selection",
+    "move": "Move to…",
+    "favorite": "Favourites",
+    "unfavorite": "Remove from favourites",
+    "download_one": "Download ({{count}})",
+    "download_other": "Download ({{count}})",
+    "delete": "Delete",
+    "check": "Select",
+    "uncheck": "Deselect"
+  },
+  "picker": {
+    "title": "Move to",
+    "none": "No folder",
+    "newFolder": "New folder…"
+  },
+  "staging": {
+    "title": "Home staging",
+    "chip": "Staging",
+    "close": "Close home staging",
+    "room": "Room",
+    "style": "Style",
+    "hintSource": "The instruction is written into the bar below: read it, adjust it, then generate.",
+    "hintScratch": "Without a source photo the scene is invented from scratch. Import a photo to furnish a real room.",
+    "promptSource": "{{room}} to furnish, {{style}} style — {{hint}}. Keep the architecture, windows, floors and perspective of the photo exactly as they are; add only furniture and decoration, with consistent shadows and the existing light. Photorealistic.",
+    "promptScratch": "{{room}}, {{style}} style — {{hint}}. Real-estate interior photography, natural light, eye-level perspective, photorealistic.",
+    "rooms": {
+      "salon": "Living room",
+      "chambre": "Bedroom",
+      "cuisine": "Kitchen",
+      "salle_a_manger": "Dining room",
+      "bureau": "Study",
+      "terrasse": "Terrace",
+      "jardin": "Garden",
+      "balcon": "Balcony"
+    },
+    "styles": {
+      "modern": "Modern",
+      "classic": "Classic",
+      "luxury": "Luxury",
+      "scandinavian": "Scandinavian",
+      "minimal": "Minimal"
+    },
+    "hints": {
+      "modern": "clean lines, neutral tones",
+      "classic": "fine wood, rich fabrics",
+      "luxury": "marble, velvet, designer pieces",
+      "scandinavian": "birch, linen, hygge",
+      "minimal": "pared back, calm, open space"
+    }
   }
 }

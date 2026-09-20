@@ -1,7 +1,8 @@
 /**
  * Les productions du studio Labs : la liste de l'agence (300 dernières, hors corbeille),
  * le temps réel qui la rafraîchit quand une vidéo aboutit, et les trois gestes que la
- * base laisse à l'agent — ranger dans un dossier, étoiler, mettre à la corbeille.
+ * base laisse à l'agent — ranger dans un dossier, étoiler, mettre à la corbeille —
+ * chacun à l'unité (`move`, `favorite`, `remove`) ET sur une sélection (`…Many`).
  *
  * ⚠ Canal Realtime nommé par `useId()` (CLAUDE.md §4) ; le banc ne s'abonne pas.
  */
@@ -110,6 +111,57 @@ export function useLabsAssets() {
     onSettled: () => { void qc.invalidateQueries({ queryKey: LABS_ASSETS_KEY }) },
   })
 
+  // ─── Les mêmes gestes, sur une SÉLECTION ──────────────────────────────
+  //
+  // ⚠ UNE requête par geste (`.in('id', ids)`), pas une boucle : ranger douze
+  // productions ne doit pas être douze allers-retours — c'est la lenteur qui décourage
+  // de ranger, et un studio qu'on ne range pas devient un tas.
+  //
+  // ⛔ Et le plafond est celui de la LISTE (300 lignes chargées), pas un nombre
+  // inventé : on ne peut cocher que ce qu'on voit.
+
+  /** Applique une retouche locale à plusieurs lignes d'un coup. */
+  const poserPlusieurs = (ids: string[], patch: Partial<LabsAsset>) => {
+    const vise = new Set(ids)
+    qc.setQueryData<LabsAsset[]>(key, (prev) => (prev ?? []).map((a) => (vise.has(a.id) ? { ...a, ...patch } : a)))
+  }
+
+  const moveMany = useMutation({
+    mutationFn: async (p: { ids: string[]; folderId: string | null }) => {
+      if (fx) { for (const id of p.ids) fxPatchAsset(id, { folderId: p.folderId }); return p }
+      const { error } = await supabase.from('labs_assets').update({ folder_id: p.folderId }).in('id', p.ids)
+      if (error) throw error
+      return p
+    },
+    onMutate: (p) => poserPlusieurs(p.ids, { folderId: p.folderId }),
+    onSettled: () => { void qc.invalidateQueries({ queryKey: LABS_ASSETS_KEY }) },
+  })
+
+  const favoriteMany = useMutation({
+    mutationFn: async (p: { ids: string[]; isFavorite: boolean }) => {
+      if (fx) { for (const id of p.ids) fxPatchAsset(id, { isFavorite: p.isFavorite }); return p }
+      const { error } = await supabase.from('labs_assets').update({ is_favorite: p.isFavorite }).in('id', p.ids)
+      if (error) throw error
+      return p
+    },
+    onMutate: (p) => poserPlusieurs(p.ids, { isFavorite: p.isFavorite }),
+    onSettled: () => { void qc.invalidateQueries({ queryKey: LABS_ASSETS_KEY }) },
+  })
+
+  const removeMany = useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (fx) { for (const id of ids) fxRemoveAsset(id); return ids }
+      const { error } = await supabase.from('labs_assets').update({ deleted_at: new Date().toISOString() }).in('id', ids)
+      if (error) throw error
+      return ids
+    },
+    onMutate: (ids) => {
+      const vise = new Set(ids)
+      qc.setQueryData<LabsAsset[]>(key, (prev) => (prev ?? []).filter((a) => !vise.has(a.id)))
+    },
+    onSettled: () => { void qc.invalidateQueries({ queryKey: LABS_ASSETS_KEY }) },
+  })
+
   /** Ajoute une production fraîchement rendue par une edge, en tête. */
   const inserer = (row: AssetRow | LabsAsset) => {
     const asset = 'agency_id' in row ? labsAssetFromRow(row) : row
@@ -124,6 +176,9 @@ export function useLabsAssets() {
     move,
     favorite,
     remove,
+    moveMany,
+    favoriteMany,
+    removeMany,
     inserer,
     poser,
   }

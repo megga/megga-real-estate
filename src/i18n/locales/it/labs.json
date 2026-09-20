@@ -40,7 +40,9 @@
     "favTitle": "Nessun preferito",
     "favBody": "Segnate una produzione con una stella per ritrovarla qui.",
     "filterTitle": "Niente di questo tipo qui",
-    "filterBody": "Cambiate filtro, oppure generate una produzione di questo tipo."
+    "filterBody": "Cambiate filtro, oppure generate una produzione di questo tipo.",
+    "searchTitle": "Nessun risultato",
+    "searchBody": "La ricerca legge i prompt e le voci fuori campo. Una foto importata non ne ha: apri la sua cartella."
   },
   "error": {
     "title": "Impossibile caricare lo studio",
@@ -77,7 +79,11 @@
     "listen": "Ascolta",
     "listenPartial": "Ascolta l'inizio ({{n}} caratteri)",
     "listenStop": "Ferma",
-    "listenEmpty": "Scrivete prima il testo"
+    "listenEmpty": "Scrivete prima il testo",
+    "variations": "Variazioni",
+    "variationsValue_one": "{{count}} immagine",
+    "variationsValue_other": "{{count}} immagini",
+    "estimateMany": "≈ CHF {{chf}} · {{n}} immagini"
   },
   "voices": {
     "Kore": "Kore, pacata",
@@ -98,7 +104,9 @@
     "unfavorite": "Rimuovi dai preferiti",
     "animate": "Anima in video",
     "useSource": "Usa come foto di partenza",
-    "download": "Scarica"
+    "download": "Scarica",
+    "move": "Sposta in una cartella",
+    "redo": "Rifai"
   },
   "lightbox": {
     "close": "Chiudi",
@@ -125,7 +133,11 @@
     "download": "Scarica",
     "delete": "Elimina",
     "listen": "Ascolta",
-    "listenStop": "Ferma"
+    "listenStop": "Ferma",
+    "redo": "Rifai identico",
+    "compare": "Prima / dopo",
+    "before": "Prima",
+    "after": "Dopo"
   },
   "folderModal": {
     "createTitle": "Nuova cartella",
@@ -142,7 +154,10 @@
     "deleteAssetTitle": "Eliminare questa produzione?",
     "deleteAssetBody": "Scompare dallo studio. Una copia inserita in una scheda immobile non viene toccata.",
     "delete": "Elimina",
-    "cancel": "Annulla"
+    "cancel": "Annulla",
+    "deleteLotTitle_one": "Eliminare questa produzione?",
+    "deleteLotTitle_other": "Eliminare queste {{count}} produzioni?",
+    "deleteLotBody": "Spariscono dallo studio. Una copia posata su una scheda immobile non viene toccata."
   },
   "errors": {
     "upgrade_required": "La generazione è disponibile dal piano Pro.",
@@ -168,10 +183,71 @@
     "network": "Errore di connessione.",
     "unknown": "Si è verificato un errore.",
     "too_many_previews": "Troppi ascolti di seguito: attendete un istante.",
-    "playback": "La riproduzione non è riuscita."
+    "playback": "La riproduzione non è riuscita.",
+    "quota_partial": "Questo mese restavano solo {{n}} generazioni: sono quelle avviate."
   },
   "mobile": {
     "readOnly": "Le generazioni si fanno al computer. Qui consultate lo studio.",
     "empty": "Nessuna produzione per ora."
+  },
+  "search": {
+    "placeholder": "Cerca un prompt…",
+    "aria": "Cerca nei prompt",
+    "clear": "Cancella la ricerca"
+  },
+  "selection": {
+    "count_one": "{{count}} selezionata",
+    "count_other": "{{count}} selezionate",
+    "all": "Seleziona tutto",
+    "none": "Deseleziona tutto",
+    "cancel": "Esci dalla selezione",
+    "move": "Sposta in…",
+    "favorite": "Preferiti",
+    "unfavorite": "Rimuovi dai preferiti",
+    "download_one": "Scarica ({{count}})",
+    "download_other": "Scarica ({{count}})",
+    "delete": "Elimina",
+    "check": "Seleziona",
+    "uncheck": "Deseleziona"
+  },
+  "picker": {
+    "title": "Sposta in",
+    "none": "Senza cartella",
+    "newFolder": "Nuova cartella…"
+  },
+  "staging": {
+    "title": "Home staging",
+    "chip": "Staging",
+    "close": "Chiudi l'home staging",
+    "room": "Stanza",
+    "style": "Stile",
+    "hintSource": "L'istruzione viene scritta nella barra qui sotto: rileggila, correggila, poi genera.",
+    "hintScratch": "Senza foto di partenza la scena è inventata. Importa una foto per arredare una stanza reale.",
+    "promptSource": "{{room}} da arredare, stile {{style}} — {{hint}}. Mantieni esattamente l'architettura, le finestre, i pavimenti e la prospettiva della foto; aggiungi solo mobili e decorazioni, con ombre coerenti e la luce esistente. Fotorealistico.",
+    "promptScratch": "{{room}}, stile {{style}} — {{hint}}. Fotografia d'interni immobiliare, luce naturale, prospettiva ad altezza d'occhi, fotorealistico.",
+    "rooms": {
+      "salon": "Soggiorno",
+      "chambre": "Camera da letto",
+      "cuisine": "Cucina",
+      "salle_a_manger": "Sala da pranzo",
+      "bureau": "Studio",
+      "terrasse": "Terrazza",
+      "jardin": "Giardino",
+      "balcon": "Balcone"
+    },
+    "styles": {
+      "modern": "Moderno",
+      "classic": "Classico",
+      "luxury": "Lusso",
+      "scandinavian": "Scandinavo",
+      "minimal": "Minimal"
+    },
+    "hints": {
+      "modern": "linee pulite, toni neutri",
+      "classic": "legno pregiato, tessuti ricchi",
+      "luxury": "marmo, velluto, pezzi di design",
+      "scandinavian": "betulla, lino, hygge",
+      "minimal": "essenziale, calmo, spazio aperto"
+    }
   }
 }

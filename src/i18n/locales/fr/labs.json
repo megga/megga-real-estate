@@ -40,7 +40,9 @@
     "favTitle": "Aucun favori",
     "favBody": "Marquez une production d'une étoile pour la retrouver ici.",
     "filterTitle": "Rien de ce type ici",
-    "filterBody": "Changez de filtre, ou générez une production de ce type."
+    "filterBody": "Changez de filtre, ou générez une production de ce type.",
+    "searchTitle": "Aucun résultat",
+    "searchBody": "La recherche lit les prompts et les voix off. Une photo importée n'en a pas : ouvrez son dossier."
   },
   "error": {
     "title": "Impossible de charger le studio",
@@ -77,7 +79,11 @@
     "listen": "Écouter",
     "listenPartial": "Écouter le début ({{n}} caractères)",
     "listenStop": "Arrêter",
-    "listenEmpty": "Écrivez le texte d'abord"
+    "listenEmpty": "Écrivez le texte d'abord",
+    "variations": "Variations",
+    "variationsValue_one": "{{count}} image",
+    "variationsValue_other": "{{count}} images",
+    "estimateMany": "≈ CHF {{chf}} · {{n}} images"
   },
   "voices": {
     "Kore": "Kore, posée",
@@ -98,7 +104,9 @@
     "unfavorite": "Retirer des favoris",
     "animate": "Animer en vidéo",
     "useSource": "Utiliser comme photo source",
-    "download": "Télécharger"
+    "download": "Télécharger",
+    "move": "Ranger dans un dossier",
+    "redo": "Refaire"
   },
   "lightbox": {
     "close": "Fermer",
@@ -125,7 +133,11 @@
     "download": "Télécharger",
     "delete": "Supprimer",
     "listen": "Écouter",
-    "listenStop": "Arrêter"
+    "listenStop": "Arrêter",
+    "redo": "Refaire à l'identique",
+    "compare": "Avant / après",
+    "before": "Avant",
+    "after": "Après"
   },
   "folderModal": {
     "createTitle": "Nouveau dossier",
@@ -142,7 +154,10 @@
     "deleteAssetTitle": "Supprimer cette production ?",
     "deleteAssetBody": "Elle disparaît du studio. Une copie posée sur une fiche de bien n'est pas touchée.",
     "delete": "Supprimer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "deleteLotTitle_one": "Supprimer cette production ?",
+    "deleteLotTitle_other": "Supprimer ces {{count}} productions ?",
+    "deleteLotBody": "Elles disparaissent du studio. Une copie posée sur une fiche de bien n'est pas touchée."
   },
   "errors": {
     "upgrade_required": "La génération est disponible à partir du plan Pro.",
@@ -168,10 +183,71 @@
     "network": "Erreur de connexion.",
     "unknown": "Une erreur est survenue.",
     "too_many_previews": "Trop d’écoutes coup sur coup : patientez un instant.",
-    "playback": "La lecture a échoué."
+    "playback": "La lecture a échoué.",
+    "quota_partial": "Il ne restait que {{n}} génération(s) ce mois-ci : c'est ce qui a été lancé."
   },
   "mobile": {
     "readOnly": "Les générations se font sur ordinateur. Ici, vous consultez le studio.",
     "empty": "Aucune production pour l'instant."
+  },
+  "search": {
+    "placeholder": "Rechercher un prompt…",
+    "aria": "Rechercher dans les prompts",
+    "clear": "Effacer la recherche"
+  },
+  "selection": {
+    "count_one": "{{count}} sélectionnée",
+    "count_other": "{{count}} sélectionnées",
+    "all": "Tout sélectionner",
+    "none": "Tout désélectionner",
+    "cancel": "Quitter la sélection",
+    "move": "Ranger dans…",
+    "favorite": "Favoris",
+    "unfavorite": "Retirer des favoris",
+    "download_one": "Télécharger ({{count}})",
+    "download_other": "Télécharger ({{count}})",
+    "delete": "Supprimer",
+    "check": "Sélectionner",
+    "uncheck": "Désélectionner"
+  },
+  "picker": {
+    "title": "Ranger dans",
+    "none": "Sans dossier",
+    "newFolder": "Nouveau dossier…"
+  },
+  "staging": {
+    "title": "Home staging",
+    "chip": "Staging",
+    "close": "Fermer le home staging",
+    "room": "Pièce",
+    "style": "Style",
+    "hintSource": "La consigne s'écrit dans la barre ci-dessous : relisez-la, ajustez-la, puis générez.",
+    "hintScratch": "Sans photo source, la scène est créée de toutes pièces. Importez une photo pour meubler une vraie pièce.",
+    "promptSource": "{{room}} à meubler, style {{style}} — {{hint}}. Conserve exactement l'architecture, les fenêtres, les sols et la perspective de la photo ; n'ajoute que le mobilier et la décoration, avec des ombres cohérentes et la lumière existante. Rendu photoréaliste.",
+    "promptScratch": "{{room}}, style {{style}} — {{hint}}. Photographie d'intérieur immobilière, lumière naturelle, perspective à hauteur d'œil, rendu photoréaliste.",
+    "rooms": {
+      "salon": "Salon",
+      "chambre": "Chambre",
+      "cuisine": "Cuisine",
+      "salle_a_manger": "Salle à manger",
+      "bureau": "Bureau",
+      "terrasse": "Terrasse",
+      "jardin": "Jardin",
+      "balcon": "Balcon"
+    },
+    "styles": {
+      "modern": "Moderne",
+      "classic": "Classique",
+      "luxury": "Luxe",
+      "scandinavian": "Scandinave",
+      "minimal": "Minimal"
+    },
+    "hints": {
+      "modern": "lignes épurées, tons neutres",
+      "classic": "bois noble, tissus riches",
+      "luxury": "marbre, velours, pièces de designer",
+      "scandinavian": "bouleau, lin, ambiance hygge",
+      "minimal": "épuré, zen, espace ouvert"
+    }
   }
 }

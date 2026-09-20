@@ -157,14 +157,25 @@ export async function fxApercuVoix(): Promise<{ data: { audio: string; mime: str
   return { data: { audio: BIP.slice(BIP.indexOf(',') + 1), mime: 'audio/wav', durationS: 1.2 }, error: null }
 }
 
+/**
+ * ⛔ L'IDENTIFIANT PORTE UN COMPTEUR, PAS SEULEMENT L'HORLOGE. Quatre variations
+ * partent EN PARALLÈLE et attendent la même durée : `Date.now()` leur rend la même
+ * milliseconde, donc le même id — React n'en affiche alors qu'une, et le banc ferait
+ * croire que les variations ne marchent pas.
+ */
+let fxSerie = 0
+
 export async function fxGenerateImage(prompt: string, folderId: string | null, sourceAssetId: string | null): Promise<LabsAsset> {
-  await wait(1400)
+  const rang = (fxSerie += 1)
+  // Un peu de dispersion : les quatre tuiles ne se remplissent pas toutes d'un coup.
+  await wait(1200 + (rang % 4) * 450)
   const teintes: [string, string][] = [[...T.sable], [...T.ardoise], [...T.mousse], [...T.brique]]
-  const [a, b] = teintes[assets.length % teintes.length]
+  const [a, b] = teintes[rang % teintes.length]
   const now = new Date().toISOString()
+  const etiquette = `Image générée ${rang}`
   const asset = base({
-    id: `fx-a${Date.now()}`, kind: 'image', createdAt: now, folderId, sourceAssetId, prompt,
-    url: IMG(1600, 1200, a, b, 'Image générée'), thumbnailUrl: IMG(800, 600, a, b, 'Image générée'),
+    id: `fx-a${Date.now()}-${rang}`, kind: 'image', createdAt: now, folderId, sourceAssetId, prompt,
+    url: IMG(1600, 1200, a, b, etiquette), thumbnailUrl: IMG(800, 600, a, b, etiquette),
     width: 1600, height: 1200, aspectRatio: '4:3', model: 'gemini-3.1-flash-image-preview', costChf: 0.091,
   })
   assets = [asset, ...assets]

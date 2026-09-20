@@ -1,21 +1,35 @@
 /**
  * Orchestrateur du studio Labs (`/dashboard/labs`) : le chrome CRM (`CrmWorkspace`),
- * puis UNE carte plein cadre — la galerie, son en-tête (le menu des dossiers, les
- * filtres, la densité) et, flottante en bas, la barre de prompt.
+ * puis UNE carte plein cadre — la galerie, son en-tête (le menu des dossiers, la
+ * recherche, les filtres, la densité) et, flottante en bas, la barre de prompt.
  *
  * ⚠ Plein cadre et non un bento `rail | galerie` (Julien, 20.09.2026 : « le pager
  * doit rester comme il est partout, pour profiter de la plus grande surface
  * disponible ») : les dossiers vivent dans le menu du titre, pas dans une colonne.
  *
- * Ce que l'écran fait : générer une image (Nano Banana 2) à partir d'un texte ou
- * d'une photo, générer une vidéo (Seedance) à partir d'une image avec ou sans voix off,
- * importer une photo, ranger tout ça dans des dossiers. Ce qu'il ne fait pas encore :
- * poser une production sur la fiche d'un bien — le geste viendra de la fiche, pas d'ici.
+ * Ce que l'écran fait : générer une image (Nano Banana 2) à partir d'un texte, d'une
+ * photo ou d'un préréglage de home staging — jusqu'à quatre variations d'un coup —,
+ * générer une vidéo (Seedance) à partir d'une image avec ou sans voix off, importer
+ * une photo, et RANGER tout ça : cocher, ranger dans un dossier, étoiler, supprimer,
+ * à l'unité ou par paquets. Ce qu'il ne fait pas encore : poser une production sur la
+ * fiche d'un bien — le geste viendra de la fiche, pas d'ici.
+ *
+ * ── CE QUE CET ÉCRAN A APPRIS DU 20.09.2026 ──────────────────────────────────
+ * Le studio savait PRODUIRE et ne savait pas RANGER, et ce déséquilibre se mesurait
+ * en gestes : classer une production demandait de l'ouvrir, de descendre au bloc
+ * « Informations » et d'y trouver une liste déroulante — soit trois gestes et un
+ * aller-retour par image, trente-six pour la douzaine qu'une séance de staging
+ * produit. Générer quatre variantes d'un salon en demandait quatre de plus, chacune
+ * suivie de quinze secondes où RIEN ne bougeait à l'écran. Et retrouver un prompt
+ * écrit la semaine d'avant n'était possible qu'en faisant défiler trois cents
+ * vignettes. Un outil qui produit plus vite qu'il ne range finit en tas.
  *
  * ⚠ L'état de l'écran vit dans l'ONGLET (`useTabScopedState`) : le dossier ouvert, la
- * densité et le brouillon de prompt survivent à un aller-retour entre deux onglets.
+ * recherche, la densité, le préréglage de staging et le brouillon de prompt survivent
+ * à un aller-retour entre deux onglets. La SÉLECTION, elle, est éphémère — elle décrit
+ * un geste en cours, pas un réglage.
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
@@ -23,27 +37,38 @@ import { crmPalette } from '@/components/crm/tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import { useLabsAssets, useLabsVideoPolling } from '@/hooks/useLabsAssets'
 import { useLabsFolders } from '@/hooks/useLabsFolders'
 import { useLabsGenerate } from '@/hooks/useLabsGenerate'
 import { useLabsUpload } from '@/hooks/useLabsUpload'
 import {
-  LABS_DEFAULT_VOICE, LABS_DEFAULT_VOICE_LANG, labsCountByFolder, labsDownloadName, labsEstimateChf, labsFilter,
-  labsMonthUsage, labsQuotaFor, labsVideoDurationS, labsVoiceoverSeconds, type LabsVoice, type LabsVoiceLang,
+  LABS_DEFAULT_VOICE, LABS_DEFAULT_VOICE_LANG, LABS_STAGING_DEFAULT_ROOM, LABS_STAGING_DEFAULT_STYLE,
+  labsCountByFolder, labsDownloadName, labsEstimateChf, labsFilter, labsMonthUsage, labsPlage, labsQuotaFor,
+  labsSelectionEtat, labsStagingPrompt, labsTuileLocale, labsVariationsPossibles, labsVideoDurationS, labsVoiceoverSeconds,
+  type LabsStagingRoom, type LabsStagingStyle, type LabsVariations, type LabsVoice, type LabsVoiceLang,
 } from '@/lib/labs'
 import { useLabsVoice } from '@/hooks/useLabsVoice'
 import type { LabsAsset, LabsFolder, LabsKindFilter, LabsMode, LabsRatio, LabsResolution, LabsView } from '@/types/labs'
-import { LabsGallery, type LabsEmptyKind } from './LabsGallery'
+import { LabsGallery, type LabsClicModif, type LabsEmptyKind } from './LabsGallery'
 import { LabsLightbox } from './LabsLightbox'
 import { LabsConfirmModal, LabsFolderModal } from './LabsModals'
 import { LabsPromptBar } from './LabsPromptBar'
 import { LabsFolderMenu } from './LabsFolderMenu'
+import { LabsFolderPicker } from './LabsFolderPicker'
+import { LabsSelectionBar } from './LabsSelectionBar'
 import { LABS_PILL, LABS_TRANSITION, labsSurfaces } from './labsTokens'
 
 interface Props { dark: boolean; setDark: (v: boolean) => void }
 
 type FolderModal = null | { mode: 'create' } | { mode: 'rename'; folder: LabsFolder }
-type Confirm = null | { kind: 'folder'; folder: LabsFolder } | { kind: 'asset'; asset: LabsAsset }
+type Confirm =
+  | null
+  | { kind: 'folder'; folder: LabsFolder }
+  | { kind: 'asset'; asset: LabsAsset }
+  | { kind: 'lot'; ids: string[] }
+/** Le menu « Ranger dans… » : sur QUOI il agit, et à quel rectangle il s'accroche. */
+type Picker = null | { ancre: DOMRect; cible: { kind: 'asset'; asset: LabsAsset } | { kind: 'lot'; ids: string[] } }
 
 export function LabsApp({ dark, setDark }: Props) {
   const { t, i18n } = useTranslation('labs')
@@ -58,14 +83,20 @@ export function LabsApp({ dark, setDark }: Props) {
   const gen = useLabsGenerate()
   const voix = useLabsVoice()
   const up = useLabsUpload()
+  const actif = useEcranActif()
 
   // ─── L'état de l'onglet ────────────────────────────────────────────────────
   const [folderId, setFolderId] = useTabScopedState<string | null>('labs.folder', null)
   const [view, setView] = useTabScopedState<LabsView>('labs.view', 'all')
   const [kind, setKind] = useTabScopedState<LabsKindFilter>('labs.kind', 'all')
+  const [q, setQ] = useTabScopedState<string>('labs.q', '')
   const [cols, setCols] = useTabScopedState<number>('labs.cols', 4)
   const [prompt, setPrompt] = useTabScopedState<string>('labs.prompt', '')
   const [mode, setMode] = useTabScopedState<LabsMode>('labs.mode', 'image')
+  const [variations, setVariations] = useTabScopedState<LabsVariations>('labs.variations', 1)
+  const [stagingOn, setStagingOn] = useTabScopedState<boolean>('labs.staging', false)
+  const [room, setRoom] = useTabScopedState<LabsStagingRoom>('labs.room', LABS_STAGING_DEFAULT_ROOM)
+  const [stagingStyle, setStagingStyle] = useTabScopedState<LabsStagingStyle>('labs.style', LABS_STAGING_DEFAULT_STYLE)
 
   // ─── L'état de la barre ────────────────────────────────────────────────────
   const [sourceId, setSourceId] = useState<string | null>(null)
@@ -81,13 +112,27 @@ export function LabsApp({ dark, setDark }: Props) {
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [avis, setAvis] = useState<string | null>(null)
 
+  // ─── Le geste en cours ─────────────────────────────────────────────────────
+  const [selection, setSelection] = useState<Set<string>>(() => new Set())
+  /** La dernière cochée : c'est d'elle que part la plage Maj+clic. */
+  const [ancreId, setAncreId] = useState<string | null>(null)
+  const [picker, setPicker] = useState<Picker>(null)
+  /** Les tuiles d'attente des variations — état d'écran, jamais le cache (cf. `labsTuileLocale`). */
+  const [enVol, setEnVol] = useState<LabsAsset[]>([])
+  const rechercheRef = useRef<HTMLInputElement | null>(null)
+
   // Un dossier supprimé sous la sélection : on retombe sur « tout ».
   useEffect(() => {
     if (folderId && !foldersApi.isLoading && !foldersApi.folders.some((f) => f.id === folderId)) setFolderId(null)
   }, [folderId, foldersApi.folders, foldersApi.isLoading, setFolderId])
 
   const assets = assetsApi.assets
-  const visibles = useMemo(() => labsFilter(assets, { folderId, view, kind }), [assets, folderId, view, kind])
+  const listeServeur = useMemo(() => labsFilter(assets, { folderId, view, kind, q }), [assets, folderId, view, kind, q])
+  // ⚠ Les tuiles en vol passent DEVANT, et ne se filtrent pas : elles n'ont ni favori
+  // ni genre encore décidé, et les cacher derrière un filtre reviendrait à ne rien
+  // montrer pendant quinze secondes — exactement le défaut qu'elles réparent.
+  const visibles = useMemo(() => (enVol.length ? [...enVol, ...listeServeur] : listeServeur), [enVol, listeServeur])
+  const ordreVisible = useMemo(() => listeServeur.map((a) => a.id), [listeServeur])
   const counts = useMemo(() => labsCountByFolder(assets), [assets])
   const favCount = useMemo(() => assets.filter((a) => a.isFavorite).length, [assets])
   const usage = useMemo(() => labsMonthUsage(assets), [assets])
@@ -101,11 +146,84 @@ export function LabsApp({ dark, setDark }: Props) {
   const busy = mode === 'image' ? gen.imageBusy : gen.videoBusy
   const canGenerate = prompt.trim().length >= 3 && !(hasVo && voSeconds != null && voSeconds + 1 > 30)
 
-  const emptyKind: LabsEmptyKind = view === 'favorites' ? 'favorites' : folderId ? 'folder' : kind !== 'all' ? 'filter' : 'all'
+  const selEtat = useMemo(() => labsSelectionEtat(listeServeur, selection), [listeServeur, selection])
+  const selectionActive = selEtat.total > 0
+  const lotBusy = assetsApi.moveMany.isPending || assetsApi.favoriteMany.isPending || assetsApi.removeMany.isPending
+
+  const emptyKind: LabsEmptyKind = q.trim()
+    ? 'search'
+    : view === 'favorites' ? 'favorites' : folderId ? 'folder' : kind !== 'all' ? 'filter' : 'all'
+
+  // ─── Home staging : le préréglage ÉCRIT dans la barre ──────────────────────
+  //
+  // ⚠ Il n'écrit qu'aux gestes EXPLICITES (ouvrir le panneau, choisir une pièce, un
+  // style) et quand la photo source apparaît ou disparaît — jamais au montage. Un
+  // effet qui recomposerait à chaque rendu écraserait la retouche de l'agent, et le
+  // brouillon restauré de l'onglet avec lui.
+  const composer = (r: LabsStagingRoom, st: LabsStagingStyle, avecSource: boolean) => {
+    setPrompt(labsStagingPrompt((cle, params) => t(cle, params ?? {}), r, st, avecSource))
+  }
+  const avaitSource = useRef<boolean | null>(null)
+  useEffect(() => {
+    const avec = !!source
+    const premier = avaitSource.current === null
+    avaitSource.current = avec
+    if (premier || !stagingOn || mode !== 'image') return
+    composer(room, stagingStyle, avec)
+    // `composer` lit `t`, stable par langue ; recomposer sur la seule bascule de source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!source])
 
   // ─── Gestes ────────────────────────────────────────────────────────────────
   const direErreur = (code: string, extra?: Record<string, unknown>) => {
     setAvis(t(`errors.${code}`, { ...extra, defaultValue: t('errors.unknown') }))
+  }
+
+  const viderSelection = () => { setSelection(new Set()); setAncreId(null) }
+
+  // ⛔ La sélection se vide dès que la liste CHANGE DE SENS (dossier, vue, genre,
+  // recherche) — la règle de la Messagerie. Agir sur douze productions qu'on ne voit
+  // plus est le genre de geste qu'on ne rattrape pas.
+  useEffect(() => { viderSelection() }, [folderId, view, kind, q])
+
+  const basculer = (id: string, mod: LabsClicModif) => {
+    setSelection((prev) => {
+      const suivant = new Set(prev)
+      if (mod.shift && ancreId) {
+        for (const x of labsPlage(ordreVisible, ancreId, id)) suivant.add(x)
+        return suivant
+      }
+      if (suivant.has(id)) suivant.delete(id)
+      else suivant.add(id)
+      return suivant
+    })
+    setAncreId(id)
+  }
+
+  const toutCocher = () => {
+    if (selEtat.total >= listeServeur.length && listeServeur.length > 0) return viderSelection()
+    setSelection(new Set(ordreVisible))
+    setAncreId(ordreVisible[ordreVisible.length - 1] ?? null)
+  }
+
+  const lancerImage = async (p: { prompt: string; folderId: string | null; sourceAssetId: string | null; ratio: LabsRatio | null; n: number }) => {
+    const restant = labsVariationsPossibles(p.n, usage.image, quota.image)
+    if (restant === 0) return direErreur('quota_exceeded', { usage: usage.image, quota: quota.image })
+    if (restant < p.n) setAvis(t('errors.quota_partial', { n: restant }))
+    const tuiles = Array.from({ length: restant }, (_, i) => labsTuileLocale({ ratio: p.ratio, prompt: p.prompt, folderId: p.folderId, n: i }))
+    setEnVol((prev) => [...tuiles, ...prev])
+    const retirer = (id: string) => setEnVol((prev) => prev.filter((x) => x.id !== id))
+    // ⚠ EN PARALLÈLE, pas en file : quatre images rendues l'une après l'autre feraient
+    // une minute d'attente là où le fournisseur en rend quatre en quinze secondes.
+    await Promise.all(tuiles.map(async (tuile) => {
+      const r = await gen.generateImage({
+        prompt: p.prompt, folderId: p.folderId, sourceAssetId: p.sourceAssetId,
+        aspectRatio: p.sourceAssetId ? undefined : (p.ratio ?? undefined), imageSize: '2K',
+      })
+      retirer(tuile.id)
+      if (r.error || !r.asset) { direErreur(r.error ?? 'unknown', r.extra); return }
+      assetsApi.inserer(r.asset)
+    }))
   }
 
   const generer = async () => {
@@ -113,9 +231,7 @@ export function LabsApp({ dark, setDark }: Props) {
     setAvis(null)
     const dossier = view === 'favorites' ? null : folderId
     if (mode === 'image') {
-      const r = await gen.generateImage({ prompt: prompt.trim(), folderId: dossier, sourceAssetId: source?.id ?? null, aspectRatio: source ? undefined : ratio, imageSize: '2K' })
-      if (r.error || !r.asset) return direErreur(r.error ?? 'unknown', r.extra)
-      assetsApi.inserer(r.asset)
+      await lancerImage({ prompt: prompt.trim(), folderId: dossier, sourceAssetId: source?.id ?? null, ratio: source ? null : ratio, n: variations })
       setSourceId(null)
       return
     }
@@ -126,6 +242,25 @@ export function LabsApp({ dark, setDark }: Props) {
     if (r.error || !r.asset) return direErreur(r.error ?? 'unknown', r.extra)
     assetsApi.inserer(r.asset)
     setSourceId(null)
+  }
+
+  /**
+   * « Refaire » : relancer une production À L'IDENTIQUE, sans passer par la barre.
+   *
+   * ⚠ Une image en rend UNE, quel que soit le réglage de variations : refaire est un
+   * geste de retouche, pas une série. Pour une série on repasse par la barre, où le
+   * nombre est visible et le coût annoncé.
+   */
+  const refaire = async (a: LabsAsset) => {
+    if (!a.prompt || gen.imageBusy) return
+    setAvis(null)
+    await lancerImage({
+      prompt: a.prompt,
+      folderId: a.folderId,
+      sourceAssetId: a.sourceAssetId && assets.some((x) => x.id === a.sourceAssetId) ? a.sourceAssetId : null,
+      ratio: (a.aspectRatio as LabsRatio | null) ?? null,
+      n: 1,
+    })
   }
 
   const importer = async (file: File) => {
@@ -175,8 +310,34 @@ export function LabsApp({ dark, setDark }: Props) {
   }
   const basculerFavori = (a: LabsAsset) => assetsApi.favorite.mutate({ id: a.id, isFavorite: !a.isFavorite })
 
+  // ─── Les mêmes gestes, sur la sélection ────────────────────────────────────
+  const idsSelection = () => [...selection]
+
+  const rangerLot = (folderIdCible: string | null, ids: string[]) => {
+    assetsApi.moveMany.mutate({ ids, folderId: folderIdCible })
+    setPicker(null)
+    viderSelection()
+  }
+
+  const favoriLot = () => {
+    assetsApi.favoriteMany.mutate({ ids: idsSelection(), isFavorite: !selEtat.toutesFavorites })
+  }
+
+  // ⚠ SÉQUENTIEL : un navigateur qui reçoit douze téléchargements d'un coup en bloque
+  // onze en silence. Chacun attend le précédent, et l'agent les voit arriver.
+  const telechargerLot = async () => {
+    const vise = new Set(selection)
+    for (const a of listeServeur) {
+      if (!vise.has(a.id) || !a.url) continue
+      await telecharger(a)
+    }
+  }
+
   const lightboxIndex = lightboxId ? visibles.findIndex((a) => a.id === lightboxId) : -1
   const lightboxAsset = lightboxIndex >= 0 ? visibles[lightboxIndex] : null
+  const lightboxSource = lightboxAsset?.sourceAssetId
+    ? assets.find((x) => x.id === lightboxAsset.sourceAssetId) ?? null
+    : null
   const aller = (delta: number) => {
     if (visibles.length === 0) return
     const i = (lightboxIndex + delta + visibles.length) % visibles.length
@@ -188,6 +349,9 @@ export function LabsApp({ dark, setDark }: Props) {
     if (confirm.kind === 'folder') {
       await foldersApi.remove.mutateAsync({ id: confirm.folder.id, name: confirm.folder.name })
       if (folderId === confirm.folder.id) setFolderId(null)
+    } else if (confirm.kind === 'lot') {
+      await assetsApi.removeMany.mutateAsync(confirm.ids)
+      viderSelection()
     } else {
       await assetsApi.remove.mutateAsync(confirm.asset.id)
       if (lightboxId === confirm.asset.id) setLightboxId(null)
@@ -195,6 +359,40 @@ export function LabsApp({ dark, setDark }: Props) {
     }
     setConfirm(null)
   }
+
+  /**
+   * Le clavier de la galerie.
+   *
+   * ⛔ ÉCRAN CACHÉ MUET (`useEcranActif`, CLAUDE.md §8) : jusqu'à six écrans d'onglet
+   * restent montés, et une touche à une lettre posée ici partirait depuis n'importe
+   * lequel — `Suppr` EFFACE, ce n'est pas un raccourci qu'on laisse fuir.
+   *
+   * ⛔ Et il se tait dès qu'une saisie a le focus, ou qu'une modale est ouverte : la
+   * visionneuse et les modales sont portées dans `<body>`, hors du masquage de leur
+   * écran, et portent leurs propres touches.
+   */
+  useEffect(() => {
+    if (!actif) return
+    const modaleOuverte = !!lightboxId || !!folderModal || !!confirm || !!picker
+    const onKey = (e: KeyboardEvent) => {
+      const cible = e.target as HTMLElement | null
+      if (cible && (/^(INPUT|TEXTAREA|SELECT)$/.test(cible.tagName) || cible.isContentEditable)) {
+        // `/` et Échap restent utiles DANS la recherche : l'une la quitte, l'autre la vide.
+        if (e.key === 'Escape' && cible === rechercheRef.current) { setQ(''); cible.blur() }
+        return
+      }
+      if (modaleOuverte) return
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); toutCocher(); return }
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === '/') { e.preventDefault(); rechercheRef.current?.focus(); return }
+      if (e.key === 'Escape' && selectionActive) { e.preventDefault(); viderSelection(); return }
+      if (!selectionActive) return
+      if (e.key.toLowerCase() === 'f') { e.preventDefault(); favoriLot(); return }
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); setConfirm({ kind: 'lot', ids: idsSelection() }) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
 
   return (
     <div
@@ -221,58 +419,118 @@ export function LabsApp({ dark, setDark }: Props) {
               background: ls.card, border: `1px solid ${ls.bord}`, borderRadius: 'var(--crm-radius-6xl)', boxShadow: ls.shadow, overflow: 'hidden',
             }}
           >
-            <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-md) var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderBottom: `1px solid ${ls.bord}` }}>
-              <LabsFolderMenu
-                ls={ls}
-                folders={foldersApi.folders}
-                counts={counts}
-                totalCount={assets.length}
-                favCount={favCount}
-                folderId={folderId}
-                view={view}
-                isLoading={foldersApi.isLoading}
-                onSelectAll={() => { setView('all'); setFolderId(null) }}
-                onSelectFavorites={() => setView('favorites')}
-                onSelectFolder={(id) => { setView('all'); setFolderId(id) }}
-                onNewFolder={() => setFolderModal({ mode: 'create' })}
-                onRenameFolder={(f) => setFolderModal({ mode: 'rename', folder: f })}
-                onDeleteFolder={(f) => setConfirm({ kind: 'folder', folder: f })}
-                usage={usage}
-                quota={quota}
-              />
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ls.soft, whiteSpace: 'nowrap' }}>{t('count', { count: visibles.length })}</span>
-              <div style={{ display: 'inline-flex', padding: 'var(--crm-space-2xs)', background: ls.elev, borderRadius: LABS_PILL, border: `1px solid ${ls.bord}` }}>
-                {(['all', 'image', 'video'] as LabsKindFilter[]).map((k) => {
-                  const on = kind === k
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setKind(k)}
-                      aria-pressed={on}
-                      style={{
-                        height: 28, padding: '0 var(--crm-space-lg)', border: 0, borderRadius: LABS_PILL,
-                        background: on ? ls.accent : 'transparent', color: on ? ls.accentInk : ls.sub,
-                        fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', transition: LABS_TRANSITION,
-                      }}
-                    >
-                      {t(`filter.${k}`)}
-                    </button>
-                  )
-                })}
-              </div>
-              <label title={t('density')} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: ls.soft }}>
-                <MEIcon name="layers" size={14} color={ls.soft} />
-                <input
-                  type="range"
-                  min={3}
-                  max={6}
-                  value={cols}
-                  onChange={(e) => setCols(Number(e.target.value))}
-                  aria-label={t('density')}
-                  style={{ width: 96, accentColor: ls.accent }}
+            {/* ⚠ L'EN-TÊTE A DEUX VISAGES, jamais deux rangées : cocher une production
+                remplace le titre et les filtres par les gestes du lot, et la croix les
+                rend. Empiler une seconde barre ferait sauter la galerie de 44 px à
+                chaque case cochée — sur une mosaïque, c'est tout l'écran qui bouge. */}
+            <header style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-md) var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderBottom: `1px solid ${ls.bord}`, minHeight: 60 }}>
+              {selectionActive ? (
+                <LabsSelectionBar
+                  ls={ls}
+                  count={selEtat.total}
+                  telechargeables={selEtat.telechargeables}
+                  toutesFavorites={selEtat.toutesFavorites}
+                  toutCoche={selEtat.total >= listeServeur.length}
+                  busy={lotBusy}
+                  onToutCocher={toutCocher}
+                  onRanger={(ancre) => setPicker({ ancre, cible: { kind: 'lot', ids: idsSelection() } })}
+                  onFavori={favoriLot}
+                  onTelecharger={() => { void telechargerLot() }}
+                  onSupprimer={() => setConfirm({ kind: 'lot', ids: idsSelection() })}
+                  onAnnuler={viderSelection}
                 />
-              </label>
+              ) : (
+                <>
+                  <LabsFolderMenu
+                    ls={ls}
+                    folders={foldersApi.folders}
+                    counts={counts}
+                    totalCount={assets.length}
+                    favCount={favCount}
+                    folderId={folderId}
+                    view={view}
+                    isLoading={foldersApi.isLoading}
+                    onSelectAll={() => { setView('all'); setFolderId(null) }}
+                    onSelectFavorites={() => setView('favorites')}
+                    onSelectFolder={(id) => { setView('all'); setFolderId(id) }}
+                    onNewFolder={() => setFolderModal({ mode: 'create' })}
+                    onRenameFolder={(f) => setFolderModal({ mode: 'rename', folder: f })}
+                    onDeleteFolder={(f) => setConfirm({ kind: 'folder', folder: f })}
+                    usage={usage}
+                    quota={quota}
+                  />
+                  <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ls.soft, whiteSpace: 'nowrap' }}>{t('count', { count: listeServeur.length })}</span>
+
+                  {/* ⚠ La recherche lit le PROMPT et la voix off — le seul texte qu'une
+                      production porte. Une photo importée n'en a pas : c'est son dossier
+                      qui la retrouve, et l'état vide de la recherche le dit. */}
+                  <label
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32,
+                      padding: '0 var(--crm-space-md)', borderRadius: LABS_PILL, background: ls.elev,
+                      border: `1px solid ${q ? ls.accent : ls.bord}`, transition: LABS_TRANSITION, flex: '0 1 240px', minWidth: 140,
+                    }}
+                  >
+                    <MEIcon name="search" size={13} color={ls.soft} />
+                    <input
+                      ref={rechercheRef}
+                      type="search"
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder={t('search.placeholder')}
+                      aria-label={t('search.aria')}
+                      style={{
+                        flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 'none', color: ls.ink,
+                        fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', padding: 0,
+                      }}
+                    />
+                    {q && (
+                      <button
+                        type="button"
+                        onClick={() => setQ('')}
+                        title={t('search.clear')}
+                        aria-label={t('search.clear')}
+                        style={{ border: 0, background: 'transparent', color: ls.sub, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0 }}
+                      >
+                        <MEIcon name="close" size={11} color={ls.sub} />
+                      </button>
+                    )}
+                  </label>
+
+                  <div style={{ display: 'inline-flex', padding: 'var(--crm-space-2xs)', background: ls.elev, borderRadius: LABS_PILL, border: `1px solid ${ls.bord}` }}>
+                    {(['all', 'image', 'video'] as LabsKindFilter[]).map((k) => {
+                      const on = kind === k
+                      return (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setKind(k)}
+                          aria-pressed={on}
+                          style={{
+                            height: 28, padding: '0 var(--crm-space-lg)', border: 0, borderRadius: LABS_PILL,
+                            background: on ? ls.accent : 'transparent', color: on ? ls.accentInk : ls.sub,
+                            fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', transition: LABS_TRANSITION,
+                          }}
+                        >
+                          {t(`filter.${k}`)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <label title={t('density')} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: ls.soft }}>
+                    <MEIcon name="layers" size={14} color={ls.soft} />
+                    <input
+                      type="range"
+                      min={3}
+                      max={6}
+                      value={cols}
+                      onChange={(e) => setCols(Number(e.target.value))}
+                      aria-label={t('density')}
+                      style={{ width: 96, accentColor: ls.accent }}
+                    />
+                  </label>
+                </>
+              )}
             </header>
 
             {avis && (
@@ -306,12 +564,17 @@ export function LabsApp({ dark, setDark }: Props) {
                 isError={assetsApi.isError}
                 emptyKind={emptyKind}
                 lang={lang}
+                selection={selection}
+                selectionActive={selectionActive}
                 onRetry={() => { void assetsApi.refetch(); void foldersApi.refetch() }}
                 onOpen={(i) => setLightboxId(visibles[i]?.id ?? null)}
+                onToggle={basculer}
                 onFavorite={basculerFavori}
                 onAnimate={animer}
                 onUseSource={commeSource}
                 onDownload={(a) => { void telecharger(a) }}
+                onRanger={(a, ancre) => setPicker({ ancre, cible: { kind: 'asset', asset: a } })}
+                onRefaire={(a) => { void refaire(a) }}
               />
             </div>
 
@@ -344,6 +607,14 @@ export function LabsApp({ dark, setDark }: Props) {
                 if (voix.etat.statut === 'lecture' || voix.etat.statut === 'chargement') voix.arreter()
                 else void voix.jouerApercu('apercu', voText.trim(), voice, voiceLang)
               }}
+              variations={variations}
+              onVariations={setVariations}
+              stagingOn={stagingOn}
+              onStagingOn={(v) => { setStagingOn(v); if (v) composer(room, stagingStyle, !!source) }}
+              room={room}
+              onRoom={(r) => { setRoom(r); composer(r, stagingStyle, !!source) }}
+              stagingStyle={stagingStyle}
+              onStagingStyle={(st) => { setStagingStyle(st); composer(room, st, !!source) }}
               busy={busy}
               canGenerate={canGenerate}
               estimateChf={estimate}
@@ -355,10 +626,30 @@ export function LabsApp({ dark, setDark }: Props) {
         </CrmWorkspace>
       </div>
 
+      {picker && (
+        <LabsFolderPicker
+          ls={ls}
+          ancre={picker.ancre}
+          folders={foldersApi.folders}
+          folderId={picker.cible.kind === 'asset' ? picker.cible.asset.folderId : undefined}
+          onChoose={(fid) => {
+            if (picker.cible.kind === 'asset') {
+              assetsApi.move.mutate({ id: picker.cible.asset.id, folderId: fid })
+              setPicker(null)
+            } else {
+              rangerLot(fid, picker.cible.ids)
+            }
+          }}
+          onNewFolder={() => { setPicker(null); setFolderModal({ mode: 'create' }) }}
+          onClose={() => setPicker(null)}
+        />
+      )}
+
       {lightboxAsset && (
         <LabsLightbox
           ls={ls}
           asset={lightboxAsset}
+          source={lightboxSource}
           folders={foldersApi.folders}
           index={lightboxIndex}
           total={visibles.length}
@@ -370,6 +661,7 @@ export function LabsApp({ dark, setDark }: Props) {
           onAnimate={() => animer(lightboxAsset)}
           onUseSource={() => commeSource(lightboxAsset)}
           onReuse={() => reutiliser(lightboxAsset)}
+          onRedo={() => { void refaire(lightboxAsset) }}
           onDownload={() => { void telecharger(lightboxAsset) }}
           onDelete={() => setConfirm({ kind: 'asset', asset: lightboxAsset })}
           voixEtat={voix.etat}
@@ -403,10 +695,18 @@ export function LabsApp({ dark, setDark }: Props) {
       {confirm && (
         <LabsConfirmModal
           ls={ls}
-          title={confirm.kind === 'folder' ? t('confirm.deleteFolderTitle') : t('confirm.deleteAssetTitle')}
-          body={confirm.kind === 'folder' ? t('confirm.deleteFolderBody') : t('confirm.deleteAssetBody')}
+          title={
+            confirm.kind === 'folder' ? t('confirm.deleteFolderTitle')
+              : confirm.kind === 'lot' ? t('confirm.deleteLotTitle', { count: confirm.ids.length })
+              : t('confirm.deleteAssetTitle')
+          }
+          body={
+            confirm.kind === 'folder' ? t('confirm.deleteFolderBody')
+              : confirm.kind === 'lot' ? t('confirm.deleteLotBody')
+              : t('confirm.deleteAssetBody')
+          }
           confirmLabel={t('confirm.delete')}
-          busy={foldersApi.remove.isPending || assetsApi.remove.isPending}
+          busy={foldersApi.remove.isPending || assetsApi.remove.isPending || assetsApi.removeMany.isPending}
           onClose={() => setConfirm(null)}
           onConfirm={() => { void confirmer() }}
         />

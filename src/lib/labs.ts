@@ -166,15 +166,86 @@ export function labsColonnes(assets: LabsAsset[], cols: number): LabsAsset[][] {
 
 export function labsFilter(
   assets: LabsAsset[],
-  f: { folderId: string | null; view: LabsView; kind: LabsKindFilter },
+  f: { folderId: string | null; view: LabsView; kind: LabsKindFilter; q?: string },
 ): LabsAsset[] {
+  const q = labsNormaliser(f.q ?? '')
   return assets.filter((a) => {
     if (f.view === 'favorites' && !a.isFavorite) return false
     if (f.view !== 'favorites' && f.folderId && a.folderId !== f.folderId) return false
     if (f.kind === 'image' && a.kind === 'video') return false
     if (f.kind === 'video' && a.kind !== 'video') return false
+    if (q && !labsCorrespond(a, q)) return false
     return true
   })
+}
+
+/**
+ * Minuscules SANS accents : on cherche « decoree » et on trouve « décorée ».
+ * Un agent tape sans accent quand il cherche vite, et la moitié de ses prompts en
+ * portent — sans ce pliage la recherche rendrait vide sur un mot qui est à l'écran.
+ */
+export function labsNormaliser(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+/**
+ * Une production répond à la recherche si TOUS les mots tapés se trouvent dans son
+ * texte — prompt et voix off réunis. L'ET (et non le OU) est ce qui fait qu'ajouter un
+ * mot RESSERRE la liste : c'est ce que fait un agent qui n'a pas trouvé du premier coup.
+ *
+ * ⚠ Le texte est tout ce qu'on a : une photo importée n'a ni prompt ni narration, et
+ * reste donc introuvable par mot. C'est le dossier qui la retrouve, pas la recherche.
+ *
+ * ⛔ ELLE PLIE SA PROPRE REQUÊTE, et ne fait pas confiance à l'appelant. Le pliage est
+ * idempotent, donc le repasser coûte un parcours de chaîne ; l'oublier rend une liste
+ * VIDE sur un mot tapé en majuscules — sans erreur, sans trace, et l'agent en conclut
+ * que sa production a disparu. Une fonction dont la justesse dépend d'un geste du site
+ * d'appel finit toujours par être appelée sans lui : c'est une garde qui l'a prise sur
+ * le fait, le 20.09.2026, le jour même où elle a été écrite.
+ */
+export function labsCorrespond(a: LabsAsset, requete: string): boolean {
+  const mots = labsNormaliser(requete).split(/\s+/).filter(Boolean)
+  if (mots.length === 0) return true
+  const foin = labsNormaliser(`${a.prompt ?? ''} ${a.voiceoverText ?? ''}`)
+  return mots.every((m) => foin.includes(m))
+}
+
+// ─── Sélection multiple ─────────────────────────────────────────────
+
+/**
+ * La plage Maj+clic, prise dans l'ordre de la LISTE (chronologique) et non dans
+ * l'ordre visuel des colonnes.
+ *
+ * ⚠ C'est un choix, pas un raccourci d'implémentation : `labsColonnes` répartit les
+ * tuiles dans la colonne la plus courte, donc la voisine VISUELLE d'une tuile n'est
+ * presque jamais sa voisine dans la liste. Une plage « visuelle » devrait donc suivre
+ * un serpentin que rien n'affiche. La liste, elle, est l'ordre que la visionneuse
+ * parcourt avec ← → — le seul ordre que l'agent ait déjà vu nommé quelque part.
+ */
+export function labsPlage(ordre: string[], deId: string, aId: string): string[] {
+  const i = ordre.indexOf(deId)
+  const j = ordre.indexOf(aId)
+  if (i < 0 || j < 0) return j < 0 ? [] : [aId]
+  return ordre.slice(Math.min(i, j), Math.max(i, j) + 1)
+}
+
+/** Ce que la barre de gestes peut proposer, lu sur la sélection elle-même. */
+export function labsSelectionEtat(assets: LabsAsset[], ids: Set<string>): {
+  total: number
+  telechargeables: number
+  /** Vrai quand TOUTES portent l'étoile : le geste devient « retirer ». */
+  toutesFavorites: boolean
+} {
+  let total = 0
+  let telechargeables = 0
+  let favorites = 0
+  for (const a of assets) {
+    if (!ids.has(a.id)) continue
+    total += 1
+    if (a.url) telechargeables += 1
+    if (a.isFavorite) favorites += 1
+  }
+  return { total, telechargeables, toutesFavorites: total > 0 && favorites === total }
 }
 
 export function labsMonthUsage(assets: LabsAsset[], now: Date = new Date()): { image: number; video: number } {
@@ -192,6 +263,132 @@ export function labsCountByFolder(assets: LabsAsset[]): Record<string, number> {
   const out: Record<string, number> = {}
   for (const a of assets) if (a.folderId) out[a.folderId] = (out[a.folderId] ?? 0) + 1
   return out
+}
+
+// ─── Tuiles LOCALES (variations en vol) ────────────────────────────────
+
+export const LABS_LOCAL_PREFIX = 'local:'
+
+/**
+ * Une tuile d'attente, posée dans la galerie AVANT que l'edge réponde.
+ *
+ * ⛔ CE QU'ELLE RÉPARE. `labs-image` est SYNCHRONE : l'edge rend l'image finie, dix à
+ * quinze secondes plus tard. Jusqu'ici rien ne bougeait dans la galerie pendant ce
+ * temps — seul le bouton tournait, en bas de l'écran, là où l'agent ne regarde plus
+ * une fois qu'il a cliqué. Quinze secondes sans signe, c'est un clic de plus.
+ *
+ * ⚠ Elle vit dans l'ÉTAT DE L'ÉCRAN, jamais dans le cache React Query : le temps réel
+ * invalide la liste à chaque vidéo qui aboutit, et un refetch balaierait une ligne que
+ * le serveur ne connaît pas. Deux sources, deux durées de vie.
+ *
+ * ⚠ Son id porte un préfixe RECONNAISSABLE : la galerie s'en sert pour ne l'offrir ni
+ * à la case à cocher ni à la visionneuse — on ne range pas ce qui n'existe pas encore.
+ */
+export function labsTuileLocale(p: { ratio: LabsRatio | null; prompt: string; folderId: string | null; n: number }): LabsAsset {
+  return {
+    id: `${LABS_LOCAL_PREFIX}${p.n}-${Date.now()}`,
+    folderId: p.folderId,
+    createdBy: null,
+    kind: 'image',
+    status: 'pending',
+    prompt: p.prompt,
+    voiceoverText: null, voiceoverVoice: null, voiceoverLang: null, voiceoverUrl: null,
+    sourceAssetId: null, url: null, thumbnailUrl: null,
+    width: null, height: null, durationS: null,
+    aspectRatio: p.ratio,
+    model: null, errorCode: null, costChf: null,
+    isFavorite: false,
+    createdAt: new Date().toISOString(),
+    completedAt: null,
+  }
+}
+
+export function labsEstLocale(id: string): boolean {
+  return id.startsWith(LABS_LOCAL_PREFIX)
+}
+
+// ─── Home staging — le vocabulaire du produit ───────────────────────────
+
+/**
+ * ⚠ CE VOCABULAIRE EST CELUI DE LA FICHE BIEN, PAS UN SECOND.
+ * `useVirtualStaging` porte déjà les cinq styles et les pièces du panneau « MEGGA
+ * Staging » de `ListingFormPage` — les redire autrement ici donnerait à l'agent deux
+ * listes de styles pour un seul produit, avec des noms qui dérivent. `labs-staging.spec.ts`
+ * confronte les deux jeux.
+ *
+ * ⛔ Une exception, écrite : `autre` existe dans la fiche (il faut bien un fourre-tout
+ * quand on TRIE une photo) mais pas ici — un préréglage nommé « autre » ne compose
+ * aucune phrase utile. Ici on ÉCRIT une consigne, on ne classe pas.
+ */
+export const LABS_STAGING_ROOMS = [
+  'salon', 'chambre', 'cuisine', 'salle_a_manger', 'bureau', 'terrasse', 'jardin', 'balcon',
+] as const
+export type LabsStagingRoom = (typeof LABS_STAGING_ROOMS)[number]
+
+export const LABS_STAGING_STYLES = ['modern', 'classic', 'luxury', 'scandinavian', 'minimal'] as const
+export type LabsStagingStyle = (typeof LABS_STAGING_STYLES)[number]
+
+export const LABS_STAGING_DEFAULT_ROOM: LabsStagingRoom = 'salon'
+export const LABS_STAGING_DEFAULT_STYLE: LabsStagingStyle = 'modern'
+
+/**
+ * La consigne de staging, écrite EN CLAIR dans la barre de prompt.
+ *
+ * ⛔ Le préréglage n'est pas un prompt caché : il ÉCRIT dans la zone de texte, que
+ * l'agent relit et retouche avant d'envoyer. Un préréglage invisible rendrait le
+ * résultat inexplicable (« pourquoi cette lampe ? ») et non réparable — or c'est
+ * exactement ce que l'agent doit pouvoir corriger d'un mot. C'est aussi ce qui lui
+ * APPREND à écrire ses propres consignes : au bout de dix staging, il tape les siennes.
+ *
+ * ⚠ Deux phrases, pas huit : le préréglage exige TOUJOURS une pièce ET un style (les
+ * deux ont un défaut), donc seule la présence d'une photo source change la phrase —
+ * meubler une photo existante et composer une scène de rien ne se demandent pas pareil.
+ * Huit variantes pour « style seul » / « pièce seule » seraient huit textes à tenir dans
+ * quatre langues, pour un gain nul.
+ *
+ * `traduire` est injecté (le `t` de i18next) : la consigne part dans la langue de
+ * l'agent, la seule qu'il puisse relire. Les modèles lisent les quatre.
+ */
+export function labsStagingPrompt(
+  traduire: (cle: string, params?: Record<string, string>) => string,
+  room: LabsStagingRoom,
+  style: LabsStagingStyle,
+  hasSource: boolean,
+): string {
+  return traduire(hasSource ? 'staging.promptSource' : 'staging.promptScratch', {
+    room: traduire(`staging.rooms.${room}`),
+    style: traduire(`staging.styles.${style}`),
+    hint: traduire(`staging.hints.${style}`),
+  }).trim()
+}
+
+// ─── Variations ──────────────────────────────────────────────────
+
+/**
+ * Le nombre d'images lancées d'un seul « Générer ».
+ *
+ * ⚠ Pourquoi pas de variations en VIDÉO : une image vaut ~CHF 0,09 et le quota Pro en
+ * donne 50 par mois — quatre d'un coup coûte 0,36 et se juge d'un regard. Une vidéo
+ * vaut ~CHF 3,70 pour un quota de 10 : quatre d'un coup, c'est 40 % du mois en un clic.
+ * Le geste est le même, l'enjeu ne l'est pas.
+ *
+ * ⚠ Le plafond à 4 n'est pas décoratif : au-delà la mosaïque déborde d'une rangée et
+ * le quota mensuel part en deux clics distraits.
+ */
+export const LABS_VARIATIONS = [1, 2, 4] as const
+export type LabsVariations = (typeof LABS_VARIATIONS)[number]
+
+/**
+ * Combien de générations le quota laisse encore passer ce mois-ci — la même règle que
+ * l'edge, bornée au nombre demandé.
+ *
+ * ⚠ L'écran ne fait qu'ANNONCER : c'est l'edge qui refuse, une par une. Ce calcul sert
+ * à ne pas lancer quatre appels quand il n'en reste qu'un — trois refus coûtent trois
+ * allers-retours et trois messages d'erreur pour rien.
+ */
+export function labsVariationsPossibles(demande: number, utilise: number, quota: number): number {
+  if (quota <= 0) return demande
+  return Math.max(0, Math.min(demande, quota - utilise))
 }
 
 // ─── Imports ─────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 /**
  * La galerie du studio : colonnes CSS (masonry sans bibliothèque), une vignette par
  * production — image, photo importée, vidéo prête, vidéo en cours, échec — et les
- * gestes de survol (favori, animer, source, télécharger).
+ * gestes de survol (cocher, favori, ranger, refaire, animer, source, télécharger).
  *
  * ⚠ La hauteur d'une vignette vient de ce qu'on SAIT de l'image (largeur/hauteur,
  * sinon le ratio demandé) : la grille se pose avant que les octets n'arrivent, et ne
@@ -17,16 +17,27 @@
  * exclut nommément. ⛔ Et le survol perd son ombre avec eux : entre deux tuiles
  * jointives elle baverait sur la voisine. Le voile et les boutons portent seuls le
  * survol, comme dans la référence.
+ *
+ * ── LE CLIC A DEUX SENS, ET C'EST LE MODE QUI TRANCHE ────────────────────────
+ * Hors sélection, cliquer une tuile l'OUVRE. Dès qu'une production est cochée, le
+ * même clic COCHE — et plus rien ne s'ouvre au clic simple. C'est ce que font le
+ * Finder et Google Photos, et c'est la seule façon de cocher douze tuiles sans viser
+ * douze fois une case de 20 px. La croix de la barre de gestes rend le clic à
+ * l'ouverture. ⚠ Maj+clic prend une PLAGE dans l'ordre de la liste (cf. `labsPlage`),
+ * pas dans l'ordre visuel des colonnes, qui n'est écrit nulle part.
  */
-import { useState, type CSSProperties } from 'react'
+import { useState, type CSSProperties, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import EtatVide from '@/components/crm/EtatVide'
-import { labsAssetRatioPercent, labsColonnes, labsRelativeTime } from '@/lib/labs'
+import { labsAssetRatioPercent, labsColonnes, labsEstLocale, labsRelativeTime } from '@/lib/labs'
 import type { LabsAsset } from '@/types/labs'
 import { LABS_PILL, LABS_TRANSITION, type LabsSurfaces } from './labsTokens'
 
-export type LabsEmptyKind = 'all' | 'folder' | 'favorites' | 'filter'
+export type LabsEmptyKind = 'all' | 'folder' | 'favorites' | 'filter' | 'search'
+
+/** Ce que le clic rapporte à l'orchestrateur : sans lui, pas de plage ni d'addition. */
+export interface LabsClicModif { shift: boolean; meta: boolean }
 
 interface Props {
   ls: LabsSurfaces
@@ -37,12 +48,17 @@ interface Props {
   isError: boolean
   emptyKind: LabsEmptyKind
   lang: string
+  selection: Set<string>
+  selectionActive: boolean
   onRetry: () => void
   onOpen: (index: number) => void
+  onToggle: (id: string, mod: LabsClicModif) => void
   onFavorite: (a: LabsAsset) => void
   onAnimate: (a: LabsAsset) => void
   onUseSource: (a: LabsAsset) => void
   onDownload: (a: LabsAsset) => void
+  onRanger: (a: LabsAsset, ancre: DOMRect) => void
+  onRefaire: (a: LabsAsset) => void
 }
 
 export function LabsGallery(p: Props) {
@@ -83,11 +99,14 @@ export function LabsGallery(p: Props) {
   }
 
   if (p.assets.length === 0) {
-    const cle = p.emptyKind === 'folder' ? 'folder' : p.emptyKind === 'favorites' ? 'fav' : p.emptyKind === 'filter' ? 'filter' : 'all'
+    const cle = p.emptyKind === 'folder' ? 'folder'
+      : p.emptyKind === 'favorites' ? 'fav'
+      : p.emptyKind === 'search' ? 'search'
+      : p.emptyKind === 'filter' ? 'filter' : 'all'
     return (
       <Centre>
         <EtatVide
-          glyphe={<MEIcon name="sparkle" size={22} />}
+          glyphe={<MEIcon name={p.emptyKind === 'search' ? 'search' : 'sparkle'} size={22} />}
           titre={t(`empty.${cle}Title`)}
           corps={t(`empty.${cle}Body`)}
           registre="neutre"
@@ -110,11 +129,16 @@ export function LabsGallery(p: Props) {
               ls={ls}
               asset={a}
               lang={p.lang}
+              coche={p.selection.has(a.id)}
+              selectionActive={p.selectionActive}
               onOpen={() => p.onOpen(rang.get(a.id) ?? 0)}
+              onToggle={(mod) => p.onToggle(a.id, mod)}
               onFavorite={() => p.onFavorite(a)}
               onAnimate={() => p.onAnimate(a)}
               onUseSource={() => p.onUseSource(a)}
               onDownload={() => p.onDownload(a)}
+              onRanger={(r) => p.onRanger(a, r)}
+              onRefaire={() => p.onRefaire(a)}
             />
           ))}
         </div>
@@ -131,41 +155,73 @@ function Thumb(p: {
   ls: LabsSurfaces
   asset: LabsAsset
   lang: string
+  coche: boolean
+  selectionActive: boolean
   onOpen: () => void
+  onToggle: (mod: LabsClicModif) => void
   onFavorite: () => void
   onAnimate: () => void
   onUseSource: () => void
   onDownload: () => void
+  onRanger: (ancre: DOMRect) => void
+  onRefaire: () => void
 }) {
   const { t } = useTranslation('labs')
   const { ls, asset: a } = p
   const [hov, setHov] = useState(false)
   const enCours = a.status === 'generating' || a.status === 'pending'
   const echec = a.status === 'failed'
+  // Une tuile LOCALE n'existe pas encore en base : rien à cocher, rien à ouvrir.
+  const locale = labsEstLocale(a.id)
+  const cochable = !locale
   const ratio = labsAssetRatioPercent(a)
   const src = a.kind === 'video' ? a.thumbnailUrl : (a.thumbnailUrl ?? a.url)
-  const actions: { icon: MEIconName; label: string; onClick: () => void; on?: boolean }[] = []
-  if (!enCours && !echec) {
-    actions.push({ icon: 'star', label: a.isFavorite ? t('thumb.unfavorite') : t('thumb.favorite'), onClick: p.onFavorite, on: a.isFavorite })
-    if (a.kind !== 'video') {
-      actions.push({ icon: 'play', label: t('thumb.animate'), onClick: p.onAnimate })
-      actions.push({ icon: 'gallery', label: t('thumb.useSource'), onClick: p.onUseSource })
+
+  const actions: { icon: MEIconName; label: string; onClick: (e: ReactMouseEvent<HTMLButtonElement>) => void; on?: boolean }[] = []
+  if (!locale) {
+    // ⛔ REFAIRE MARCHE AUSSI SUR UN ÉCHEC — c'est même sa première raison d'être : la
+    // réponse naturelle à « Échec » est de relancer, et elle demandait jusqu'ici
+    // d'ouvrir la production ratée pour en recopier le prompt.
+    if (a.prompt && a.kind !== 'video' && !enCours) {
+      actions.push({ icon: 'refresh', label: t('thumb.redo'), onClick: p.onRefaire })
     }
-    if (a.url) actions.push({ icon: 'download', label: t('thumb.download'), onClick: p.onDownload })
+    if (!enCours && !echec) {
+      actions.push({ icon: 'star', label: a.isFavorite ? t('thumb.unfavorite') : t('thumb.favorite'), onClick: p.onFavorite, on: a.isFavorite })
+      actions.push({
+        icon: 'archive',
+        label: t('thumb.move'),
+        onClick: (e) => p.onRanger(e.currentTarget.getBoundingClientRect()),
+      })
+      if (a.kind !== 'video') {
+        actions.push({ icon: 'play', label: t('thumb.animate'), onClick: p.onAnimate })
+        actions.push({ icon: 'gallery', label: t('thumb.useSource'), onClick: p.onUseSource })
+      }
+      if (a.url) actions.push({ icon: 'download', label: t('thumb.download'), onClick: p.onDownload })
+    }
+  }
+
+  const cliquer = (e: ReactMouseEvent) => {
+    if (!cochable) return
+    if (p.selectionActive || e.shiftKey || e.metaKey || e.ctrlKey) {
+      p.onToggle({ shift: e.shiftKey, meta: e.metaKey || e.ctrlKey })
+      return
+    }
+    p.onOpen()
   }
 
   return (
     <div
       role="button"
-      tabIndex={0}
+      tabIndex={locale ? -1 : 0}
       aria-label={a.prompt ?? t(`kind.${a.kind}`)}
+      aria-pressed={p.selectionActive ? p.coche : undefined}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      onClick={p.onOpen}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); p.onOpen() } }}
+      onClick={cliquer}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cliquer(e as unknown as ReactMouseEvent) } }}
       style={{
         marginBottom: 0, position: 'relative', overflow: 'hidden', display: 'block',
-        borderRadius: 0, background: ls.hover, cursor: 'pointer', outline: 'none',
+        borderRadius: 0, background: ls.hover, cursor: locale ? 'default' : 'pointer', outline: 'none',
       }}
     >
       <div style={{ position: 'relative', paddingBottom: `${ratio}%` }}>
@@ -195,6 +251,33 @@ function Thumb(p: {
             opacity: hov || enCours || echec ? 1 : 0, transition: 'opacity .16s',
           }}
         />
+
+        {/* ⚠ LA COCHÉE EST VOILÉE D'ACCENT, et pas seulement marquée d'une case : sur une
+            mosaïque collée où rien ne sépare deux tuiles, un petit signe dans un coin se
+            perd. Le voile se lit à un mètre, c'est lui qui dit « ces douze-là ». */}
+        {p.coche && (
+          <div aria-hidden="true" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: ls.accent, opacity: 0.28 }} />
+        )}
+
+        {cochable && (hov || p.selectionActive || p.coche) && (
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={p.coche}
+            aria-label={p.coche ? t('selection.uncheck') : t('selection.check')}
+            title={p.coche ? t('selection.uncheck') : t('selection.check')}
+            onClick={(e) => { e.stopPropagation(); p.onToggle({ shift: e.shiftKey, meta: e.metaKey || e.ctrlKey }) }}
+            style={{
+              position: 'absolute', left: 'var(--crm-space-sm)', top: 'var(--crm-space-sm)',
+              width: 22, height: 22, display: 'grid', placeItems: 'center', borderRadius: 'var(--crm-radius-xs)',
+              border: p.coche ? 0 : `1px solid ${ls.onPhoto}`,
+              background: p.coche ? ls.accent : ls.photoVeil(0.4), color: p.coche ? ls.accentInk : ls.onPhoto,
+              backdropFilter: 'blur(6px)', cursor: 'pointer', padding: 0, transition: LABS_TRANSITION,
+            }}
+          >
+            {p.coche && <MEIcon name="check" size={12} color={ls.accentInk} />}
+          </button>
+        )}
 
         {a.kind === 'video' && !enCours && !echec && (
           <div
@@ -242,7 +325,7 @@ function Thumb(p: {
                 title={ac.label}
                 aria-label={ac.label}
                 aria-pressed={ac.on}
-                onClick={(e) => { e.stopPropagation(); ac.onClick() }}
+                onClick={(e) => { e.stopPropagation(); ac.onClick(e) }}
                 style={{
                   width: 28, height: 28, display: (hov || ac.on) ? 'grid' : 'none', placeItems: 'center', border: 0, borderRadius: LABS_PILL,
                   background: ac.on ? ls.accent : ls.photoVeil(0.6), color: ac.on ? ls.accentInk : ls.onPhoto,
