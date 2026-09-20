@@ -16,8 +16,28 @@
  * (image) s'ouvrent AU-DESSUS de la barre, en clair. Treize préréglages de staging
  * dans une liste déroulante demanderaient d'ouvrir, lire, choisir, refermer — pour un
  * geste que l'agent répète à chaque photo d'un appartement. En palette, c'est un clic.
+ *
+ * ── DEUX ÉTAGES (20.09.2026) ─────────────────────────────────────────────────
+ * ⛔ SUR UN SEUL RANG, LES RÉGLAGES OCCUPAIENT PLUS DE PLACE QUE CE QU'ON ÉCRIT.
+ * Mesuré à 1440 × 900 sur une barre de 780 px, champ vide : attache 40 px, **champ de
+ * saisie 256 px (33 %)**, filet 1 px, **groupe de cinq contrôles 316 px (41 %)**,
+ * Générer 117 px. Une surface d'écriture colonisée par sa propre configuration.
+ *
+ * Désormais : le texte prend le rang du HAUT sur toute la largeur (~700 px, ×2,7), les
+ * réglages le rang du BAS. Le prompt de staging composé par la palette fait 157
+ * caractères — cinq lignes écrasées dans 96 px avec un ascenseur avant, deux lignes
+ * lisibles après.
+ *
+ * ⚠ Le prix, assumé : ~108 px de haut au repos contre 76. La barre FLOTTE au-dessus de
+ * la galerie, qui lui réserve déjà `7xl × 7` (168 px) — les 32 px sortent de cette
+ * réserve, pas de la mosaïque.
+ *
+ * ⚠ Plus de filet vertical entre le champ et les puces : le saut de rang sépare mieux
+ * qu'un trait d'un pixel. Et chaque rang porte SON alignement — l'ancien
+ * `align-items: flex-end` était corrigé par un `alignSelf: 'center'` sur tous ses
+ * enfants sauf un, ce qui est une règle que ses exceptions contredisent.
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useEcranActif } from '@/hooks/useEcranActif'
@@ -73,6 +93,10 @@ interface Props {
 
 type Pop = null | 'ratio' | 'resolution' | 'duration' | 'voice' | 'lang' | 'variations'
 
+/** Bornes de la zone de saisie : une ligne au repos, six au plus avant l'ascenseur. */
+const SAISIE_MIN = 24
+const SAISIE_MAX = 96
+
 export function LabsPromptBar(p: Props) {
   const { t } = useTranslation('labs')
   const { ls } = p
@@ -83,11 +107,26 @@ export function LabsPromptBar(p: Props) {
   // ⛔ Écran caché muet (keepalive des onglets) : la touche Échap d'un autre onglet ne ferme pas nos menus.
   const actif = useEcranActif()
 
+  /**
+   * La zone de saisie croît avec ce qu'on Y ÉCRIT.
+   *
+   * ⛔ ET SEULEMENT AVEC ÇA — `scrollHeight` compte le PLACEHOLDER quand le champ est
+   * vide. Mesuré à 256 px de large : un champ vide rendait **58 px** là où une ligne en
+   * fait **37**, parce que « Décrivez l'image : pièce, style, lumière, ambiance… » s'y
+   * repliait sur deux lignes. La barre annonçait donc 76 px de haut pour dire « rien ».
+   * On blanchit l'invite le temps de la mesure : deux reflows sur un seul élément, et
+   * la hauteur d'une ligne reste MESURÉE — l'écrire en dur en ferait un littéral de plus
+   * à corriger le jour où l'échelle de texte bouge.
+   */
   useEffect(() => {
     const el = ta.current
     if (!el) return
+    const invite = el.placeholder
+    el.placeholder = ''
     el.style.height = '0px'
-    el.style.height = `${Math.min(96, Math.max(24, el.scrollHeight))}px`
+    const contenu = el.scrollHeight
+    el.placeholder = invite
+    el.style.height = `${Math.min(SAISIE_MAX, Math.max(SAISIE_MIN, contenu))}px`
   }, [p.prompt])
 
   useEffect(() => {
@@ -100,12 +139,37 @@ export function LabsPromptBar(p: Props) {
   }, [pop, actif])
 
   const toggle = (id: Exclude<Pop, null>) => setPop((o) => (o === id ? null : id))
+
+  /**
+   * Le VIDE de la barre donne le focus au champ.
+   *
+   * ⚠ `e.target === e.currentTarget` ne vise QUE le vide de l'élément qui porte le
+   * geste : un clic sur une puce, sur Générer ou dans le texte lui-même remonte avec
+   * une autre cible et ne déclenche rien — la sélection à la souris est intacte.
+   * Posé sur la barre ET sur le rang du haut, parce que la zone morte est faite de
+   * DEUX pièces : la gouttière de 8 px du cadre, et l'écart entre l'attache et le
+   * champ. Sur le rang seul, on n'en récupérait que la seconde.
+   */
+  const focaliserChamp = (e: ReactMouseEvent) => { if (e.target === e.currentTarget) ta.current?.focus() }
   const hasVo = p.mode === 'video' && p.voOpen && p.voText.trim().length > 0
   const enEcoute = p.voixEtat.statut === 'lecture' || p.voixEtat.statut === 'chargement'
   const ecouteVide = p.voText.trim().length === 0
   const placeholder = p.mode === 'video'
     ? t('prompt.placeholderVideo')
     : p.source ? t('prompt.placeholderImageSource') : t('prompt.placeholderImage')
+
+  /**
+   * ⚠ LE PRIX SE LIT À CÔTÉ DE CE QUI LE FIXE, pas dans le bouton qui l'engage. Il
+   * vivait en 11 px à 80 % d'opacité DANS l'aplat d'accent — l'endroit le moins lisible
+   * de la barre, pour la seule information qui coûte de l'argent. Il se pose maintenant
+   * au rang des puces (nombre, ratio, résolution, durée) qui le déterminent, et le
+   * bouton redevient une ligne.
+   */
+  const estimation = p.mode === 'video'
+    ? t('prompt.estimateVideo', { chf: labsChf(p.estimateChf), s: p.estimatedS })
+    : p.variations > 1
+      ? t('prompt.estimateMany', { chf: labsChf(p.estimateChf * p.variations), n: p.variations })
+      : t('prompt.estimate', { chf: labsChf(p.estimateChf) })
 
   return (
     <div
@@ -287,8 +351,9 @@ export function LabsPromptBar(p: Props) {
 
       {/* La barre */}
       <div
+        onClick={focaliserChamp}
         style={{
-          display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-md)', minHeight: 56,
+          display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', minHeight: 56,
           padding: 'var(--crm-space-sm)', background: ls.solid, border: `1px solid ${ls.solidBorder}`,
           borderRadius: 'var(--crm-radius-6xl)', boxShadow: ls.solidShadow, color: ls.ink,
         }}
@@ -300,27 +365,36 @@ export function LabsPromptBar(p: Props) {
           style={{ display: 'none' }}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) p.onAttachFile(f); e.target.value = '' }}
         />
-        <IconBtn ls={ls} icon={p.uploading ? 'refresh' : 'paperclip'} label={t('prompt.attach')} onClick={() => file.current?.click()} disabled={p.uploading} />
 
-        <textarea
-          ref={ta}
-          value={p.prompt}
-          onChange={(e) => p.onPrompt(e.target.value.slice(0, LABS_PROMPT_MAX_CHARS))}
-          maxLength={LABS_PROMPT_MAX_CHARS}
-          onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (p.canGenerate && !p.busy) p.onGenerate() } }}
-          placeholder={placeholder}
-          rows={1}
-          aria-label={t('prompt.aria')}
-          style={{
-            flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 'none', resize: 'none',
-            fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', lineHeight: 1.4, color: ls.ink,
-            padding: 'var(--crm-space-md) var(--crm-space-2xs)', maxHeight: 96,
-          }}
-        />
+        {/* Rang du HAUT — ce qu'on écrit, et rien d'autre. Son vide focalise le champ
+            (cf. `focaliserChamp`) : l'agent visait jusqu'ici un rectangle plus petit
+            que ce qu'il voyait. */}
+        <div
+          onClick={focaliserChamp}
+          style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-md)', minWidth: 0 }}
+        >
+          <IconBtn ls={ls} icon={p.uploading ? 'refresh' : 'paperclip'} label={t('prompt.attach')} onClick={() => file.current?.click()} disabled={p.uploading} />
 
-        <div style={{ width: 1, height: 32, background: ls.bord, flexShrink: 0, alignSelf: 'center' }} />
+          <textarea
+            ref={ta}
+            value={p.prompt}
+            onChange={(e) => p.onPrompt(e.target.value.slice(0, LABS_PROMPT_MAX_CHARS))}
+            maxLength={LABS_PROMPT_MAX_CHARS}
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (p.canGenerate && !p.busy) p.onGenerate() } }}
+            placeholder={placeholder}
+            rows={1}
+            aria-label={t('prompt.aria')}
+            style={{
+              flex: 1, minWidth: 0, border: 0, background: 'transparent', outline: 'none', resize: 'none',
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', lineHeight: 1.4, color: ls.ink,
+              padding: 'var(--crm-space-md) var(--crm-space-2xs)', maxHeight: SAISIE_MAX,
+            }}
+          />
+        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0, alignSelf: 'center' }}>
+        {/* Rang du BAS — les réglages, le prix qu'ils fixent, puis l'acte. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexWrap: 'wrap', minWidth: 0 }}>
           {/* Mode */}
           <div style={{ display: 'inline-flex', padding: 'var(--crm-space-2xs)', background: ls.elev, borderRadius: LABS_PILL, border: `1px solid ${ls.bord}` }}>
             {(['image', 'video'] as LabsMode[]).map((m) => {
@@ -350,8 +424,11 @@ export function LabsPromptBar(p: Props) {
               {/* ⚠ Le NOMBRE avant le format : c'est le réglage qu'on rouvre à chaque
                   série, le ratio se pose une fois pour la séance. */}
               <div style={{ position: 'relative' }}>
+                {/* ⚠ Le MOT, pas « ×1 » : la puce était cryptique alors que son propre
+                    menu écrit déjà « 1 image / 2 images / 4 images ». Le rang du bas a
+                    la place que le rang unique n'avait pas. */}
                 <Chip ls={ls} onClick={() => toggle('variations')} active={pop === 'variations'} title={t('prompt.variations')}>
-                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>×{p.variations}</span><Caret ls={ls} />
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>{t('prompt.variationsValue', { count: p.variations })}</span><Caret ls={ls} />
                 </Chip>
                 {pop === 'variations' && (
                   <Popover ls={ls} title={t('prompt.variations')} align="right">
@@ -424,30 +501,35 @@ export function LabsPromptBar(p: Props) {
           )}
         </div>
 
+        {/* Pousse le prix et l'acte à droite : les réglages restent groupés à gauche,
+            où le regard les trouve avec le texte qu'il vient d'écrire. */}
+        <div style={{ flex: 1, minWidth: 0 }} />
+
+        <span
+          style={{
+            fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ls.soft,
+            fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+          }}
+        >
+          {estimation}
+        </span>
+
         <button
           type="button"
           onClick={p.onGenerate}
           disabled={!p.canGenerate || p.busy}
           title={t('prompt.shortcut')}
           style={{
-            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 44, padding: '0 var(--crm-space-4xl)',
-            border: 0, borderRadius: LABS_PILL, background: ls.accent, color: ls.accentInk, alignSelf: 'center',
+            display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 40, padding: '0 var(--crm-space-4xl)',
+            border: 0, borderRadius: LABS_PILL, background: ls.accent, color: ls.accentInk,
             fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: p.canGenerate && !p.busy ? 'pointer' : 'not-allowed',
             opacity: p.canGenerate || p.busy ? 1 : 0.5, transition: LABS_TRANSITION, flexShrink: 0,
           }}
         >
           {p.busy ? <span className="labs-spin" aria-hidden="true" /> : <MEIcon name="sparkle" size={14} color={ls.accentInk} />}
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-            <span>{p.busy ? t('prompt.generating') : t('prompt.generate')}</span>
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, opacity: 0.8, fontVariantNumeric: 'tabular-nums' }}>
-              {p.mode === 'video'
-                ? t('prompt.estimateVideo', { chf: labsChf(p.estimateChf), s: p.estimatedS })
-                : p.variations > 1
-                  ? t('prompt.estimateMany', { chf: labsChf(p.estimateChf * p.variations), n: p.variations })
-                  : t('prompt.estimate', { chf: labsChf(p.estimateChf) })}
-            </span>
-          </span>
+          {p.busy ? t('prompt.generating') : t('prompt.generate')}
         </button>
+        </div>
       </div>
     </div>
   )
