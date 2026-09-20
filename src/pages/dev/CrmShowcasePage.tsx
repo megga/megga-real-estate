@@ -64,6 +64,7 @@ import { CRM_EDGES, CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
 import { AGENT_BANC, semerSessionBanc } from './bancSession'
 import { useCrmDark, useCrmDarkPref } from '@/lib/crmDark'
 import { MailFixturesContext, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { LabsFixturesContext, useLabsFixtures, type LabsFixtureState } from '@/components/crm/labs/fixtures'
 import BootCurtain, { CurtainLift } from '@/components/layout/BootCurtain'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
@@ -99,6 +100,7 @@ const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
 const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
+const LabsPage = lazy(() => import('@/pages/agent/LabsPage'))
 
 /**
  * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
@@ -109,6 +111,20 @@ const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 function MessagerieBanc() {
   const fx = useMailFixtures()
   return <MessageriePage key={fx ?? 'reseau'} />
+}
+
+/**
+ * Le studio Labs du banc, remonté quand la source de ses productions change.
+ *
+ * ⚠ Ses trois états viennent de SES fixtures, pas de l'interception Supabase :
+ * `crmFixtures.ts` ne connaît ni `labs_assets` ni `labs_folders` (zéro occurrence,
+ * mesuré), donc le laisser au réseau rendrait une galerie vide dans les TROIS états —
+ * un banc qui montre la même chose partout n'éprouve rien. `full` / `empty` / `error`
+ * sont exactement les branches que `/dev/labs` sert déjà.
+ */
+function LabsBanc() {
+  const fx = useLabsFixtures()
+  return <LabsPage key={fx ?? 'reseau'} />
 }
 
 /**
@@ -154,6 +170,10 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   // `/dev/messagerie` la monte sans fournisseur d'onglets, donc sans bande. Ses
   // courriels sont les fixtures de ce banc-là (`MailFixturesContext`, plus bas).
   { id: 'messagerie', chemin: '/dashboard/messagerie', label: 'Messagerie', vague: null },
+  // ⚠ HORS CHANTIER, et pour la même raison que la Messagerie : `/dev/labs` monte le
+  // studio SANS fournisseur d'onglets, donc sans bande — c'est ici qu'on le voit dans
+  // la coquille, là où la barre latérale y mène pour de vrai.
+  { id: 'labs', chemin: '/dashboard/labs', label: 'Labs', vague: null },
   // ⚠ HORS CHANTIER aussi : Contacts est déjà porté, et `/dev/contacts` le monte
   // hors coquille, sur des données déjà ADAPTÉES. Ici il passe par ses vrais hooks —
   // la barre latérale et la bande d'onglets y mènent, et y aboutissaient à vide.
@@ -175,6 +195,18 @@ const ETATS: { id: BancEtat; label: string; titre: string }[] = [
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
+
+/**
+ * Les trois états du banc, traduits pour le studio Labs.
+ *
+ * ⚠ Une table et non un ternaire : les trois branches sont NOMMÉES des deux côtés, et
+ * le jour où le banc gagne un quatrième état, TypeScript réclame sa traduction ici.
+ */
+const LABS_PAR_ETAT: Record<BancEtat, LabsFixtureState> = {
+  nominal: 'full',
+  vide: 'empty',
+  erreur: 'error',
+}
 
 /* ─── Chrome du banc ──────────────────────────────────────────────────────── */
 
@@ -358,6 +390,7 @@ const ROUTES_BANC = (
         <Route path="journey" element={<JourneyPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="messagerie" element={<MessagerieBanc />} />
+        <Route path="labs" element={<LabsBanc />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:id" element={<ByParam><ContactDetailPage /></ByParam>} />
         <Route path="listings" element={<ListingsPage />} />
@@ -536,6 +569,7 @@ export default function CrmShowcasePage() {
             « Échec », `null` les rend au réseau — donc à l'interception, qui
             sert zéro ligne ou un 500 : les deux branches réelles de l'écran. */}
         <MailFixturesContext.Provider value={etat === 'nominal' ? 'full' : null}>
+        <LabsFixturesContext.Provider value={LABS_PAR_ETAT[etat]}>
         <Suspense fallback={null}>
           <RoutesBanc />
           {/* Au-dessus des routes, comme en production : le panneau persiste
@@ -545,6 +579,7 @@ export default function CrmShowcasePage() {
               l'écran MEGGA jusqu'à la première peinture, comme `/dashboard`. */}
           <CurtainLift />
         </Suspense>
+        </LabsFixturesContext.Provider>
         </MailFixturesContext.Provider>
         <BootCurtain />
         <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
