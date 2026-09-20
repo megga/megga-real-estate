@@ -347,8 +347,14 @@ d'écran n'est restée sur Graphite).
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
   décision du 10 août écrite quatre points plus haut. Remesuré le 5 septembre 2026
   par `npm run lint:claude-md` : **127 sites peignent une affordance en accent**
-  (120 `background: *.accent`, 7 `bg-accent`) dans 82 fichiers, contre **11** au
-  ghost canonique. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
+  (120 `background: *.accent`, 7 `bg-accent`) dans 95 fichiers, contre **11** au
+  ghost canonique. ⚠ **Les fichiers passent de 82 à 95 le 20.09.2026**, et la règle
+  n'a pas bougé : c'est le studio Labs qui entre — son écran, puis sa reprise
+  « organisation », dont la barre de gestes de la sélection et le menu « Ranger
+  dans… » peignent leur affordance PRIMAIRE en accent, exactement ce que la règle
+  vive prescrit — et les deux PR de sombre. ⚠ Les **sites**, eux, n'ont pas été
+  remesurés ici : la porte ne les a pas signalés, et recopier un chiffre sans le
+  mesurer est exactement ce que ce document s'interdit. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
   pas une dérive de la règle mais deux chantiers de septembre — la refonte du
   chrome du CRM (barre latérale + barre d'onglets, PR #1279) et la messagerie
   (PR #1276), qui peignent l'un et l'autre leurs affordances primaires en accent,
@@ -830,7 +836,38 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
-**Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. Quota vidéo = nouveau poste `labs_video` (Pro 10 · Entreprise 40) à valider. Détail : system-map §6quater, cerveau `megga/labs-studio`.
+**Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. ⛔ **Les quotas par genre sont REMPLACÉS par des CRÉDITS depuis le 20.09.2026**
+(migration `20260920180000`, modèle Higgsfield) : un solde par agence — dotation
+mensuelle du plan (Pro 1 500, Entreprise 5 000, jamais reportée) + crédits achetés
+(ne périment pas) — débité production par production **AVANT** d'appeler le
+fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 720p et
+40/s en 1080p, voix off +10. Packs en `price_data` Stripe (200 · 500 · 1 200 · 3 000
+crédits, CHF 10 · 22 · 49 · 109 — aucun produit ni secret à poser) ; recharge
+automatique sous un seuil, hors session, sur la carte du premier achat. Écran :
+Réglages › **Consommation** (`?tab=credits`). ⛔ **Le coût fournisseur et la marge ne
+sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
+interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
+de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
+
+⚠ **Le studio savait PRODUIRE et ne savait pas RANGER — repris le 20.09.2026.** Classer une
+production demandait de l'ouvrir et d'y trouver une liste déroulante (trois gestes et un
+aller-retour par image, trente-six pour la douzaine qu'une séance de staging produit) ;
+quatre variantes d'un salon demandaient quatre clics, chacun suivi de quinze secondes où
+RIEN ne bougeait à l'écran ; retrouver un prompt de la semaine passée voulait dire faire
+défiler trois cents vignettes. Ajoutés, **sans une ligne de migration** : sélection multiple
+(grammaire de la Messagerie — case au survol, Maj+clic en plage, ⌘A, Échap ; l'en-tête
+DEVIENT la barre de gestes ; un `.in('id', …)` par geste), « Ranger dans… » au survol d'une
+vignette (`LabsFolderPicker`, porté dans `<body>`), recherche sur le prompt et la voix off
+(accents pliés), **variations ×1/×2/×4** en image avec tuiles d'attente locales — pas en
+vidéo, où quatre d'un coup vaudraient 40 % du quota mensuel —, « Refaire » en un clic
+(échec compris), un **préréglage de home staging pièce × style qui ÉCRIT la consigne en
+clair** dans la barre (jamais un prompt caché : l'agent doit pouvoir la relire et la
+corriger), et un **avant/après coulissant** dans la visionneuse. ⚠ Le vocabulaire de
+staging est celui de la fiche bien (`useVirtualStaging`), confronté par
+[labs-organisation.spec.ts](tests/unit/labs-organisation.spec.ts) — une seule exception
+nommée, `autre`.
+
+Détail : system-map §6quater, cerveau `megga/labs-studio`.
 
 **Messagerie (e-mail) : ✅ LOT 1 EN PRODUCTION depuis le 04.09.2026.** ⛔ **Ce paragraphe a affirmé l'inverse pendant vingt-quatre heures, et ses quatre mesures étaient inversées.** Il donnait la [PR #1274](https://github.com/megga/megga-real-estate/pull/1274) pour « OUVERTE au 04.09.2026 » et la production pour vide — « 0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%` » — alors qu'elle a été **mergée ce jour-là à 08:55 UTC** (`26187ba7`). Remesuré en production le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, 1 job cron `mail%`** (`mail-sync-2min`). La prétention n'était pas vague, elle était fausse sur chacun de ses chiffres — et aucune porte ne la mesurait.
 
