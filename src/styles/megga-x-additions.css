@@ -1381,3 +1381,97 @@
   background-color: var(--neutral-colors--400);
   border-color: var(--neutral-colors--500);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MODE CLAIR DE LA VITRINE — pour l'onboarding (décision Julien, 20.09.2026)
+   ═══════════════════════════════════════════════════════════════════════════
+
+   ⛔ POURQUOI ICI, ET PAS DANS LA FEUILLE TRANSCRITE. `megga-x.generated.css`
+   est la transcription VERBATIM de la vitrine ; y toucher la désynchronise de
+   ce qu'elle prolonge. Ce bloc ne modifie AUCUNE règle : il redéclare les dix
+   variables neutres. Les ~74 règles `light-mode` de la vitrine et toutes les
+   autres lisent `var(--neutral-colors--N)` et suivent sans être touchées.
+
+   ⚠ LES DEUX SÉLECTEURS SONT NÉCESSAIRES. `.megga-x` déclare les dix variables,
+   donc un `.megga-x` IMBRIQUÉ les remettrait au sombre. Le parcours en monte
+   plusieurs (l'écran, la modale, la carte de rendez-vous, le sceau).
+   `[data-mx-theme='light'] .megga-x` (0,2,0) l'emporte sur `.megga-x` (0,1,0).
+
+   ⚠ C'EST UN MIROIR DE RÔLE, PAS UNE INVERSION DE VALEUR. n100↔n1000,
+   n200↔n900, n300↔n800, n400↔n700 : le barreau qui portait le canvas porte
+   l'encre, et réciproquement. Les contrastes se conservent exactement — n1000
+   sur n100 rend 20,62:1 dans les deux sens.
+
+   ⛔ SAUF n500, ET C'EST MESURÉ. Le miroir lui donnerait `#a3a3a3` : 2,52:1 sur
+   blanc, très sous l'AA. Un gris MOYEN ne contraste pas symétriquement — il
+   rend mieux sur noir que sur blanc. Il prend donc `#686868` (5,57:1), la
+   valeur que `CLAUDE.md` §3 nomme déjà comme encre secondaire du mode clair.
+   Conséquence assumée : n500 et n600 rendent la MÊME valeur en clair, les deux
+   encres les plus sourdes se confondent. Le blanc ne laisse pas la place que le
+   noir laissait — c'est une propriété de l'œil, pas un réglage à corriger.
+   ⚠ n500 était DÉJÀ sous l'AA en sombre (3,70:1) : c'est l'encre de dé-emphase
+   de la vitrine, pas une encre de lecture. On ne dégrade rien qui portait. */
+.megga-x[data-mx-theme='light'],
+[data-mx-theme='light'] .megga-x {
+  --neutral-colors--100: #fff;      /* canvas ← était l'encre */
+  --neutral-colors--200: #f9f9f9;
+  --neutral-colors--300: #ededed;
+  --neutral-colors--400: #ccc;
+  --neutral-colors--500: #686868;   /* ⛔ hors miroir — voir ci-dessus */
+  --neutral-colors--600: #686868;
+  --neutral-colors--700: #181818;
+  --neutral-colors--800: #090909;
+  --neutral-colors--900: #050505;
+  --neutral-colors--1000: #030303;  /* encre ← était le canvas */
+}
+
+/* ⛔ L'ACCENT N'EST PAS UN NEUTRE — IL NE BASCULE PAS, DONC SON ENCRE NON PLUS.
+   Mesuré au rendu le 20.09.2026 sur `/dev/onboarding` en clair : le bouton
+   « Identifier mon agence » rendait `#030303` sur `#424bfb`, soit **3,57:1**,
+   sous l'AA. Le miroir avait fait son travail — il a donné l'encre du thème à
+   `var(--neutral-colors--1000)` — mais ces surfaces-là sont des APLATS D'ACCENT,
+   pas des surfaces neutres : leur fond est le même dans les deux thèmes.
+
+   `CLAUDE.md` §3 le dit déjà, et c'est exactement le chiffre relevé ici :
+   « l'accent ne tient en aplat (5,78:1) que parce que c'est l'ENCRE BLANCHE qui
+   porte le contraste ». Le blanc revient donc pour les seules surfaces dont le
+   remplissage est `--primary-colors--100`.
+
+   ⚠ Ne pas élargir cette liste « au cas où » : chaque sélecteur ici ANNULE la
+   bascule, et un neutre qu'on y glisserait par erreur resterait blanc sur blanc.
+   Les dix règles de la feuille qui remplissent en accent sont relevées par
+   `grep -B6 'background-color: var(--primary-colors--100)'`. */
+[data-mx-theme='light'] .megga-x .primary-button,
+[data-mx-theme='light'] .megga-x .bg-primary-100,
+[data-mx-theme='light'] .megga-x .notification-bar,
+[data-mx-theme='light'] .megga-x .list-item-icon-left,
+[data-mx-theme='light'] .megga-x .check-icon-primary,
+[data-mx-theme='light'] .megga-x .template-pages---nav-item-link:hover,
+[data-mx-theme='light'] .megga-x .template-pages---nav-item-link.w--current {
+  color: #fff;
+}
+
+/* ⛔ LES CINQ FONDS SOMBRES ÉCRITS EN DUR DANS LA FEUILLE — le remappage de
+   variables ne peut pas les atteindre, par construction. Relevés le 20.09.2026
+   en balayant les règles de `megga-x.generated.css` :
+     · `.card.sign-in-card`  #090909b3   ← le cadre du parcours
+     · `.input.select-input` #0f0f0f     ← les champs de sélection
+     · `.w-lightbox-backdrop` #000000e6  ← un VOILE, reste sombre dans les deux
+     · `.icon-card---bg-blur.twitter/.github` #25303b ← couleurs de marque
+   Seules les deux premières concernent l'onboarding ; les trois autres ne sont
+   pas des surfaces de thème et ne doivent PAS basculer.
+
+   ⚠ C'est mesuré, pas supposé : `.card.sign-in-card` rendait `#090909` sur un
+   canvas déjà passé au blanc — une carte noire sur du papier. La racine
+   `.megga-x` était bien en `--neutral-colors--100: #fff`, ce qui prouvait que la
+   bascule marchait ET que ces deux règles lui échappaient.
+
+   Le fond translucide devient du PAPIER translucide ; c'est la bordure
+   (`var(--neutral-colors--400)`, soit `#ccc` en clair) qui délimite la carte —
+   la même règle que le CRM sombre : on sépare par le filet. */
+[data-mx-theme='light'] .megga-x .card.sign-in-card {
+  background-color: #ffffffb3;
+}
+[data-mx-theme='light'] .megga-x .input.select-input {
+  background-color: #fff;
+}

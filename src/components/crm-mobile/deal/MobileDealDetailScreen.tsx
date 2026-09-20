@@ -18,6 +18,7 @@ import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import CrmToast from '../primitives/CrmToast'
 import { useCrmToast } from '../primitives/useCrmToast'
+import { MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
 type StageInput = Parameters<typeof mapTransactionStageToStepper>[0]
 
@@ -153,7 +154,7 @@ export function MobileDealDetailScreen({ demoData }: { demoData?: DealData }) {
         {vm.photo ? (
           <img src={vm.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
-          <div style={{ position: 'absolute', inset: 0, background: '#1A1B22' }} />
+          <div style={{ position: 'absolute', inset: 0, background: MXC_DARK_SURFACE.s1 }} />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,9,12,.35) 0%, rgba(8,9,12,.92) 100%)' }} />
         <div style={{ position: 'relative', padding: 'var(--crm-space-4xl)' }}>

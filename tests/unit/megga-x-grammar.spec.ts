@@ -950,7 +950,12 @@ function classesDe(code: string): string {
  */
 const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/admin', { hors: 53, total: 86 }],
-  ['src/components/ai-copilot/panel', { hors: 97, total: 121 }],
+  // ⚠ −1 le 20.09.2026 : le rayon du dock MEGGA AI était le littéral `22`,
+  // hors échelle ET désaccordé de la carte de la barre latérale (20 px).
+  // Il lit `--crm-radius-4xl`.
+  // ⚠ −2 le 20.09.2026 : l'en-tête « Suggestions · … » du dock est retiré
+  // (décision Julien), avec ses deux valeurs de gouttière en dur.
+  ['src/components/ai-copilot/panel', { hors: 94, total: 118 }],
   ['src/components/auth', { hors: 0, total: 13 }],
   ['src/components/auth-bento', { hors: 16, total: 28 }],
   ['src/components/crm-mobile', { hors: 228, total: 319 }],
@@ -1101,7 +1106,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // 292/891 → 217/784 le 16.09.2026 : la fiche bien refaite bord à bord écrit ses marges,
   // rayons et tailles en jetons (`ListingDetailPage`). Puis 216/783 le même jour :
   // `ListingWizardPage` est retirée avec l'ancien wizard.
-  ['src/pages/agent', { hors: 216, total: 783 }],
+  // ⚠ −1 le 20.09.2026 : le cadre du pager de « Aujourd'hui » rendait le
+  // littéral `26`, hors échelle et désaccordé du dock comme de la carte
+  // latérale. Il lit `--crm-radius-4xl`.
+  ['src/pages/agent', { hors: 215, total: 782 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])

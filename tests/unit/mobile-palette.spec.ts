@@ -21,11 +21,15 @@
  * l'écart plutôt que l'interdire. En ajouter un demande de l'écrire ici.
  */
 import { describe, it, expect } from 'vitest'
-import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, MXC_DARK_SURFACE, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 import { MT_LIGHT, MT_DARK, type MobileTokens } from '@/components/crm-mobile/tokens'
 
 const ECHELLE = new Set(
-  [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)].map((v) => v.toLowerCase()),
+  // ⚠ TROISIÈME JEU depuis le 20.09.2026 : les SURFACES sombres du CRM ne sortent
+  // plus des barreaux de la vitrine mais de `MXC_DARK_SURFACE` — décision écrite
+  // sur ce module. Hors de ces trois jeux, une valeur reste un littéral inventé.
+  [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM),
+   ...Object.values(MXC_DARK_SURFACE)].map((v) => v.toLowerCase()),
 )
 
 /**
@@ -375,11 +379,10 @@ describe('CRM mobile — la palette descend de MEGGA X', () => {
       'bien/shared.ts': ['#111827', '#6B7280'],
       'contacts/MobileContactDetailScreen.tsx': ['#07060B', '#0C091A'],
       'contacts/detailShared.ts': ['#7A8088'],
-      'deal/MobileDealDetailScreen.tsx': ['#1A1B22', '#7A8088'],
+      'deal/MobileDealDetailScreen.tsx': ['#7A8088'],
       'matching/MmKyc.tsx': ['#DCF1E6'],
       'matching/MmMatchCard.tsx': ['#E4E7EC'],
       'pipeline/MobilePipelineScreen.tsx': ['#E0F1F5'],
-      'today/MobileFocusHero.tsx': ['#1A1B22'],
     }
 
     const sansCommentaires = (c: string) =>

@@ -3,7 +3,7 @@
 // ombres douces, accent noir, la PHOTO porte le design (galerie immersive +
 // lightbox plein écran). Câblé sur de VRAIES photos quand elles existent.
 
-import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur, MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { crmInitials, crmVoileEncre } from '@/components/crm/tokens'
 import { vxPalette } from './vitrineTokens'
@@ -498,7 +498,7 @@ export function VxAvatar({
         height: size,
         borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
-        background: bg || (dark ? MXC_COLOR.n400 : MXC_COLOR.n100),
+        background: bg || (dark ? MXC_DARK_SURFACE.s3 : MXC_COLOR.n100),
         // Même raison qu'à la galerie : `bg` vient de la donnée du contact, et
         // cinq des huit couleurs de la palette d'avatar sont trop pâles pour du
         // blanc. L'encre suit l'aplat au lieu d'être figée.

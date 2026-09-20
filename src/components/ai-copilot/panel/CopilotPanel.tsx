@@ -495,12 +495,6 @@ function EmptyDock({ sp, onSend, screen }: { sp: AiPalette; onSend: (p: string) 
       </div>
       {/* key={screen} → les suggestions se renouvellent en douceur à chaque page */}
       <div key={screen} style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '0 16px 4px', animation: 'cpCtxIn .4s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 4px 4px' }}>
-          <CpIcon name="sparkle" size={12} color={sp.aiInk} sw={1.9} />
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
-            Suggestions · {pack.label}
-          </span>
-        </div>
         {pack.actions.slice(0, 3).map((c, i) => (
           <button key={i} onClick={() => onSend(c.p)} style={chipRow}
             onMouseEnter={(e) => { e.currentTarget.style.background = sp.rowHov }}
@@ -868,7 +862,12 @@ export default function CopilotPanel() {
           top: impersonating ? `calc(${topInset} + 40px)` : topInset,
           bottom: bottomInset, right: margin,
           width: PANEL_W, maxWidth: 'calc(100vw - 24px)',
-          background: sp.panelBg, borderRadius: 22, border: 'none', boxShadow: cardShadow,
+          // ⚠ `22` ÉTAIT UN LITTÉRAL HORS ÉCHELLE — et il désaccordait le dock
+          // de la carte de la barre latérale, qui rend `--crm-radius-4xl` (20 px).
+          // Écrire un rayon en dur dans un composant est une régression
+          // (`CLAUDE.md` §3, grammaire tokenisée) ; ici ça se VOYAIT en plus.
+          background: sp.panelBg, borderRadius: 'var(--crm-radius-4xl)',
+          border: 'none', boxShadow: cardShadow,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
           // Ces trois propriétés SEULES lisent `shown` (cf. chorégraphie ci-dessus) ;
           // tout le reste continue de lire `open`.

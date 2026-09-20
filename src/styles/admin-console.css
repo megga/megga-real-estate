@@ -82,23 +82,24 @@
 
 .megga-admin-console[data-admin-dark='true'] {
   /* ── Surfaces — barreaux sombres de MEGGA X, et la sous-carte est CREUSÉE ── */
-  --color-bg-page: 3 3 3; /* #030303 — n100, sp.pageBg */
-  --color-bg-card: 9 9 9; /* #090909 — n300, sp.cardBg */
-  --color-bg-section: 5 5 5; /* #050505 — n200, sp.cardSubBg (SOUS la carte) */
-  --color-bg-sidebar: 5 5 5; /* sp.frameBg */
-  --color-bg-elevated: 9 9 9; /* sp.solidBg */
-  --color-bg-input: 5 5 5; /* sp.cardSubBg */
-  --color-bg-hover: 24 24 24; /* #181818 — n400, sp.focusSurface (ÉLEVÉE) */
-  --color-bg-active: 24 24 24; /* sp.focusSurface */
+  --color-bg-page: 22 24 28; /* #16181c — MXC_DARK_SURFACE.s0, sp.pageBg */
+  --color-bg-card: 22 24 28; /* #16181c — s0, sp.cardBg (MÊME gris que la page) */
+  --color-bg-section: 22 24 28; /* #16181c — s0, sp.cardSubBg */
+  --color-bg-sidebar: 22 24 28; /* #16181c — s0, sp.frameBg */
+  --color-bg-elevated: 22 24 28; /* #16181c — s0, sp.solidBg */
+  --color-bg-input: 22 24 28; /* #16181c — s0, sp.cardSubBg */
+  --color-bg-hover: 27 30 35; /* #1b1e23 — s1, sp.focusSurface (un ÉTAT) */
+  --color-bg-active: 27 30 35; /* #1b1e23 — s1, sp.focusSurface */
 
   /* ── Encre ── */
-  --color-text-primary: 255 255 255; /* #ffffff — n1000, sp.ink */
-  --color-text-secondary: 237 237 237; /* #ededed — n800, sp.soft */
+  --color-text-primary: 237 237 237; /* #ededed — n800, sp.ink (plus de blanc pur) */
+  --color-text-secondary: 204 204 204; /* #cccccc — n700, sp.soft */
   --color-text-tertiary: 163 163 163; /* #a3a3a3 — n600, sp.sub */
   --color-text-muted: 163 163 163;
 
   /* ── Bordures ── */
-  --color-border: 24 24 24; /* #181818 — n400, sp.cardBorder */
+  --color-border: 43 45 48; /* #2b2d30 — s.line, sp.cardBorder — filet UNIQUE
+                              et discret (ΔL* 10,13 sur le canvas) */
   --color-border-subtle: 9 9 9; /* #090909 — n300 */
 }
 
@@ -176,7 +177,7 @@
   background: #ededed !important; /* n800 — la surface de survol de MEGGA X */
 }
 .megga-admin-console[data-admin-dark='true'] .adm-ghost:hover:not(:disabled) {
-  background: #181818 !important; /* n400 — son pendant sombre */
+  background: #1b1e23 !important; /* s1 — le survol est un ÉTAT (20.09.2026) */
 }
 
 /*

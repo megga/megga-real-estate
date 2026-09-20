@@ -9,6 +9,7 @@ import { KYC_CHECK_LABELS } from '../tokens'
 import type { KycCheckCategory } from '@/types/kyc'
 import { KYP_FONT, type KypSurf } from './kypTokens'
 import { KypCta, KypIcon } from './kypAtoms'
+import { MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
 function humanSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`
@@ -49,7 +50,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
         style={{
           width: 430,
           maxWidth: 'calc(100% - 60px)',
-          background: dark ? '#202124' : '#FFFFFF',
+          background: dark ? MXC_DARK_SURFACE.s0 : '#FFFFFF',
           borderRadius: 'var(--crm-radius-6xl)',
           boxShadow: `0 40px 100px ${crmVoileEncre(false, 0.20)}, 0 8px 24px ${crmVoileEncre(false, 0.10)}`,
           padding: '26px 28px',

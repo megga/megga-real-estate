@@ -20,7 +20,7 @@
 
 import EtatVide from '@/components/crm/EtatVide'
 import { crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 // `motion/react` = la voie du dépôt (18 fichiers, dont le voisin FocusMode).
@@ -231,9 +231,13 @@ function HlBlock({ b, pct, span, sel, done, past, onSel }: {
 }) {
   const bg = hlColor(b.kind)
   const short = b.dur <= 30 // ≤ 30 min → une seule ligne
+  // ⛔ La branche SOMBRE posait `0 2px 10px rgba(0,0,0,0.45)` sur chaque bloc
+  // d'agenda — une ombre portée noire, invisible sur l'ancien `#030303` et qui
+  // assombrit le canvas depuis qu'il vaut `#16181c`. Les blocs sont déjà
+  // teintés et bordés : ils n'ont rien à porter de plus.
   const softSh = TK.mode === 'light'
     ? `0 2px 8px ${crmVoileEncre(false, 0.10)}, 0 1px 3px ${crmVoileEncre(false, 0.06)}`
-    : '0 2px 10px rgba(0,0,0,0.45)'
+    : 'none'
   return (
     <button
       onClick={(e) => onSel(b.id, e.currentTarget)}
@@ -378,7 +382,7 @@ function HlZoneError({ label }: { label: string }) {
 function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?: (d: HlHotData) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', minWidth: 0, borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
-      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: d.photo ? '#1c1e24' : `linear-gradient(135deg, ${d.g1 || '#262C3A'}, ${d.g2 || '#181B22'})` }}>
+      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: d.photo ? MXC_DARK_SURFACE.s1 : `linear-gradient(135deg, ${d.g1 || '#262C3A'}, ${d.g2 || '#181B22'})` }}>
         {d.photo && <img src={d.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -399,7 +403,7 @@ function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?
 function HlAnnCard({ a, first, onCta }: { a: HlAnnData; first?: boolean; onCta?: (a: HlAnnData) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', minWidth: 0, borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
-      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: a.photo ? '#1c1e24' : `linear-gradient(135deg, ${a.g1 || '#262C3A'}, ${a.g2 || '#181B22'})` }}>
+      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: a.photo ? MXC_DARK_SURFACE.s1 : `linear-gradient(135deg, ${a.g1 || '#262C3A'}, ${a.g2 || '#181B22'})` }}>
         {a.photo && <img src={a.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -568,7 +572,7 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
           {/* Bien concerné — sous-carte cardSubtle */}
           {b.photo && (
             <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'center', background: TK.card, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg)', marginTop: 2 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, position: 'relative', background: '#1c1e24' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, position: 'relative', background: MXC_DARK_SURFACE.s1 }}>
                 <img src={b.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>

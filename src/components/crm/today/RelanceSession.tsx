@@ -23,6 +23,7 @@ import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 import { useRelanceSession } from './useRelanceSession'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
 // La couleur reste un token de présentation ; le libellé de température est une
 // clé i18n stable (code → clé), traduite au point d'usage.
@@ -579,7 +580,7 @@ export function RelanceSession({ dark, onClose }: { dark: boolean; onClose: () =
         {undo && (
           <div style={{ position: 'absolute', left: '50%', bottom: 84, transform: 'translateX(-50%)', zIndex: 8,
             display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-md) var(--crm-space-md) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)',
-            background: TK.frameHi || '#1b1d24', border: `1px solid ${TK.borderHi}`, boxShadow: TK.shadowLg,
+            background: TK.frameHi || MXC_DARK_SURFACE.s1, border: `1px solid ${TK.borderHi}`, boxShadow: TK.shadowLg,
             whiteSpace: 'nowrap', animation: 'rsRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
             <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.inkDim, fontWeight: 600 }}>{t('today.relance.undo.discarded', { name: undo.name })}</span>
             <button onClick={undoDiscard} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 32, padding: '0 var(--crm-space-2xl)',

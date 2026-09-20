@@ -130,7 +130,19 @@ describe('Feuilles MEGGA X non gardées — additions, entrée, responsive', () 
         const v = m[0].toLowerCase()
         // Une forme courte est étendue avant comparaison ; ce qu'on ne sait pas
         // lire est REFUSÉ, jamais sauté.
-        const long = v.length === 4 ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}` : v
+        // ⛔ TROIS NOTATIONS, ET LA TROISIÈME A ÉTÉ APPRISE LE 20.09.2026. La
+        // forme courte était étendue, la longue acceptée, et `#rrggbbaa` —
+        // valide en CSS — tombait en « illisible ». C'est le bon réflexe (ce
+        // qu'on ne sait pas lire est REFUSÉ, jamais sauté), mais le mode clair de
+        // la vitrine a un vrai besoin d'alpha : `.card.sign-in-card` est une
+        // carte TRANSLUCIDE dans les deux thèmes. L'alpha ne change pas quel
+        // BARREAU est employé — on compare donc les six premiers chiffres et on
+        // laisse l'opacité libre.
+        const court = v.length === 4
+        const avecAlpha = v.length === 9
+        const long = court
+          ? `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`
+          : avecAlpha ? v.slice(0, 7) : v
         if (long.length !== 7) { fautifs.push(`${f.chemin} : couleur illisible ${m[0]}`); continue }
         if (!ECHELLE.has(long)) fautifs.push(`${f.chemin} : ${m[0]} hors échelle`)
       }
@@ -148,7 +160,13 @@ describe('Feuilles MEGGA X non gardées — additions, entrée, responsive', () 
    */
   it('le compte de couleurs de chaque feuille est celui qui a été mesuré', () => {
     const ATTENDU: Record<string, { hex: number; rgba: number }> = {
-      'src/styles/megga-x-additions.css': { hex: 0, rgba: 5 },
+      // ⚠ PASSÉ DE 0 À 13 LE 20.09.2026 — le mode clair de la vitrine
+      // (onboarding) redéclare les dix variables neutres, plus trois
+      // surcharges : l'encre blanche sur les aplats d'accent et les deux
+      // fonds sombres que la feuille transcrite écrit en DUR. La clause
+      // du dessus vérifie que chacun est un barreau réel ; celle-ci
+      // vérifie qu'elle les a bien tous VUS.
+      'src/styles/megga-x-additions.css': { hex: 13, rgba: 5 },
       'src/styles/megga-x.css': { hex: 0, rgba: 0 },
     }
     const reel = Object.fromEntries(feuilles.map((f) => [f.chemin, {

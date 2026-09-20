@@ -14,7 +14,7 @@
 import { useMemo } from 'react'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
-import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur, MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
@@ -144,8 +144,13 @@ export function adminTones(dark: boolean): AdminTones {
     ok: dark ? '#12A574' : STATUT_CLAIR.okInk,
     warn: dark ? '#E08A2E' : STATUT_CLAIR.warnInk,
     err: dark ? '#F26B65' : STATUT_CLAIR.errInk,
-    // `info` tenait déjà — 5,76:1 au pire. On ne recible pas ce qui passe.
-    info: dark ? '#4C86E8' : '#1E5BC6',
+    // ⛔ `info` NE TENAIT PLUS. Le commentaire disait « 5,76:1 au pire, on ne
+    // recible pas ce qui passe » — vrai sur le canvas `#030303`, faux dès que le
+    // plancher est monté à `#16181c` (20.09.2026) : `#4C86E8` tombe à 4,37:1 sur
+    // la carte. C'est le mode d'échec propre aux seuils écrits en dur dans un
+    // commentaire : ils datent d'un fond qui a changé depuis. `blue400` est le
+    // barreau de la vitrine juste sous `blue300` — 6,32:1 au pire.
+    info: dark ? MXC_SYSTEM.blue400 : '#1E5BC6',
     // ⚠ SEULE des quatre à n'avoir aucun équivalent au dépôt : il n'existe pas
     // de `--color-cyan-dark`. C'est le barreau SUIVANT de l'échelle dont
     // `#0891B2` est tiré (cyan-600 → cyan-700), pas une teinte choisie.
@@ -155,7 +160,13 @@ export function adminTones(dark: boolean): AdminTones {
     // lecture de source ne pouvait le mesurer, et la clause qui refuse une
     // couleur illisible est ce qui l'a montré. Il vaut désormais l'accent de la
     // direction — 5,34:1 en encre claire contre 3,91 au violet.
-    accent: MXC_COLOR.accent,
+    // ⛔ EN SOMBRE, PAS L'ACCENT BRUT — la règle est déjà écrite deux fois dans
+    // le dépôt (CLAUDE.md §3 et `MXC_SYSTEM.blue300`) : « l'accent `#424bfb` ne
+    // passe pas l'AA en TEXTE sur sombre ». Il servait ici de GLYPHE, où le seuil
+    // est 3:1 — il tenait de justesse sur `#090909`, il rend 2,70:1 sur la carte
+    // du nouveau plancher. `blue300` est le barreau nommé pour exactement ce cas,
+    // et c'est déjà la valeur que `--color-accent` prend en sombre.
+    accent: dark ? MXC_SYSTEM.blue300 : MXC_COLOR.accent,
     neutralBg: surf.cardSub,
     neutralInk: sp.soft,
   }

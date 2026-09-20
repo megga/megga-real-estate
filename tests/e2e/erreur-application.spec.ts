@@ -8,6 +8,7 @@
  * et aucune référence d'incident quand Sentry ne tourne pas — elle ne mènerait à rien.
  */
 import { test, expect, type Page } from '@playwright/test'
+import { MXC_DARK_SURFACE } from '../../src/components/megga-x-crm/tokens'
 
 const ENTREE = `/dev/crm?entree=${encodeURIComponent('/dashboard/erreur-rendu')}`
 const titre = (page: Page) => page.getByRole('heading', { name: "Cette page n'a pas pu s'afficher" })
@@ -46,5 +47,13 @@ test('en sombre, l’écran suit le réglage de l’agent', async ({ page }) => 
     while (n && getComputedStyle(n).backgroundColor === 'rgba(0, 0, 0, 0)') n = n.parentElement
     return n ? getComputedStyle(n).backgroundColor : null
   })
-  expect(fondPage).toBe('rgb(3, 3, 3)')
+  // ⛔ C'ÉTAIT LE LITTÉRAL `rgb(3, 3, 3)`, et il a péri avec l'échelle : le canvas
+  // sombre est passé à `#16181c` le 20.09.2026. Une garde de plus qui encodait la
+  // décision morte — et la SEULE que la suite unitaire ne pouvait pas voir, d'où
+  // sa découverte en CI et non en local.
+  //
+  // Elle lit le JETON désormais. Le jour où le canvas rebouge, ce test suit au
+  // lieu de rougir pour la mauvaise raison.
+  const [r, v, b] = [0, 2, 4].map((i) => parseInt(MXC_DARK_SURFACE.s0.slice(1).slice(i, i + 2), 16))
+  expect(fondPage).toBe(`rgb(${r}, ${v}, ${b})`)
 })

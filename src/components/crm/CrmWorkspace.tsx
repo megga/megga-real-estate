@@ -129,12 +129,19 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
     // `data-garde-transition` : sa poussée n'est pas coupée par une bascule de thème.
     <div data-garde-transition="" style={{
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
-      // ⚠ La poussée ENGLOBE la bande : ✦, la cloche et la bascule de thème vivent
-      // dans son quart droit, et ne pousser que la rangée les laisserait sous le dock.
-      // ⛔ La transition est EN LIGNE, et doit le rester : « Aujourd'hui » pose une
-      // `transition` sur tous ses descendants (`.today-proto-amb *`), qui battrait
-      // une règle de feuille — la poussée y sauterait pendant que le dock glisse.
-      ...DOCK_PUSH_STYLE,
+      // ⛔ LA POUSSÉE N'ENGLOBE PLUS LA BANDE (20.09.2026). Elle le faisait, et
+      // le motif écrit ici était : « ✦, la cloche et la bascule de thème vivent
+      // dans son quart droit, et ne pousser que la rangée les laisserait sous le
+      // dock ». Ce motif est PÉRIMÉ — le dock a gagné depuis un `top` à
+      // `--crm-chrome-top`. Mesuré à 1440 × 900 : la bande finit à y=42, le dock
+      // commence à y=54. Douze pixels de dégagement ; rien ne peut passer
+      // dessous.
+      //
+      // Le coût, lui, se voyait : le quart droit reculait de 376 px à chaque
+      // ouverture — la cloche, ✦, le thème et l'avatar quittaient le bord de la
+      // fenêtre pour suivre un panneau qui, lui, n'est même pas sur leur ligne.
+      // La poussée descend donc sur la RANGÉE seule (le duo carte latérale /
+      // contenu), et la bande reste pleine largeur.
       // ⚠ Ce que la bande prend au contenu, publié en variable.
       //
       // Les surfaces à hauteur FIGÉE n'en ont pas besoin (leur `<main>` est un
@@ -164,8 +171,15 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
       {/* ⚠ La RANGÉE, sous la bande : c'est elle qui porte désormais le duo
           carte latérale / contenu. Sans bande (mobile, bancs), elle reprend à son
           compte la gouttière haute que la bande fournissait. */}
-      <div style={{
+      <div data-garde-transition="" style={{
         display: 'flex', flex: 1, minWidth: 0,
+        // ⚠ LA POUSSÉE VIT ICI, plus sur la colonne — voir le motif plus haut.
+        // ⛔ La transition est EN LIGNE, et doit le rester : « Aujourd'hui » pose
+        // une `transition` sur tous ses descendants (`.today-proto-amb *`), qui
+        // battrait une règle de feuille — la poussée y sauterait pendant que le
+        // dock glisse. Et `data-garde-transition` l'exempte de la coupure que la
+        // bascule de thème applique à l'écran entier.
+        ...DOCK_PUSH_STYLE,
         // ⛔ `minHeight: 0`, SANS QUOI UN ÉCRAN FIGÉ DÉBORDE PAR LE BAS. Cette
         // rangée est l'élément `flex: 1` d'une COLONNE : sa hauteur minimale
         // automatique y est celle de son CONTENU. Un écran figé dont le contenu

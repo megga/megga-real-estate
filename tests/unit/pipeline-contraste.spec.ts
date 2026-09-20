@@ -257,6 +257,25 @@ const PALETTES: { nom: string; encres: string[]; surfaces: string[] }[] = [
 ]
 
 describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
+/**
+ * Le fond RÉELLEMENT vu derrière une colonne de kanban.
+ *
+ * ⛔ DEPUIS LE 20.09.2026 `crmStageTint().panel` VAUT `'transparent'` EN SOMBRE
+ * — la grammaire lignée a retiré le fond des colonnes. `canal()` ne sait pas
+ * lire ce mot, et c'est la clause « le balayage voit l'arbre » qui l'a dit,
+ * exactement comme elle avait attrapé le `rgb(…)` de `crmMix` : un mot illisible
+ * rend `NaN`, et `NaN` passe TOUS les seuils.
+ *
+ * Le remède n'est pas de laisser passer `'transparent'` — ça rendrait les
+ * mesures d'en dessous vides — mais de mesurer ce que l'œil voit vraiment :
+ * une colonne sans fond laisse voir le CANVAS. Même règle que l'avertissement
+ * porté par `encreSur` sur les voiles translucides.
+ */
+function fondColonne(stage: StageId, dark: boolean): string {
+  const { panel } = crmStageTint(stage, dark)
+  return panel === 'transparent' ? crmPalette(dark).pageBg : panel
+}
+
   it('le balayage voit l’arbre', () => {
     expect(SOURCES.length).toBeGreaterThan(8)
     expect(SOURCES.map((s) => s.nom)).toContain(`${DOSSIER}/PipelineList.tsx`)
@@ -279,7 +298,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
     const illisibles: string[] = []
     for (const dark of [false, true]) {
       for (const stage of CRM_STAGE_ORDER) {
-        for (const c of [crmStageTint(stage, dark).panel, crmStagePillBg(stage, dark)]) {
+        for (const c of [fondColonne(stage, dark), crmStagePillBg(stage, dark)]) {
           if (!lisible(c)) illisibles.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${c}`)
         }
       }
@@ -419,9 +438,10 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
     const fautes: string[] = []
     for (const dark of [false, true]) {
       for (const stage of CRM_STAGE_ORDER) {
-        const { panel, tintInk } = crmStageTint(stage, dark)
-        const rc = contraste(tintInk, panel)
-        if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${tintInk} sur ${panel} → ${arrondi(rc)}:1`)
+        const { tintInk } = crmStageTint(stage, dark)
+        const fond = fondColonne(stage, dark)
+        const rc = contraste(tintInk, fond)
+        if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${tintInk} sur ${fond} → ${arrondi(rc)}:1`)
       }
     }
     expect(fautes, `encre de panneau sous l’AA :\n  ${fautes.join('\n  ')}`).toEqual([])
