@@ -46,7 +46,6 @@
   },
   "error": {
     "title": "Das Studio konnte nicht geladen werden",
-    "body": "Versuchen Sie es gleich noch einmal.",
     "retry": "Erneut versuchen"
   },
   "prompt": {

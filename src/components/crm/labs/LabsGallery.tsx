@@ -68,10 +68,14 @@ export function LabsGallery(p: Props) {
   if (p.isError) {
     return (
       <Centre>
+        {/* ⚠ PAS DE CORPS ICI, et c'est voulu (Julien, 20.09.2026) : il disait
+            « Réessayez dans un instant. » au-dessus d'un bouton « Réessayer ». Une
+            phrase qui répète l'affordance qu'elle surplombe n'ajoute rien — elle fait
+            lire deux fois pour apprendre une fois. Les autres états vides gardent leur
+            corps parce qu'ils n'ont PAS de bouton : c'est leur texte qui dit quoi faire. */}
         <EtatVide
           glyphe={<MEIcon name="alert" size={22} />}
           titre={t('error.title')}
-          corps={t('error.body')}
           registre="erreur"
           action={{ libelle: t('error.retry'), onClick: p.onRetry }}
           dark={p.dark}

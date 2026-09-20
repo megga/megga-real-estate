@@ -526,7 +526,11 @@ export function LabsPromptBar(p: Props) {
             opacity: p.canGenerate || p.busy ? 1 : 0.5, transition: LABS_TRANSITION, flexShrink: 0,
           }}
         >
-          {p.busy ? <span className="labs-spin" aria-hidden="true" /> : <MEIcon name="sparkle" size={14} color={ls.accentInk} />}
+          {/* ⚠ PAS DE GLYPHE AU REPOS (Julien, 20.09.2026) — le seul aplat d'accent du
+              rang n'a rien à annoncer de plus que son mot. Le rond qui tourne, lui,
+              RESTE : ce n'est pas une décoration mais le seul signe que la demande est
+              partie, et il n'a pas de remplaçant dans ce bouton. */}
+          {p.busy && <span className="labs-spin" aria-hidden="true" />}
           {p.busy ? t('prompt.generating') : t('prompt.generate')}
         </button>
         </div>

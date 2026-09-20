@@ -46,7 +46,6 @@
   },
   "error": {
     "title": "Impossible de charger le studio",
-    "body": "Réessayez dans un instant.",
     "retry": "Réessayer"
   },
   "prompt": {

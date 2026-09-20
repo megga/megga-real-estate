@@ -46,7 +46,6 @@
   },
   "error": {
     "title": "Impossibile caricare lo studio",
-    "body": "Riprovate tra un istante.",
     "retry": "Riprova"
   },
   "prompt": {
