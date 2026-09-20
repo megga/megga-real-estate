@@ -44,7 +44,7 @@ const faux = (o: Partial<LabsAsset> & Pick<LabsAsset, 'id'>): LabsAsset => ({
   folderId: null, createdBy: null, kind: 'image', status: 'ready', prompt: null,
   voiceoverText: null, voiceoverVoice: null, voiceoverLang: null, voiceoverUrl: null,
   sourceAssetId: null, url: null, thumbnailUrl: null, width: null, height: null,
-  durationS: null, aspectRatio: null, model: null, errorCode: null, costChf: null,
+  durationS: null, aspectRatio: null, model: null, errorCode: null, credits: null,
   isFavorite: false, createdAt: '2026-09-20T10:00:00Z', completedAt: null, ...o,
 })
 
@@ -193,18 +193,18 @@ describe('labs — ce que la barre de gestes peut proposer', () => {
 })
 
 describe('labs — variations et tuiles en vol', () => {
-  it('le nombre demandé se borne au quota restant', () => {
-    expect(labsVariationsPossibles(4, 0, 50)).toBe(4)
-    expect(labsVariationsPossibles(4, 48, 50)).toBe(2)
-    expect(labsVariationsPossibles(4, 50, 50)).toBe(0)
-    expect(labsVariationsPossibles(4, 60, 50)).toBe(0)
+  it('le nombre demandé se borne à ce que le SOLDE paie', () => {
+    // 5 crédits l'image : 1 243 en paient quatre ; 12, deux ; 4, aucune.
+    expect(labsVariationsPossibles(4, 1243, 5)).toBe(4)
+    expect(labsVariationsPossibles(4, 12, 5)).toBe(2)
+    expect(labsVariationsPossibles(4, 4, 5)).toBe(0)
   })
 
-  it('un quota nul — plan sans génération — laisse l’edge refuser, il ne devine pas', () => {
-    // ⛔ `quota = 0` veut dire « l'écran ne sait pas », jamais « zéro restant » : le
-    // plan Starter doit rendre le motif `upgrade_required` de l'edge, pas un blocage
-    // muet de l'écran qui ne dirait pas pourquoi.
-    expect(labsVariationsPossibles(2, 0, 0)).toBe(2)
+  it('un solde INCONNU laisse l’edge trancher, l’écran ne devine pas', () => {
+    // ⛔ `null` veut dire « la RPC n'a pas encore répondu », jamais « zéro » : bloquer
+    // ici rendrait un refus muet là où l'edge, lui, nomme le solde et le prix.
+    expect(labsVariationsPossibles(2, null, 5)).toBe(2)
+    expect(labsVariationsPossibles(2, 100, 0)).toBe(2)
   })
 
   it('les puces de variations restent un nombre qu’on juge d’un regard', () => {
@@ -231,11 +231,11 @@ describe('labs — les libellés du rangement existent dans les quatre langues',
     'picker.title', 'picker.none', 'picker.newFolder',
     'thumb.move', 'thumb.redo',
     'lightbox.redo', 'lightbox.compare', 'lightbox.before', 'lightbox.after',
-    'prompt.variations', 'prompt.variationsValue_one', 'prompt.variationsValue_other', 'prompt.estimateMany',
+    'prompt.variations', 'prompt.variationsValue_one', 'prompt.variationsValue_other', 'prompt.estimateMany_one', 'prompt.estimateMany_other',
     'staging.title', 'staging.chip', 'staging.close', 'staging.room', 'staging.style',
     'staging.hintSource', 'staging.hintScratch', 'staging.promptSource', 'staging.promptScratch',
     'confirm.deleteLotTitle_one', 'confirm.deleteLotTitle_other', 'confirm.deleteLotBody',
-    'errors.quota_partial',
+    'errors.credits_partial',
   ]
 
   it('aucune clé ne manque, aucune n’est vide', () => {
@@ -253,9 +253,10 @@ describe('labs — les libellés du rangement existent dans les quatre langues',
     for (const lng of LANGS) {
       const d = lire(lng)
       expect(chemin(d, 'selection.count_other'), `${lng}`).toContain('{{count}}')
-      expect(chemin(d, 'prompt.estimateMany'), `${lng}`).toContain('{{chf}}')
-      expect(chemin(d, 'prompt.estimateMany'), `${lng}`).toContain('{{n}}')
-      expect(chemin(d, 'errors.quota_partial'), `${lng}`).toContain('{{n}}')
+      // Le prix se dit en CRÉDITS : `{{n}}` est le nombre de crédits, `{{count}}` celui des images.
+      expect(chemin(d, 'prompt.estimateMany_other'), `${lng}`).toContain('{{n}}')
+      expect(chemin(d, 'prompt.estimateMany_other'), `${lng}`).toContain('{{count}}')
+      expect(chemin(d, 'errors.credits_partial'), `${lng}`).toContain('{{n}}')
     }
   })
 })

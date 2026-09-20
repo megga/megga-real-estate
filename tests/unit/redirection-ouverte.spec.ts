@@ -254,6 +254,7 @@ const TABLE: Inscrit[] = [
   { fichier: 'src/hooks/useCrmTabs.ts', genre: 'navigate', cible: 'href', fois: 2, pourquoi: 'chemin d\'onglet de l\'agent lui-même (RLS own-only), préfixe /dashboard par crmTabsEligible' },
   { fichier: 'src/hooks/useMailOAuthPopup.ts', genre: 'location.assign', cible: 'url', pourquoi: 'URL d\'autorisation Google/Microsoft rendue par l\'edge mail-oauth' },
   { fichier: 'src/hooks/useSubscription.ts', genre: 'location.href', cible: 'url', fois: 2, pourquoi: 'URL Stripe (Checkout, portail) rendue par l\'edge' },
+  { fichier: 'src/hooks/useCredits.ts', genre: 'location.href', cible: 'r.url', pourquoi: 'URL Stripe Checkout (pack de crédits) rendue par l\'edge credits-checkout' },
   { fichier: 'src/lib/adminEntry.ts', genre: 'window.open', cible: 'url', pourquoi: 'chemin relatif /dashboard?impersonate=<id encodé>' },
   { fichier: 'src/lib/help-articles.ts', genre: 'window.open', cible: 'HELP_CENTER_URL', pourquoi: 'constante de module' },
   { fichier: 'src/lib/mail/oauthPopup.ts', genre: 'window.open', cible: 'url', pourquoi: 'URL d\'autorisation rendue par l\'edge mail-oauth (appelant : useMailOAuthPopup)' },

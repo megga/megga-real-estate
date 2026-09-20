@@ -774,6 +774,10 @@
       "preferences": {
         "label": "Präferenzen",
         "short": "Präferenzen"
+      },
+      "credits": {
+        "label": "Verbrauch",
+        "short": "Verbrauch"
       }
     },
     "groups": {
@@ -1062,5 +1066,79 @@
       "agencyNotLoaded": "Agentur nicht geladen, bitte erneut anmelden zum Speichern.",
       "logoUploadError": "Logo konnte nicht hochgeladen werden."
     }
+  },
+  "credits": {
+    "title": "Verbrauch",
+    "subtitle": "Ihre Credits für das Labs-Studio: was übrig ist, was Sie erzeugt haben, und womit Sie aufladen.",
+    "balance": {
+      "title": "Guthaben",
+      "included": "{{n}} diesen Monat inklusive",
+      "purchased": "{{n}} gekauft",
+      "allowance": "Ihr Plan enthält {{n}} Credits pro Monat. Sie erneuern sich am 1. und werden nicht übertragen; gekaufte Credits verfallen nicht.",
+      "topup": "Aufladen",
+      "noPlan": "Das Labs-Studio ist ab dem Pro-Plan verfügbar.",
+      "goPlan": "Pläne ansehen"
+    },
+    "month": {
+      "title": "Diesen Monat",
+      "images": "Bilder",
+      "videos": "Videos",
+      "spent": "Verbrauchte Credits",
+      "refunded": "{{n}} bei Fehlern zurückerstattet"
+    },
+    "tariff": {
+      "title": "Was eine Produktion kostet",
+      "image": "Bild (2K)",
+      "image1k": "Bild (1K)",
+      "video720": "Video 720p, pro Sekunde",
+      "video1080": "Video 1080p, pro Sekunde",
+      "voiceover": "Voice-over, pro Video",
+      "example": "Ein 8-s-Video in 720p mit Voice-over: {{n}} Credits.",
+      "unit_one": "{{n}} Credit",
+      "unit_other": "{{n}} Credits"
+    },
+    "packs": {
+      "title": "Aufladen",
+      "body": "Einmalige Zahlung. Gekaufte Credits verfallen nicht.",
+      "buy": "Kaufen",
+      "credits": "{{n}} Credits",
+      "price": "CHF {{chf}}",
+      "perCredit": "{{chf}} Rp. pro Credit",
+      "discount": "−{{n}} %",
+      "best": "Am günstigsten",
+      "opening": "Zahlung wird geöffnet…",
+      "bench": "Auf diesem Prüfstand führt der Kauf nirgendwohin.",
+      "error": "Die Zahlung konnte nicht geöffnet werden. Versuchen Sie es erneut."
+    },
+    "auto": {
+      "title": "Automatisches Aufladen",
+      "body": "Fällt das Guthaben unter eine Schwelle, wird ein Paket mit der hinterlegten Karte gekauft. Sie stehen nie mitten in einer Serie bei null.",
+      "enabled": "Aktiv",
+      "disabled": "Inaktiv",
+      "threshold": "Wenn das Guthaben unter",
+      "pack": "Kaufen",
+      "card": "Karte {{brand}} •••• {{last4}}",
+      "noCard": "Keine Karte hinterlegt. Kaufen Sie ein Paket per Karte: sie wird für das automatische Aufladen gespeichert.",
+      "lastError": "Das letzte Aufladen ist fehlgeschlagen ({{error}}). Prüfen Sie die Karte; beim nächsten Abzug wird es erneut versucht.",
+      "saved": "Gespeichert",
+      "saveError": "Die Einstellung konnte nicht gespeichert werden."
+    },
+    "ledger": {
+      "title": "Verlauf",
+      "empty": "Noch keine Bewegungen.",
+      "balanceAfter": "Guthaben {{n}}",
+      "kinds": {
+        "grant_monthly": "Monatliches Guthaben",
+        "purchase": "Kauf von {{n}} Credits",
+        "auto_topup": "Automatisches Aufladen, {{n}} Credits",
+        "debit_image": "Bild",
+        "debit_video": "Video {{res}} · {{s}} s",
+        "debit_video_vo": "Video {{res}} · {{s}} s · Voice-over",
+        "refund": "Rückerstattung, Produktion fehlgeschlagen",
+        "adjustment": "Korrektur"
+      }
+    },
+    "success": "Zahlung erhalten: Ihre Credits kommen in wenigen Sekunden.",
+    "canceled": "Zahlung abgebrochen, nichts wurde belastet."
   }
 }

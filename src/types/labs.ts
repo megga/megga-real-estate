@@ -39,7 +39,11 @@ export interface LabsAsset {
   aspectRatio: string | null
   model: string | null
   errorCode: string | null
-  costChf: number | null
+  /**
+   * Ce que la production a coûté à l'agence, en CRÉDITS. ⛔ Le coût fournisseur
+   * (`cost_chf` en base) n'est PAS porté ici : il ne sort pas vers l'agent.
+   */
+  credits: number | null
   isFavorite: boolean
   createdAt: string
   completedAt: string | null

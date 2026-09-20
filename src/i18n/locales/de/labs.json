@@ -12,10 +12,7 @@
     "noFolder": "Noch kein Ordner",
     "rename": "Umbenennen",
     "delete": "Löschen",
-    "quotaTitle": "Diesen Monat",
-    "quotaImages": "{{used}}/{{quota}} Bilder",
-    "quotaVideos": "{{used}}/{{quota}} Videos",
-    "quotaNone": "Starter-Plan, die Generierung ist ab dem Pro-Plan verfügbar."
+    "creditsHint": "Verbrauch und Aufladen"
   },
   "filter": {
     "all": "Alle",
@@ -71,8 +68,8 @@
     "voice": "Stimme",
     "generate": "Generieren",
     "generating": "Generierung…",
-    "estimate": "≈ CHF {{chf}}",
-    "estimateVideo": "≈ CHF {{chf}} · {{s}} s",
+    "estimate": "{{n}} Credits",
+    "estimateVideo": "{{n}} Credits · {{s}} s",
     "shortcut": "⌘↵ zum Generieren",
     "voiceLang": "Sprache",
     "listen": "Anhören",
@@ -82,7 +79,11 @@
     "variations": "Varianten",
     "variationsValue_one": "{{count}} Bild",
     "variationsValue_other": "{{count}} Bilder",
-    "estimateMany": "≈ CHF {{chf}} · {{n}} Bilder"
+    "estimateMany": "≈ CHF {{chf}} · {{n}} Bilder",
+    "estimateMany_one": "{{n}} Credits · {{count}} Bild",
+    "estimateMany_other": "{{n}} Credits · {{count}} Bilder",
+    "balance": "Guthaben {{n}}",
+    "recharge": "Aufladen"
   },
   "voices": {
     "Kore": "Kore, ruhig",
@@ -123,7 +124,7 @@
     "ratio": "Seitenverhältnis",
     "size": "Grösse",
     "duration": "Dauer",
-    "cost": "Geschätzte Kosten",
+    "cost": "Preis",
     "date": "Datum",
     "status": "Status",
     "animate": "Als Video animieren",
@@ -159,8 +160,7 @@
     "deleteLotBody": "Sie verschwinden aus dem Studio. Eine Kopie auf einem Objektdatenblatt bleibt unberührt."
   },
   "errors": {
-    "upgrade_required": "Die Generierung ist ab dem Pro-Plan verfügbar.",
-    "quota_exceeded": "Monatskontingent erreicht ({{usage}}/{{quota}}).",
+    "upgrade_required": "Das Studio ist ab dem Pro-Plan verfügbar.",
     "provider_not_configured": "Der Generierungsdienst ist nicht konfiguriert.",
     "storage_not_configured": "Der Speicher für Produktionen ist nicht konfiguriert.",
     "storage_failed": "Die Datei konnte nicht gespeichert werden.",
@@ -183,7 +183,9 @@
     "unknown": "Ein Fehler ist aufgetreten.",
     "too_many_previews": "Zu viele Hörproben hintereinander: einen Moment warten.",
     "playback": "Die Wiedergabe ist fehlgeschlagen.",
-    "quota_partial": "Diesen Monat waren nur noch {{n}} Generierung(en) übrig: so viele wurden gestartet."
+    "insufficient_credits": "Guthaben reicht nicht: {{balance}} Credits, nötig sind {{needed}}. Aufladen unter Einstellungen › Verbrauch.",
+    "credits_partial": "Das Guthaben reichte nur für {{n}} Bild(er): so viele wurden gestartet.",
+    "credits_failed": "Die Abbuchung der Credits ist fehlgeschlagen. Versuchen Sie es erneut."
   },
   "mobile": {
     "readOnly": "Generiert wird am Computer. Hier sehen Sie das Studio.",
@@ -248,5 +250,9 @@
       "scandinavian": "Birke, Leinen, Hygge",
       "minimal": "reduziert, ruhig, offener Raum"
     }
+  },
+  "credits": {
+    "amount_one": "{{n}} Credit",
+    "amount_other": "{{n}} Credits"
   }
 }

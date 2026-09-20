@@ -12,10 +12,7 @@
     "noFolder": "Nessuna cartella per ora",
     "rename": "Rinomina",
     "delete": "Elimina",
-    "quotaTitle": "Questo mese",
-    "quotaImages": "{{used}}/{{quota}} immagini",
-    "quotaVideos": "{{used}}/{{quota}} video",
-    "quotaNone": "Piano Starter, la generazione è disponibile dal piano Pro."
+    "creditsHint": "Consumo e ricarica"
   },
   "filter": {
     "all": "Tutto",
@@ -71,8 +68,8 @@
     "voice": "Voce",
     "generate": "Genera",
     "generating": "Generazione…",
-    "estimate": "≈ CHF {{chf}}",
-    "estimateVideo": "≈ CHF {{chf}} · {{s}} s",
+    "estimate": "{{n}} crediti",
+    "estimateVideo": "{{n}} crediti · {{s}} s",
     "shortcut": "⌘↵ per generare",
     "voiceLang": "Lingua",
     "listen": "Ascolta",
@@ -82,7 +79,11 @@
     "variations": "Variazioni",
     "variationsValue_one": "{{count}} immagine",
     "variationsValue_other": "{{count}} immagini",
-    "estimateMany": "≈ CHF {{chf}} · {{n}} immagini"
+    "estimateMany": "≈ CHF {{chf}} · {{n}} immagini",
+    "estimateMany_one": "{{n}} crediti · {{count}} immagine",
+    "estimateMany_other": "{{n}} crediti · {{count}} immagini",
+    "balance": "saldo {{n}}",
+    "recharge": "Ricarica"
   },
   "voices": {
     "Kore": "Kore, pacata",
@@ -123,7 +124,7 @@
     "ratio": "Formato",
     "size": "Dimensioni",
     "duration": "Durata",
-    "cost": "Costo stimato",
+    "cost": "Prezzo",
     "date": "Data",
     "status": "Stato",
     "animate": "Anima in video",
@@ -159,8 +160,7 @@
     "deleteLotBody": "Spariscono dallo studio. Una copia posata su una scheda immobile non viene toccata."
   },
   "errors": {
-    "upgrade_required": "La generazione è disponibile dal piano Pro.",
-    "quota_exceeded": "Quota mensile raggiunta ({{usage}}/{{quota}}).",
+    "upgrade_required": "Lo studio è disponibile dal piano Pro.",
     "provider_not_configured": "Il servizio di generazione non è configurato.",
     "storage_not_configured": "Lo spazio delle produzioni non è configurato.",
     "storage_failed": "Il file non è stato salvato.",
@@ -183,7 +183,9 @@
     "unknown": "Si è verificato un errore.",
     "too_many_previews": "Troppi ascolti di seguito: attendete un istante.",
     "playback": "La riproduzione non è riuscita.",
-    "quota_partial": "Questo mese restavano solo {{n}} generazioni: sono quelle avviate."
+    "insufficient_credits": "Saldo insufficiente: {{balance}} crediti, ne servono {{needed}}. Ricarica da Impostazioni › Consumo.",
+    "credits_partial": "Il saldo copriva solo {{n}} immagine/i: sono quelle avviate.",
+    "credits_failed": "L'addebito dei crediti non è riuscito. Riprova."
   },
   "mobile": {
     "readOnly": "Le generazioni si fanno al computer. Qui consultate lo studio.",
@@ -248,5 +250,9 @@
       "scandinavian": "betulla, lino, hygge",
       "minimal": "essenziale, calmo, spazio aperto"
     }
+  },
+  "credits": {
+    "amount_one": "{{n}} credito",
+    "amount_other": "{{n}} crediti"
   }
 }

@@ -1,7 +1,8 @@
 /**
  * Le menu des dossiers du studio — c'est le TITRE de la galerie qui s'ouvre :
  * « Toutes les productions », « Favoris », puis les dossiers de l'agence (renommer,
- * supprimer au survol), « Nouveau dossier », et le compteur du mois.
+ * supprimer au survol), « Nouveau dossier », et le solde de crédits — qui mène à la
+ * Consommation, dans les Réglages.
  *
  * ⚠ Un menu et non une colonne (Julien, 20.09.2026 : « le pager doit rester comme il
  * est partout, pour profiter de la plus grande surface disponible ») : la galerie prend
@@ -17,6 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { formatCredits } from '@/lib/credits'
 import type { LabsFolder, LabsView } from '@/types/labs'
 import { LABS_PILL, LABS_TRANSITION, type LabsSurfaces } from './labsTokens'
 
@@ -35,8 +37,9 @@ interface Props {
   onNewFolder: () => void
   onRenameFolder: (f: LabsFolder) => void
   onDeleteFolder: (f: LabsFolder) => void
-  usage: { image: number; video: number }
-  quota: { image: number; video: number }
+  /** Le solde de crédits — `null` tant qu'il n'est pas lu. */
+  solde: number | null
+  onCredits: () => void
 }
 
 export function LabsFolderMenu(p: Props) {
@@ -140,17 +143,24 @@ export function LabsFolderMenu(p: Props) {
             {t('menu.newFolder')}
           </button>
 
-          <div style={{ borderTop: `1px solid ${ls.bord}`, marginTop: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-md) var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: ls.sub, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
-            <div style={{ fontWeight: 600, color: ls.ink }}>{t('menu.quotaTitle')}</div>
-            {p.quota.image === 0 && p.quota.video === 0 ? (
-              <div>{t('menu.quotaNone')}</div>
-            ) : (
-              <>
-                <div>{t('menu.quotaImages', { used: p.usage.image, quota: p.quota.image })}</div>
-                <div>{t('menu.quotaVideos', { used: p.usage.video, quota: p.quota.video })}</div>
-              </>
-            )}
-          </div>
+          {/* Le solde, et le chemin vers la recharge : la Consommation vit dans les Réglages. */}
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => choisir(p.onCredits)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', border: 0, borderTop: `1px solid ${ls.bord}`, marginTop: 'var(--crm-space-sm)',
+              padding: 'var(--crm-space-md) var(--crm-space-md) var(--crm-space-2xs)', background: 'transparent',
+              color: ls.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', cursor: 'pointer', textAlign: 'left', width: '100%',
+            }}
+          >
+            <MEIcon name="bolt" size={13} color={ls.sub} />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontWeight: 600 }}>{p.solde == null ? '…' : t('credits.amount', { count: p.solde, n: formatCredits(p.solde) })}</span>
+              <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: ls.soft }}>{t('menu.creditsHint')}</span>
+            </span>
+            <MEIcon name="chevron-right" size={12} color={ls.soft} />
+          </button>
         </div>
       )}
     </div>

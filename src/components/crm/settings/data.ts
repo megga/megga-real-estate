@@ -13,7 +13,7 @@ import { mxCrmPalette, MXC_CARD_SHADOW, MXC_COLOR } from '@/components/megga-x-c
 export type SectionId =
   | 'profile' | 'agency'
   | 'integrations'
-  | 'billing' | 'security' | 'preferences'
+  | 'billing' | 'credits' | 'security' | 'preferences'
 
 export interface SettingsSection {
   id: SectionId
@@ -70,6 +70,10 @@ export const SETTINGS_SECTIONS: SettingsSection[] = [
   { id: 'integrations', get label() { return i18n.t('settings:nav.sections.integrations.label') }, get short() { return i18n.t('settings:nav.sections.integrations.short') }, icon: 'plug', group: 'produit' },
   { id: 'preferences', get label() { return i18n.t('settings:nav.sections.preferences.label') }, get short() { return i18n.t('settings:nav.sections.preferences.short') }, icon: 'sliders', group: 'produit' },
   { id: 'billing', get label() { return i18n.t('settings:nav.sections.billing.label') }, get short() { return i18n.t('settings:nav.sections.billing.short') }, icon: 'card', group: 'compte' },
+  // « Consommation » (20.09.2026) : le solde de crédits du studio Labs, les packs, la
+  // recharge automatique et le grand livre. Séparée de « Facturation », qui est
+  // l'ABONNEMENT : on n'y achète pas de crédits, et on n'y lit pas ce qu'on a dépensé.
+  { id: 'credits', get label() { return i18n.t('settings:nav.sections.credits.label') }, get short() { return i18n.t('settings:nav.sections.credits.short') }, icon: 'receipt', group: 'compte' },
   { id: 'security', get label() { return i18n.t('settings:nav.sections.security.label') }, get short() { return i18n.t('settings:nav.sections.security.short') }, icon: 'lock', group: 'compte' },
 ]
 

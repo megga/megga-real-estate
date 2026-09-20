@@ -18,6 +18,7 @@ import { SecuritySection } from '@/components/crm/settings/SecuritySection'
 import { ProfileFocusSection } from '@/components/crm/settings/focus/ProfileFocusSection'
 import { AgencyFocusSection } from '@/components/crm/settings/focus/AgencyFocusSection'
 import { PreferencesFocusSection } from '@/components/crm/settings/focus/PreferencesFocusSection'
+import { CreditsSection } from '@/components/crm/settings/CreditsSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
@@ -27,7 +28,7 @@ const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte
 
 /** Largeur de la barre de défilement des deux colonnes — retranchée du padding droit du contenu. */
 const BARRE = 9
-const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
+const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing', 'credits']
 
 /**
  * Section de réglages → clé du catalogue d'aide.
@@ -39,6 +40,7 @@ const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations'
  * volontairement sur `settings` : mieux vaut l'article voisin que l'onglet racine.
  */
 const SECTION_HELP: Partial<Record<SectionId, string>> = {
+  credits: 'billing',
   agency: 'agence',
   billing: 'billing',
 }
@@ -94,6 +96,7 @@ export default function SettingsPage() {
       case 'integrations': return <IntegrationsSection />
       case 'security': return <SecuritySection />
       case 'billing': return <BillingSection />
+      case 'credits': return <CreditsSection sp={sp} surf={surf} dark={dark} />
       default: return null
     }
   }

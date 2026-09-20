@@ -43,9 +43,10 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import {
   LABS_IMAGE_RATIOS, LABS_PROMPT_MAX_CHARS, LABS_UPLOAD_MIMES, LABS_VIDEO_DURATIONS, LABS_VIDEO_RESOLUTIONS, LABS_VOICEOVER_MAX_CHARS,
-  LABS_PREVIEW_MAX_CHARS, LABS_STAGING_ROOMS, LABS_STAGING_STYLES, LABS_VARIATIONS, LABS_VOICES, LABS_VOICE_LANGS, labsChf,
+  LABS_PREVIEW_MAX_CHARS, LABS_STAGING_ROOMS, LABS_STAGING_STYLES, LABS_VARIATIONS, LABS_VOICES, LABS_VOICE_LANGS,
   type LabsStagingRoom, type LabsStagingStyle, type LabsVariations, type LabsVoice, type LabsVoiceLang,
 } from '@/lib/labs'
+import { formatCredits } from '@/lib/credits'
 import type { LabsVoiceState } from '@/hooks/useLabsVoice'
 import type { LabsAsset, LabsMode, LabsRatio, LabsResolution } from '@/types/labs'
 import { LABS_PILL, LABS_TRANSITION, type LabsSurfaces } from './labsTokens'
@@ -86,8 +87,12 @@ interface Props {
   onStagingStyle: (s: LabsStagingStyle) => void
   busy: boolean
   canGenerate: boolean
-  estimateChf: number
+  /** Le prix de la production, en crédits — pour UNE image ; les variations le multiplient. */
+  estimateCredits: number
   estimatedS: number
+  /** Le solde de l'agence, `null` tant qu'il n'est pas lu. */
+  solde: number | null
+  onRecharger: () => void
   onGenerate: () => void
 }
 
@@ -165,11 +170,16 @@ export function LabsPromptBar(p: Props) {
    * au rang des puces (nombre, ratio, résolution, durée) qui le déterminent, et le
    * bouton redevient une ligne.
    */
+  // ⛔ EN CRÉDITS, JAMAIS EN FRANCS (Julien, 20.09.2026) : le franc dirait à l'agent ce
+  // que la production coûte à MEGGA — ou l'inviterait à le déduire. Le crédit est le
+  // prix qu'il a acheté, et c'est le seul que la barre connaisse.
+  const total = p.mode === 'image' ? p.estimateCredits * p.variations : p.estimateCredits
   const estimation = p.mode === 'video'
-    ? t('prompt.estimateVideo', { chf: labsChf(p.estimateChf), s: p.estimatedS })
+    ? t('prompt.estimateVideo', { n: formatCredits(total), s: p.estimatedS })
     : p.variations > 1
-      ? t('prompt.estimateMany', { chf: labsChf(p.estimateChf * p.variations), n: p.variations })
-      : t('prompt.estimate', { chf: labsChf(p.estimateChf) })
+      ? t('prompt.estimateMany', { n: formatCredits(total), count: p.variations })
+      : t('prompt.estimate', { n: formatCredits(total) })
+  const insuffisant = p.solde != null && p.solde < total
 
   return (
     <div
@@ -505,15 +515,34 @@ export function LabsPromptBar(p: Props) {
             où le regard les trouve avec le texte qu'il vient d'écrire. */}
         <div style={{ flex: 1, minWidth: 0 }} />
 
+        {/* Le prix, puis le solde qui le paie. Quand le solde ne suffit plus, c'est le
+            prix qui rougit et « Recharger » qui prend la place de Générer : l'agent sait
+            POURQUOI le bouton a changé sans lire un message. */}
         <span
           style={{
-            fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ls.soft,
+            fontSize: 'var(--crm-text-sm)', fontWeight: insuffisant ? 600 : 500, color: insuffisant ? ls.dangerText : ls.soft,
             fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
           }}
         >
           {estimation}
+          {p.solde != null && (
+            <span style={{ color: ls.soft, fontWeight: 500 }}>{' · '}{t('prompt.balance', { n: formatCredits(p.solde) })}</span>
+          )}
         </span>
 
+        {insuffisant ? (
+          <button
+            type="button"
+            onClick={p.onRecharger}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 40, padding: '0 var(--crm-space-4xl)',
+              border: 0, borderRadius: LABS_PILL, background: ls.accent, color: ls.accentInk,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer', transition: LABS_TRANSITION, flexShrink: 0,
+            }}
+          >
+            {t('prompt.recharge')}
+          </button>
+        ) : (
         <button
           type="button"
           onClick={p.onGenerate}
@@ -533,6 +562,7 @@ export function LabsPromptBar(p: Props) {
           {p.busy && <span className="labs-spin" aria-hidden="true" />}
           {p.busy ? t('prompt.generating') : t('prompt.generate')}
         </button>
+        )}
         </div>
       </div>
     </div>

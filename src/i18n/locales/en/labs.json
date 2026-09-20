@@ -12,10 +12,7 @@
     "noFolder": "No folder yet",
     "rename": "Rename",
     "delete": "Delete",
-    "quotaTitle": "This month",
-    "quotaImages": "{{used}}/{{quota}} images",
-    "quotaVideos": "{{used}}/{{quota}} videos",
-    "quotaNone": "Starter plan, generation is available from the Pro plan."
+    "creditsHint": "Usage and top-up"
   },
   "filter": {
     "all": "All",
@@ -71,8 +68,8 @@
     "voice": "Voice",
     "generate": "Generate",
     "generating": "Generating…",
-    "estimate": "≈ CHF {{chf}}",
-    "estimateVideo": "≈ CHF {{chf}} · {{s}} s",
+    "estimate": "{{n}} credits",
+    "estimateVideo": "{{n}} credits · {{s}} s",
     "shortcut": "⌘↵ to generate",
     "voiceLang": "Language",
     "listen": "Listen",
@@ -82,7 +79,11 @@
     "variations": "Variations",
     "variationsValue_one": "{{count}} image",
     "variationsValue_other": "{{count}} images",
-    "estimateMany": "≈ CHF {{chf}} · {{n}} images"
+    "estimateMany": "≈ CHF {{chf}} · {{n}} images",
+    "estimateMany_one": "{{n}} credits · {{count}} image",
+    "estimateMany_other": "{{n}} credits · {{count}} images",
+    "balance": "balance {{n}}",
+    "recharge": "Top up"
   },
   "voices": {
     "Kore": "Kore, composed",
@@ -123,7 +124,7 @@
     "ratio": "Ratio",
     "size": "Size",
     "duration": "Duration",
-    "cost": "Estimated cost",
+    "cost": "Price",
     "date": "Date",
     "status": "Status",
     "animate": "Animate as video",
@@ -159,8 +160,7 @@
     "deleteLotBody": "They disappear from the studio. A copy placed on a listing is untouched."
   },
   "errors": {
-    "upgrade_required": "Generation is available from the Pro plan.",
-    "quota_exceeded": "Monthly quota reached ({{usage}}/{{quota}}).",
+    "upgrade_required": "The studio is available from the Pro plan.",
     "provider_not_configured": "The generation service is not configured.",
     "storage_not_configured": "Production storage is not configured.",
     "storage_failed": "The file could not be saved.",
@@ -183,7 +183,9 @@
     "unknown": "Something went wrong.",
     "too_many_previews": "Too many previews in a row: wait a moment.",
     "playback": "Playback failed.",
-    "quota_partial": "Only {{n}} generation(s) were left this month: that is what was launched."
+    "insufficient_credits": "Not enough credits: {{balance}} available, {{needed}} needed. Top up from Settings › Usage.",
+    "credits_partial": "The balance only covered {{n}} image(s): that is what was launched.",
+    "credits_failed": "Debiting the credits failed. Try again."
   },
   "mobile": {
     "readOnly": "Generation happens on a computer. Here you browse the studio.",
@@ -248,5 +250,9 @@
       "scandinavian": "birch, linen, hygge",
       "minimal": "pared back, calm, open space"
     }
+  },
+  "credits": {
+    "amount_one": "{{n}} credit",
+    "amount_other": "{{n}} credits"
   }
 }

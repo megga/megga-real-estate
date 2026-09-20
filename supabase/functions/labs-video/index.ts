@@ -5,7 +5,9 @@
 //   1. requireAgentAuth → agency_id de confiance
 //   2. Corps : prompt, image source (production de l'agence, facultative), narration,
 //      voix, durée, résolution, dossier
-//   3. Quota mensuel par plan (`labs_video`)
+//   3. Plan (Pro et plus), puis DÉBIT des crédits une fois la durée connue — rendus si
+//      fal.ai refuse la soumission (`credits_refund`, et `labs-video-status` rend aussi
+//      quand le fournisseur échoue en file)
 //   4. Ligne `labs_assets` en `pending` — un échec plus bas laisse une trace
 //   5. Voix off : Gemini TTS → WAV sur R2 ; une narration > 30 s est refusée ICI,
 //      avant de payer la vidéo.
@@ -33,9 +35,11 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_TTS_MODEL, LABS_VIDEO_ENDPOINTS, LABS_VIDEO_MAX_S, LABS_VIDEO_RESOLUTIONS, type LabsVideoResolution,
-  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsQuotaFor, labsVideoCostChf,
-  labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, monthStartIso, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
+  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsOuvertAuPlan, labsVideoCostChf,
+  labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../_shared/labs.ts'
+import { creditsPourVideo } from '../_shared/credits.ts'
+import { debiterCredits, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -117,19 +121,11 @@ serve(async (req: Request) => {
     sourceUrl = src.url as string
   }
 
-  // 3. Plan et quota.
+  // 3. Plan. ⚠ Le DÉBIT vient plus bas, une fois la durée connue : avec une voix off,
+  // c'est la narration qui décide de la durée, donc du prix — et elle n'est mesurée
+  // qu'après la synthèse (quelques centimes, qu'on accepte de perdre sur un refus).
   const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  const quota = labsQuotaFor(agency?.plan as string | null, 'video')
-  if (quota === 0) return json({ error: 'upgrade_required', quota: 0 }, 403)
-  const { count } = await supabase
-    .from('labs_assets')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', profile.agency_id)
-    .eq('kind', 'video')
-    .neq('status', 'failed')
-    .gte('created_at', monthStartIso())
-  const usage = count ?? 0
-  if (usage >= quota) return json({ error: 'quota_exceeded', usage, quota }, 429)
+  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
 
   // 4. La ligne d'abord : ce qui échoue ensuite se lit dans `error_code`.
   const assetId = crypto.randomUUID()
@@ -156,8 +152,11 @@ serve(async (req: Request) => {
     console.error('labs-video insert:', redactedErrorMessage(insErr))
     return json({ error: 'record_failed' }, 500)
   }
+  // `fail` rembourse AUSSI : un débit sans vidéo n'a pas de raison de rester. Avant le
+  // débit, `credits_refund` ne trouve rien et ne rend rien — l'appel est sûr partout.
   const fail = async (code: string, status: number) => {
     await supabase.from('labs_assets').update({ status: 'failed', error_code: code, completed_at: new Date().toISOString() }).eq('id', assetId)
+    await rembourserCredits(supabase, { agencyId: profile.agency_id, assetId, reason: code })
     return json({ error: code, assetId }, status)
   }
 
@@ -203,8 +202,20 @@ serve(async (req: Request) => {
     voiceoverUrl = put.url
   }
 
-  // 6. fal.ai.
+  // 6. Le prix est connu : DÉBITER, puis seulement soumettre à fal.ai.
   const duration = labsVideoDuration(voiceoverSeconds, requestedS)
+  const credits = creditsPourVideo(resolution, Number(duration), !!voiceover)
+  const debit = await debiterCredits(supabase, {
+    agencyId: profile.agency_id, amount: credits, assetId, actorId: user.id,
+    metadata: { kind: 'video', resolution, duration_s: Number(duration), voiceover: !!voiceover },
+  })
+  if (!debit.ok) {
+    await supabase.from('labs_assets').update({ status: 'failed', error_code: 'insufficient_credits', completed_at: new Date().toISOString() }).eq('id', assetId)
+    if (debit.error === 'insufficient_credits') return json({ error: 'insufficient_credits', assetId, balance: debit.balance ?? 0, needed: debit.needed ?? credits }, 402)
+    return json({ error: 'credits_failed', assetId }, 500)
+  }
+  if (debit.autoTopupDue) reveillerAutoRecharge(profile.agency_id)
+
   const falPayload: Record<string, unknown> = {
     prompt: labsVideoPrompt(prompt, !!voiceover),
     resolution,
@@ -249,6 +260,7 @@ serve(async (req: Request) => {
       provider_status_url: falJson.status_url ?? null,
       provider_response_url: falJson.response_url ?? null,
       cost_chf: costChf,
+      credits,
       metadata: { resolution, requested_s: requestedS, duration, generate_audio: !voiceover, voiceover_s: voiceoverSeconds },
     })
     .eq('id', assetId)
@@ -259,5 +271,5 @@ serve(async (req: Request) => {
     return json({ error: 'record_failed', assetId }, 500)
   }
 
-  return json({ asset, usage: { current: usage + 1, quota, remaining: Math.max(0, quota - usage - 1) } })
+  return json({ asset, credits: { debited: credits, balance: debit.balance ?? null } })
 })

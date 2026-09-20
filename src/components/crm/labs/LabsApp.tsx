@@ -24,6 +24,11 @@
  * écrit la semaine d'avant n'était possible qu'en faisant défiler trois cents
  * vignettes. Un outil qui produit plus vite qu'il ne range finit en tas.
  *
+ * ⚠ LE PRIX SE DIT EN CRÉDITS, JAMAIS EN FRANCS (Julien, 20.09.2026). Le solde vient de
+ * `useCredits` (RPC `credits_balance`), chaque génération le repose depuis la réponse
+ * de l'edge, et un refus `insufficient_credits` nomme le solde et mène à la
+ * Consommation (`/dashboard/settings?tab=credits`), où l'on recharge.
+ *
  * ⚠ L'état de l'écran vit dans l'ONGLET (`useTabScopedState`) : le dossier ouvert, la
  * recherche, la densité, le préréglage de staging et le brouillon de prompt survivent
  * à un aller-retour entre deux onglets. La SÉLECTION, elle, est éphémère — elle décrit
@@ -35,7 +40,6 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import { crmPalette } from '@/components/crm/tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useLabsAssets, useLabsVideoPolling } from '@/hooks/useLabsAssets'
@@ -44,10 +48,13 @@ import { useLabsGenerate } from '@/hooks/useLabsGenerate'
 import { useLabsUpload } from '@/hooks/useLabsUpload'
 import {
   LABS_DEFAULT_VOICE, LABS_DEFAULT_VOICE_LANG, LABS_STAGING_DEFAULT_ROOM, LABS_STAGING_DEFAULT_STYLE,
-  labsCountByFolder, labsDownloadName, labsEstimateChf, labsFilter, labsMonthUsage, labsPlage, labsQuotaFor,
+  labsCountByFolder, labsDownloadName, labsEstimateCredits, labsFilter, labsPlage,
   labsSelectionEtat, labsStagingPrompt, labsTuileLocale, labsVariationsPossibles, labsVideoDurationS, labsVoiceoverSeconds,
   type LabsStagingRoom, type LabsStagingStyle, type LabsVariations, type LabsVoice, type LabsVoiceLang,
 } from '@/lib/labs'
+import { formatCredits } from '@/lib/credits'
+import { useCredits } from '@/hooks/useCredits'
+import { useNavigate } from 'react-router-dom'
 import { useLabsVoice } from '@/hooks/useLabsVoice'
 import type { LabsAsset, LabsFolder, LabsKindFilter, LabsMode, LabsRatio, LabsResolution, LabsView } from '@/types/labs'
 import { LabsGallery, type LabsClicModif, type LabsEmptyKind } from './LabsGallery'
@@ -76,7 +83,8 @@ export function LabsApp({ dark, setDark }: Props) {
   const sp = useMemo(() => crmPalette(dark), [dark])
   const ls = useMemo(() => labsSurfaces(sp, dark), [sp, dark])
 
-  const { plan } = useAgencySettings()
+  const credits = useCredits()
+  const navigate = useNavigate()
   const foldersApi = useLabsFolders()
   const assetsApi = useLabsAssets()
   useLabsVideoPolling(assetsApi.assets, assetsApi.poser)
@@ -135,14 +143,15 @@ export function LabsApp({ dark, setDark }: Props) {
   const ordreVisible = useMemo(() => listeServeur.map((a) => a.id), [listeServeur])
   const counts = useMemo(() => labsCountByFolder(assets), [assets])
   const favCount = useMemo(() => assets.filter((a) => a.isFavorite).length, [assets])
-  const usage = useMemo(() => labsMonthUsage(assets), [assets])
-  const quota = { image: labsQuotaFor(plan, 'image'), video: labsQuotaFor(plan, 'video') }
   const source = sourceId ? assets.find((a) => a.id === sourceId) ?? null : null
+  // Le solde : `null` tant que la RPC n'a pas répondu — l'écran laisse alors l'edge trancher.
+  const solde = credits.balance?.total ?? null
 
   const hasVo = mode === 'video' && voOpen && voText.trim().length > 0
   const voSeconds = hasVo ? labsVoiceoverSeconds(voText) : null
   const estimatedS = labsVideoDurationS(voSeconds, durationS)
-  const estimate = labsEstimateChf({ mode, resolution, durationS: estimatedS, hasVoiceover: hasVo })
+  // Le prix d'UNE production, en crédits ; la barre le multiplie par les variations.
+  const estimate = labsEstimateCredits({ mode, resolution, durationS: estimatedS, hasVoiceover: hasVo })
   const busy = mode === 'image' ? gen.imageBusy : gen.videoBusy
   const canGenerate = prompt.trim().length >= 3 && !(hasVo && voSeconds != null && voSeconds + 1 > 30)
 
@@ -176,8 +185,18 @@ export function LabsApp({ dark, setDark }: Props) {
 
   // ─── Gestes ────────────────────────────────────────────────────────────────
   const direErreur = (code: string, extra?: Record<string, unknown>) => {
+    if (code === 'insufficient_credits') {
+      const b = typeof extra?.balance === 'number' ? extra.balance : solde ?? 0
+      const n = typeof extra?.needed === 'number' ? extra.needed : estimate
+      setAvis(t('errors.insufficient_credits', { balance: formatCredits(b), needed: formatCredits(n) }))
+      credits.rafraichir()
+      return
+    }
     setAvis(t(`errors.${code}`, { ...extra, defaultValue: t('errors.unknown') }))
   }
+
+  /** La Consommation, dans les Réglages : c'est là qu'on recharge. */
+  const allerRecharger = () => navigate('/dashboard/settings?tab=credits')
 
   const viderSelection = () => { setSelection(new Set()); setAncreId(null) }
 
@@ -207,9 +226,12 @@ export function LabsApp({ dark, setDark }: Props) {
   }
 
   const lancerImage = async (p: { prompt: string; folderId: string | null; sourceAssetId: string | null; ratio: LabsRatio | null; n: number }) => {
-    const restant = labsVariationsPossibles(p.n, usage.image, quota.image)
-    if (restant === 0) return direErreur('quota_exceeded', { usage: usage.image, quota: quota.image })
-    if (restant < p.n) setAvis(t('errors.quota_partial', { n: restant }))
+    // Ne lancer que ce que le solde PAIE : quatre appels pour un seul crédit disponible
+    // feraient trois refus et trois messages — l'edge refuse de toute façon, un par un.
+    const prixUnitaire = labsEstimateCredits({ mode: 'image', resolution, durationS: 0, hasVoiceover: false })
+    const restant = labsVariationsPossibles(p.n, solde, prixUnitaire)
+    if (restant === 0) return direErreur('insufficient_credits', { balance: solde ?? 0, needed: prixUnitaire })
+    if (restant < p.n) setAvis(t('errors.credits_partial', { n: restant }))
     const tuiles = Array.from({ length: restant }, (_, i) => labsTuileLocale({ ratio: p.ratio, prompt: p.prompt, folderId: p.folderId, n: i }))
     setEnVol((prev) => [...tuiles, ...prev])
     const retirer = (id: string) => setEnVol((prev) => prev.filter((x) => x.id !== id))
@@ -221,6 +243,7 @@ export function LabsApp({ dark, setDark }: Props) {
         aspectRatio: p.sourceAssetId ? undefined : (p.ratio ?? undefined), imageSize: '2K',
       })
       retirer(tuile.id)
+      if (r.balance != null) credits.poserSolde(r.balance)
       if (r.error || !r.asset) { direErreur(r.error ?? 'unknown', r.extra); return }
       assetsApi.inserer(r.asset)
     }))
@@ -239,6 +262,7 @@ export function LabsApp({ dark, setDark }: Props) {
       prompt: prompt.trim(), folderId: dossier, sourceAssetId: source?.id ?? null,
       voiceoverText: hasVo ? voText.trim() : null, voiceName: voice, voiceLang, durationS, resolution,
     })
+    if (r.balance != null) credits.poserSolde(r.balance)
     if (r.error || !r.asset) return direErreur(r.error ?? 'unknown', r.extra)
     assetsApi.inserer(r.asset)
     setSourceId(null)
@@ -456,8 +480,8 @@ export function LabsApp({ dark, setDark }: Props) {
                     onNewFolder={() => setFolderModal({ mode: 'create' })}
                     onRenameFolder={(f) => setFolderModal({ mode: 'rename', folder: f })}
                     onDeleteFolder={(f) => setConfirm({ kind: 'folder', folder: f })}
-                    usage={usage}
-                    quota={quota}
+                    solde={solde}
+                    onCredits={allerRecharger}
                   />
                   <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ls.soft, whiteSpace: 'nowrap' }}>{t('count', { count: listeServeur.length })}</span>
 
@@ -617,8 +641,10 @@ export function LabsApp({ dark, setDark }: Props) {
               onStagingStyle={(st) => { setStagingStyle(st); composer(room, st, !!source) }}
               busy={busy}
               canGenerate={canGenerate}
-              estimateChf={estimate}
+              estimateCredits={estimate}
               estimatedS={estimatedS}
+              solde={solde}
+              onRecharger={allerRecharger}
               onGenerate={() => { void generer() }}
             />
           </section>

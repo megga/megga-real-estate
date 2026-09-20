@@ -12,10 +12,7 @@
     "noFolder": "Aucun dossier pour l'instant",
     "rename": "Renommer",
     "delete": "Supprimer",
-    "quotaTitle": "Ce mois-ci",
-    "quotaImages": "{{used}}/{{quota}} images",
-    "quotaVideos": "{{used}}/{{quota}} vidéos",
-    "quotaNone": "Plan Starter, la génération est disponible dès le plan Pro."
+    "creditsHint": "Consommation et recharge"
   },
   "filter": {
     "all": "Tout",
@@ -71,8 +68,8 @@
     "voice": "Voix",
     "generate": "Générer",
     "generating": "Génération…",
-    "estimate": "≈ CHF {{chf}}",
-    "estimateVideo": "≈ CHF {{chf}} · {{s}} s",
+    "estimate": "{{n}} crédits",
+    "estimateVideo": "{{n}} crédits · {{s}} s",
     "shortcut": "⌘↵ pour générer",
     "voiceLang": "Langue",
     "listen": "Écouter",
@@ -82,7 +79,11 @@
     "variations": "Variations",
     "variationsValue_one": "{{count}} image",
     "variationsValue_other": "{{count}} images",
-    "estimateMany": "≈ CHF {{chf}} · {{n}} images"
+    "estimateMany": "≈ CHF {{chf}} · {{n}} images",
+    "estimateMany_one": "{{n}} crédits · {{count}} image",
+    "estimateMany_other": "{{n}} crédits · {{count}} images",
+    "balance": "solde {{n}}",
+    "recharge": "Recharger"
   },
   "voices": {
     "Kore": "Kore, posée",
@@ -123,7 +124,7 @@
     "ratio": "Ratio",
     "size": "Taille",
     "duration": "Durée",
-    "cost": "Coût estimé",
+    "cost": "Prix",
     "date": "Date",
     "status": "Statut",
     "animate": "Animer en vidéo",
@@ -159,8 +160,7 @@
     "deleteLotBody": "Elles disparaissent du studio. Une copie posée sur une fiche de bien n'est pas touchée."
   },
   "errors": {
-    "upgrade_required": "La génération est disponible à partir du plan Pro.",
-    "quota_exceeded": "Quota mensuel atteint ({{usage}}/{{quota}}).",
+    "upgrade_required": "Le studio est disponible à partir du plan Pro.",
     "provider_not_configured": "Le service de génération n'est pas configuré.",
     "storage_not_configured": "Le stockage des productions n'est pas configuré.",
     "storage_failed": "Le fichier n'a pas pu être enregistré.",
@@ -183,7 +183,9 @@
     "unknown": "Une erreur est survenue.",
     "too_many_previews": "Trop d’écoutes coup sur coup : patientez un instant.",
     "playback": "La lecture a échoué.",
-    "quota_partial": "Il ne restait que {{n}} génération(s) ce mois-ci : c'est ce qui a été lancé."
+    "insufficient_credits": "Solde insuffisant : {{balance}} crédits, il en faut {{needed}}. Rechargez depuis Réglages › Consommation.",
+    "credits_partial": "Le solde ne couvrait que {{n}} image(s) : c'est ce qui a été lancé.",
+    "credits_failed": "Le débit des crédits a échoué. Réessayez."
   },
   "mobile": {
     "readOnly": "Les générations se font sur ordinateur. Ici, vous consultez le studio.",
@@ -248,5 +250,9 @@
       "scandinavian": "bouleau, lin, ambiance hygge",
       "minimal": "épuré, zen, espace ouvert"
     }
+  },
+  "credits": {
+    "amount_one": "{{n}} crédit",
+    "amount_other": "{{n}} crédits"
   }
 }

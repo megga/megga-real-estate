@@ -61,20 +61,20 @@ export const LABS_VIDEO_MAX_S = 30
 export const LABS_VOICEOVER_MAX_CHARS = 600
 export const LABS_PROMPT_MAX_CHARS = 1000
 
-// ─── Quotas mensuels par plan ─────────────────────────────────────────────────
-// Les images partagent le quota « virtual_staging » du catalogue (`src/lib/plans.ts`) ;
-// la vidéo est un nouveau poste, `labs_video`, aux mêmes paliers.
+// ─── La porte du plan ─────────────────────────────────────────────────────────
+// ⚠ Les QUOTAS mensuels par genre (50 images / 10 vidéos sur Pro) ont été REMPLACÉS
+// le 20.09.2026 par les CRÉDITS (`_shared/credits.ts`, migration 20260920180000) :
+// une seule monnaie, débitée production par production. Ne reste au plan qu'une porte
+// binaire — le studio est ouvert à partir de Pro, comme le poste `virtual_staging`
+// du catalogue (`src/lib/plans.ts`) le dit depuis toujours.
 
-export const LABS_PLAN_QUOTAS: Record<'image' | 'video', Record<string, number>> = {
-  image: { starter: 0, pro: 50, entreprise: 200, agency: 200 },
-  video: { starter: 0, pro: 10, entreprise: 40, agency: 40 },
+export const LABS_PLANS_OUVERTS = ['pro', 'entreprise', 'agency'] as const
+
+export function labsOuvertAuPlan(plan: string | null | undefined): boolean {
+  return (LABS_PLANS_OUVERTS as readonly string[]).includes((plan ?? 'starter').toLowerCase())
 }
 
-export function labsQuotaFor(plan: string | null | undefined, kind: 'image' | 'video'): number {
-  return LABS_PLAN_QUOTAS[kind][(plan ?? 'starter').toLowerCase()] ?? 0
-}
-
-/** Début du mois civil courant, en UTC — le quota se compte sur `created_at`. */
+/** Début du mois civil courant, en UTC — la dotation de crédits se remet à neuf ce jour-là. */
 export function monthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 }

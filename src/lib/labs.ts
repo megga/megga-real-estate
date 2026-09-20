@@ -1,27 +1,37 @@
 /**
  * Le studio Labs, côté navigateur : constantes, estimations et lectures pures.
  *
- * ⚠ Les QUOTAS et les FORMULES DE COÛT sont le miroir de
+ * ⚠ Les CONSTANTES de génération (voix, langues, durées, ratios) sont le miroir de
  * `supabase/functions/_shared/labs.ts` — c'est l'edge qui applique, l'écran ne fait
- * qu'annoncer. Un écart entre les deux ferait promettre une génération que le
- * serveur refuse (ou l'inverse) ; `tests/unit/labs-studio.spec.ts` compare les deux.
+ * qu'annoncer ; `tests/unit/labs-studio.spec.ts` compare les deux.
+ *
+ * ⛔ PLUS AUCUN COÛT ICI DEPUIS LE 20.09.2026. Le prix d'une production se dit en
+ * CRÉDITS (`src/lib/credits.ts`), et le coût fournisseur — dollars de fal.ai et de
+ * Google, taux de change, marge — vit côté serveur seulement. Ce fichier portait les
+ * formules de coût et le taux de change : ils rendaient à l'agent, dans le bundle
+ * public, exactement ce que MEGGA paie. Retirés, et gardés par
+ * `credits-confidentialite.spec.ts` — qui a d'abord pris CE commentaire sur le fait,
+ * parce qu'il nommait les identifiants qu'elle interdit.
  */
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database'
+import { creditsPourImage, creditsPourVideo } from '@/lib/credits'
 import type {
   LabsAsset, LabsAssetKind, LabsFolder, LabsInvokeResult, LabsKindFilter, LabsMode, LabsRatio, LabsResolution, LabsView,
 } from '@/types/labs'
 
 // ─── Constantes (miroir de l'edge) ───────────────────────────────────────────
 
-export const LABS_QUOTAS: Record<'image' | 'video', Record<string, number>> = {
-  image: { starter: 0, pro: 50, entreprise: 200, agency: 200 },
-  video: { starter: 0, pro: 10, entreprise: 40, agency: 40 },
-}
+/**
+ * Les plans qui OUVRENT le studio (miroir de `LABS_PLANS_OUVERTS`, edge). ⚠ Ce n'est
+ * plus un quota : les 50 images / 10 vidéos par mois de Pro ont été remplacés par une
+ * dotation de crédits (`credits_plan_allowances`), débitée production par production.
+ */
+export const LABS_PLANS_OUVERTS = ['pro', 'entreprise', 'agency'] as const
 
-export function labsQuotaFor(plan: string | null | undefined, kind: 'image' | 'video'): number {
-  return LABS_QUOTAS[kind][(plan ?? 'starter').toLowerCase()] ?? 0
+export function labsOuvertAuPlan(plan: string | null | undefined): boolean {
+  return (LABS_PLANS_OUVERTS as readonly string[]).includes((plan ?? 'starter').toLowerCase())
 }
 
 export const LABS_VOICES = ['Kore', 'Charon', 'Aoede', 'Puck', 'Zephyr', 'Leda'] as const
@@ -40,7 +50,6 @@ export const LABS_VIDEO_MAX_S = 30
 export const LABS_VIDEO_DURATIONS = [5, 8, 10, 15, 20, 30] as const
 export const LABS_IMAGE_RATIOS: LabsRatio[] = ['1:1', '3:4', '4:3', '16:9', '9:16']
 export const LABS_VIDEO_RESOLUTIONS: LabsResolution[] = ['720p', '1080p']
-export const USD_TO_CHF = 0.9
 
 export const LABS_STORAGE_BUCKET = 'labs'
 export const LABS_UPLOAD_MAX_BYTES = 20 * 1024 * 1024
@@ -76,7 +85,7 @@ export function labsAssetFromRow(r: AssetRow): LabsAsset {
     aspectRatio: r.aspect_ratio,
     model: r.model,
     errorCode: r.error_code,
-    costChf: r.cost_chf == null ? null : Number(r.cost_chf),
+    credits: r.credits ?? null,
     isFavorite: r.is_favorite,
     createdAt: r.created_at,
     completedAt: r.completed_at,
@@ -98,21 +107,10 @@ export function labsVideoDurationS(voiceoverSeconds: number | null, chosenS: num
   return clamp(chosenS)
 }
 
-export function labsVideoCostUsd(resolution: LabsResolution, seconds: number): number {
-  const dims = resolution === '1080p' ? [1920, 1080] : [1280, 720]
-  const tokens = (dims[0] * dims[1] * seconds * 24) / 1024
-  return (tokens / 1000) * 0.0214
-}
-
-export function labsEstimateChf(p: { mode: LabsMode; resolution: LabsResolution; durationS: number; hasVoiceover: boolean }): number {
-  if (p.mode === 'image') return Math.round(0.101 * USD_TO_CHF * 1000) / 1000
-  const usd = labsVideoCostUsd(p.resolution, p.durationS) + (p.hasVoiceover ? 0.02 : 0)
-  return Math.round(usd * USD_TO_CHF * 100) / 100
-}
-
-/** Format d'affichage suisse d'un petit montant : `0.09`, `4.20`. */
-export function labsChf(n: number): string {
-  return n < 1 ? n.toFixed(2) : n.toFixed(2)
+/** Ce qu'une production va COÛTER en crédits, avant de générer — le tarif de `credits.ts`. */
+export function labsEstimateCredits(p: { mode: LabsMode; resolution: LabsResolution; durationS: number; hasVoiceover: boolean; imageSize?: '1K' | '2K' }): number {
+  if (p.mode === 'image') return creditsPourImage(p.imageSize ?? '2K')
+  return creditsPourVideo(p.resolution, p.durationS, p.hasVoiceover)
 }
 
 // ─── Géométrie de la galerie ─────────────────────────────────────────────────
@@ -248,17 +246,6 @@ export function labsSelectionEtat(assets: LabsAsset[], ids: Set<string>): {
   return { total, telechargeables, toutesFavorites: total > 0 && favorites === total }
 }
 
-export function labsMonthUsage(assets: LabsAsset[], now: Date = new Date()): { image: number; video: number } {
-  const debut = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
-  const out = { image: 0, video: 0 }
-  for (const a of assets) {
-    if (a.status === 'failed' || a.kind === 'upload') continue
-    if (new Date(a.createdAt).getTime() < debut) continue
-    out[a.kind === 'video' ? 'video' : 'image'] += 1
-  }
-  return out
-}
-
 export function labsCountByFolder(assets: LabsAsset[]): Record<string, number> {
   const out: Record<string, number> = {}
   for (const a of assets) if (a.folderId) out[a.folderId] = (out[a.folderId] ?? 0) + 1
@@ -296,7 +283,7 @@ export function labsTuileLocale(p: { ratio: LabsRatio | null; prompt: string; fo
     sourceAssetId: null, url: null, thumbnailUrl: null,
     width: null, height: null, durationS: null,
     aspectRatio: p.ratio,
-    model: null, errorCode: null, costChf: null,
+    model: null, errorCode: null, credits: null,
     isFavorite: false,
     createdAt: new Date().toISOString(),
     completedAt: null,
@@ -367,28 +354,29 @@ export function labsStagingPrompt(
 /**
  * Le nombre d'images lancées d'un seul « Générer ».
  *
- * ⚠ Pourquoi pas de variations en VIDÉO : une image vaut ~CHF 0,09 et le quota Pro en
- * donne 50 par mois — quatre d'un coup coûte 0,36 et se juge d'un regard. Une vidéo
- * vaut ~CHF 3,70 pour un quota de 10 : quatre d'un coup, c'est 40 % du mois en un clic.
- * Le geste est le même, l'enjeu ne l'est pas.
+ * ⚠ Pourquoi pas de variations en VIDÉO : une image vaut 5 crédits — quatre d'un coup
+ * en coûtent 20 et se jugent d'un regard. Une vidéo de 8 s en 720p en vaut 144 : quatre
+ * d'un coup, c'est près de 40 % de la dotation mensuelle Pro en un clic. Le geste est
+ * le même, l'enjeu ne l'est pas.
  *
  * ⚠ Le plafond à 4 n'est pas décoratif : au-delà la mosaïque déborde d'une rangée et
- * le quota mensuel part en deux clics distraits.
+ * la dotation du mois part en deux clics distraits.
  */
 export const LABS_VARIATIONS = [1, 2, 4] as const
 export type LabsVariations = (typeof LABS_VARIATIONS)[number]
 
 /**
- * Combien de générations le quota laisse encore passer ce mois-ci — la même règle que
- * l'edge, bornée au nombre demandé.
+ * Combien de variations le SOLDE laisse partir — bornée au nombre demandé.
  *
- * ⚠ L'écran ne fait qu'ANNONCER : c'est l'edge qui refuse, une par une. Ce calcul sert
- * à ne pas lancer quatre appels quand il n'en reste qu'un — trois refus coûtent trois
- * allers-retours et trois messages d'erreur pour rien.
+ * ⚠ L'écran ne fait qu'ANNONCER : c'est l'edge qui débite, une par une, et refuse ce
+ * que le solde ne couvre pas. Ce calcul sert à ne pas lancer quatre appels quand il
+ * n'y a de quoi en payer qu'un — trois refus coûtent trois allers-retours et trois
+ * messages d'erreur pour rien. Un solde INCONNU (`null`, le solde n'est pas encore
+ * lu) laisse tout partir : l'edge tranchera, et il le dit clairement.
  */
-export function labsVariationsPossibles(demande: number, utilise: number, quota: number): number {
-  if (quota <= 0) return demande
-  return Math.max(0, Math.min(demande, quota - utilise))
+export function labsVariationsPossibles(demande: number, solde: number | null, coutUnitaire: number): number {
+  if (solde == null || coutUnitaire <= 0) return demande
+  return Math.max(0, Math.min(demande, Math.floor(solde / coutUnitaire)))
 }
 
 // ─── Imports ─────────────────────────────────────────────────────────────────

@@ -4,14 +4,18 @@
 // Flux :
 //   1. requireAgentAuth → agency_id de confiance
 //   2. Corps : prompt libre, dossier, image source (une production de l'agence), ratio, taille
-//   3. Quota mensuel par plan (le quota « virtual_staging » du catalogue)
+//   3. Crédits : le plan doit ouvrir le studio (Pro et plus), puis le solde est DÉBITÉ
+//      AVANT d'appeler Gemini — et rendu si Gemini ou R2 échouent (`credits_refund`)
 //   4. Gemini : prompt de garde + image source en inline (retouche) ou texte seul (création)
 //   5. Écriture sur R2, ligne `labs_assets` (`status = 'ready'`), événement d'audit
 //
 // ⚠ Synchrone, comme `virtual-staging` : Gemini rend l'image dans la réponse (~10 s).
 // La vidéo, elle, passe par une file d'attente (`labs-video` + `labs-video-status`).
 //
-// Coût ~CHF 0,09 l'image en 2K (relevé identique à `virtual-staging`).
+// ⚠ L'identifiant de la production est tiré AVANT l'appel au fournisseur : c'est la
+// référence du débit, et c'est elle qui rend le remboursement idempotent.
+// Le coût fournisseur (`cost_chf`, ~CHF 0,09 en 2K) reste écrit sur la ligne pour la
+// console — il ne sort JAMAIS vers l'agent, qui ne voit que des crédits.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
@@ -21,9 +25,10 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_IMAGE_MODEL, LABS_IMAGE_RATIOS, type LabsImageRatio,
-  base64ToBytes, cleanPrompt, imageExtFor, isUuid, labsImageCostChf, labsImagePrompt,
-  labsQuotaFor, monthStartIso,
+  base64ToBytes, cleanPrompt, imageExtFor, isUuid, labsImageCostChf, labsImagePrompt, labsOuvertAuPlan,
 } from '../_shared/labs.ts'
+import { creditsPourImage } from '../_shared/credits.ts'
+import { debiterCredits, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -94,20 +99,9 @@ serve(async (req: Request) => {
     sourceUrl = src.url as string
   }
 
-  // 3. Plan et quota.
+  // 3. Plan, puis crédits.
   const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  const quota = labsQuotaFor(agency?.plan as string | null, 'image')
-  if (quota === 0) return json({ error: 'upgrade_required', quota: 0 }, 403)
-
-  const { count } = await supabase
-    .from('labs_assets')
-    .select('id', { count: 'exact', head: true })
-    .eq('agency_id', profile.agency_id)
-    .eq('kind', 'image')
-    .neq('status', 'failed')
-    .gte('created_at', monthStartIso())
-  const usage = count ?? 0
-  if (usage >= quota) return json({ error: 'quota_exceeded', usage, quota }, 429)
+  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
 
   // 4. La source, par le fetch sûr (l'URL vient de la base, elle est revalidée quand même).
   let source: SafeFetchResult | null = null
@@ -129,6 +123,22 @@ serve(async (req: Request) => {
   const imageConfig: Record<string, string> = { imageSize }
   if (!source && aspectRatio) imageConfig.aspectRatio = aspectRatio
 
+  // ⛔ DÉBITER AVANT DE PAYER LE FOURNISSEUR. L'inverse — générer, puis débiter —
+  // laisserait partir une image que le solde ne couvre pas, et une image sans crédit
+  // n'a plus de prix. Le débit est atomique (verrou de ligne) et refuse en bloc.
+  const assetId = crypto.randomUUID()
+  const credits = creditsPourImage(imageSize)
+  const debit = await debiterCredits(supabase, {
+    agencyId: profile.agency_id, amount: credits, assetId, actorId: user.id,
+    metadata: { kind: 'image', image_size: imageSize },
+  })
+  if (!debit.ok) {
+    if (debit.error === 'insufficient_credits') return json({ error: 'insufficient_credits', balance: debit.balance ?? 0, needed: debit.needed ?? credits }, 402)
+    return json({ error: 'credits_failed' }, 500)
+  }
+  const rendre = (reason: string) => rembourserCredits(supabase, { agencyId: profile.agency_id, assetId, reason })
+  if (debit.autoTopupDue) reveillerAutoRecharge(profile.agency_id)
+
   let geminiJson: { candidates?: Array<{ content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> } }> }
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${LABS_IMAGE_MODEL}:generateContent?key=${apiKey}`, {
@@ -141,24 +151,29 @@ serve(async (req: Request) => {
     })
     if (!res.ok) {
       console.error('labs-image gemini:', res.status, (await res.text().catch(() => '')).slice(0, 300))
+      await rendre('generation_failed')
       return json({ error: 'generation_failed' }, 502)
     }
     geminiJson = await res.json()
   } catch (e) {
     console.error('labs-image gemini fetch:', redactedErrorMessage(e))
+    await rendre('generation_failed')
     return json({ error: 'generation_failed' }, 502)
   }
 
   const imagePart = (geminiJson.candidates?.[0]?.content?.parts ?? []).find((p) => p.inlineData?.data)
-  if (!imagePart?.inlineData?.data) return json({ error: 'no_image' }, 422)
+  if (!imagePart?.inlineData?.data) {
+    await rendre('no_image')
+    return json({ error: 'no_image' }, 422)
+  }
 
-  // 5. R2 puis la ligne. L'uuid est tiré ICI pour nommer l'objet avant d'insérer.
-  const assetId = crypto.randomUUID()
+  // 5. R2 puis la ligne, sous l'uuid déjà tiré pour le débit.
   const { ext, contentType } = imageExtFor(imagePart.inlineData.mimeType)
   const bytes = base64ToBytes(imagePart.inlineData.data)
   const put = await r2Put(r2, `labs/${profile.agency_id}/${assetId}.${ext}`, bytes, contentType)
   if (!put.ok) {
     console.error('labs-image r2:', put.err)
+    await rendre('storage_failed')
     return json({ error: 'storage_failed' }, 502)
   }
 
@@ -180,6 +195,7 @@ serve(async (req: Request) => {
       model: LABS_IMAGE_MODEL,
       provider: 'gemini',
       cost_chf: costChf,
+      credits,
       metadata: { image_size: imageSize, mime: contentType, bytes: bytes.length },
       completed_at: new Date().toISOString(),
     })
@@ -187,6 +203,7 @@ serve(async (req: Request) => {
     .single()
   if (insErr || !asset) {
     console.error('labs-image insert:', redactedErrorMessage(insErr))
+    await rendre('record_failed')
     return json({ error: 'record_failed' }, 500)
   }
 
@@ -207,11 +224,11 @@ serve(async (req: Request) => {
       model: LABS_IMAGE_MODEL,
       image_size: imageSize,
       cost_chf: costChf,
-      usage: usage + 1,
-      quota,
+      credits,
+      balance: debit.balance,
     },
   })
   if (auditErr) console.error('labs-image audit:', redactedErrorMessage(auditErr))
 
-  return json({ asset, usage: { current: usage + 1, quota, remaining: Math.max(0, quota - usage - 1) } })
+  return json({ asset, credits: { debited: credits, balance: debit.balance ?? null } })
 })

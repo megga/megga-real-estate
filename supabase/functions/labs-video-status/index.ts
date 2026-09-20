@@ -19,6 +19,7 @@ import { safeFetchResponse } from '../_shared/safe-fetch.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import { LABS_MUX_ENDPOINT, isUuid } from '../_shared/labs.ts'
+import { rembourserCredits } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,11 +77,14 @@ serve(async (req: Request) => {
   // Terminal : on rend la ligne telle quelle.
   if (asset.status === 'ready' || asset.status === 'failed') return json({ asset })
 
+  // Un échec du fournisseur, du multiplexage ou du délai REND les crédits : l'agent n'a
+  // rien reçu. Idempotent — un second sondage sur la même ligne ne rend rien deux fois.
   const fail = async (code: string) => {
     const { data } = await supabase
       .from('labs_assets')
       .update({ status: 'failed', error_code: code, completed_at: new Date().toISOString() })
       .eq('id', asset.id).select('*').single()
+    await rembourserCredits(supabase, { agencyId: profile.agency_id, assetId: asset.id as string, reason: code })
     return json({ asset: data ?? { ...asset, status: 'failed', error_code: code } })
   }
 

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
 import {
   LABS_VIDEO_MAX_S, LABS_VIDEO_MIN_S, LABS_VOICEOVER_MAX_CHARS, LABS_VOICE_LANGS,
   base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, imageExtFor, labsImagePrompt,
-  labsQuotaFor, labsVideoCostUsd, labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, monthStartIso,
+  labsOuvertAuPlan, labsVideoCostUsd, labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, monthStartIso,
   pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../../supabase/functions/_shared/labs.ts'
 
@@ -69,14 +69,14 @@ describe('labs — coût estimé', () => {
   })
 })
 
-describe('labs — quotas et mois civil', () => {
-  it('images : le quota du staging ; vidéos : le nouveau poste', () => {
-    expect(labsQuotaFor('starter', 'image')).toBe(0)
-    expect(labsQuotaFor('pro', 'image')).toBe(50)
-    expect(labsQuotaFor('entreprise', 'video')).toBe(40)
-    expect(labsQuotaFor('agency', 'video')).toBe(40)
-    expect(labsQuotaFor(null, 'video')).toBe(0)
-    expect(labsQuotaFor('inconnu', 'image')).toBe(0)
+describe('labs — la porte du plan et le mois civil', () => {
+  it('le studio s’ouvre à partir de Pro, et un plan inconnu reste dehors', () => {
+    expect(labsOuvertAuPlan('starter')).toBe(false)
+    expect(labsOuvertAuPlan('pro')).toBe(true)
+    expect(labsOuvertAuPlan('Entreprise')).toBe(true)
+    expect(labsOuvertAuPlan('agency')).toBe(true)
+    expect(labsOuvertAuPlan(null)).toBe(false)
+    expect(labsOuvertAuPlan('inconnu')).toBe(false)
   })
   it('le mois commence au 1er, en UTC', () => {
     expect(monthStartIso(new Date('2026-09-20T22:15:00Z'))).toBe('2026-09-01T00:00:00.000Z')

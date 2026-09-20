@@ -14,13 +14,14 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
-  LABS_QUOTAS, LABS_VOICEOVER_MAX_CHARS, LABS_VOICES, LABS_VOICE_LANGS, labsColonnes, labsEstimateChf, labsFilter,
-  labsMonthUsage, labsVideoCostUsd, labsVideoDurationS, labsVoiceoverSeconds,
+  LABS_PLANS_OUVERTS, LABS_VOICEOVER_MAX_CHARS, LABS_VOICES, LABS_VOICE_LANGS, labsColonnes, labsEstimateCredits, labsFilter,
+  labsOuvertAuPlan, labsVideoDurationS, labsVoiceoverSeconds,
 } from '@/lib/labs'
 import {
-  LABS_PLAN_QUOTAS, LABS_VOICEOVER_MAX_CHARS as EDGE_VO_MAX, LABS_VOICES as EDGE_VOICES,
-  LABS_VOICE_LANGS as EDGE_LANGS, labsVideoCostUsd as edgeVideoCostUsd, labsVideoDuration as edgeVideoDuration,
+  LABS_PLANS_OUVERTS as EDGE_PLANS_OUVERTS, LABS_VOICEOVER_MAX_CHARS as EDGE_VO_MAX, LABS_VOICES as EDGE_VOICES,
+  LABS_VOICE_LANGS as EDGE_LANGS, labsVideoDuration as edgeVideoDuration,
 } from '../../supabase/functions/_shared/labs'
+import { creditsPourImage as edgeCreditsImage, creditsPourVideo as edgeCreditsVideo } from '../../supabase/functions/_shared/credits'
 import { PLANS } from '@/lib/plans'
 import { CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
 import type { LabsAsset } from '@/types/labs'
@@ -30,8 +31,21 @@ const lire = (lng: string, ns: string) => JSON.parse(readFileSync(`src/i18n/loca
 const chemin = (o: Record<string, unknown>, p: string): unknown => p.split('.').reduce<unknown>((acc, k) => (acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[k] : undefined), o)
 
 describe('labs — l’écran est le miroir de l’edge', () => {
-  it('quotas identiques, plan par plan', () => {
-    expect(LABS_QUOTAS).toEqual(LABS_PLAN_QUOTAS)
+  it('la porte du plan est la même des deux côtés, et Starter reste dehors', () => {
+    expect([...LABS_PLANS_OUVERTS]).toEqual([...EDGE_PLANS_OUVERTS])
+    expect(labsOuvertAuPlan('starter')).toBe(false)
+    expect(labsOuvertAuPlan('pro')).toBe(true)
+    expect(labsOuvertAuPlan(null)).toBe(false)
+  })
+  it('le PRIX en crédits annoncé par l’écran est celui que l’edge débite', () => {
+    expect(labsEstimateCredits({ mode: 'image', resolution: '720p', durationS: 0, hasVoiceover: false })).toBe(edgeCreditsImage('2K'))
+    for (const res of ['720p', '1080p'] as const) {
+      for (const s of [4, 8, 15, 30]) {
+        for (const vo of [false, true]) {
+          expect(labsEstimateCredits({ mode: 'video', resolution: res, durationS: s, hasVoiceover: vo })).toBe(edgeCreditsVideo(res, s, vo))
+        }
+      }
+    }
   })
   it('même plafond de narration, mêmes voix, mêmes langues', () => {
     expect(LABS_VOICEOVER_MAX_CHARS).toBe(EDGE_VO_MAX)
@@ -40,47 +54,44 @@ describe('labs — l’écran est le miroir de l’edge', () => {
     // sur le français : l'agent croirait avoir choisi, et n'aurait rien choisi.
     expect([...LABS_VOICE_LANGS]).toEqual([...EDGE_LANGS])
   })
-  it('même barème vidéo au jeton', () => {
-    for (const res of ['720p', '1080p'] as const) {
-      for (const s of [4, 8, 15, 30]) expect(labsVideoCostUsd(res, s)).toBeCloseTo(edgeVideoCostUsd(res, s), 6)
-    }
-  })
   it('même règle de durée : la narration + 1 s, bornée 4–30', () => {
     expect(labsVideoDurationS(6.2, 8)).toBe(Number(edgeVideoDuration(6.2, 8)))
     expect(labsVideoDurationS(45, 8)).toBe(Number(edgeVideoDuration(45, 8)))
     expect(labsVideoDurationS(null, 2)).toBe(Number(edgeVideoDuration(null, 2)))
     expect(labsVideoDurationS(null, 12)).toBe(Number(edgeVideoDuration(null, 12)))
   })
-  it('le catalogue des plans porte `labs_video` aux paliers du quota vidéo', () => {
+  it('le catalogue des plans ouvre le studio là où la porte l’ouvre', () => {
+    // ⚠ Les paliers chiffrés (50 images / 10 vidéos) ne sont plus la promesse : c'est la
+    // dotation de crédits (`credit_plan_allowances`). Le catalogue et la porte doivent
+    // seulement s'accorder sur QUI entre.
     for (const plan of PLANS) {
-      const f = plan.features.find((x) => x.key === 'labs_video')
-      expect(f, `plan ${plan.id} sans poste labs_video`).toBeDefined()
-      const quota = LABS_QUOTAS.video[plan.id]
-      expect(f!.included).toBe(quota > 0)
-      if (quota > 0) expect(f!.limit).toBe(quota)
+      const f = plan.features.find((x) => x.key === 'virtual_staging')
+      expect(f, `plan ${plan.id} sans poste virtual_staging`).toBeDefined()
+      expect(f!.included, `plan ${plan.id}`).toBe(labsOuvertAuPlan(plan.id))
     }
   })
 })
 
 describe('labs — estimations et lectures', () => {
-  it('une image 2K vaut ~CHF 0,09 ; une vidéo suit sa durée et sa résolution', () => {
-    expect(labsEstimateChf({ mode: 'image', resolution: '720p', durationS: 8, hasVoiceover: false })).toBeCloseTo(0.091, 3)
-    const v8 = labsEstimateChf({ mode: 'video', resolution: '720p', durationS: 8, hasVoiceover: false })
-    const v16 = labsEstimateChf({ mode: 'video', resolution: '720p', durationS: 16, hasVoiceover: false })
-    const hd8 = labsEstimateChf({ mode: 'video', resolution: '1080p', durationS: 8, hasVoiceover: false })
-    expect(v16).toBeGreaterThan(v8 * 1.9)
+  it('une vidéo se paie à la seconde et à la résolution, la voix off en sus', () => {
+    const v8 = labsEstimateCredits({ mode: 'video', resolution: '720p', durationS: 8, hasVoiceover: false })
+    const v16 = labsEstimateCredits({ mode: 'video', resolution: '720p', durationS: 16, hasVoiceover: false })
+    const hd8 = labsEstimateCredits({ mode: 'video', resolution: '1080p', durationS: 8, hasVoiceover: false })
+    const vo8 = labsEstimateCredits({ mode: 'video', resolution: '720p', durationS: 8, hasVoiceover: true })
+    expect(v16).toBe(v8 * 2)
     expect(hd8).toBeGreaterThan(v8 * 2)
+    expect(vo8).toBeGreaterThan(v8)
   })
   it('la narration se lit à ~155 mots par minute', () => {
     expect(labsVoiceoverSeconds('')).toBe(0)
     expect(labsVoiceoverSeconds('un deux trois quatre cinq six sept huit neuf dix onze douze treize')).toBeCloseTo(5, 0)
   })
-  it('les filtres et le compteur du mois lisent la liste, pas la base', () => {
+  it('les filtres lisent la liste, pas la base', () => {
     const now = new Date('2026-09-20T10:00:00Z')
     const base = (o: Partial<LabsAsset> & Pick<LabsAsset, 'id' | 'kind'>): LabsAsset => ({
       folderId: null, createdBy: null, status: 'ready', prompt: null, voiceoverText: null, voiceoverVoice: null, sourceAssetId: null,
       url: null, thumbnailUrl: null, width: null, height: null, durationS: null, aspectRatio: null, model: null, errorCode: null,
-      costChf: null, isFavorite: false, createdAt: '2026-09-18T10:00:00Z', completedAt: null, ...o,
+      credits: null, isFavorite: false, createdAt: '2026-09-18T10:00:00Z', completedAt: null, ...o,
     })
     const assets = [
       base({ id: 'a', kind: 'image', folderId: 'f1', isFavorite: true }),
@@ -93,8 +104,7 @@ describe('labs — estimations et lectures', () => {
     expect(labsFilter(assets, { folderId: null, view: 'favorites', kind: 'all' }).map((a) => a.id)).toEqual(['a'])
     expect(labsFilter(assets, { folderId: null, view: 'all', kind: 'video' }).map((a) => a.id)).toEqual(['b'])
     expect(labsFilter(assets, { folderId: null, view: 'all', kind: 'image' }).map((a) => a.id)).toEqual(['a', 'c', 'd', 'e'])
-    // Le mois : ni les échecs, ni les imports, ni le mois d'avant.
-    expect(labsMonthUsage(assets, now)).toEqual({ image: 1, video: 1 })
+    expect(now.getUTCMonth()).toBe(8)
   })
 })
 
@@ -108,7 +118,7 @@ describe('labs — la galerie REMPLIT', () => {
     id, folderId: null, createdBy: null, kind: 'image', status: 'ready', prompt: null,
     voiceoverText: null, voiceoverVoice: null, voiceoverLang: null, voiceoverUrl: null,
     sourceAssetId: null, url: null, thumbnailUrl: null, width: 100, height: ratio,
-    durationS: null, aspectRatio: null, model: null, errorCode: null, costChf: null,
+    durationS: null, aspectRatio: null, model: null, errorCode: null, credits: null,
     isFavorite: false, createdAt: '2026-09-20T10:00:00Z', completedAt: null,
   })
 

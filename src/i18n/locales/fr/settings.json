@@ -774,6 +774,10 @@
       "preferences": {
         "label": "Préférences",
         "short": "Préférences"
+      },
+      "credits": {
+        "label": "Consommation",
+        "short": "Consommation"
       }
     },
     "groups": {
@@ -1062,5 +1066,79 @@
       "agencyNotLoaded": "Agence non chargée, reconnectez-vous pour enregistrer.",
       "logoUploadError": "Envoi du logo impossible."
     }
+  },
+  "credits": {
+    "title": "Consommation",
+    "subtitle": "Vos crédits pour le studio Labs : ce qu'il vous reste, ce que vous avez produit, et de quoi recharger.",
+    "balance": {
+      "title": "Solde",
+      "included": "{{n}} inclus ce mois",
+      "purchased": "{{n}} achetés",
+      "allowance": "Votre plan inclut {{n}} crédits par mois. Ils se renouvellent le 1er et ne se reportent pas ; les crédits achetés ne périment pas.",
+      "topup": "Recharger",
+      "noPlan": "Le studio Labs est disponible à partir du plan Pro.",
+      "goPlan": "Voir les plans"
+    },
+    "month": {
+      "title": "Ce mois-ci",
+      "images": "Images",
+      "videos": "Vidéos",
+      "spent": "Crédits dépensés",
+      "refunded": "{{n}} rendus sur des échecs"
+    },
+    "tariff": {
+      "title": "Ce que coûte une production",
+      "image": "Image (2K)",
+      "image1k": "Image (1K)",
+      "video720": "Vidéo 720p, la seconde",
+      "video1080": "Vidéo 1080p, la seconde",
+      "voiceover": "Voix off, par vidéo",
+      "example": "Une vidéo de 8 s en 720p avec voix off : {{n}} crédits.",
+      "unit_one": "{{n}} crédit",
+      "unit_other": "{{n}} crédits"
+    },
+    "packs": {
+      "title": "Recharger",
+      "body": "Un paiement unique. Les crédits achetés ne périment pas.",
+      "buy": "Acheter",
+      "credits": "{{n}} crédits",
+      "price": "CHF {{chf}}",
+      "perCredit": "{{chf}} ct. le crédit",
+      "discount": "−{{n}} %",
+      "best": "Le plus avantageux",
+      "opening": "Ouverture du paiement…",
+      "bench": "Sur ce banc, l'achat ne mène nulle part.",
+      "error": "Le paiement n'a pas pu s'ouvrir. Réessayez."
+    },
+    "auto": {
+      "title": "Recharge automatique",
+      "body": "Quand le solde passe sous un seuil, un pack est acheté avec la carte enregistrée. Vous ne tombez jamais à zéro au milieu d'une série.",
+      "enabled": "Activée",
+      "disabled": "Désactivée",
+      "threshold": "Quand le solde passe sous",
+      "pack": "Acheter",
+      "card": "Carte {{brand}} •••• {{last4}}",
+      "noCard": "Aucune carte enregistrée. Achetez un pack par carte : elle sera enregistrée pour la recharge automatique.",
+      "lastError": "La dernière recharge a échoué ({{error}}). Vérifiez la carte, la recharge réessaiera au prochain débit.",
+      "saved": "Enregistré",
+      "saveError": "Le réglage n'a pas pu être enregistré."
+    },
+    "ledger": {
+      "title": "Historique",
+      "empty": "Aucun mouvement pour l'instant.",
+      "balanceAfter": "solde {{n}}",
+      "kinds": {
+        "grant_monthly": "Dotation du mois",
+        "purchase": "Achat de {{n}} crédits",
+        "auto_topup": "Recharge automatique, {{n}} crédits",
+        "debit_image": "Image",
+        "debit_video": "Vidéo {{res}} · {{s}} s",
+        "debit_video_vo": "Vidéo {{res}} · {{s}} s · voix off",
+        "refund": "Remboursement, production échouée",
+        "adjustment": "Ajustement"
+      }
+    },
+    "success": "Paiement reçu : vos crédits arrivent dans quelques secondes.",
+    "canceled": "Paiement annulé, rien n'a été débité."
   }
 }

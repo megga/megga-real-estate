@@ -538,6 +538,8 @@ const BIENS_CATALOGUE = Array.from({ length: 48 }, (_, i) => {
 
 export const CRM_TABLES: Record<string, unknown[]> = {
   market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE],
+  credit_ledger: [],
+  credit_wallets: [],
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
@@ -853,6 +855,16 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  // Les crédits du studio Labs. ⚠ Sous `/dev/crm`, `useCredits` passe par les fixtures du
+  // studio (`LabsFixturesContext`) et n'atteint pas ces deux entrées ; elles répondent
+  // aux surfaces qui liraient la RPC HORS de ce contexte — le solde d'une agence Pro
+  // à mi-mois, le même que celui des fixtures.
+  credits_balance: {
+    included: 903, purchased: 340, total: 1243, month: '2026-09', plan: 'pro', monthly_allowance: 1500,
+    auto_topup_enabled: false, auto_topup_threshold: 100, auto_topup_pack: '500',
+    auto_topup_last_error: null, auto_topup_last_error_at: null, has_card: true, card_brand: 'visa', card_last4: '4242',
+  },
+  credits_set_auto_topup: { ok: true },
   // Les destinataires suggérés du composeur de la Messagerie. Mêmes jetons que la RPC —
   // minuscules, cinq au plus, TOUS présents, chacun dans le prénom, le nom, l'adresse ou le
   // téléphone. Sans elle, la saisie « comme Google » ne proposait AUCUN contact au banc.

@@ -27,7 +27,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useEcranActif } from '@/hooks/useEcranActif'
-import { labsChf } from '@/lib/labs'
+import { formatCredits } from '@/lib/credits'
 import type { LabsVoiceState } from '@/hooks/useLabsVoice'
 import type { LabsAsset, LabsFolder } from '@/types/labs'
 import { LABS_PILL, LABS_TRANSITION, type LabsSurfaces } from './labsTokens'
@@ -259,7 +259,9 @@ export function LabsLightbox(p: Props) {
               {a.aspectRatio && (<><dt style={{ color: ls.soft }}>{t('lightbox.ratio')}</dt><dd style={{ margin: 0, color: ls.ink }}>{a.aspectRatio}</dd></>)}
               {a.width && a.height && (<><dt style={{ color: ls.soft }}>{t('lightbox.size')}</dt><dd style={{ margin: 0, color: ls.ink }}>{a.width} × {a.height}</dd></>)}
               {a.durationS != null && (<><dt style={{ color: ls.soft }}>{t('lightbox.duration')}</dt><dd style={{ margin: 0, color: ls.ink }}>{t('prompt.durationValue', { s: Math.round(a.durationS) })}</dd></>)}
-              {a.costChf != null && (<><dt style={{ color: ls.soft }}>{t('lightbox.cost')}</dt><dd style={{ margin: 0, color: ls.ink }}>{t('prompt.estimate', { chf: labsChf(a.costChf) })}</dd></>)}
+              {/* ⛔ Le COÛT FOURNISSEUR (`cost_chf`) n'est plus montré : il disait à l'agent ce
+                  que MEGGA paie. La production a un PRIX, en crédits — c'est lui qui s'affiche. */}
+              {a.credits != null && (<><dt style={{ color: ls.soft }}>{t('lightbox.cost')}</dt><dd style={{ margin: 0, color: ls.ink, fontVariantNumeric: 'tabular-nums' }}>{t('credits.amount', { count: a.credits, n: formatCredits(a.credits, p.lang) })}</dd></>)}
               <dt style={{ color: ls.soft }}>{t('lightbox.date')}</dt><dd style={{ margin: 0, color: ls.ink }}>{date}</dd>
               {echec && (<><dt style={{ color: ls.soft }}>{t('lightbox.status')}</dt><dd style={{ margin: 0, color: ls.dangerText }}>{t(`errors.${a.errorCode ?? 'unknown'}`, { defaultValue: t('errors.unknown') })}</dd></>)}
             </dl>

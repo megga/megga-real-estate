@@ -2608,6 +2608,145 @@ export type Database = {
           },
         ]
       }
+      credit_ledger: {
+        Row: {
+          agency_id: string
+          amount: number
+          amount_chf: number | null
+          bucket: string
+          created_at: string
+          created_by: string | null
+          id: string
+          included_after: number
+          kind: string
+          metadata: Json
+          purchased_after: number
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          agency_id: string
+          amount: number
+          amount_chf?: number | null
+          bucket: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_after: number
+          kind: string
+          metadata?: Json
+          purchased_after: number
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          agency_id?: string
+          amount?: number
+          amount_chf?: number | null
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_after?: number
+          kind?: string
+          metadata?: Json
+          purchased_after?: number
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_plan_allowances: {
+        Row: {
+          monthly_credits: number
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          monthly_credits: number
+          plan: string
+          updated_at?: string
+        }
+        Update: {
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_wallets: {
+        Row: {
+          agency_id: string
+          auto_topup_enabled: boolean
+          auto_topup_last_error: string | null
+          auto_topup_last_error_at: string | null
+          auto_topup_locked_until: string | null
+          auto_topup_pack: string
+          auto_topup_threshold: number
+          card_brand: string | null
+          card_last4: string | null
+          created_at: string
+          included: number
+          included_month: string
+          included_plan: string | null
+          purchased: number
+          stripe_payment_method_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          auto_topup_enabled?: boolean
+          auto_topup_last_error?: string | null
+          auto_topup_last_error_at?: string | null
+          auto_topup_locked_until?: string | null
+          auto_topup_pack?: string
+          auto_topup_threshold?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          included?: number
+          included_month?: string
+          included_plan?: string | null
+          purchased?: number
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          auto_topup_enabled?: boolean
+          auto_topup_last_error?: string | null
+          auto_topup_last_error_at?: string | null
+          auto_topup_locked_until?: string | null
+          auto_topup_pack?: string
+          auto_topup_threshold?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          included?: number
+          included_month?: string
+          included_plan?: string | null
+          purchased?: number
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_open_tabs: {
         Row: {
           active_index: number
@@ -3588,6 +3727,7 @@ export type Database = {
           cost_chf: number | null
           created_at: string
           created_by: string | null
+          credits: number | null
           deleted_at: string | null
           duration_s: number | null
           error_code: string | null
@@ -3620,6 +3760,7 @@ export type Database = {
           cost_chf?: number | null
           created_at?: string
           created_by?: string | null
+          credits?: number | null
           deleted_at?: string | null
           duration_s?: number | null
           error_code?: string | null
@@ -3652,6 +3793,7 @@ export type Database = {
           cost_chf?: number | null
           created_at?: string
           created_by?: string | null
+          credits?: number | null
           deleted_at?: string | null
           duration_s?: number | null
           error_code?: string | null
@@ -8821,6 +8963,51 @@ export type Database = {
           responded_at: string
           status: Database["public"]["Enums"]["crm_offer_status"]
         }[]
+      }
+      credits_auto_topup_claim: { Args: { p_agency: string }; Returns: Json }
+      credits_auto_topup_release: {
+        Args: { p_agency: string; p_error: string | null }
+        Returns: undefined
+      }
+      credits_balance: { Args: never; Returns: Json }
+      credits_debit: {
+        Args: {
+          p_actor?: string | null
+          p_agency: string
+          p_amount: number
+          p_metadata?: Json
+          p_ref_id: string
+          p_ref_type: string
+        }
+        Returns: Json
+      }
+      credits_purchase: {
+        Args: {
+          p_agency: string
+          p_amount: number
+          p_amount_chf: number
+          p_kind: string
+          p_metadata?: Json
+          p_ref_id: string
+          p_ref_type: string
+        }
+        Returns: Json
+      }
+      credits_refund: {
+        Args: { p_agency: string; p_reason: string; p_ref_id: string; p_ref_type: string }
+        Returns: Json
+      }
+      credits_set_auto_topup: {
+        Args: { p_enabled: boolean; p_pack: string; p_threshold: number }
+        Returns: Json
+      }
+      credits_set_card: {
+        Args: { p_agency: string; p_brand: string | null; p_last4: string | null; p_payment_method_id: string }
+        Returns: undefined
+      }
+      credits_wallet_ensure: {
+        Args: { p_agency: string }
+        Returns: Database["public"]["Tables"]["credit_wallets"]["Row"]
       }
       crm_tab_badges: { Args: never; Returns: Json }
       crm_tabs_resolve_labels: { Args: { p_refs: Json }; Returns: Json }
