@@ -84,6 +84,7 @@ import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
 import LabGuardBanner from '@/components/layout/LabGuardBanner'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
+import { useCrmDark } from '@/lib/crmDark'
 import {
   useAgencyIdentity, identityDocumentSidesFor,
   isIdentityVerificationSufficient, verificationNeedsManualFallback,
@@ -939,7 +940,32 @@ const RETOUR_SONDAGE_MS = 3_000
 const RETOUR_SONDAGE_MAX = 10
 
 /** Coquille du wizard identité : chrome, navigation entre étapes, persistance au changement d'étape. */
+/**
+ * Le parcours suit le thème du CRM — clair ET sombre (décision Julien,
+ * 20.09.2026). Il était MONO-THÈME : la feuille de la vitrine impose son canvas
+ * sombre, et aucun fichier de `crm-identity/` ne connaissait `dark`.
+ *
+ * ⛔ LE STAMP EST SUR `<html>`, ET C'EST LA RAISON QUI COMPTE. `.megga-x`
+ * déclare les dix variables neutres : un `<MeggaX>` IMBRIQUÉ — et le parcours en
+ * monte un par écran, plus un par modale, carte de rendez-vous et sceau — les
+ * remettrait au sombre. Le bloc clair de `megga-x-additions.css` porte donc un
+ * sélecteur DESCENDANT, et un seul stamp en haut couvre tout l'arbre, y compris
+ * `onboarding-call/` que ce fichier ne monte pas lui-même.
+ *
+ * ⚠ Nettoyé au démontage : l'attribut vit sur `<html>`, donc il SURVIVRAIT à la
+ * sortie du parcours et teindrait la vitrine d'à côté.
+ */
+function useThemeVitrine(): void {
+  const sombre = useCrmDark()
+  useEffect(() => {
+    const racine = document.documentElement
+    racine.dataset.mxTheme = sombre ? 'dark' : 'light'
+    return () => { delete racine.dataset.mxTheme }
+  }, [sombre])
+}
+
 export default function IdentityShell({ preview }: { preview?: IdentityShellPreview } = {}) {
+  useThemeVitrine()
   const { t } = useTranslation('onboarding')
   // Aucune lecture de `useTheme()` ici, et c'est délibéré : ce parcours porte la
   // peau de la vitrine, qui n'existe qu'en une polarité (fond #030303). Il ne
