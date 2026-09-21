@@ -10,7 +10,7 @@
 // en base64 dans la réponse.
 //
 // ⛔ RIEN N'EST STOCKÉ, et aucune ligne n'est écrite : un aperçu n'est pas une
-// production. Il ne consomme donc AUCUN quota mensuel — ce qui le borne est ailleurs :
+// production. Il ne débite donc AUCUN crédit — ce qui le borne est ailleurs :
 // le plan, un texte plafonné à 240 caractères (`LABS_PREVIEW_MAX_CHARS`), et un débit
 // par agent. Sans ce dernier, un agent connecté pourrait marteler Gemini à volonté.
 //
@@ -22,7 +22,7 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import {
   LABS_PREVIEW_MAX_CHARS, LABS_TTS_MODEL,
-  base64ToBytes, cleanVoice, cleanVoiceLang, labsQuotaFor, labsVoiceoverPrompt,
+  base64ToBytes, cleanVoice, cleanVoiceLang, labsOuvertAuPlan, labsVoiceoverPrompt,
   pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../_shared/labs.ts'
 
@@ -89,7 +89,9 @@ serve(async (req: Request) => {
 
   // Le même mur que la génération : écouter une voix est déjà un usage du studio.
   const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  if (labsQuotaFor(agency?.plan as string | null, 'video') === 0) return json({ error: 'upgrade_required' }, 403)
+  // La porte des générations, à l'identique : les quotas par genre sont partis avec
+  // l'arrivée des crédits (`labsQuotaFor` n'existe plus), il ne reste que le plan.
+  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
 
   if (tropVite(user.id)) return json({ error: 'too_many_previews' }, 429)
 
