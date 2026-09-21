@@ -3,6 +3,13 @@
      Les 3 premiers templates (megga_followup / megga_availability / megga_new_listings)
      ont été soumis à Meta le même jour et ne sont pas rediscutés ici. -->
 
+> ⚠ **21.09.2026 : `new_listings` est RETIRÉ du registre** (`_shared/whatsapp-templates.ts`), de sa
+> branche de finalité dans `whatsapp-webhook` et du plan de soumission. Décision de Julien : le
+> matching reste chez l'agent, le CRM n'envoie plus de biens au client (conception
+> `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md`). Le modèle
+> `megga_new_listings` existe encore côté Meta : le supprimer dans le Business Manager est un geste
+> de Julien. Les mentions de `new_listings` plus bas décrivent l'état du 14.08.2026.
+
 # WhatsApp — catalogue de templates : retenus, écartés, et ce qui bloque
 
 **Verdict en une ligne :** 6 retenus sur 9, **aucun n'était correct tel que rédigé** (les 6 sont des corps réécrits), 3 écartés, **0 activable aujourd'hui**, et **rien n'est soumissible avant d'avoir tranché la convention de nommage**. Plusieurs preuves du catalogue initial étaient fausses ; elles sont corrigées au fil du texte.

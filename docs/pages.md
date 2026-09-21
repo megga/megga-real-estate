@@ -65,7 +65,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
-| `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche) |
+| `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche). Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur |
 | `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
@@ -116,7 +116,6 @@ Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 |---|---|
 | `/kyc/:token` | Formulaire KYC client |
 | `/kyc-report/:token` | Rendu du rapport KYC |
-| `/reception/:token` | Réception acquéreur |
 | `/visit/:id/edit` · `/feedback` | Gestion et retour de visite |
 | `/accept-invite/:token` | Acceptation d'invitation |
 | `/rendez-vous/:token` | Gestion de l'appel d'accueil (replanifier, annuler) |
@@ -201,6 +200,7 @@ propre vitrine : c'est la direction **unique** du CRM depuis le 10.08.2026 (PR #
 | Help Center SPA (12 pages `/help/*`) | Retiré 20.07.2026 → Intercom. |
 | Compte acheteur (favoris, recherches, messagerie) | Retiré. |
 | Réseau inter-agences | Jamais construit ; prototype supprimé. |
+| Réception acquéreur (`/reception/:token`) et tout envoi du matching à l'acheteur | Retirés 21.09.2026 (décision de Julien : le matching reste chez l'agent ; 0 lien jamais créé). Garde : `tests/unit/matching-sans-sortie.spec.ts`. |
 | Onboarding post-login | Retiré 18.07.2026 (agence solo créée au signup). |
 | 2FA | N'existe pas — malgré ce qu'affirme `docs/design-system.md`. |
 | Annuaire agents/agences | Retiré ; moissonnage coupé le 20.07.2026. |

@@ -383,9 +383,10 @@ charge quatre familles — Inter Tight, Manrope, DM Sans, Plus Jakarta Sans — 
 une seule habille le CRM. Échelle : les 13 barreaux `--crm-text-*` (11 → 38 px),
 pas des noms de taille Tailwind.
 
-**🌐 LA FACE PUBLIQUE — ce que le CLIENT voit** (portée le 15 août 2026). Quatre
-surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`,
-`/accept-invite/:token`. Elles suivent MEGGA X, avec **trois écarts assumés** :
+**🌐 LA FACE PUBLIQUE — ce que le CLIENT voit** (portée le 15 août 2026). Trois
+surfaces sans compte à jeton dans le chemin : `/kyc/:token`, `/rendez-vous/:token`,
+`/accept-invite/:token` (quatre jusqu'au 21.09.2026 : `/reception/:token` est retirée,
+voir plus bas). Elles suivent MEGGA X, avec **trois écarts assumés** :
 
 1. **Manrope**, pas Inter Tight — décision Julien. ⚠ Cette ligne disait « c'est,
    avec le dégradé bleuté, **la seule chose qui distingue ces écrans du CRM** » :
@@ -410,12 +411,16 @@ surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`
    une signature), `'Cormorant Garamond'` (la police que l'AGENT CHOISIT pour sa
    galerie — une donnée saisie, pas un choix de direction).
 2. **Mono-thème.** Zéro `dark` / `prefers-color-scheme` / `matchMedia` sur les six
-   fichiers ; les deux gardes le DISENT et rougiront le jour où ça change.
+   fichiers que lit `mlk-contraste.spec.ts` (les cinq consommateurs de `MLK` et
+   `mlkTokens.ts`) ; la garde le DIT et rougira le jour où ça change. Elles étaient
+   deux jusqu'au 21.09.2026 : `rc-contraste.spec.ts` gardait la réception acheteur,
+   et il est parti avec elle.
 3. `inkSoft` / `soft` = `#3A3D44`, hors échelle par **mesure** (n400 est à 1,16:1
    de n100 en clair — un doublon, pas un cran). Même valeur qu'Analytics.
 
-Deux objets de jetons, deux specs : `MLK` (kyc-magic-link, 2 surfaces) et `RC`
-(réception acheteur). ⛔ Le cliquet de grammaire **ne lisait pas du tout** ce
+Un objet de jetons, une spec : `MLK` (kyc-magic-link, 2 surfaces). ⚠ Il y en avait
+deux jusqu'au 21.09.2026 : `RC` (réception acheteur) est parti avec sa page et sa
+spec, `rc-contraste.spec.ts`. ⛔ Le cliquet de grammaire **ne lisait pas du tout** ce
 dossier avant ce chantier, et sa clause « aucun élément cliquable peint en encre »
 y est **aveugle par le nom** — elle cherche `…ink`, le jeton s'appelait `black`.
 La règle est donc gardée dans `mlk-contraste.spec.ts`, testée sur la **valeur**.
@@ -426,8 +431,16 @@ n'importait AUCUN jeton et portait 23 couleurs de palette Tailwind brute. C'est
 vrai depuis le 15 août 2026 : elle est portée, et **deux autres pages clientes
 l'ont rejointe** — `/visit/:id/edit` et `/visit/:id/feedback`, que cette section
 ne comptait pas parce qu'elles ne prennent pas leur jeton dans le chemin mais
-dans la QUERY. La face publique fait donc **SIX** surfaces sans compte, pas
+dans la QUERY. La face publique faisait donc **SIX** surfaces sans compte, pas
 quatre.
+
+⛔ **ELLE EN FAIT CINQ DEPUIS LE 21.09.2026** : `/reception/:token`, la page où
+l'acheteur réagissait aux biens que l'agent lui envoyait, est retirée avec ses trois
+fonctions serveur (`buyer-reception-*`) et sa table. Décision de Julien : le matching
+reste chez l'agent, rien de ce qu'il produit ne part plus vers l'acheteur (mesuré ce
+jour-là en production : 0 lien de réception jamais créé). La garde
+[matching-sans-sortie.spec.ts](tests/unit/matching-sans-sortie.spec.ts) refuse son
+retour ; cerveau `megga/matching-sans-sortie`.
 
 ⛔ **DEUX ENCRES SÉMANTIQUES ÉTAIENT SOUS L'AA sur ces pages**, et c'est mesuré,
 pas préféré : `text-red-500` rendait **3,76:1** sur carte blanche et
@@ -449,7 +462,8 @@ contraste. Les étoiles de notation restent hors seuil **par écrit** : aucune
 teinte dorée n'atteint 3:1 sur blanc sans virer au brun, et c'est la POSITION de
 la coupure dans une rangée de cinq qui porte l'information.
 
-🧪 **Banc : `/dev/public` monte les SIX surfaces**, trois états chacune. ⚠ Les
+🧪 **Banc : `/dev/public` monte les CINQ surfaces** (six jusqu'au 21.09.2026 : la
+« Réception acheteur » est partie avec sa page), trois états chacune. ⚠ Les
 deux visites ne se branchent pas comme les autres — elles lisent une RPC
 (`get_visit_by_token`, la lecture directe de `visits` ayant été retirée en
 juillet 2026) et prennent leur jeton dans la QUERY. Une route de banc en
@@ -549,6 +563,7 @@ useEffect(() => {
 - Une clé de stockage navigateur qui appartient à un utilisateur hors du registre `STOCKAGE_PAR_COMPTE` (`src/lib/stockageParCompte.ts`) — elle survivrait à la déconnexion et s'afficherait au compte suivant
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
+- Faire partir du MATCHING quoi que ce soit vers l'acheteur (lien, e-mail, WhatsApp) — il reste chez l'agent, qui présente les biens par ses propres moyens et consigne (« Je l'ai proposé »). Décision de Julien du 21.09.2026, gardée par `tests/unit/matching-sans-sortie.spec.ts`
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
 - ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (127 sites contre 11, mesuré le 05.09.2026)
 - Ombres sur bentos
@@ -612,7 +627,7 @@ idx_market_listings_tx_type_status ON market_listings (transaction_type, status,
 const channelId = useId()
 const channel = supabase.channel(`nom-${channelId}`)
 ```
-Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente était fausse aux deux tiers** : elle nommait `useAdminNotifications.ts` et `useMessaging.ts`, qui **n'existent plus dans `src/`**. Les abonnements vivants sont désormais **six** (05.09.2026) : `useAdminLiveFeed.ts`, `useAgentNotifications.ts`, `useVisitDetail.ts`, `useContactSentMatches.ts`, `useRealtimeHealth.ts` et `useMailRealtime.ts` (messagerie, sur `mail_threads`) — tous en `useId()`. ⚠ Un fichier nommé ici qui n'existe pas est pire qu'une absence de liste : il donne l'illusion d'un inventaire, et personne ne rouvre un inventaire.
+Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente était fausse aux deux tiers** : elle nommait `useAdminNotifications.ts` et `useMessaging.ts`, qui **n'existent plus dans `src/`**. Les abonnements vivants sont désormais **six** (05.09.2026) : `useAdminLiveFeed.ts`, `useAgentNotifications.ts`, `useVisitDetail.ts`, `useContactSentMatches.ts` (« Sa boucle » de la fiche contact, sur `matches` : depuis le 21.09.2026 il fait apparaître une réponse **consignée par un collègue**, plus une réaction de l'acheteur — sa page de réception est retirée), `useRealtimeHealth.ts` et `useMailRealtime.ts` (messagerie, sur `mail_threads`) — tous en `useId()`. ⚠ Un fichier nommé ici qui n'existe pas est pire qu'une absence de liste : il donne l'illusion d'un inventaire, et personne ne rouvre un inventaire.
 
 ### Formatters type-defensive
 `formatCHF(amount)` et `formatRent(amount)` acceptent `number | string | null | undefined`. Retournent `'CHF —'` pour les valeurs invalides. Ne JAMAIS appeler `.toFixed()` directement sur une valeur de formulaire.
@@ -672,7 +687,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching (chez l'agent seul depuis le 21.09.2026 : « Je l'ai proposé », « J'ai relancé », « Pas intéressé » consignent, rien ne part vers l'acheteur), Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
 
 **Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
 mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
@@ -849,9 +864,11 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > repli `APP_URL`, et fige la valeur dans une `const` de module).
 
 > ✅ **`MEGGA_MAGIC_LINK_HMAC_SECRET` EST configuré** (mesuré le 03.08.2026) — il manquait
-> simplement à cet inventaire. Il signe les jetons publics du lien magique KYC ET des liens
-> de réception acheteur (`_shared/magic-link-token.ts`, ≥ 32 caractères exigés à la
-> signature). Sans lui, les deux parcours échouent **fermé** — `verifyMagicLinkToken` rend
+> simplement à cet inventaire. Il signe les jetons publics du lien magique KYC et, par le
+> même module, ceux du rendez-vous, de l'opt-in WhatsApp, de la désinscription et du rapport
+> KYC (`_shared/magic-link-token.ts`, ≥ 32 caractères exigés à la signature). ⚠ Il signait
+> aussi les liens de réception acheteur : retirés le 21.09.2026 avec l'envoi au client,
+> aucun n'avait jamais été émis. Sans lui, ces parcours échouent **fermé** — `verifyMagicLinkToken` rend
 > `no_secret` et tout lien est refusé — donc son absence casse la fonctionnalité sans ouvrir
 > de faille.
 >
