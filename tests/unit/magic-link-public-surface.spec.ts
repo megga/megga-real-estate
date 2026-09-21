@@ -27,8 +27,6 @@ const PORTEURS_ATTENDUS = [
   'appointment-book',
   'appointment-manage',
   'appointment-slots',
-  'buyer-reception-get',
-  'buyer-reception-react',
   'email-unsubscribe',
   'kyc-report-data',
   'magic-link-confirm',

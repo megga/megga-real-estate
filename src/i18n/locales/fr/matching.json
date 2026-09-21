@@ -65,9 +65,6 @@
       "title": "Proches des critères",
       "note": "1 critère assoupli"
     },
-    "send_one": "Envoyer {{count}} bien à {{name}}",
-    "send_other": "Envoyer {{count}} biens à {{name}}",
-    "sendSoon": "Envoi de la sélection depuis la recherche, bientôt disponible.",
     "card": {
       "estimate": "À estimer",
       "perMonth": "/mois",
@@ -165,18 +162,15 @@
       "nearHere": "Aucune dans les critères · biens proches"
     },
     "slow": "La recherche prend anormalement longtemps.",
-    "blocked": "La recherche n’a pas pu démarrer."
-  },
-  "sendSheet": {
-    "title": "Envoyer à {{name}}",
-    "body": "Lien privé, sans email. Les retours de {{firstName}} reviennent dans sa fiche.",
-    "whatsapp": "Envoyer par WhatsApp",
-    "copyLink": "Copier le lien",
-    "copied": "Lien copié",
-    "preview": "Ouvrir l'aperçu acheteur",
-    "error": "Impossible de préparer le lien. Réessayez.",
-    "noPhone": "Ce contact n'a pas de numéro. Copiez le lien pour le lui envoyer.",
-    "waMessage": "Bonjour {{firstName}}, voici une sélection de biens pour vous : {{url}}"
+    "blocked": "La recherche n’a pas pu démarrer.",
+    "ajouter": "Ajouter à la sélection de {{prenom}}",
+    "ajoute_one": "{{count}} bien ajouté à la sélection de {{prenom}}",
+    "ajoute_other": "{{count}} biens ajoutés à la sélection de {{prenom}}",
+    "dejaPresents_one": "{{count}} déjà dans ses matchs",
+    "dejaPresents_other": "{{count}} déjà dans ses matchs",
+    "dejaHorsFile_one": "dont {{count}} écarté ou reporté, laissé tel quel",
+    "dejaHorsFile_other": "dont {{count}} écartés ou reportés, laissés tels quels",
+    "ajoutErreur": "Les biens n'ont pas pu être ajoutés. Réessayez."
   },
   "runMatching": "Lancer le matching",
   "running": "Analyse en cours...",
@@ -184,13 +178,13 @@
   "market": "Marché",
   "kpi": {
     "totalMatches": "Total matchs",
-    "toSend": "À envoyer",
+    "toSend": "À proposer",
     "sent": "Envoyés",
     "contacts": "Contacts"
   },
   "filter": {
     "all": "Tous",
-    "suggested": "À envoyer",
+    "suggested": "À proposer",
     "sentLabel": "Envoyés",
     "internal": "Interne",
     "marketLabel": "Marché",
@@ -255,7 +249,7 @@
   },
   "tabs": {
     "all": "Tous",
-    "to-send": "À envoyer",
+    "to-send": "À proposer",
     "engaged": "Engagé",
     "no-reply": "Sans retour"
   },
@@ -263,7 +257,7 @@
     "daysAgo_one": "il y a {{count}} jour",
     "daysAgo_other": "il y a {{count}} jours",
     "recently": "récemment",
-    "noReply": "Dossier envoyé {{age}}, sans réaction. Tenter un autre canal, téléphone ou WhatsApp.",
+    "noReply": "Proposé {{age}}, sans retour consigné. Relancer par téléphone ou WhatsApp.",
     "engagedVisit": "Visite déjà planifiée. Préparer le bon de visite et les points forts du bien.",
     "engaged": "{{engage}}, relance à chaud, c'est le moment de proposer une visite.",
     "aligned": "Profil aligné sur tous les axes. {{kyc}}",
@@ -271,8 +265,8 @@
     "twoPos": "{{a}} et {{b}} alignés. {{kyc}}",
     "default": "Match à {{score}}/100 sur les critères actifs. {{kyc}}",
     "kycPhrase": {
-      "verified": "Aucun frein KYC, dossier envoyable immédiatement.",
-      "pending": "KYC en cours, sans blocage pour l'envoi.",
+      "verified": "Aucun frein KYC, bien à proposer sans attendre.",
+      "pending": "KYC en cours, sans blocage pour proposer.",
       "stale": "Vérification KYC expirée, à re-screener avant une offre.",
       "none": "KYC non démarré, rappel doux, non bloquant à ce stade."
     }
@@ -367,7 +361,6 @@
     "start": "Démarrer",
     "interested": "Intéressé",
     "notInterested": "Pas intéressé",
-    "followUpOtherChannel": "Relancer · autre canal",
     "proposeVisit": "Proposer une visite",
     "dismiss": "Écarter",
     "later": "Plus tard",
@@ -388,13 +381,12 @@
     "reactivateNow": "Réactiver maintenant",
     "backOn": "De retour le {{date}}",
     "seeDeal": "Voir le deal →",
-    "toastSentBuyer": "Dossier transmis à {{name}} · {{title}} · ajouté à son dossier client",
+    "toastSentBuyer": "{{title}} proposé à {{name}} · rappel dans 3 jours",
     "toastLaterListing": "Plus tard · {{title}} reviendra le {{date}}",
     "toastDismissedBuyer": "{{title}} écarté pour {{name}}",
     "toastBackInQueue": "{{title}} est de retour dans la file",
     "neighborhoodLabel": "quartier {{area}}",
     "mapAlt": "Carte, {{address}}",
-    "defaultAgentName": "Votre agent MEGGA",
     "closeAtelier": "Fermer l'atelier",
     "buyerTitle": "Matching de l'acheteur",
     "listingTitle": "Matching de l'annonce",
@@ -431,8 +423,8 @@
       "desc": "Tous les acheteurs de cet onglet ont été triés. Changez d'onglet."
     },
     "toast": {
-      "sent": "Dossier transmis à {{name}} · ajouté à son dossier client",
-      "relance": "Relance envoyée à {{name}} · consignée dans son dossier",
+      "sent": "Proposé à {{name}} · rappel dans 3 jours",
+      "relance": "Relance de {{name}} consignée · rappel dans 3 jours",
       "later": "Plus tard · {{name}} reviendra dans la file le {{date}}",
       "interested": "{{name}} · intéressé·e, réactivité consignée",
       "rejected": "{{name}} · pas intéressé·e",
@@ -440,7 +432,7 @@
       "backInQueue": "{{name}} est de retour dans la file",
       "seeDeal": "Voir le deal →"
     },
-    "sendDossier": "Envoyer le dossier",
+    "sendDossier": "Je l'ai proposé",
     "priceBefore": "Avant",
     "queueSortedBy": "triée par",
     "sortByMatch": "force du match",
@@ -450,7 +442,8 @@
     "scheduleThisWeek": "Cette semaine",
     "scheduleLater": "Ensuite",
     "resume": "Reprendre",
-    "changeDate": "Changer"
+    "changeDate": "Changer",
+    "followedUp": "J'ai relancé"
   },
   "cockpit": {
     "switchTitle": "Matcher une autre annonce",
@@ -464,43 +457,29 @@
     "queueDone": "File traitée"
   },
   "confirm": {
-    "sendTitle": "Transmettre le dossier",
-    "followUpTitle": "Relancer",
-    "sendQuestion": "Transmettre le dossier ?",
-    "followUpQuestion": "Relancer {{name}} ?",
-    "sendBody": "Le dossier complet du bien sera déposé dans le dossier client de {{firstName}}, avec notification. Le tout est consigné automatiquement dans sa fiche.",
-    "followUpBody": "Une relance douce sera déposée dans le dossier client de {{firstName}}, avec le bien en rappel. Le tout est consigné automatiquement dans sa fiche.",
-    "sendCta": "Transmettre",
-    "followUpCta": "Relancer",
-    "successSendTitle": "Dossier transmis",
-    "successFollowUpTitle": "Relance envoyée",
-    "successSendBody": "Déposé dans le dossier client de {{name}} · notification envoyée.",
-    "successFollowUpBody": "{{name}} a reçu un rappel · consigné dans son dossier client."
+    "sendTitle": "Je l'ai proposé",
+    "followUpTitle": "J'ai relancé",
+    "sendQuestion": "Je l'ai proposé à {{firstName}} ?",
+    "followUpQuestion": "J'ai relancé {{name}} ?",
+    "sendBody": "Rien n'est envoyé à {{firstName}} : le CRM consigne la proposition dans sa fiche et vous rappelle dans 3 jours de noter sa réponse.",
+    "followUpBody": "Rien n'est envoyé à {{firstName}} : le CRM consigne votre relance dans sa fiche et repousse le rappel de 3 jours.",
+    "sendCta": "Je l'ai proposé",
+    "followUpCta": "J'ai relancé",
+    "successSendTitle": "Proposition consignée",
+    "successFollowUpTitle": "Relance consignée",
+    "successSendBody": "Proposé à {{name}} · rappel dans 3 jours.",
+    "successFollowUpBody": "{{name}} · rappel dans 3 jours."
   },
   "panel": {
     "loading": "Chargement des matchs...",
     "loadError": "Erreur lors du chargement",
     "suggestionCount_one": "{{count}} suggestion",
     "suggestionCount_other": "{{count}} suggestions",
-    "sentCount_one": "{{count}} envoyé",
-    "sentCount_other": "{{count}} envoyés",
     "searchCompatible": "Chercher des biens compatibles",
     "matchesFound_one": "{{count}} nouveau match trouvé",
     "matchesFound_other": "{{count}} nouveaux matchs trouvés",
     "emptyTitle": "Aucun bien compatible trouvé",
     "emptyDesc": "Lancez la recherche ou ajoutez des critères de recherche au contact."
-  },
-  "send": {
-    "fallbackName": "Contact",
-    "title": "Envoyer le bien à {{name}}",
-    "description": "{{title}} - {{price}}, Score {{score}}%",
-    "channelLabel": "Canal d'envoi",
-    "messageLabel": "Message",
-    "error": "Erreur lors de l'envoi. Réessayez.",
-    "template": {
-      "whatsapp": "Bonjour {{firstName}}, j'ai un bien qui pourrait vous intéresser : {{title}}, {{address}} à {{city}}. Prix : {{price}}. {{rooms}} pièces, {{surface}} m². Souhaitez-vous planifier une visite ?",
-      "email": "Bonjour {{firstName}},\n\nSuite à notre échange, j'ai le plaisir de vous présenter un bien qui correspond à vos critères :\n\n{{title}}\n{{address}}, {{city}}\nPrix : {{price}}\n{{rooms}} pièces · {{surface}} m²\n\nSouhaitez-vous organiser une visite ? Je reste à votre disposition.\n\nCordialement,\nGregory Lyonnet\nMEGGA Immobilier"
-    }
   },
   "mobile": {
     "activeBuyers_one": "{{count}} acheteur actif",
@@ -511,17 +490,15 @@
     "schedule": "Planifier",
     "visitPlanned": "Visite planifiée",
     "visitProposed": "Visite proposée",
-    "send": "Envoyer",
-    "sent": "Envoyé",
+    "send": "Je l'ai proposé",
+    "sent": "Proposé",
     "surfaceSuffix": "m²",
     "roomsSuffix": "pces",
-    "channelEmail": "Par e-mail · {{email}}",
-    "channelNone": "Transmis au dossier client",
     "viewContact": "Voir le contact",
     "refine": "Affiner les critères",
     "removeFromList": "Retirer de la liste",
     "removeTitle": "Retirer de la liste ?",
-    "removeBody": "{{name}} ne recevra plus de propositions issues de cette recherche.",
+    "removeBody": "Ces biens ne vous seront plus suggérés pour {{name}}.",
     "emptyFilter": "Aucun acheteur dans ce filtre.",
     "verdict": {
       "excellent": "Excellent",
@@ -542,5 +519,162 @@
       "recommended": "Conseillé",
       "save": "Enregistrer"
     }
+  },
+  "fil": {
+    "titre": "Matching",
+    "aTraiter": "À traiter · {{count}}",
+    "chargement": "Chargement des matchs",
+    "filtres": {
+      "bien": "Filtrer par bien",
+      "tousLesBiens": "Tous les biens",
+      "acheteur": "Filtrer par acheteur",
+      "tousLesAcheteurs": "Tous les acheteurs",
+      "recherche": "Rechercher un bien ou un acheteur",
+      "retirer": "Retirer les filtres",
+      "inconnu": "Sélection actuelle"
+    },
+    "vosBiens": "Vos biens",
+    "listeAria": "Matchs à traiter",
+    "acheteurs_one": "{{count}} acheteur",
+    "acheteurs_other": "{{count}} acheteurs",
+    "sansEcart": "Aucun écart signalé",
+    "ecartSur": "{{critere}} à vérifier",
+    "nonEvalues": "Critères non évalués",
+    "sansCriteres": "Aucun critère détaillé",
+    "reportes_one": "{{count}} reporté · de retour dès le {{date}}",
+    "reportes_other": "{{count}} reportés · de retour dès le {{date}}",
+    "deRetour": "de retour le {{date}}",
+    "reactiver": "Réactiver",
+    "votreBien": "Votre bien",
+    "voirBien": "Voir le bien",
+    "sansPhoto": "Pas de photo",
+    "estimation": "estimation",
+    "scoreAria": "Score {{score}}, estimation · {{palier}}",
+    "palier": {
+      "fort": "très proche",
+      "bon": "proche",
+      "possible": "à examiner"
+    },
+    "kyc": {
+      "verified": "KYC vérifié",
+      "pending": "KYC en cours",
+      "stale": "KYC à renouveler",
+      "none": "KYC à compléter"
+    },
+    "panneauAria": "{{acheteur}} pour {{bien}}",
+    "pourquoi": "Pourquoi ce match",
+    "colonnes": {
+      "critere": "Critère",
+      "recherche": "Recherché",
+      "bien": "Ce bien",
+      "verdict": "Verdict"
+    },
+    "criteres": {
+      "budget": "Budget",
+      "zone": "Quartier",
+      "type": "Type",
+      "pieces": "Pièces",
+      "surface": "Surface",
+      "equipements": "Équipements"
+    },
+    "correspond": "Correspond",
+    "ecart": "Écart",
+    "valeurs": {
+      "entre": "{{min}} à {{max}}",
+      "jusqua": "jusqu'à {{valeur}}",
+      "desDe": "dès {{valeur}}",
+      "auMoins": "{{valeur}} et plus",
+      "auPlus": "{{valeur}} au plus",
+      "m2": "{{valeur}} m²",
+      "parMois": "{{valeur}} / mois",
+      "presents": "{{n}} sur {{total}}",
+      "inconnu": "Non renseigné"
+    },
+    "types": {
+      "apartment": "Appartement",
+      "house": "Maison",
+      "villa": "Villa",
+      "office": "Bureau",
+      "commercial": "Commercial",
+      "parking": "Parking",
+      "storage": "Dépôt",
+      "land": "Terrain"
+    },
+    "equipementsNoms": {
+      "balcon": "Balcon",
+      "terrasse": "Terrasse",
+      "jardin": "Jardin",
+      "ascenseur": "Ascenseur",
+      "cave": "Cave",
+      "parking": "Parking",
+      "garage": "Garage",
+      "piscine": "Piscine",
+      "cheminee": "Cheminée",
+      "climatisation": "Climatisation",
+      "parquet": "Parquet",
+      "vue-lac": "Vue lac",
+      "vue": "Vue",
+      "place-de-parc": "Place de parc",
+      "clim": "Climatisation"
+    },
+    "historique": {
+      "aucun": "Déjà proposé à {{prenom}} : aucun bien",
+      "proposes_one": "Déjà proposé à {{prenom}} : {{count}} bien",
+      "proposes_other": "Déjà proposé à {{prenom}} : {{count}} biens",
+      "interesses_one": " · {{count}} intéressé",
+      "interesses_other": " · {{count}} intéressés"
+    },
+    "actions": {
+      "proposer": "Je l'ai proposé à {{prenom}}",
+      "plusTard": "Plus tard",
+      "ecarter": "Écarter",
+      "raccourci": "Raccourci : {{touche}}"
+    },
+    "reporte": "{{nom}} reporté·e d'une semaine",
+    "ecarte": "{{nom}} écarté·e pour ce bien",
+    "annuler": "Annuler",
+    "erreurGeste": "Le geste n'a pas pu être enregistré. Réessayez.",
+    "vide": {
+      "titre": "Tout est à jour",
+      "texte": "Aucun de vos biens n'attend d'être proposé.",
+      "contacts": "Compléter la recherche d'un contact",
+      "marche": "Voir le marché"
+    },
+    "filtreVide": "Rien ne correspond à ces filtres.",
+    "choisir": "Choisissez un match dans la liste.",
+    "erreur": "Les matchs n'ont pas pu être chargés.",
+    "erreurRafraichir": "La liste n'a pas pu être actualisée.",
+    "reessayer": "Réessayer",
+    "marche": "Marché · une sélection par acheteur",
+    "marcheAria": "Sélections du marché",
+    "ecarteSelection": "« {{titre}} » écarté pour {{prenom}}",
+    "selection": {
+      "ligne_one": "{{count}} bien pas encore proposé",
+      "ligne_other": "{{count}} biens pas encore proposés",
+      "titreAria": "Sélection du marché pour {{nom}}",
+      "marche": "Marché",
+      "recherche": "Recherche : {{resume}}",
+      "inclure": "Inclure « {{titre}} »",
+      "ecarterAria": "Écarter « {{titre}} »",
+      "ecarts": "À vérifier : {{liste}}",
+      "pieces_one": "{{valeur}} pièce",
+      "pieces_other": "{{valeur}} pièces",
+      "piecesAuMoins_one": "{{valeur}} pièce et plus",
+      "piecesAuMoins_other": "{{valeur}} pièces et plus",
+      "piecesAuPlus_one": "{{valeur}} pièce au plus",
+      "piecesAuPlus_other": "{{valeur}} pièces au plus",
+      "piecesEntre_one": "{{min}} à {{max}} pièce",
+      "piecesEntre_other": "{{min}} à {{max}} pièces",
+      "voirPlus": "Voir 20 de plus",
+      "aucunCoche": "Cochez au moins un bien.",
+      "vide": "Aucun bien du marché à proposer.",
+      "erreur": "La sélection n'a pas pu être chargée.",
+      "proposer_one": "J'ai proposé {{count}} bien à {{prenom}}",
+      "proposer_other": "J'ai proposé {{count}} biens à {{prenom}}",
+      "proposerAucun": "Je les ai proposés à {{prenom}}"
+    },
+    "propose": "Proposé à {{prenom}} · rappel dans 3 jours",
+    "proposeSelection_one": "{{count}} bien proposé à {{prenom}} · rappel dans 3 jours",
+    "proposeSelection_other": "{{count}} biens proposés à {{prenom}} · rappel dans 3 jours"
   }
 }

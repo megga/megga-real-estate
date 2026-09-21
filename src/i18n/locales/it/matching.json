@@ -62,9 +62,6 @@
       "title": "Vicini ai criteri",
       "note": "1 criterio allentato"
     },
-    "send_one": "Invia {{count}} immobile a {{name}}",
-    "send_other": "Invia {{count}} immobili a {{name}}",
-    "sendSoon": "Invio della selezione dalla ricerca, presto disponibile.",
     "card": {
       "estimate": "Da stimare",
       "perMonth": "/mese",
@@ -160,7 +157,15 @@
       "zoomIn": "Ingrandisci",
       "zoomOut": "Riduci",
       "nearHere": "Nessuno nei criteri · immobili vicini"
-    }
+    },
+    "ajouter": "Aggiungi alla selezione di {{prenom}}",
+    "ajoute_one": "{{count}} immobile aggiunto alla selezione di {{prenom}}",
+    "ajoute_other": "{{count}} immobili aggiunti alla selezione di {{prenom}}",
+    "dejaPresents_one": "{{count}} già tra le sue corrispondenze",
+    "dejaPresents_other": "{{count}} già tra le sue corrispondenze",
+    "dejaHorsFile_one": "di cui {{count}} scartato o rinviato, lasciato invariato",
+    "dejaHorsFile_other": "di cui {{count}} scartati o rinviati, lasciati invariati",
+    "ajoutErreur": "Non è stato possibile aggiungere gli immobili. Riprovi."
   },
   "runMatching": "Avvia matching",
   "running": "Analisi in corso...",
@@ -168,13 +173,13 @@
   "market": "Mercato",
   "kpi": {
     "totalMatches": "Match totali",
-    "toSend": "Da inviare",
+    "toSend": "Da proporre",
     "sent": "Inviati",
     "contacts": "Contatti"
   },
   "filter": {
     "all": "Tutti",
-    "suggested": "Da inviare",
+    "suggested": "Da proporre",
     "sentLabel": "Inviati",
     "internal": "Interno",
     "marketLabel": "Mercato",
@@ -223,7 +228,7 @@
   },
   "tabs": {
     "all": "Tutti",
-    "to-send": "Da inviare",
+    "to-send": "Da proporre",
     "engaged": "Coinvolto",
     "no-reply": "Senza risposta"
   },
@@ -231,7 +236,7 @@
     "daysAgo_one": "{{count}} giorno fa",
     "daysAgo_other": "{{count}} giorni fa",
     "recently": "di recente",
-    "noReply": "Dossier inviato {{age}}, nessuna reazione. Provi un altro canale, telefono o WhatsApp.",
+    "noReply": "Proposto {{age}}, nessuna risposta registrata. Ricontatti per telefono o WhatsApp.",
     "engagedVisit": "Visita già pianificata. Prepari il modulo di visita e i punti di forza dell'immobile.",
     "engaged": "{{engage}}, sollecito a caldo, è il momento di proporre una visita.",
     "aligned": "Profilo allineato su tutti i fronti. {{kyc}}",
@@ -239,8 +244,8 @@
     "twoPos": "{{a}} e {{b}} allineati. {{kyc}}",
     "default": "Match a {{score}}/100 sui criteri attivi. {{kyc}}",
     "kycPhrase": {
-      "verified": "Nessun ostacolo KYC, dossier pronto per l'invio immediato.",
-      "pending": "KYC in corso, nessun blocco per l'invio.",
+      "verified": "Nessun ostacolo KYC, immobile da proporre subito.",
+      "pending": "KYC in corso, nessun blocco per la proposta.",
       "stale": "Verifica KYC scaduta, da riverificare prima di un'offerta.",
       "none": "KYC non avviato, promemoria gentile, non bloccante in questa fase."
     }
@@ -327,7 +332,6 @@
     "start": "Avvia",
     "interested": "Interessato",
     "notInterested": "Non interessato",
-    "followUpOtherChannel": "Sollecita · altro canale",
     "proposeVisit": "Proponi una visita",
     "dismiss": "Scarta",
     "later": "Più tardi",
@@ -348,13 +352,12 @@
     "reactivateNow": "Riattiva ora",
     "backOn": "Di ritorno il {{date}}",
     "seeDeal": "Vedi il deal →",
-    "toastSentBuyer": "Dossier trasmesso a {{name}} · {{title}} · aggiunto al suo fascicolo cliente",
+    "toastSentBuyer": "{{title}} proposto a {{name}} · promemoria tra 3 giorni",
     "toastLaterListing": "Più tardi · {{title}} tornerà il {{date}}",
     "toastDismissedBuyer": "{{title}} scartato per {{name}}",
     "toastBackInQueue": "{{title}} è di nuovo in coda",
     "neighborhoodLabel": "quartiere {{area}}",
     "mapAlt": "Mappa, {{address}}",
-    "defaultAgentName": "Il Suo agente MEGGA",
     "closeAtelier": "Chiudi lo spazio di lavoro",
     "buyerTitle": "Matching dell'acquirente",
     "listingTitle": "Matching dell'annuncio",
@@ -371,8 +374,8 @@
       "desc": "Tutti gli acquirenti di questa scheda sono stati smistati. Passi a un'altra scheda."
     },
     "toast": {
-      "sent": "Dossier trasmesso a {{name}} · aggiunto al suo fascicolo cliente",
-      "relance": "Sollecito inviato a {{name}} · registrato nel suo fascicolo",
+      "sent": "Proposto a {{name}} · promemoria tra 3 giorni",
+      "relance": "Ricontatto di {{name}} registrato · promemoria tra 3 giorni",
       "later": "Più tardi · {{name}} tornerà in coda il {{date}}",
       "interested": "{{name}} · interessato/a, reattività registrata",
       "rejected": "{{name}} · non interessato/a",
@@ -408,7 +411,7 @@
       "desc": "Si è verificato un errore durante il caricamento dello spazio di lavoro. Riprovi.",
       "retry": "Riprova"
     },
-    "sendDossier": "Invia il dossier",
+    "sendDossier": "L'ho proposto",
     "priceBefore": "Prima",
     "queueSortedBy": "ordinata per",
     "sortByMatch": "forza del match",
@@ -418,46 +421,33 @@
     "scheduleThisWeek": "Questa settimana",
     "scheduleLater": "Poi",
     "resume": "Riprendi",
-    "changeDate": "Cambia"
+    "changeDate": "Cambia",
+    "followedUp": "Ho ricontattato"
   },
   "confirm": {
-    "sendTitle": "Trasmetti il dossier",
-    "followUpTitle": "Sollecita",
-    "sendQuestion": "Trasmettere il dossier?",
-    "followUpQuestion": "Sollecitare {{name}}?",
-    "sendBody": "Il dossier completo dell'immobile sarà depositato nel fascicolo cliente di {{firstName}}, con notifica. Tutto viene registrato automaticamente nella sua scheda.",
-    "followUpBody": "Un sollecito garbato sarà depositato nel fascicolo cliente di {{firstName}}, con l'immobile come promemoria. Tutto viene registrato automaticamente nella sua scheda.",
-    "sendCta": "Trasmetti",
-    "followUpCta": "Sollecita",
-    "successSendTitle": "Dossier trasmesso",
-    "successFollowUpTitle": "Sollecito inviato",
-    "successSendBody": "Depositato nel fascicolo cliente di {{name}} · notifica inviata.",
-    "successFollowUpBody": "{{name}} ha ricevuto un promemoria · registrato nel suo fascicolo cliente."
+    "sendTitle": "L'ho proposto",
+    "followUpTitle": "Ho ricontattato",
+    "sendQuestion": "L'ho proposto a {{firstName}}?",
+    "followUpQuestion": "Ho ricontattato {{name}}?",
+    "sendBody": "A {{firstName}} non viene inviato nulla: il CRM registra la proposta nella scheda del contatto e Le ricorda tra 3 giorni di annotare la risposta.",
+    "followUpBody": "A {{firstName}} non viene inviato nulla: il CRM registra il Suo ricontatto nella scheda del contatto e rinvia il promemoria di 3 giorni.",
+    "sendCta": "L'ho proposto",
+    "followUpCta": "Ho ricontattato",
+    "successSendTitle": "Proposta registrata",
+    "successFollowUpTitle": "Ricontatto registrato",
+    "successSendBody": "Proposto a {{name}} · promemoria tra 3 giorni.",
+    "successFollowUpBody": "{{name}} · promemoria tra 3 giorni."
   },
   "panel": {
     "loading": "Caricamento dei match...",
     "loadError": "Errore durante il caricamento",
     "suggestionCount_one": "{{count}} suggestion",
     "suggestionCount_other": "{{count}} suggestions",
-    "sentCount_one": "{{count}} inviato",
-    "sentCount_other": "{{count}} inviati",
     "searchCompatible": "Cerca immobili compatibili",
     "matchesFound_one": "{{count}} nuovo match trovato",
     "matchesFound_other": "{{count}} nuovi match trovati",
     "emptyTitle": "Nessun immobile compatibile trovato",
     "emptyDesc": "Avvii la ricerca o aggiunga criteri di ricerca al contatto."
-  },
-  "send": {
-    "fallbackName": "Contact",
-    "title": "Invia l'immobile a {{name}}",
-    "description": "{{title}} - {{price}}, Score {{score}}%",
-    "channelLabel": "Canale di invio",
-    "messageLabel": "Message",
-    "error": "Errore durante l'invio. Riprovi.",
-    "template": {
-      "whatsapp": "Buongiorno {{firstName}}, ho un immobile che potrebbe interessarLe: {{title}}, {{address}} a {{city}}. Prezzo: {{price}}. {{rooms}} locali, {{surface}} m². Desidera fissare una visita?",
-      "email": "Buongiorno {{firstName}},\n\nA seguito del nostro colloquio, ho il piacere di presentarLe un immobile che corrisponde ai Suoi criteri:\n\n{{title}}\n{{address}}, {{city}}\nPrezzo: {{price}}\n{{rooms}} locali · {{surface}} m²\n\nDesidera organizzare una visita? Resto a Sua disposizione.\n\nCordiali saluti,\nGregory Lyonnet\nMEGGA Immobilier"
-    }
   },
   "mobile": {
     "activeBuyers_one": "{{count}} acquirente attivo",
@@ -468,17 +458,15 @@
     "schedule": "Pianifica",
     "visitPlanned": "Visita pianificata",
     "visitProposed": "Visita proposta",
-    "send": "Invia",
-    "sent": "Inviato",
+    "send": "L'ho proposto",
+    "sent": "Proposto",
     "surfaceSuffix": "m²",
     "roomsSuffix": "loc.",
-    "channelEmail": "Via e-mail · {{email}}",
-    "channelNone": "Archiviato nel dossier cliente",
     "viewContact": "Vedi il contatto",
     "refine": "Affina i criteri",
     "removeFromList": "Rimuovi dalla lista",
     "removeTitle": "Rimuovere dalla lista?",
-    "removeBody": "{{name}} non riceverà più proposte da questa ricerca.",
+    "removeBody": "Questi immobili non Le saranno più suggeriti per {{name}}.",
     "emptyFilter": "Nessun acquirente in questo filtro.",
     "verdict": {
       "excellent": "Eccellente",
@@ -504,17 +492,6 @@
     "score": "Matching",
     "recherche": "Ricerca",
     "wheelTo": "Rotellina verso {{label}}"
-  },
-  "sendSheet": {
-    "title": "Invia a {{name}}",
-    "body": "Link privato, senza e-mail. I riscontri di {{firstName}} arrivano nella sua scheda.",
-    "whatsapp": "Invia via WhatsApp",
-    "copyLink": "Copia il link",
-    "copied": "Link copiato",
-    "preview": "Apri l'anteprima acquirente",
-    "error": "Impossibile preparare il link. Riprovi.",
-    "noPhone": "Questo contatto non ha un numero. Copi il link per inviarglielo.",
-    "waMessage": "Buongiorno {{firstName}}, ecco una selezione di immobili per Lei: {{url}}"
   },
   "firstRun": {
     "title": "Il Suo ciclo di match inizia qui",
@@ -542,5 +519,162 @@
     "processed": "{{total}} gestiti",
     "progressAria": "{{done}} di {{total}} acquirenti gestiti",
     "queueDone": "Coda gestita"
+  },
+  "fil": {
+    "titre": "Matching",
+    "aTraiter": "Da gestire · {{count}}",
+    "chargement": "Caricamento dei match",
+    "filtres": {
+      "bien": "Filtra per immobile",
+      "tousLesBiens": "Tutti gli immobili",
+      "acheteur": "Filtra per acquirente",
+      "tousLesAcheteurs": "Tutti gli acquirenti",
+      "recherche": "Cerca un immobile o un acquirente",
+      "retirer": "Rimuovi i filtri",
+      "inconnu": "Selezione attuale"
+    },
+    "vosBiens": "I Suoi immobili",
+    "listeAria": "Match da gestire",
+    "acheteurs_one": "{{count}} acquirente",
+    "acheteurs_other": "{{count}} acquirenti",
+    "sansEcart": "Nessuna differenza segnalata",
+    "ecartSur": "{{critere}} da verificare",
+    "nonEvalues": "Criteri non valutati",
+    "sansCriteres": "Nessun criterio dettagliato",
+    "reportes_one": "{{count}} rinviato · di ritorno dal {{date}}",
+    "reportes_other": "{{count}} rinviati · di ritorno dal {{date}}",
+    "deRetour": "di ritorno il {{date}}",
+    "reactiver": "Riattiva",
+    "votreBien": "Il Suo immobile",
+    "voirBien": "Vedi l'immobile",
+    "sansPhoto": "Nessuna foto",
+    "estimation": "stima",
+    "scoreAria": "Punteggio {{score}}, stima · {{palier}}",
+    "palier": {
+      "fort": "molto vicino",
+      "bon": "vicino",
+      "possible": "da valutare"
+    },
+    "kyc": {
+      "verified": "KYC verificato",
+      "pending": "KYC in corso",
+      "stale": "KYC da rinnovare",
+      "none": "KYC da completare"
+    },
+    "panneauAria": "{{acheteur}} per {{bien}}",
+    "pourquoi": "Perché questo match",
+    "colonnes": {
+      "critere": "Criterio",
+      "recherche": "Cercato",
+      "bien": "Questo immobile",
+      "verdict": "Esito"
+    },
+    "criteres": {
+      "budget": "Budget",
+      "zone": "Zona",
+      "type": "Tipo",
+      "pieces": "Locali",
+      "surface": "Superficie",
+      "equipements": "Dotazioni"
+    },
+    "correspond": "Corrisponde",
+    "ecart": "Differenza",
+    "valeurs": {
+      "entre": "da {{min}} a {{max}}",
+      "jusqua": "fino a {{valeur}}",
+      "desDe": "da {{valeur}}",
+      "auMoins": "{{valeur}} o più",
+      "auPlus": "al massimo {{valeur}}",
+      "m2": "{{valeur}} m²",
+      "parMois": "{{valeur}} / mese",
+      "presents": "{{n}} su {{total}}",
+      "inconnu": "Non indicato"
+    },
+    "types": {
+      "apartment": "Appartamento",
+      "house": "Casa",
+      "villa": "Villa",
+      "office": "Ufficio",
+      "commercial": "Commerciale",
+      "parking": "Parcheggio",
+      "storage": "Deposito",
+      "land": "Terreno"
+    },
+    "equipementsNoms": {
+      "balcon": "Balcone",
+      "terrasse": "Terrazza",
+      "jardin": "Giardino",
+      "ascenseur": "Ascensore",
+      "cave": "Cantina",
+      "parking": "Parcheggio",
+      "garage": "Garage",
+      "piscine": "Piscina",
+      "cheminee": "Camino",
+      "climatisation": "Aria condizionata",
+      "parquet": "Parquet",
+      "vue-lac": "Vista lago",
+      "vue": "Vista",
+      "place-de-parc": "Posto auto",
+      "clim": "Aria condizionata"
+    },
+    "historique": {
+      "aucun": "Già proposto a {{prenom}}: ancora nulla",
+      "proposes_one": "Già proposto a {{prenom}}: {{count}} immobile",
+      "proposes_other": "Già proposto a {{prenom}}: {{count}} immobili",
+      "interesses_one": " · {{count}} interessato",
+      "interesses_other": " · {{count}} interessati"
+    },
+    "actions": {
+      "proposer": "L'ho proposto a {{prenom}}",
+      "plusTard": "Più tardi",
+      "ecarter": "Scarta",
+      "raccourci": "Scorciatoia: {{touche}}"
+    },
+    "reporte": "{{nom}} rinviato di una settimana",
+    "ecarte": "{{nom}} scartato per questo immobile",
+    "annuler": "Annulla",
+    "erreurGeste": "L'azione non è stata registrata. Riprovi.",
+    "vide": {
+      "titre": "Tutto in ordine",
+      "texte": "Nessuno dei Suoi immobili è in attesa di essere proposto.",
+      "contacts": "Completa la ricerca di un contatto",
+      "marche": "Vedi il mercato"
+    },
+    "filtreVide": "Nulla corrisponde a questi filtri.",
+    "choisir": "Scelga un match dall'elenco.",
+    "erreur": "Impossibile caricare i match.",
+    "erreurRafraichir": "Non è stato possibile aggiornare l'elenco.",
+    "reessayer": "Riprova",
+    "marche": "Mercato · una selezione per acquirente",
+    "marcheAria": "Selezioni del mercato",
+    "ecarteSelection": "«{{titre}}» scartato per {{prenom}}",
+    "selection": {
+      "ligne_one": "{{count}} immobile non ancora proposto",
+      "ligne_other": "{{count}} immobili non ancora proposti",
+      "titreAria": "Selezione del mercato per {{nom}}",
+      "marche": "Mercato",
+      "recherche": "Ricerca: {{resume}}",
+      "inclure": "Includi «{{titre}}»",
+      "ecarterAria": "Scarta «{{titre}}»",
+      "ecarts": "Da verificare: {{liste}}",
+      "pieces_one": "{{valeur}} locale",
+      "pieces_other": "{{valeur}} locali",
+      "piecesAuMoins_one": "{{valeur}} locale o più",
+      "piecesAuMoins_other": "{{valeur}} locali o più",
+      "piecesAuPlus_one": "al massimo {{valeur}} locale",
+      "piecesAuPlus_other": "al massimo {{valeur}} locali",
+      "piecesEntre_one": "da {{min}} a {{max}} locale",
+      "piecesEntre_other": "da {{min}} a {{max}} locali",
+      "voirPlus": "Mostra altri 20",
+      "aucunCoche": "Selezioni almeno un immobile.",
+      "vide": "Nessun immobile del mercato da proporre.",
+      "erreur": "Non è stato possibile caricare la selezione.",
+      "proposer_one": "Ho proposto {{count}} immobile a {{prenom}}",
+      "proposer_other": "Ho proposto {{count}} immobili a {{prenom}}",
+      "proposerAucun": "Li ho proposti a {{prenom}}"
+    },
+    "propose": "Proposto a {{prenom}} · promemoria tra 3 giorni",
+    "proposeSelection_one": "{{count}} immobile proposto a {{prenom}} · promemoria tra 3 giorni",
+    "proposeSelection_other": "{{count}} immobili proposti a {{prenom}} · promemoria tra 3 giorni"
   }
 }

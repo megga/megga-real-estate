@@ -529,7 +529,10 @@
       "whatsapp_morning_brief_sent": "Brief du matin envoyé",
       "whatsapp_number_verified": "Numéro WhatsApp lié",
       "whatsapp_optin_invited": "Invitation WhatsApp envoyée",
-      "whatsapp_send_blocked": "Envoi WhatsApp bloqué"
+      "whatsapp_send_blocked": "Envoi WhatsApp bloqué",
+      "match_ecarte": "Match écarté",
+      "match_reporte": "Match reporté",
+      "match_propose": "Bien proposé par l'agent"
     },
     "entity": {
       "admin_console": "Console admin",

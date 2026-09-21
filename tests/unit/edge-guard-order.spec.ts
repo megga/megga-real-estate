@@ -577,11 +577,12 @@ describe('le dépôt RÉEL', () => {
     expect(sansLecture.ordreGestionnaire(indexDe('onboarding-slots')).effets.map((e) => e.detail)).toEqual(['get_onboarding_call_by_token'])
   })
 
-  it('l’inventaire des expéditeurs vient du code : les trois gardés, et tous les autres sans table', () => {
+  it('l’inventaire des expéditeurs vient du code : les deux gardés, et tous les autres sans table', () => {
     const vide = inventorier({ analyse, fonctions, perimetres: {} })
     const parGarde = vide.expediteurs.filter((x) => x.parPerimetre).map((x) => x.dir).sort()
-    // Les trois expéditeurs pilotés par un agent (tests/unit/email-senders-scope.spec.ts).
-    expect(parGarde).toEqual(['send-email', 'send-property-email', 'send-relance-email'])
+    // Les deux expéditeurs pilotés par un agent (tests/unit/email-senders-scope.spec.ts) —
+    // trois jusqu'au 21.09.2026 : `send-property-email` est parti, le matching reste chez l'agent.
+    expect(parGarde).toEqual(['send-email', 'send-relance-email'])
     // Contrôle positif : sans table, chaque autre expéditeur rougit — le lecteur n'est pas muet.
     expect(vide.sansPerimetre.length).toBeGreaterThanOrEqual(15)
     const canaux = Object.fromEntries(vide.expediteurs.map((x) => [x.dir, x.canaux.join()]))
@@ -631,6 +632,6 @@ describe('le dépôt RÉEL', () => {
   it('la porte elle-même passe, et dit ce qu’elle a lu', () => {
     const sortie = execFileSync('node', ['scripts/check-edge-auth.mjs'], { cwd: repoPath(), encoding: 'utf8' })
     expect(sortie).toMatch(/✓ Ordre garde → effet : \d+ gestionnaire\(s\) lus, aucun effet avant leur première garde/)
-    expect(sortie).toMatch(/✓ Expéditeurs e-mail : \d+ fonction\(s\) envoient — 3 par guardOutboundEmail, \d+ au périmètre nommé/)
+    expect(sortie).toMatch(/✓ Expéditeurs e-mail : \d+ fonction\(s\) envoient — 2 par guardOutboundEmail, \d+ au périmètre nommé/)
   })
 })

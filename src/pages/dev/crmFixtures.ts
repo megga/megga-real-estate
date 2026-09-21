@@ -105,13 +105,26 @@ const CONTACTS = [
   contact('c7', 'Emma', 'Schneider', {
     email: 'emma.schneider@example.com', phone: '+41 76 488 02 19', canton: 'ZH',
     type: 'investor', score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
-    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Zürich', 'Genève', 'ZH', 'GE'], budget_min: 1_500_000, budget_max: 3_000_000 },
+    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Zürich', 'Genève', 'ZH', 'GE'], budget_min: 1_200_000, budget_max: 3_000_000 },
     last_interaction_at: ilYA(12), created_at: ilYA(150),
   }),
   // Le prospect entré par WhatsApp que la cloche annonce (`n1`, « Léa Martin (via WhatsApp) »).
   contact('c8', 'Léa', 'Martin', {
     phone: '+41 78 902 11 36', type: 'lead', source: 'whatsapp_ai',
     last_interaction_at: ilYA(0.2), created_at: ilYA(0.2),
+  }),
+  // Le fil de matchs (17.09.2026) : deux acheteurs dont la recherche TIENT sur Champel et sur
+  // Cologny. Antoine n'a pas de téléphone (la feuille d'envoi qui le montrait est retirée le 21.09.2026).
+  contact('c9', 'Julie', 'Morand', {
+    email: 'julie.morand@example.ch', phone: '+41 79 530 18 64', canton: 'GE',
+    type: 'buyer', score: 'hot', source: 'referral',
+    search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Champel', 'GE'], budget_min: 1_300_000, budget_max: 1_600_000, rooms_min: 4, surface_min: 100, features: ['balcon', 'ascenseur', 'terrasse'] },
+    last_interaction_at: ilYA(30), created_at: ilYA(200),
+  }),
+  contact('c10', 'Antoine', 'Lefèvre', {
+    email: 'a.lefevre@example.ch', canton: 'GE', type: 'buyer', score: 'warm', source: 'website', language: 'en',
+    search_criteria: { transaction_type: 'buy', type: 'house', zones: ['Cologny', 'Vandœuvres', 'GE'], budget_min: 2_800_000, budget_max: 3_500_000, rooms_min: 6, surface_min: 240, features: ['piscine', 'jardin', 'cave'] },
+    last_interaction_at: ilYA(90), created_at: ilYA(500),
   }),
 ]
 
@@ -536,8 +549,45 @@ const BIENS_CATALOGUE = Array.from({ length: 48 }, (_, i) => {
   }
 })
 
+/** Les jointures `property` des matchs — le banc n'applique pas `select`, la ligne les porte. */
+const CHAMPEL_EMBARQUE = {
+  title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
+  city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
+  photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
+  features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+}
+const COLOGNY_EMBARQUE = {
+  title: 'Villa individuelle · Cologny', price: 3_200_000, address: 'Chemin de Ruth 8',
+  city: 'Cologny', canton: 'GE', postal_code: '1223', rooms: 7, bedrooms: 5, surface_m2: 260,
+  photos: [PHOTO.cologny], type: 'house', description: 'Villa contemporaine avec piscine, jardin arboré de 1 200 m² et vue sur le lac.',
+  features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'], floor: null, year_built: 2011, charges_monthly: null,
+}
+
+/**
+ * Annonces du MARCHÉ pour le fil de matchs (lot 2, 17.09.2026) — des ventes à Genève que les recherches
+ * de Julie (c9) et d'Emma (c7) retiennent. ml-fil-3 garde volontairement deux écarts pour Julie
+ * (surface, équipements) : la sélection doit montrer un bien NON coché d'office.
+ */
+const annonceFil = (id: string, titre: string, rue: string, npa: string, prix: number, pieces: number, surface: number, equipements: string[], photo: string, sourceId: string) => ({
+  id, title: titre, address: rue, city: 'Genève', postal_code: npa, canton: 'GE',
+  type: 'apartment', transaction_type: 'buy', price: prix, current_price: prix, price_at_first_seen: prix, price_per_m2: null,
+  rooms: pieces, bedrooms: Math.max(1, Math.floor(pieces) - 1), bathrooms: pieces >= 5 ? 2 : 1, surface_m2: surface,
+  features: equipements, photos: [unsplash(photo)], photos_cf: null, status: 'active',
+  source_portal: 'realadvisor', source_url: `https://realadvisor.ch/fr/demo/${sourceId}`, source_id: sourceId,
+  agency_name: 'Régie de démonstration', agency_phone: null, agency_logo_url: null, lat: null, lng: null,
+  year_built: 1998, days_on_market: 9, land_surface: null, description: null, floor: 3, parking_count: null,
+  year_renovated: null, usable_surface: null, charges_monthly: 450, is_furnished: false, availability_date: null,
+  visit_contact_name: null, agency_reference: null,
+})
+const ANNONCES_FIL = [
+  annonceFil('ml-fil-1', 'Appartement 5 pièces · Florissant', 'Route de Florissant 62', '1206', 1_520_000, 5, 124, ['Balcon', 'Ascenseur'], PHOTOS_APPART[0]!, '51842'),
+  annonceFil('ml-fil-2', 'Attique 4,5 pièces · Eaux-Vives', 'Rue du Lac 14', '1207', 1_590_000, 4.5, 132, ['Terrasse', 'Ascenseur', 'Balcon'], PHOTOS_APPART[1]!, '51907'),
+  annonceFil('ml-fil-3', 'Appartement 4 pièces · Plainpalais', 'Rue de Carouge 40', '1205', 1_180_000, 4, 96, ['Ascenseur'], PHOTOS_APPART[2]!, '52013'),
+  annonceFil('ml-fil-4', 'Appartement 6 pièces · Champel', 'Avenue Miremont 30', '1206', 2_450_000, 6, 175, ['Ascenseur', 'Balcon', 'Cave'], PHOTOS_APPART[3]!, '52101'),
+]
+
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL],
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
@@ -615,6 +665,14 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     },
     ...BIENS_CATALOGUE,
   ],
+  // Les recherches que le moteur a notées (`matches.client_search_id`) — ce que le fil de matchs
+  // compare au bien. Recopiées de la fiche : en production, la fiche est souvent vide et la
+  // recherche pleine ; le banc, lui, garde les deux égales pour ne tromper aucune des deux surfaces.
+  client_searches: ['c1', 'c7', 'c9', 'c10'].map((id) => ({
+    id: `cs${id.slice(1)}`, agency_id: AGENCE_BANC.id, contact_id: id, label: null, is_active: true,
+    criteria: CONTACTS.find((c) => c.id === id)?.search_criteria ?? null,
+    last_matched_at: null, created_at: ilYA(300), updated_at: ilYA(300),
+  })),
   transactions: [],
   // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
   // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
@@ -622,11 +680,19 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   // a qu'UNE (le collage de la fiche la répétait trois fois).
   // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
   // ligne : le banc n'applique pas `select`.
+  // ── Le fil de matchs (lot 1, 17.09.2026) : m2 à m6 sont des paires que le moteur PEUT créer —
+  // cinq axes, points jamais négatifs, rien sous 55 (`matching-normalize.ts`). ⛔ m2 portait Salomé,
+  // qui cherche une MAISON, sur l'appartement de Champel, type « tenu », à 81 : une paire sous le
+  // seuil, et une ligne « Type : Maison / Appartement ✓ » à l'écran. m4 est reporté (la section des
+  // reportés) ; m6 donne à Emma un historique (« 1 bien proposé · 1 intéressé »). Leurs `detail`
+  // reprennent le libellé exact du moteur, et `client_search_id` désigne la recherche notée.
+  // m1 est PROPOSÉ (17.09.2026) ; « suggested » contredisait la fiche de Camille. `sent_via: 'reception'` est
+  // une valeur historique, gardée : le CRM n'envoie plus rien à l'acheteur depuis le 21.09.2026.
   matches: [
     {
       id: 'm1', agency_id: AGENCE_BANC.id, contact_id: 'c1', source: 'market',
       property_id: null, market_listing_id: ANNONCE_MARCHE_BANC.id,
-      score: 88, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(20),
+      score: 88, status: 'sent', sent_via: 'reception', sent_at: ilYA(50), created_at: ilYA(20),
       reasons: {
         budget: { match: true, score: 30, detail: 'Loyer dans le budget' },
         zone: { match: true, score: 25, detail: 'Secteur recherché' },
@@ -638,24 +704,162 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       market_listing: ANNONCE_MARCHE_BANC, property: null,
     },
     {
-      id: 'm2', agency_id: AGENCE_BANC.id, contact_id: 'c3', source: 'internal',
+      id: 'm2', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
       property_id: 'p1', market_listing_id: null,
-      score: 81, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(30),
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(30),
       reasons: {
-        budget: { match: true, score: 30, detail: 'Prix aligné sur le budget' },
-        zone: { match: true, score: 25, detail: '' },
-        type: { match: true, score: 15, detail: '' },
-        rooms: { match: true, score: 10, detail: '' },
-        features: { match: false, score: 0, detail: '' },
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
       },
-      contact: { first_name: 'Salomé', last_name: 'Perret', email: 's.perret@example.ch', phone: '+41 76 903 55 12' },
-      property: {
-        title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
-        city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
-        photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
-        features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+      contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
+      property: CHAMPEL_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm3', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 97, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(20),
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 118 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
       },
+      contact: { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' },
+      property: CHAMPEL_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm4', agency_id: AGENCE_BANC.id, client_search_id: 'cs1', contact_id: 'c1', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 68, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: ilYA(-24 * 5), created_at: ilYA(26),
+      reasons: {
+        budget: { match: false, score: 0, detail: '16% au-dessus du budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 118 m²' },
+        features: { match: true, score: 10, detail: '2/2 critères' },
+      },
+      contact: { first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      property: CHAMPEL_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm5', agency_id: AGENCE_BANC.id, client_search_id: 'cs10', contact_id: 'c10', source: 'internal',
+      property_id: 'p2', market_listing_id: null,
+      score: 97, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(12),
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Cologny correspond' },
+        type: { match: true, score: 12, detail: 'house' },
+        rooms: { match: true, score: 22, detail: '7 pièces · 260 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: { first_name: 'Antoine', last_name: 'Lefèvre', email: 'a.lefevre@example.ch', phone: null },
+      property: COLOGNY_EMBARQUE, market_listing: null,
+    },
+    {
+      // `pb32` : « Loft 2,5 pièces · Genève », CHF 1'290'000, du catalogue de « Mes biens ».
+      id: 'm6', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
+      property_id: 'pb32', market_listing_id: null,
+      score: 100, status: 'interested', sent_via: 'reception', sent_at: ilYA(24 * 6), snoozed_until: null, created_at: ilYA(24 * 6 + 2),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
+      property: { title: 'Loft 2,5 pièces · Genève', price: 1_290_000, city: 'Genève', canton: 'GE', rooms: 2.5, surface_m2: 86, photos: [], type: 'apartment' },
       market_listing: null,
+    },
+    // ── Le marché du fil (lot 2, 17.09.2026) : m8 à m13, des paires acheteur × annonce ANNONCES_FIL
+    // notées par le vrai moteur (`calculateScoreV2`, script jetable). Toutes ≥ 55 : aucune écartée.
+    {
+      id: 'm8', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-1',
+      score: 97, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(8),
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '5 pièces · 124 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' },
+      market_listing: ANNONCES_FIL[0], property: null,
+    },
+    {
+      id: 'm9', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-2',
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(10),
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 132 m²' },
+        features: { match: true, score: 10, detail: '3/3 critères' },
+      },
+      contact: { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' },
+      market_listing: ANNONCES_FIL[1], property: null,
+    },
+    {
+      id: 'm10', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-3',
+      score: 90, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(12),
+      reasons: {
+        budget: { match: true, score: 31, detail: 'Sous le budget minimum' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 20, detail: '4 pièces · 96 m²' },
+        features: { match: false, score: 3, detail: '1/3 critères' },
+      },
+      contact: { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' },
+      market_listing: ANNONCES_FIL[2], property: null,
+    },
+    {
+      id: 'm11', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-1',
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(14),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
+      market_listing: ANNONCES_FIL[0], property: null,
+    },
+    {
+      id: 'm12', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-2',
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(16),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
+      market_listing: ANNONCES_FIL[1], property: null,
+    },
+    {
+      id: 'm13', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-fil-4',
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(18),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
+      market_listing: ANNONCES_FIL[3], property: null,
     },
   ],
   crm_offers: [],
@@ -666,13 +870,10 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   documents: KYC_DOCS,
   property_scores: [],
   appointments: [],
-  // ── La fiche contact (16.09.2026) : ses quatre lectures propres. Camille a un lien
-  // de réception VU mais sans réaction, et un consentement WhatsApp déclaré — ce qui
-  // donne à la fiche ses deux blocs pleins. Les deux autres restent vides À DESSEIN :
-  // une suppression ou une invitation en cours changeraient le sens de la fiche.
-  buyer_reception_links: [
-    { id: 'rl1', agency_id: AGENCE_BANC.id, contact_id: 'c1', status: 'viewed', channel: 'whatsapp', match_ids: ['m1'], created_at: ilYA(50), expires_at: new Date(Date.now() + 12 * 86_400_000).toISOString(), viewed_at: ilYA(40), reacted_at: null, revoked_at: null },
-  ],
+  // ── La fiche contact (16.09.2026) : ses lectures propres. Camille a un consentement
+  // WhatsApp déclaré — ce qui donne à la fiche son bloc plein. Les deux autres restent
+  // vides À DESSEIN : une suppression ou une invitation en cours changeraient le sens de
+  // la fiche. (Son lien de réception est parti avec la page de l'acheteur, 21.09.2026.)
   contact_suppressions: [],
   whatsapp_consents: [
     { id: 'wc1', subject_kind: 'contact', contact_id: 'c1', profile_id: null, agency_id: AGENCE_BANC.id, wa_phone: '41794128803', event: 'opt_in', source: 'agent_manual', legal_basis: 'consent', purpose: 'service', scope: 'all', created_at: ilYA(880) },
@@ -817,6 +1018,57 @@ const CHANGELOG = [
 ]
 
 /**
+ * `matching_fil_marche` — le résumé « Marché » du fil, CALCULÉ sur les tables du banc à chaque appel, avec
+ * les règles de la RPC : `suggested`, non reporté, annonce non retirée ; trois vignettes. Une valeur figée
+ * ne bougerait pas quand un envoi ou un « Écarter » vide la sélection.
+ *
+ * ⚠ Mêmes vignettes et même ordre que `20260921120000_matching_fil_marche.sql`, sans quoi le banc montre
+ * une ligne que la production ne rend pas : `photos_cf[0]` (chaîne, ou son `.thumb`) puis `photos[0]`, une
+ * chaîne vide ne comptant pas ; rang par score décroissant, puis `created_at` décroissant avec l'absent
+ * EN DERNIER, puis l'id ; les trois premières vignettes NON vides dans ce rang.
+ */
+function vignetteMarcheBanc(cf: unknown, photos: readonly string[] | null | undefined): string | null {
+  const premier: unknown = Array.isArray(cf) ? cf[0] : undefined
+  if (typeof premier === 'string' && premier !== '') return premier
+  const thumb = premier && typeof premier === 'object' ? (premier as Record<string, unknown>).thumb : undefined
+  if (typeof thumb === 'string' && thumb !== '') return thumb
+  const photo = photos?.[0]
+  return typeof photo === 'string' && photo !== '' ? photo : null
+}
+
+function resumeMarcheBanc() {
+  const maintenant = Date.now()
+  const annonces = new Map((CRM_TABLES.market_listings as {
+    id: string; status?: string | null; photos?: string[] | null; photos_cf?: unknown
+  }[]).map((a) => [a.id, a]))
+  const parContact = new Map<string, { id: string; score: number; creeLe: string | null; vignette: string | null }[]>()
+  for (const m of CRM_TABLES.matches as {
+    id: string; contact_id: string; market_listing_id: string | null; status: string; score: number
+    created_at: string | null; snoozed_until?: string | null
+  }[]) {
+    if (m.status !== 'suggested' || !m.market_listing_id) continue
+    if (m.snoozed_until && Date.parse(m.snoozed_until) > maintenant) continue
+    const a = annonces.get(m.market_listing_id)
+    if (!a || a.status === 'removed') continue
+    const liste = parContact.get(m.contact_id) ?? []
+    liste.push({ id: m.id, score: m.score, creeLe: m.created_at, vignette: vignetteMarcheBanc(a.photos_cf, a.photos) })
+    parContact.set(m.contact_id, liste)
+  }
+  // `created_at desc nulls last` : l'absent après toute date, sans jamais comparer une date absente.
+  const parDate = (x: string | null, y: string | null): number =>
+    x === y ? 0 : x == null ? 1 : y == null ? -1 : y < x ? -1 : 1
+  return [...parContact]
+    .map(([contact_id, l]) => {
+      const tries = [...l].sort((x, y) => y.score - x.score || parDate(x.creeLe, y.creeLe) || (x.id < y.id ? -1 : x.id > y.id ? 1 : 0))
+      return {
+        contact_id, nombre: l.length, meilleur_score: tries[0]!.score,
+        vignettes: tries.map((x) => x.vignette).filter((v): v is string => v != null).slice(0, 3),
+      }
+    })
+    .sort((x, y) => y.meilleur_score - x.meilleur_score || y.nombre - x.nombre)
+}
+
+/**
  * Ce que les trois RPC d'Analytics rendent quand il n'y a RIEN — un objet
  * complet à zéro, pas `null`. C'est la différence entre « aucune commission sur
  * la période » (un état vide, qui se dessine) et « la donnée n'est pas arrivée »
@@ -853,6 +1105,7 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  matching_fil_marche: () => resumeMarcheBanc(),
   // Les destinataires suggérés du composeur de la Messagerie. Mêmes jetons que la RPC —
   // minuscules, cinq au plus, TOUS présents, chacun dans le prénom, le nom, l'adresse ou le
   // téléphone. Sans elle, la saisie « comme Google » ne proposait AUCUN contact au banc.

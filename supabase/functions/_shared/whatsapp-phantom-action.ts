@@ -112,7 +112,9 @@ const BARE_YES_NO = /\b(?:oui|yes)\s*\/\s*(?:non|no)\b/
 
 /**
  * Comptes rendus que SEUL l'exécuteur écrit, après le « oui » (whatsapp-i18n.ts : `clientMsgSent`,
- * `listingsSent`, `templateSent`). Le cerveau ne peut les produire qu'en les recopiant.
+ * `templateSent`). Le cerveau ne peut les produire qu'en les recopiant. Celui de l'envoi d'une
+ * sélection de biens reste lu alors que l'outil est retiré (21.09.2026, le matching reste chez
+ * l'agent) : plus aucun exécuteur ne l'écrit, donc le cerveau qui l'écrit ment à coup sûr.
  */
 const EXECUTOR_ECHOES = [
   '✅ message envoye au client', '✅ message sent to the client',

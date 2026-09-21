@@ -20,7 +20,7 @@ const AUTH_PROTECTED_FUNCTIONS = [
   'google-calendar-sync',
   'outlook-calendar-sync',
   // ── Additional Resend transactional emails ─────────────────────────────
-  'send-property-email',
+  // (`send-property-email` retirée le 21.09.2026 : le matching reste chez l'agent.)
   'send-reminder-email',
   'send-relance-email',
   'send-team-invite',
@@ -134,7 +134,7 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
 // requireAgentAuth valide désormais le JWT (auth.getUser) ET exige un profil agency_id.
 // NB volontairement absentes : send-email (appelant anon légitime = form de contact
 // public) et send-visit-email (appelant cron service_role) → durcissement différent.
-const AGENT_ONLY_RESEND = ['send-relance-email', 'send-property-email'] as const
+const AGENT_ONLY_RESEND = ['send-relance-email'] as const
 
 describe.skipIf(!HAS_KEYS)('Fonctions Resend agent-only — valident le JWT, pas juste le préfixe Bearer', () => {
   for (const fn of AGENT_ONLY_RESEND) {

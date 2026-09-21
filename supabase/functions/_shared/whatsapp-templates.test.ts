@@ -62,13 +62,6 @@ describe('whatsapp-templates — registre', () => {
     expect(buildTemplateMessage('followup', '4179', { lang: 'es' }, env)?.languageCode).toBe('de')
   })
 
-  it('new_listings : count → chaîne, minimum 1', () => {
-    const env = mkEnv({ WA_TEMPLATE_NEW_LISTINGS: 'nouveaux_biens_v1' })
-    expect(buildTemplateMessage('new_listings', '4179', { count: 3 }, env)?.bodyParams).toEqual(['Madame, Monsieur', '3'])
-    expect(buildTemplateMessage('new_listings', '4179', { count: 0 }, env)?.bodyParams).toEqual(['Madame, Monsieur', '1'])
-    expect(buildTemplateMessage('new_listings', '4179', {}, env)?.bodyParams).toEqual(['Madame, Monsieur', '1'])
-  })
-
   it('chaque template existe dans les 4 langues, avec les MÊMES variables dans le même ordre', () => {
     // Le garde-fou qui compte : bodyParams produit UN tableau ordonné pour toutes
     // les langues. Une traduction qui inverse {{1}} et {{2}} enverrait le nom de

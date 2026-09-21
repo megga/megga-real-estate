@@ -13,7 +13,7 @@
 //
 // Chaîne de confiance : HMAC vérifié en crypto d'abord, puis le lien est
 // revalidé en base (token identique, statut, expiration). Même ordre que
-// magic-link-get et buyer-reception-react. ⚠ Le « statut » de cette phrase
+// magic-link-get. ⚠ Le « statut » de cette phrase
 // n'était PAS testé jusqu'au 14.09.2026 : seule la date l'était, et un lien
 // révoqué — passé à `expired` avant son échéance — listait encore les créneaux.
 // C'est désormais une liste BLANCHE (MAGIC_LINK_BOOKING_STATUSES).

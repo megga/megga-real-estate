@@ -2,7 +2,7 @@
 // Port 1:1 de `crm-screen-contact-detail-pager.jsx` (window.CRMScreenContactDetailPager).
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
 //   Page 0 → Ses informations (en-tête + coordonnées | critères | notes)      [en haut]
-//   Page 1 → Boucle de match  (à traiter | biens transmis + liens)              [en bas]
+//   Page 1 → Sa boucle        (à traiter | biens proposés)                      [en bas]
 // Les deux pages sont BORD À BORD depuis le 16.09.2026 : un en-tête, puis des colonnes
 // pleine hauteur séparées par un filet, chacune défilant seule (`.cdp-cols`).
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
@@ -73,44 +73,24 @@ export interface FicheContact {
   lastContactAt: string | null
 }
 
+/**
+ * Un bien proposé à ce contact, avec la réponse que l'agent a consignée. ⛔ Plus d'état « vu »
+ * (21.09.2026) : il venait de la page de réception de l'acheteur, retirée avec elle — rien ne part
+ * plus vers lui, donc rien n'est « ouvert ».
+ */
 export interface FicheLoopItem {
   matchId: string
   title: string
   addr: string
   photo: string | null
-  state: 'liked' | 'seen' | 'sent' | 'dismissed'
+  state: 'liked' | 'sent' | 'dismissed'
   motif: string | null
 }
 
-/** Lien de réception émis pour ce contact (jamais son jeton : c'est la capability). */
-export interface FicheReceptionLink {
-  id: string
-  /** `null` = statut non reconnu ; l'UI le dit et n'offre pas de retrait dessus. */
-  status: 'pending' | 'viewed' | 'reacted' | 'expired' | 'revoked' | null
-  channel: 'whatsapp' | 'link' | null
-  createdAt: string
-  expiresAt: string
-  /** Nombre de biens que le lien ouvre. */
-  count: number
-  /** Renseigné une fois le lien retiré : « depuis quand est-il coupé ». */
-  revokedAt: string | null
-  /** Le lien donne encore accès à la sélection (ni retiré, ni échu). */
-  active: boolean
-}
-
-/**
- * Issue d'un retrait. Trois cas et non deux : un REFUS (le lien n'était déjà plus
- * actif) et une PANNE ne se disent pas pareil à l'agent, sinon il croit avoir coupé
- * un accès resté ouvert. Le conteneur traduit l'erreur du hook en ce verdict ; le
- * pager reste sans appel Supabase.
- */
-export type FicheRevokeResult = 'ok' | 'refused' | 'failed'
-
 export interface ContactDetailPagerProps {
   fiche: FicheContact
-  loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number }
-  /** Liens de réception émis + états de chargement (le conteneur porte la requête). */
-  links: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean }
+  /** `transmitted` : biens proposés ; `dismissed` : ceux dont la réponse consignée est « Pas intéressé ». */
+  loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; dismissed: number }
   sp: CrmPalette
   dark: boolean
   onBack: () => void
@@ -138,8 +118,6 @@ export interface ContactDetailPagerProps {
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
   onOpenListings: () => void
   onProposeVisit: (matchId: string) => void
-  /** Retire un lien de réception. Ne rejette pas : renvoie le verdict à afficher. */
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -159,7 +137,6 @@ interface FichePal {
   accentInk: string
   buyer: string
   ok: string
-  cyan: string
   wait: string
   danger: string
   shadow: string
@@ -181,7 +158,6 @@ function buildPal(sp: CrmPalette, dark: boolean): FichePal {
     accentInk: sp.accentInk,
     buyer: dark ? '#6F8CFF' : '#1E5BC6',
     ok: dark ? '#34D399' : '#059669',
-    cyan: dark ? '#38BDD8' : '#0891B2',
     wait: dark ? '#8A909B' : '#7A8088',
     danger: dark ? '#E0738C' : '#8E1F3D',
     shadow: dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow,
@@ -271,31 +247,10 @@ const cap = (s: string) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1
 // État de la boucle → clé couleur de la palette + clé i18n du pill.
 // `liked` est VERT (clé `ok`) et non rouge : le like est un signal positif, et c'est
 // la couleur du handoff. Passer par une clé de palette garde le mode sombre correct.
-const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
+const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'wait' | 'ghost'; labelK: string }> = {
   liked: { key: 'ok', labelK: 'loop.pillLiked' },
-  seen: { key: 'cyan', labelK: 'loop.pillSeen' },
   sent: { key: 'wait', labelK: 'loop.pillSent' },
   dismissed: { key: 'ghost', labelK: 'loop.pillDismissed' },
-}
-
-// Statut d'un lien de réception → couleur de palette + clé i18n. `revoked` et
-// `expired` prennent la teinte éteinte : un lien fermé n'est pas une alerte, c'est
-// un état de repos. `null` (statut non reconnu) est traité plus bas, pas ici.
-const LINK_STATE: Record<Exclude<FicheReceptionLink['status'], null>, { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
-  pending: { key: 'wait', labelK: 'fiche.links.status.pending' },
-  viewed: { key: 'cyan', labelK: 'fiche.links.status.viewed' },
-  reacted: { key: 'ok', labelK: 'fiche.links.status.reacted' },
-  expired: { key: 'ghost', labelK: 'fiche.links.status.expired' },
-  revoked: { key: 'ghost', labelK: 'fiche.links.status.revoked' },
-}
-
-/** Date suisse JJ.MM.AAAA depuis un horodatage ISO ; vide si la valeur est inexploitable. */
-const cdDay = (iso: string | null | undefined): string => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const p2 = (n: number) => String(n).padStart(2, '0')
-  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`
 }
 
 // Gel du pager pendant une édition inline / une modale : increment/decrement.
@@ -337,9 +292,9 @@ function CdRoundBtn({ icon, P, onClick, label }: { icon: string; P: FichePal; on
 }
 
 /**
- * Sur-titre de BLOC — 14 px / 600, casse normale. Cinq emplois : Coordonnées,
- * Ce qu'elle cherche, À traiter, Biens transmis, Liens envoyés (plus le bloc
- * Note, qui porte le même style en ligne).
+ * Sur-titre de BLOC — 14 px / 600, casse normale. Quatre emplois : Coordonnées,
+ * Ce qu'elle cherche, À traiter, Biens proposés (plus le bloc Note, qui porte le
+ * même style en ligne).
  *
  * Il valait 11 px / 800 en micro-capitales avec un interlettrage de 1 — l'idiome
  * de sur-titre de Sugar, dont MEGGA X n'a aucun équivalent.
@@ -1706,161 +1661,30 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//   LIENS DE RÉCEPTION — voir ce qui a été envoyé, et le retirer
-// ═══════════════════════════════════════════════════════════════════════
-/**
- * Confirmation avant retrait. Elle est obligatoire parce que le geste est
- * irréversible DU CÔTÉ DE L'ACHETEUR : il perd l'accès à la sélection qu'on lui a
- * transmise, et seul un nouveau lien peut le lui rendre.
- */
-function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: {
-  P: FichePal; dark: boolean; link: FicheReceptionLink; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
-}) {
-  const { t } = useTranslation('contacts')
-  const modalBg = P.sp.solidBg
-  const refPiege = useFocusTrap(true, onCancel)
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }}>
-      <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
-        style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
-          <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />
-        </span>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
-          {t('fiche.links.confirm.body', { count: link.count })}
-        </div>
-        {error && (
-          <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
-        )}
-        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={busy ? undefined : onConfirm} disabled={busy}
-            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.danger, color: encreSur(P.danger), opacity: busy ? 0.55 : 1 }}>
-            {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  )
-}
-
-/**
- * Liste des liens émis pour ce contact, avec retrait des liens encore ouverts.
- * Vit à côté des « Biens transmis » : c'est le même geste vu de l'autre bout,
- * ce que l'acheteur peut encore ouvrir.
- */
-function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
-  P: FichePal
-  dark: boolean
-  links: ContactDetailPagerProps['links']
-  freezeRef: MutableRefObject<number>
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
-}) {
-  const { t } = useTranslation('contacts')
-  const [target, setTarget] = useState<FicheReceptionLink | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  // La modale ouverte doit geler le pager, sinon la molette change de page dessous.
-  useFreeze(freezeRef, !!target)
-
-  const close = () => { setTarget(null); setBusy(false); setError(null) }
-  const confirm = async () => {
-    if (!target || busy) return
-    setBusy(true)
-    setError(null)
-    const verdict = await onRevokeLink(target.id)
-    if (verdict === 'ok') { close(); return }
-    setBusy(false)
-    // Un refus veut dire que notre liste était périmée (le lien a déjà été retiré
-    // ailleurs) ; une panne veut dire qu'il faut réessayer. Deux phrases, pas une.
-    setError(verdict === 'refused' ? t('fiche.links.confirm.refused') : t('fiche.links.confirm.failed'))
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <CdGrp P={P}>{t('fiche.links.title', { count: links.items.length })}</CdGrp>
-      {links.isLoading ? (
-        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
-      ) : links.failed ? (
-        <div role="alert" style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
-      ) : links.items.length === 0 ? (
-        <EtatVide dark={dark} titre={t('fiche.links.empty')} />
-      ) : links.items.map((l, i) => {
-        const state = l.status ? LINK_STATE[l.status] : null
-        const channel = l.channel === 'whatsapp' ? t('fiche.links.channel.whatsapp')
-          : l.channel === 'link' ? t('fiche.links.channel.link')
-            : null
-        return (
-          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: l.active ? 1 : 0.6, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-            <span style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', background: P.sub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <FcpIcon name={l.channel === 'whatsapp' ? 'msg' : 'ext'} size={14} stroke={P.inkSoft} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>
-                {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
-                {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })}
-                {' · '}
-                {/* Sur un lien coupé, la date qui compte est celle de la coupure,
-                    pas une échéance que le lien n'atteindra jamais. */}
-                {l.revokedAt
-                  ? t('fiche.links.revokedOn', { date: cdDay(l.revokedAt) })
-                  : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
-              </div>
-            </div>
-            {/* ⚠ Même règle que CdStatePill : l'encre suit l'aplat. « Échu »,
-                « Retiré » et « Statut inconnu » partagent `ghost`, mesuré à
-                1,95:1 sous le blanc figé d'avant. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: encreSur(state ? P[state.key] : P.ghost), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
-              {state ? t(state.labelK) : t('fiche.links.status.unknown')}
-            </span>
-            {l.active && (
-              <CdCta small tone="ghost" P={P} onClick={() => setTarget(l)}>{t('fiche.links.revoke')}</CdCta>
-            )}
-          </div>
-        )
-      })}
-      {target && (
-        <CdRevokeLinkModal P={P} dark={dark} link={target} busy={busy} error={error} onCancel={close} onConfirm={() => { void confirm() }} />
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════
 //   PAGE 1 — BOUCLE DE MATCH
 // ═══════════════════════════════════════════════════════════════════════
-function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, onProposeVisit, onRevokeLink }: {
+/**
+ * La boucle d'un acheteur : ce que l'agent lui a proposé et la réponse qu'il a consignée. ⛔ Rien
+ * ne part vers l'acheteur (21.09.2026) : plus de liens envoyés à retirer, plus d'« ouverts ».
+ */
+function CdBoucle({ P, dark, loop, firstName, onOpenMatching, onProposeVisit }: {
   P: FichePal
   dark: boolean
   loop: ContactDetailPagerProps['loop']
-  links: ContactDetailPagerProps['links']
   firstName: string
-  freezeRef: MutableRefObject<number>
   onOpenMatching: () => void
   onProposeVisit: (matchId: string) => void
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
 }) {
   const { t } = useTranslation('contacts')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   const hide = (id: string) => setHidden((s) => { const n = new Set(s); n.add(id); return n })
   const pending = loop.pendingLikes.filter((p) => !hidden.has(p.matchId))
-  // Un lien émis suffit à sortir de l'écran d'invitation : sinon un lien encore
-  // ouvert (dont les matches ont disparu) n'aurait plus AUCUN endroit d'où le retirer.
-  // Une lecture des liens en ÉCHEC compte pareil : sans ce test, un contact sans
-  // dossier verrait l'invitation à transmettre, et l'erreur de chargement (portée par
-  // la section « Liens de réception ») serait remplacée par elle. Un défaut de lecture
-  // se lirait alors comme « aucun lien », sur la seule surface qui permet d'en couper un.
   const totallyEmpty = loop.pendingLikes.length === 0 && loop.items.length === 0
-    && links.items.length === 0 && !links.failed
 
   const counters: { v: number; l: string; liked?: boolean }[] = [
     { v: loop.transmitted, l: t('loop.pillSent') },
-    { v: loop.opened, l: t('fiche.loop.opened') },
     { v: loop.pendingLikes.length, l: t('loop.pillLiked'), liked: true },
+    { v: loop.dismissed, l: t('loop.pillDismissed') },
   ]
 
   return (
@@ -1879,7 +1703,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
       </header>
 
       {totallyEmpty ? (
-        // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
+        // Boucle jamais démarrée → invitation à proposer, pas un cul-de-sac gris.
         <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
           <EtatVide
             dark={dark}
@@ -1916,9 +1740,9 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
             ))}
           </section>
 
-          {/* Ce qui est parti chez l'acheteur : les biens, puis les liens qui les ouvrent */}
+          {/* Ce que l'agent a proposé, et la réponse qu'il a consignée */}
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
-            {/* Biens transmis — état par bien */}
+            {/* Biens proposés — réponse par bien */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
                 <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
@@ -1936,15 +1760,15 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
                       : <div style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
+                      {/* Le motif d'un refus est une DONNÉE consignée, lue telle quelle. */}
+                      {out && m.motif && (
+                        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('loop.motif', { motif: m.motif })}</div>
+                      )}
                     </div>
                     <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
                   </div>
                 )
               })}
-            </div>
-
-            <div style={{ paddingTop: 'var(--crm-space-4xl)', borderTop: `1px solid ${P.hairline}` }}>
-              <CdLinks P={P} dark={dark} links={links} freezeRef={freezeRef} onRevokeLink={onRevokeLink} />
             </div>
           </section>
         </div>
@@ -1957,7 +1781,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink } = props
+  const { fiche, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onProposeVisit } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -2098,8 +1922,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} noteThread={noteThread} onAddNote={onAddNote} onUpdateNote={onUpdateNote} onDeleteNote={onDeleteNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdBoucle P={P} dark={dark} loop={loop} links={links} firstName={fiche.firstName} freezeRef={freezeRef}
-              onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} onRevokeLink={onRevokeLink} />
+            <CdBoucle P={P} dark={dark} loop={loop} firstName={fiche.firstName}
+              onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} />
           </div>
         </div>
         <CdDots page={page} onGo={goTo} P={P} labels={pageLabels} />

@@ -37,7 +37,6 @@ import { buildMagicLinkEmail, type MagicLinkLocale } from '../supabase/functions
 import { buildDeviceAlertEmail } from '../supabase/functions/_shared/device-alert-email.ts'
 import { buildTeamInviteEmail } from '../supabase/functions/_shared/team-invite-email.ts'
 import { buildVisitEmail } from '../supabase/functions/_shared/visit-email.ts'
-import { buildPropertyEmail } from '../supabase/functions/_shared/property-email.ts'
 import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
 import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
 import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
@@ -52,9 +51,8 @@ import { unsubscribeFooterHtml } from '../supabase/functions/_shared/email-guard
  * Ce banc en fabriquait un à la main — autre police, autre taille, autres couleurs,
  * autre texte — c'est-à-dire qu'il falsifiait le SEUL bloc légalement requis de
  * l'e-mail, celui qu'on a le plus de raisons de relire. Le vrai part bien en
- * production (`send-reminder-email`, `send-property-email`, `send-relance-email`
- * appellent tous `unsubscribeFooterHtml`) : quelqu'un aurait pu le casser sans que
- * le banc le montre.
+ * production (`send-reminder-email` et `send-relance-email` appellent tous deux
+ * `unsubscribeFooterHtml`) : quelqu'un aurait pu le casser sans que le banc le montre.
  *
  * ⚠ L'hôte de démonstration est celui des EDGE FUNCTIONS, jamais `app.getmegga.com` —
  * l'en-tête d'`email-guard.ts` explique pourquoi : le repli SPA de l'app rend 200
@@ -204,32 +202,8 @@ const CAS: Cas[] = [
 
   // Commerciaux — migrés le 15.08.2026. Les SEULS à porter une désinscription : leur
   // mention de pied diffère donc de tous les autres, et c'est ce qu'il faut regarder ici.
-  {
-    id: 'fiche-de-bien',
-    nom: 'Fiche de bien envoyée à un contact',
-    source: '_shared/property-email.ts',
-    migre: true,
-    rendu: buildPropertyEmail({
-      contactFirstName: 'Marie',
-      agentName: 'Gregory Lyonnet',
-      agentPhone: '+41 22 555 10 10',
-      message: 'Vu ce matin, il correspond à ce dont nous parlions : proche du parc et sans travaux.',
-      property: {
-        title: '3.5 pièces avec terrasse',
-        address: 'Rue Ancienne 12, 1227 Carouge',
-        city: 'Carouge',
-        price: 1_190_000,
-        rooms: 3.5,
-        surface_m2: 92,
-        type: 'Appartement',
-        photo_url: null,
-        source_url: 'https://www.example.ch/annonce/12345',
-        source_agency: 'Régie du Rhône',
-        source_portal: 'Homegate',
-      },
-      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
-    }),
-  },
+  // La « fiche de bien envoyée à un contact » (`_shared/property-email.ts`) est partie le
+  // 21.09.2026 avec `send-property-email` : le matching reste chez l'agent.
   {
     id: 'relance-agent',
     nom: 'Relance écrite par l’agent',

@@ -16,7 +16,13 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { TK } from './tk'
 import { RXIcon, Av, Orbs } from './kit'
 import { PHOTO } from './data'
+import { useQueryClient } from '@tanstack/react-query'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
+import { useAuth } from '@/hooks/useAuth'
+import {
+  execProposer, refAnnonceMarche, refBienInterne, type AcheteurGeste, type BienGeste, type GesteContext,
+} from '@/hooks/useAtelierMatching'
+import { useToast } from '@/components/ui/Toast'
 import { useTodayNav } from './TodayNavContext'
 import { useEcranActif } from '@/hooks/useEcranActif'
 
@@ -81,7 +87,7 @@ interface CatItem {
   why: string
   // Détail réel attaché (match live) — sinon catDetail retombe sur CAT_META (démo).
   detail?: CatDetailData
-  // Vrai id du match (pour « Mettre dans le dossier » → sendMatch). Absent = seed.
+  // Vrai id du match (pour « Proposé » → execProposer). Absent = seed.
   matchId?: string
   /** Contact acheteur réel — cible du deep-link « Ouvrir dans Matching ». */
   contactId?: string
@@ -168,6 +174,26 @@ function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
       features: featuresArr(L.features),
       desc: L.description || '',
       gallery: L.photos && L.photos.length > 0 ? L.photos : undefined,
+    },
+  }
+}
+
+/**
+ * Ce que « Je l'ai proposé » lit d'un match du catalogue — la même forme que l'atelier et le fil
+ * donnent à `execProposer`, et la même référence de bien (`refBienInterne` / `refAnnonceMarche`),
+ * pour que le journal et la relance nomment le bien comme partout ailleurs.
+ */
+function versGeste(m: MatchResult): { acheteur: AcheteurGeste; bien: BienGeste } | null {
+  const marche = m.source === 'market'
+  const id = marche ? m.marketListingId : m.propertyId
+  if (!id) return null
+  return {
+    acheteur: { id: m.contactId, matchId: m.id, first: m.contactFirstName, last: m.contactLastName, score: m.score },
+    bien: {
+      kind: marche ? 'market' : 'property',
+      id,
+      ref: marche ? refAnnonceMarche(m.listing.source_portal ?? null, m.listing.source_id ?? null, id) : refBienInterne(id),
+      title: m.listing.title,
     },
   }
 }
@@ -887,13 +913,18 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
 
   // Matches réels de l'agence (score desc) → items de catalogue ; fallback démo
   // (seed) si aucun match ou session non authentifiée.
-  const { matches, sendMatch } = useMatching()
-  // Matches déjà marqués « proposés » en base (évite un double envoi sur re-toggle).
+  const { matches } = useMatching()
+  const { user, profile } = useAuth()
+  const queryClient = useQueryClient()
+  const toast = useToast()
+  // Matches déjà consignés « proposés » depuis cette page (évite un double geste sur re-toggle).
   const sentRef = useRef<Set<string>>(new Set())
 
-  // « Mettre dans le dossier » : toggle visuel + écriture réelle la 1re fois —
-  // sendMatch marque le match `status='sent'` (proposé). AUCUN email n'est envoyé
-  // (état CRM seulement). Item seed (pas de matchId) → toggle local uniquement.
+  // « Proposé » : toggle visuel + « Je l'ai proposé » la 1re fois, par `execProposer` — le MÊME
+  // exécuteur que l'atelier, le fil et le mobile, donc le même journal (`match_propose`), le même
+  // deal et la même relance à +3 jours. Il passait par un `update` direct de `matches` : ni
+  // journal, ni relance. Rien ne part vers l'acheteur. Un match qui n'est plus à proposer n'écrit
+  // rien (`deja`). Item seed (pas de matchId) → toggle local uniquement.
   // « Ouvrir dans Matching » : le contrat vivant est `/dashboard/matching?contact=<id>`
   // (MatchingAtelierPage lit ce paramètre). Pas de globale `__sgaFocusBuyer`.
   const openInMatching = (m: CatItem) => {
@@ -901,12 +932,31 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
     setSel(null)
     nav('matching', m.contactId)
   }
+  const proposer = (item: CatItem, matchId: string) => {
+    const match = matches.find((x) => x.id === matchId)
+    const geste = match ? versGeste(match) : null
+    const ctx: GesteContext | null = profile?.agency_id
+      ? { agencyId: profile.agency_id, userId: profile.id ?? user?.id ?? '' }
+      : null
+    // Sans agence ni bien identifiable, rien ne s'écrit : la case ne doit pas mentir.
+    const annuler = () => {
+      sentRef.current.delete(matchId)
+      setProposed((prev) => { const n = new Set(prev); n.delete(item.id); return n })
+    }
+    if (!geste || !ctx) { annuler(); return }
+    execProposer(ctx, geste.acheteur, geste.bien)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ['matches'] })
+        void queryClient.invalidateQueries({ queryKey: ['atelier-matches'] })
+      })
+      .catch(() => { annuler(); toast.error(t('today.catalogue.proposeError')) })
+  }
   const togglePropose = (m: CatItem) => {
     const adding = !proposed.has(m.id)
     setProposed((prev) => { const n = new Set(prev); if (n.has(m.id)) n.delete(m.id); else n.add(m.id); return n })
     if (adding && m.matchId && !sentRef.current.has(m.matchId)) {
       sentRef.current.add(m.matchId)
-      sendMatch(m.matchId, 'email')
+      proposer(m, m.matchId)
     }
   }
   // Agent réel → vrais matchs (état vide « Aucun match » si aucun) ; le seed démo

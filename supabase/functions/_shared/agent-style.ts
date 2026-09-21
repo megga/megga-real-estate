@@ -77,7 +77,8 @@ export async function fetchClientVoiceSamples(
       .not('contact_id', 'is', null)
       .not('body', 'is', null)
       // is_automated=false → prose RÉELLEMENT écrite par un agent (exclut copilote,
-      // templates, texte ET légendes send_listings) ; media_type null → texte seul.
+      // templates, et les envois de biens `send_listings` d'avant le 21.09.2026, texte ET
+      // légendes) ; media_type null → texte seul.
       .eq('is_automated', false)
       .is('media_type', null)
       .order('created_at', { ascending: false })

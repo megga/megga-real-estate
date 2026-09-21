@@ -70,14 +70,14 @@ const DEMO_TIMELINE: TimelineEvent[] = [
 ]
 const DEMO_MATCHES: MatchResult[] = [
   {
-    id: 'm1', contactId: 'demo-c1', contactName: 'Marie Bertrand', propertyId: 'demo-p1',
+    id: 'm1', contactId: 'demo-c1', contactName: 'Marie Bertrand', contactFirstName: 'Marie', contactLastName: 'Bertrand', propertyId: 'demo-p1',
     marketListingId: null, source: 'internal',
     listing: { title: 'Appartement 5p · Carouge', price: 1190000, address: 'Rue Ancienne 6', city: 'Carouge', canton: 'GE', postal_code: '1227', rooms: 5, bedrooms: 3, surface_m2: 124, photos: ['https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=900&q=80'], type: 'apartment', description: '', features: {}, floor: 3, total_floors: 5, year_built: 2016, charges_monthly: 0 },
     score: 94, reasons: { budget: { match: true, score: 1, detail: '' }, zone: { match: true, score: 1, detail: '' }, type: { match: true, score: 1, detail: '' }, rooms: { match: true, score: 1, detail: '' }, features: { match: true, score: 1, detail: '' } },
     status: 'visit_planned', sentVia: null, sentAt: null, createdAt: '2026-06-18T09:00:00.000Z',
   },
   {
-    id: 'm2', contactId: 'demo-c1', contactName: 'Marie Bertrand', propertyId: 'demo-p2',
+    id: 'm2', contactId: 'demo-c1', contactName: 'Marie Bertrand', contactFirstName: 'Marie', contactLastName: 'Bertrand', propertyId: 'demo-p2',
     marketListingId: null, source: 'internal',
     listing: { title: 'Duplex 4.5p · Champel', price: 1240000, address: 'Av. de Champel 24', city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4, bedrooms: 2, surface_m2: 112, photos: ['https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=900&q=80'], type: 'apartment', description: '', features: {}, floor: 2, total_floors: 4, year_built: 2009, charges_monthly: 0 },
     score: 81, reasons: { budget: { match: true, score: 1, detail: '' }, zone: { match: true, score: 1, detail: '' }, type: { match: true, score: 1, detail: '' }, rooms: { match: false, score: 0, detail: '' }, features: { match: true, score: 1, detail: '' } },

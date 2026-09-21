@@ -1,24 +1,17 @@
 {
   "loop": {
     "inboxTitle": "À traiter",
-    "likedTitle": "A liké {{title}}",
+    "likedTitle": "Intéressé par {{title}}",
     "likedSub": "{{when}} · {{price}}{{score}}",
     "matchPct": " · match {{score}} %",
     "proposeVisit": "Proposer la visite",
     "later": "Plus tard",
     "handled": "Visite en préparation · consignée dans sa fiche",
-    "filEyebrow": "Sa réception",
-    "filTitle": "Dossiers transmis",
-    "filMeta": "{{sent}} transmis · {{opened}} ouverts",
     "openAtelier": "Ouvrir l'atelier",
-    "empty": "Aucun dossier transmis pour l'instant.",
-    "pillLiked": "Liké",
-    "pillSeen": "Vu",
-    "pillSent": "Transmis",
-    "pillDismissed": "Écarté",
-    "metaLiked": "Transmis {{sent}} · ouvert · liké {{when}}",
-    "metaSeen": "Transmis {{sent}} · ouvert · sans réaction",
-    "metaSent": "Transmis {{sent}} · pas encore ouvert",
+    "empty": "Aucun bien proposé pour l'instant.",
+    "pillLiked": "Intéressé",
+    "pillSent": "Proposé",
+    "pillDismissed": "Pas intéressé",
     "metaDismissed": "Motif consigné · recalibre le matching",
     "motif": "« {{motif}} »"
   },
@@ -69,7 +62,7 @@
     "nextAction": {
       "call": "Appel de qualification",
       "visit": "Planifier une visite",
-      "match": "Envoyer 3 biens du portefeuille",
+      "match": "Proposer des biens",
       "kyc": "Lancer le KYC"
     },
     "lead": {
@@ -226,7 +219,6 @@
     "followUp": "Relancer",
     "noInteractionDays": "Aucune interaction depuis {{days}} jours.",
     "call": "Appeler",
-    "sendSelection": "Envoyer une sélection de biens",
     "sendSelectionDesc": "Proposer des biens correspondant aux critères de recherche.",
     "seeMatches": "Voir les matchs",
     "sellerUpdate": "Faire un point vendeur",
@@ -431,7 +423,7 @@
   },
   "nextAction": {
     "planifier_visite": "Planifier une visite",
-    "envoyer_biens": "Envoyer des biens",
+    "envoyer_biens": "Proposer des biens",
     "relancer": "Relancer",
     "qualifier_lead": "Qualifier le lead",
     "repondre": "Répondre",
@@ -787,7 +779,7 @@
         "rooms": "{{n}} p.",
         "status": {
           "suggested": "Suggéré",
-          "sent": "Envoyé",
+          "sent": "Proposé",
           "visit_planned": "Visite prévue",
           "interested": "Intéressé",
           "rejected": "Refusé",
@@ -936,7 +928,7 @@
     },
     "kycDossier": "Dossier KYC",
     "cta": {
-      "transmit": "Transmettre des biens",
+      "transmit": "Proposer des biens",
       "viewMandate": "Voir le mandat"
     },
     "menu": {
@@ -1068,50 +1060,16 @@
     },
     "page": {
       "infos": "Ses informations",
-      "loop": "Boucle de match"
+      "loop": "Sa boucle"
     },
     "loop": {
-      "opened": "Ouverts",
       "toHandleCount": "À traiter ({{count}})",
-      "transmittedCount": "Biens transmis ({{count}})",
+      "transmittedCount": "Biens proposés ({{count}})",
       "openInMatching": "Ouvrir dans le Matching",
       "ignore": "Ignorer",
       "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
-      "emptyTitle": "Aucun dossier transmis",
-      "emptyBody": "Envoyez une sélection de biens à {{name}}.<1/>Ses retours arrivent ici."
-    },
-    "links": {
-      "title": "Liens envoyés ({{count}})",
-      "loading": "Chargement des liens…",
-      "failed": "Liens non chargés.",
-      "empty": "Aucun lien envoyé pour l'instant.",
-      "selection_one": "Sélection de {{count}} bien",
-      "selection_other": "Sélection de {{count}} biens",
-      "sentOn": "Envoyé le {{date}}",
-      "expiresOn": "échéance {{date}}",
-      "revokedOn": "retiré le {{date}}",
-      "revoke": "Retirer le lien",
-      "channel": {
-        "whatsapp": "WhatsApp",
-        "link": "Lien copié"
-      },
-      "status": {
-        "pending": "Non ouvert",
-        "viewed": "Ouvert",
-        "reacted": "Réponse reçue",
-        "expired": "Échu",
-        "revoked": "Retiré",
-        "unknown": "Statut inconnu"
-      },
-      "confirm": {
-        "title": "Retirer ce lien ?",
-        "body_one": "L'acheteur perdra l'accès au bien qu'il a reçu. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
-        "body_other": "L'acheteur perdra l'accès aux {{count}} biens qu'il a reçus. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
-        "cta": "Retirer le lien",
-        "busy": "Retrait en cours…",
-        "refused": "Ce lien n'était déjà plus actif. La liste vient d'être rafraîchie.",
-        "failed": "Le retrait n'a pas abouti. Réessayez."
-      }
+      "emptyTitle": "Aucun bien proposé",
+      "emptyBody": "Proposez des biens à {{name}}, puis notez ses réponses.<1/>Elles arrivent ici."
     },
     "saved": {
       "coord": "Coordonnées enregistrées",

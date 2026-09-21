@@ -40,8 +40,8 @@
  * bascule.
  *
  * ⛔ Données de DÉMONSTRATION. Rien ne vient de la base, aucun geste n'écrit :
- * les gestes de l'atelier sont des poignées inertes, l'envoi de la Recherche
- * ouvre sa feuille sans minter de lien.
+ * les gestes de l'atelier sont des poignées inertes, l'ajout de la Recherche à
+ * la sélection d'un acheteur s'annonce sans rien écrire.
  */
 import { createContext, useContext, useMemo, useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
@@ -150,7 +150,7 @@ function Chrome({ dark }: { dark: boolean }) {
   const { atelier, setAtelier, recherche, setRecherche } = useBanc()
   // ⛔ Un banc qui CACHE une surface ne la vérifie pas. Posées à demeure, ces
   // commandes recouvrent le coin bas-droit — celui de la fiche annonce et de la
-  // feuille d'envoi, les deux plus gros fichiers de la Recherche. On les replie
+  // barre d'ajout à la sélection, deux surfaces de la Recherche. On les replie
   // donc sur leur pastille : même piège que `/dev/biens`, qui ne montrait jamais
   // la pastille de score, à ceci près qu'ici c'est le banc qui masque.
   const [replie, setReplie] = useState(false)

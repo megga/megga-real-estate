@@ -2,11 +2,12 @@
 //
 // La garde de SORTIE des e-mails pilotés par un agent — ce qui ferme le relais ouvert.
 //
-// ⛔ CE QUE L'AUDIT DU 13.09.2026 A MESURÉ. `send-email`, `send-property-email` et
-// `send-relance-email` acceptaient un `to` ARBITRAIRE derrière `requireAgentAuth`. Or un jeton
-// d'agent est gratuit (l'inscription provisionne une agence solo) : n'importe qui faisait
-// partir un e-mail signé DKIM par `noreply@getmegga.com` vers n'importe quel destinataire,
-// sans limite — un gabarit d'hameçonnage à l'identité MEGGA. La porte `lint:edge-auth` était
+// ⛔ CE QUE L'AUDIT DU 13.09.2026 A MESURÉ. `send-email`, `send-property-email` (retirée le
+// 21.09.2026 : le matching reste chez l'agent) et `send-relance-email` acceptaient un `to`
+// ARBITRAIRE derrière `requireAgentAuth`. Or un jeton d'agent est gratuit (l'inscription
+// provisionne une agence solo) : n'importe qui faisait partir un e-mail signé DKIM par
+// `noreply@getmegga.com` vers n'importe quel destinataire, sans limite — un gabarit
+// d'hameçonnage à l'identité MEGGA. La porte `lint:edge-auth` était
 // verte, parce qu'elle vérifie qu'une garde est IMPORTÉE, pas ce qu'elle laisse passer.
 //
 // Trois questions, dans cet ordre, et la première refusée arrête tout :
@@ -24,8 +25,8 @@
 // service_role pour fermer.
 //
 // L'ordre périmètre → suppression → quota → Resend est gardé par
-// tests/unit/email-senders-scope.spec.ts : sur la source de `send-email` et de
-// `send-property-email`, qui appellent Resend elles-mêmes, et sur celle de
+// tests/unit/email-senders-scope.spec.ts : sur la source de `send-email`, qui appelle
+// Resend elle-même, et sur celle de
 // `_shared/relance-email-send.ts`, l'envoi de relance que partagent `send-relance-email` et
 // l'exécuteur WhatsApp (`executeSendClientEmail`, exécuté par `whatsapp-webhook`).
 
@@ -40,7 +41,7 @@ export type RecipientScope = 'contact' | 'lead' | 'member' | 'agency'
  * `whatsapp-webhook` exécute le « oui » de l'agent à une relance rédigée par le copilote
  * (`executeSendClientEmail` → `_shared/relance-email-send.ts`).
  */
-export type OutboundEmailSender = 'send-email' | 'send-property-email' | 'send-relance-email' | 'whatsapp-webhook'
+export type OutboundEmailSender = 'send-email' | 'send-relance-email' | 'whatsapp-webhook'
 
 export interface OutboundEmailCaller {
   /**

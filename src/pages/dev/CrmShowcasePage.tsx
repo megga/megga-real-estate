@@ -99,6 +99,9 @@ const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
 const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
 const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
+// Le Matching du banc est le FIL DE MATCHS (refonte, lot 1), sur les fixtures de ce banc-ci : ses
+// lectures traversent l'interception. L'atelier actuel garde son banc, `/dev/matching-atelier`.
+const MatchingFilBanc = lazy(() => import('@/pages/dev/matchingFilBanc'))
 
 /**
  * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
@@ -166,12 +169,14 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   { id: 'bien', chemin: '/dashboard/listings/p1', label: 'Bien · fiche', vague: null },
   // La création d'annonce en quatre étapes — elle a remplacé l'ancien wizard le 16.09.2026.
   { id: 'nouveau-bien', chemin: '/dashboard/listings/new', label: 'Nouveau bien', vague: null },
+  // Le fil de matchs (refonte, lot 1) — l'atelier actuel reste sur `/dev/matching-atelier`.
+  { id: 'matching', chemin: '/dashboard/matching', label: 'Matching · fil', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '8 contacts, 50 biens, 2 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 12 matchs, 2 rappels, 1 visite, journal à 4 lignes' },
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
@@ -358,6 +363,7 @@ const ROUTES_BANC = (
         <Route path="journey" element={<JourneyPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="messagerie" element={<MessagerieBanc />} />
+        <Route path="matching" element={<MatchingFilBanc />} />
         <Route path="contacts" element={<ContactsPage />} />
         <Route path="contacts/:id" element={<ByParam><ContactDetailPage /></ByParam>} />
         <Route path="listings" element={<ListingsPage />} />
@@ -475,7 +481,9 @@ export default function CrmShowcasePage() {
       // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
       // mêmes tables, la montrait encore à son ancienne place.
       // `contacts` aussi : un visiteur créé depuis « Planifier une visite » doit exister ensuite.
-      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes', 'contacts'],
+      // `matches`, `transactions` et `activity_events` : un match proposé, reporté ou écarté doit
+      // QUITTER le fil, et son deal comme sa ligne de journal doivent exister ensuite.
+      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes', 'contacts', 'matches', 'transactions', 'activity_events'],
       // Une note ajoutée dans le banc est signée de l'agent de démonstration, comme la base
       // la signerait de l'appelant — sinon elle n'aurait ni auteur ni « Modifier ».
       completions: {

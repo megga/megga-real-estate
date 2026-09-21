@@ -60,13 +60,13 @@ const FICHE = 'src/components/crm/contacts-pager/ContactDetailPager.tsx'
 
 /**
  * Les tons d'aplat de la fiche (`buildPal`), par thème. Ils sont SÉMANTIQUES —
- * ils disent l'état d'un match ou d'un lien — et sortent donc légitimement des
+ * ils disent l'état d'un match — et sortent donc légitimement des
  * barreaux de la vitrine. Ce qui se vérifie ici est leur LISIBILITÉ, pas leur
  * provenance : confondre les deux est ce qui a laissé le défaut passer.
  */
 const TONS_FICHE = {
-  clair: { ghost: '#B5BAC2', buyer: '#1E5BC6', ok: '#059669', cyan: '#0891B2', wait: '#7A8088', danger: '#8E1F3D' },
-  sombre: { ghost: '#4C505A', buyer: '#6F8CFF', ok: '#34D399', cyan: '#38BDD8', wait: '#8A909B', danger: '#E0738C' },
+  clair: { ghost: '#B5BAC2', buyer: '#1E5BC6', ok: '#059669', wait: '#7A8088', danger: '#8E1F3D' },
+  sombre: { ghost: '#4C505A', buyer: '#6F8CFF', ok: '#34D399', wait: '#8A909B', danger: '#E0738C' },
 } as const
 
 /**
@@ -201,7 +201,8 @@ describe('L’encre suit l’aplat — le code l’applique', () => {
   })
 
   /**
-   * Les six tons de `buildPal`, dans les DEUX thèmes. Sous le blanc figé
+   * Les cinq tons de `buildPal`, dans les DEUX thèmes (`cyan`, l'état « vu », est parti
+   * avec la page de réception de l'acheteur le 21.09.2026). Sous le blanc figé
    * d'avant : quatre échouaient en clair (ghost 1,95 · cyan 3,68 · ok 3,77 ·
    * wait 3,98) et CINQ en sombre (ok 1,92 · cyan 2,22 · danger 3,00 · buyer
    * 3,06 · wait 3,21). `danger` à 3,00 portait le libellé du bouton qui

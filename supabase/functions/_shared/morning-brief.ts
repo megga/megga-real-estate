@@ -119,7 +119,7 @@ export function briefItemCount(
 
 const REMINDER_LABELS: Record<WaLang, Record<string, string>> = {
   fr: {
-    follow_up_sent_property: 'Relance après envoi de bien',
+    follow_up_sent_property: 'Retour sur un bien proposé',
     post_visit_feedback: 'Retour de visite',
     dormant_lead: 'Lead dormant',
     missing_document: 'Document manquant',
@@ -127,7 +127,7 @@ const REMINDER_LABELS: Record<WaLang, Record<string, string>> = {
     custom: 'Rappel',
   },
   en: {
-    follow_up_sent_property: 'Follow-up on sent property',
+    follow_up_sent_property: 'Feedback on a proposed property',
     post_visit_feedback: 'Visit feedback',
     dormant_lead: 'Dormant lead',
     missing_document: 'Missing document',

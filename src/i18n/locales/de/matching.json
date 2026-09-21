@@ -62,9 +62,6 @@
       "title": "Nahe an den Kriterien",
       "note": "1 Kriterium gelockert"
     },
-    "send_one": "{{count}} Objekt an {{name}} senden",
-    "send_other": "{{count}} Objekte an {{name}} senden",
-    "sendSoon": "Auswahl aus der Suche senden, bald verfügbar.",
     "card": {
       "estimate": "Zu schätzen",
       "perMonth": "/Mt.",
@@ -160,7 +157,15 @@
       "zoomIn": "Vergrössern",
       "zoomOut": "Verkleinern",
       "nearHere": "Keine in den Kriterien · nahe Objekte"
-    }
+    },
+    "ajouter": "Zur Auswahl von {{prenom}} hinzufügen",
+    "ajoute_one": "{{count}} Objekt zur Auswahl von {{prenom}} hinzugefügt",
+    "ajoute_other": "{{count}} Objekte zur Auswahl von {{prenom}} hinzugefügt",
+    "dejaPresents_one": "{{count}} bereits unter den Treffern",
+    "dejaPresents_other": "{{count}} bereits unter den Treffern",
+    "dejaHorsFile_one": "davon {{count}} verworfen oder verschoben, unverändert belassen",
+    "dejaHorsFile_other": "davon {{count}} verworfen oder verschoben, unverändert belassen",
+    "ajoutErreur": "Die Objekte konnten nicht hinzugefügt werden. Versuchen Sie es erneut."
   },
   "runMatching": "Matching starten",
   "running": "Analyse läuft...",
@@ -168,13 +173,13 @@
   "market": "Markt",
   "kpi": {
     "totalMatches": "Matches gesamt",
-    "toSend": "Zu senden",
+    "toSend": "Vorzuschlagen",
     "sent": "Gesendet",
     "contacts": "Kontakte"
   },
   "filter": {
     "all": "Alle",
-    "suggested": "Zu senden",
+    "suggested": "Vorzuschlagen",
     "sentLabel": "Gesendet",
     "internal": "Intern",
     "marketLabel": "Markt",
@@ -223,7 +228,7 @@
   },
   "tabs": {
     "all": "Alle",
-    "to-send": "Zu senden",
+    "to-send": "Vorzuschlagen",
     "engaged": "Engagiert",
     "no-reply": "Ohne Rückmeldung"
   },
@@ -231,7 +236,7 @@
     "daysAgo_one": "vor {{count}} Tag",
     "daysAgo_other": "vor {{count}} Tagen",
     "recently": "kürzlich",
-    "noReply": "Dossier {{age}} gesendet, keine Reaktion. Versuchen Sie einen anderen Kanal, Telefon oder WhatsApp.",
+    "noReply": "Objekt {{age}} vorgeschlagen, keine Antwort erfasst. Fassen Sie per Telefon oder WhatsApp nach.",
     "engagedVisit": "Besichtigung bereits geplant. Bereiten Sie den Besichtigungsschein und die Stärken des Objekts vor.",
     "engaged": "{{engage}}, jetzt nachfassen, es ist der richtige Moment für eine Besichtigung.",
     "aligned": "Profil in allen Punkten passend. {{kyc}}",
@@ -239,8 +244,8 @@
     "twoPos": "{{a}} und {{b}} passend. {{kyc}}",
     "default": "Match von {{score}}/100 bei den aktiven Kriterien. {{kyc}}",
     "kycPhrase": {
-      "verified": "Keine KYC-Hürde, Dossier sofort versandbereit.",
-      "pending": "KYC läuft, kein Hindernis für den Versand.",
+      "verified": "Keine KYC-Hürde, das Objekt kann sofort vorgeschlagen werden.",
+      "pending": "KYC läuft, kein Hindernis für den Vorschlag.",
       "stale": "KYC-Prüfung abgelaufen, vor einem Angebot erneut prüfen.",
       "none": "KYC nicht gestartet, sanfte Erinnerung, in diesem Stadium nicht blockierend."
     }
@@ -327,7 +332,6 @@
     "start": "Starten",
     "interested": "Interessiert",
     "notInterested": "Kein Interesse",
-    "followUpOtherChannel": "Nachfassen · anderer Kanal",
     "proposeVisit": "Besichtigung vorschlagen",
     "dismiss": "Verwerfen",
     "later": "Später",
@@ -348,13 +352,12 @@
     "reactivateNow": "Jetzt reaktivieren",
     "backOn": "Zurück am {{date}}",
     "seeDeal": "Deal ansehen →",
-    "toastSentBuyer": "Dossier an {{name}} übermittelt · {{title}} · zum Kundendossier hinzugefügt",
+    "toastSentBuyer": "{{title}} {{name}} vorgeschlagen · Erinnerung in 3 Tagen",
     "toastLaterListing": "Später · {{title}} kommt am {{date}} zurück",
     "toastDismissedBuyer": "{{title}} für {{name}} verworfen",
     "toastBackInQueue": "{{title}} ist wieder in der Warteschlange",
     "neighborhoodLabel": "Quartier {{area}}",
     "mapAlt": "Karte, {{address}}",
-    "defaultAgentName": "Ihr MEGGA-Makler",
     "closeAtelier": "Arbeitsbereich schliessen",
     "buyerTitle": "Matching des Käufers",
     "listingTitle": "Matching des Inserats",
@@ -371,8 +374,8 @@
       "desc": "Alle Käufer in diesem Tab wurden sortiert. Wechseln Sie den Tab."
     },
     "toast": {
-      "sent": "Dossier an {{name}} übermittelt · zum Kundendossier hinzugefügt",
-      "relance": "Nachfassnachricht an {{name}} gesendet · im Dossier vermerkt",
+      "sent": "{{name}} vorgeschlagen · Erinnerung in 3 Tagen",
+      "relance": "Nachfassen bei {{name}} festgehalten · Erinnerung in 3 Tagen",
       "later": "Später · {{name}} kehrt am {{date}} in die Warteschlange zurück",
       "interested": "{{name}} · interessiert, Reaktionsfreudigkeit vermerkt",
       "rejected": "{{name}} · nicht interessiert",
@@ -408,7 +411,7 @@
       "desc": "Beim Laden des Arbeitsbereichs ist ein Fehler aufgetreten. Versuchen Sie es erneut.",
       "retry": "Erneut versuchen"
     },
-    "sendDossier": "Dossier senden",
+    "sendDossier": "Ich habe es vorgeschlagen",
     "priceBefore": "Vorher",
     "queueSortedBy": "sortiert nach",
     "sortByMatch": "Match-Stärke",
@@ -418,46 +421,33 @@
     "scheduleThisWeek": "Diese Woche",
     "scheduleLater": "Danach",
     "resume": "Fortsetzen",
-    "changeDate": "Ändern"
+    "changeDate": "Ändern",
+    "followedUp": "Ich habe nachgefasst"
   },
   "confirm": {
-    "sendTitle": "Dossier übermitteln",
-    "followUpTitle": "Nachfassen",
-    "sendQuestion": "Dossier übermitteln?",
-    "followUpQuestion": "Bei {{name}} nachfassen?",
-    "sendBody": "Das vollständige Objektdossier wird mit einer Benachrichtigung im Kundendossier von {{firstName}} hinterlegt. Alles wird automatisch im Kontaktblatt festgehalten.",
-    "followUpBody": "Eine sanfte Nachfassnachricht wird im Kundendossier von {{firstName}} hinterlegt, mit dem Objekt als Erinnerung. Alles wird automatisch im Kontaktblatt festgehalten.",
-    "sendCta": "Übermitteln",
-    "followUpCta": "Nachfassen",
-    "successSendTitle": "Dossier übermittelt",
-    "successFollowUpTitle": "Nachfass gesendet",
-    "successSendBody": "Im Kundendossier von {{name}} hinterlegt · Benachrichtigung gesendet.",
-    "successFollowUpBody": "{{name}} hat eine Erinnerung erhalten · im Kundendossier festgehalten."
+    "sendTitle": "Ich habe es vorgeschlagen",
+    "followUpTitle": "Ich habe nachgefasst",
+    "sendQuestion": "Ich habe es {{firstName}} vorgeschlagen?",
+    "followUpQuestion": "Ich habe bei {{name}} nachgefasst?",
+    "sendBody": "{{firstName}} erhält nichts: Das CRM hält den Vorschlag in der Kontaktkarte fest und erinnert Sie in 3 Tagen daran, die Antwort zu erfassen.",
+    "followUpBody": "{{firstName}} erhält nichts: Das CRM hält Ihr Nachfassen in der Kontaktkarte fest und verschiebt die Erinnerung um 3 Tage.",
+    "sendCta": "Ich habe es vorgeschlagen",
+    "followUpCta": "Ich habe nachgefasst",
+    "successSendTitle": "Vorschlag festgehalten",
+    "successFollowUpTitle": "Nachfassen festgehalten",
+    "successSendBody": "{{name}} vorgeschlagen · Erinnerung in 3 Tagen.",
+    "successFollowUpBody": "{{name}} · Erinnerung in 3 Tagen."
   },
   "panel": {
     "loading": "Matches werden geladen...",
     "loadError": "Fehler beim Laden",
     "suggestionCount_one": "{{count}} suggestion",
     "suggestionCount_other": "{{count}} suggestions",
-    "sentCount_one": "{{count}} gesendet",
-    "sentCount_other": "{{count}} gesendet",
     "searchCompatible": "Passende Objekte suchen",
     "matchesFound_one": "{{count}} neuer Match gefunden",
     "matchesFound_other": "{{count}} neue Matches gefunden",
     "emptyTitle": "Kein passendes Objekt gefunden",
     "emptyDesc": "Starten Sie die Suche oder fügen Sie dem Kontakt Suchkriterien hinzu."
-  },
-  "send": {
-    "fallbackName": "Contact",
-    "title": "Objekt an {{name}} senden",
-    "description": "{{title}} - {{price}}, Score {{score}}%",
-    "channelLabel": "Versandkanal",
-    "messageLabel": "Message",
-    "error": "Fehler beim Senden. Versuchen Sie es erneut.",
-    "template": {
-      "whatsapp": "Guten Tag {{firstName}}, ich habe ein Objekt, das Sie interessieren könnte: {{title}}, {{address}} in {{city}}. Preis: {{price}}. {{rooms}} Zimmer, {{surface}} m². Möchten Sie eine Besichtigung vereinbaren?",
-      "email": "Guten Tag {{firstName}},\n\nIm Anschluss an unser Gespräch freue ich mich, Ihnen ein Objekt vorzustellen, das Ihren Kriterien entspricht:\n\n{{title}}\n{{address}}, {{city}}\nPreis: {{price}}\n{{rooms}} Zimmer · {{surface}} m²\n\nMöchten Sie eine Besichtigung vereinbaren? Ich stehe Ihnen gerne zur Verfügung.\n\nFreundliche Grüsse,\nGregory Lyonnet\nMEGGA Immobilier"
-    }
   },
   "mobile": {
     "activeBuyers_one": "{{count}} aktiver Käufer",
@@ -468,17 +458,15 @@
     "schedule": "Planen",
     "visitPlanned": "Besichtigung geplant",
     "visitProposed": "Besichtigung vorgeschlagen",
-    "send": "Senden",
-    "sent": "Gesendet",
+    "send": "Ich habe es vorgeschlagen",
+    "sent": "Vorgeschlagen",
     "surfaceSuffix": "m²",
     "roomsSuffix": "Zi.",
-    "channelEmail": "Per E-Mail · {{email}}",
-    "channelNone": "Im Kundendossier abgelegt",
     "viewContact": "Kontakt ansehen",
     "refine": "Kriterien verfeinern",
     "removeFromList": "Aus der Liste entfernen",
     "removeTitle": "Aus der Liste entfernen?",
-    "removeBody": "{{name}} erhält keine Vorschläge aus dieser Suche mehr.",
+    "removeBody": "Diese Objekte werden Ihnen für {{name}} nicht mehr vorgeschlagen.",
     "emptyFilter": "Kein Käufer in diesem Filter.",
     "verdict": {
       "excellent": "Exzellent",
@@ -504,17 +492,6 @@
     "score": "Matching",
     "recherche": "Suche",
     "wheelTo": "Mausrad zu {{label}}"
-  },
-  "sendSheet": {
-    "title": "An {{name}} senden",
-    "body": "Privater Link, ohne E-Mail. Rückmeldungen von {{firstName}} erscheinen direkt im Kundendossier.",
-    "whatsapp": "Per WhatsApp senden",
-    "copyLink": "Link kopieren",
-    "copied": "Link kopiert",
-    "preview": "Käuferansicht öffnen",
-    "error": "Link konnte nicht vorbereitet werden. Versuchen Sie es erneut.",
-    "noPhone": "Dieser Kontakt hat keine Nummer. Kopieren Sie den Link, um ihn zu senden.",
-    "waMessage": "Guten Tag {{firstName}}, hier eine Auswahl an Objekten für Sie: {{url}}"
   },
   "firstRun": {
     "title": "Hier beginnt Ihre Match-Schleife",
@@ -542,5 +519,162 @@
     "processed": "{{total}} bearbeitet",
     "progressAria": "{{done}} von {{total}} Käufern bearbeitet",
     "queueDone": "Warteschlange bearbeitet"
+  },
+  "fil": {
+    "titre": "Matching",
+    "aTraiter": "Zu bearbeiten · {{count}}",
+    "chargement": "Matches werden geladen",
+    "filtres": {
+      "bien": "Nach Objekt filtern",
+      "tousLesBiens": "Alle Objekte",
+      "acheteur": "Nach Käufer filtern",
+      "tousLesAcheteurs": "Alle Käufer",
+      "recherche": "Objekt oder Käufer suchen",
+      "retirer": "Filter entfernen",
+      "inconnu": "Aktuelle Auswahl"
+    },
+    "vosBiens": "Ihre Objekte",
+    "listeAria": "Zu bearbeitende Matches",
+    "acheteurs_one": "{{count}} Käufer",
+    "acheteurs_other": "{{count}} Käufer",
+    "sansEcart": "Keine Abweichung gemeldet",
+    "ecartSur": "{{critere}} prüfen",
+    "nonEvalues": "Kriterien nicht bewertet",
+    "sansCriteres": "Keine detaillierten Kriterien",
+    "reportes_one": "{{count}} zurückgestellt · zurück ab {{date}}",
+    "reportes_other": "{{count}} zurückgestellt · zurück ab {{date}}",
+    "deRetour": "zurück am {{date}}",
+    "reactiver": "Reaktivieren",
+    "votreBien": "Ihr Objekt",
+    "voirBien": "Objekt ansehen",
+    "sansPhoto": "Kein Foto",
+    "estimation": "Schätzung",
+    "scoreAria": "Score {{score}}, Schätzung · {{palier}}",
+    "palier": {
+      "fort": "sehr nah",
+      "bon": "nah",
+      "possible": "prüfenswert"
+    },
+    "kyc": {
+      "verified": "KYC geprüft",
+      "pending": "KYC läuft",
+      "stale": "KYC erneuern",
+      "none": "KYC vervollständigen"
+    },
+    "panneauAria": "{{acheteur}} für {{bien}}",
+    "pourquoi": "Warum dieser Match",
+    "colonnes": {
+      "critere": "Kriterium",
+      "recherche": "Gesucht",
+      "bien": "Dieses Objekt",
+      "verdict": "Ergebnis"
+    },
+    "criteres": {
+      "budget": "Budget",
+      "zone": "Gegend",
+      "type": "Typ",
+      "pieces": "Zimmer",
+      "surface": "Fläche",
+      "equipements": "Ausstattung"
+    },
+    "correspond": "Erfüllt",
+    "ecart": "Abweichung",
+    "valeurs": {
+      "entre": "{{min}} bis {{max}}",
+      "jusqua": "bis {{valeur}}",
+      "desDe": "ab {{valeur}}",
+      "auMoins": "{{valeur}} oder mehr",
+      "auPlus": "höchstens {{valeur}}",
+      "m2": "{{valeur}} m²",
+      "parMois": "{{valeur}} / Monat",
+      "presents": "{{n}} von {{total}}",
+      "inconnu": "Nicht angegeben"
+    },
+    "types": {
+      "apartment": "Wohnung",
+      "house": "Haus",
+      "villa": "Villa",
+      "office": "Büro",
+      "commercial": "Gewerbe",
+      "parking": "Parkplatz",
+      "storage": "Lager",
+      "land": "Grundstück"
+    },
+    "equipementsNoms": {
+      "balcon": "Balkon",
+      "terrasse": "Terrasse",
+      "jardin": "Garten",
+      "ascenseur": "Lift",
+      "cave": "Keller",
+      "parking": "Parkplatz",
+      "garage": "Garage",
+      "piscine": "Pool",
+      "cheminee": "Cheminée",
+      "climatisation": "Klimaanlage",
+      "parquet": "Parkett",
+      "vue-lac": "Seesicht",
+      "vue": "Aussicht",
+      "place-de-parc": "Parkplatz",
+      "clim": "Klimaanlage"
+    },
+    "historique": {
+      "aucun": "Bereits {{prenom}} vorgeschlagen: noch nichts",
+      "proposes_one": "Bereits {{prenom}} vorgeschlagen: {{count}} Objekt",
+      "proposes_other": "Bereits {{prenom}} vorgeschlagen: {{count}} Objekte",
+      "interesses_one": " · {{count}} interessiert",
+      "interesses_other": " · {{count}} interessiert"
+    },
+    "actions": {
+      "proposer": "Ich habe es {{prenom}} vorgeschlagen",
+      "plusTard": "Später",
+      "ecarter": "Verwerfen",
+      "raccourci": "Tastenkürzel: {{touche}}"
+    },
+    "reporte": "{{nom}} um eine Woche zurückgestellt",
+    "ecarte": "{{nom}} für dieses Objekt verworfen",
+    "annuler": "Rückgängig",
+    "erreurGeste": "Die Aktion konnte nicht gespeichert werden. Bitte erneut versuchen.",
+    "vide": {
+      "titre": "Alles erledigt",
+      "texte": "Keines Ihrer Objekte wartet auf einen Vorschlag.",
+      "contacts": "Suche eines Kontakts ergänzen",
+      "marche": "Markt ansehen"
+    },
+    "filtreVide": "Nichts entspricht diesen Filtern.",
+    "choisir": "Wählen Sie einen Match aus der Liste.",
+    "erreur": "Die Matches konnten nicht geladen werden.",
+    "erreurRafraichir": "Die Liste konnte nicht aktualisiert werden.",
+    "reessayer": "Erneut versuchen",
+    "marche": "Markt · eine Auswahl pro Käufer",
+    "marcheAria": "Markt-Auswahlen",
+    "ecarteSelection": "„{{titre}}“ für {{prenom}} verworfen",
+    "selection": {
+      "ligne_one": "{{count}} Objekt noch nicht vorgeschlagen",
+      "ligne_other": "{{count}} Objekte noch nicht vorgeschlagen",
+      "titreAria": "Markt-Auswahl für {{nom}}",
+      "marche": "Markt",
+      "recherche": "Suche: {{resume}}",
+      "inclure": "„{{titre}}“ einbeziehen",
+      "ecarterAria": "„{{titre}}“ verwerfen",
+      "ecarts": "Zu prüfen: {{liste}}",
+      "pieces_one": "{{valeur}} Zimmer",
+      "pieces_other": "{{valeur}} Zimmer",
+      "piecesAuMoins_one": "{{valeur}} Zimmer oder mehr",
+      "piecesAuMoins_other": "{{valeur}} Zimmer oder mehr",
+      "piecesAuPlus_one": "höchstens {{valeur}} Zimmer",
+      "piecesAuPlus_other": "höchstens {{valeur}} Zimmer",
+      "piecesEntre_one": "{{min}} bis {{max}} Zimmer",
+      "piecesEntre_other": "{{min}} bis {{max}} Zimmer",
+      "voirPlus": "20 weitere anzeigen",
+      "aucunCoche": "Wählen Sie mindestens ein Objekt aus.",
+      "vide": "Keine Marktobjekte vorzuschlagen.",
+      "erreur": "Die Auswahl konnte nicht geladen werden.",
+      "proposer_one": "Ich habe {{prenom}} {{count}} Objekt vorgeschlagen",
+      "proposer_other": "Ich habe {{prenom}} {{count}} Objekte vorgeschlagen",
+      "proposerAucun": "Ich habe sie {{prenom}} vorgeschlagen"
+    },
+    "propose": "{{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
+    "proposeSelection_one": "{{count}} Objekt {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
+    "proposeSelection_other": "{{count}} Objekte {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen"
   }
 }

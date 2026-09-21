@@ -17,9 +17,9 @@
 //       2e UPDATE vers le MÊME statut n'émet pas de nouvel event).
 //   R7  attribution 'user' : un agent authentifié qui marque → actor_kind='user',
 //       actor_id = l'agent.
-//   R8  boucle no_response (automation-engine) : un match 'sent'+response_at NULL
-//       est éligible ; après réaction il sort de la requête (.eq('status','sent')
-//       .is('response_at', null)).
+//   R8  (retiré le 21.09.2026) la boucle no_response d'automation-engine, qui relançait
+//       le client trois jours après un match envoyé : le matching reste chez l'agent, et
+//       le geste « Je l'ai proposé » pose lui-même sa relance interne.
 //   R9  multi-tenant : un agent d'une AUTRE agence ne peut pas marquer le match
 //       (RLS) → response_at reste NULL.
 
@@ -187,21 +187,6 @@ describe.skipIf(!HAS_KEYS)('match reaction producer — response_at + audit (liv
     expect(evs.length).toBe(1)
     expect(evs[0].actor_kind).toBe('user')
     expect(evs[0].actor_id).toBe(setup.agentAId)
-  })
-
-  it('R8 — boucle no_response : sent+null éligible, sort après réaction', async () => {
-    const c = await mkContact(setup.agencyAId, 'NoResponse')
-    const m = await mkSentMatch(setup.agencyAId, c, propA, 4) // envoyé il y a 4 j
-    const threeDaysAgo = new Date(Date.now() - 3 * 86400_000).toISOString()
-    const eligible = async (): Promise<boolean> => {
-      const { data } = await svc.from('matches')
-        .select('id').eq('id', m)
-        .eq('status', 'sent').is('response_at', null).lt('sent_at', threeDaysAgo)
-      return (data ?? []).length === 1
-    }
-    expect(await eligible(), 'match envoyé sans réponse = éligible relance J+3').toBe(true)
-    await svc.from('matches').update({ status: 'interested' }).eq('id', m)
-    expect(await eligible(), 'après réaction le match sort de la file no_response').toBe(false)
   })
 
   it('R9 — multi-tenant : un agent d\'une autre agence ne peut pas marquer', async () => {

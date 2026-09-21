@@ -155,7 +155,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // hors barreaux, mais DANS le SVG, que ce balayage ne lit pas ; le fichier ne sert plus
   // que de masque et les teintes sont montées dans le code. De l'ILLUSTRATION : aucun texte
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
-  ['src/components/crm', 518],
+  // 518 → 516 le 21.09.2026 : le cyan de l'état « vu » de la fiche contact part avec la page de
+  // réception de l'acheteur (le matching reste chez l'agent).
+  ['src/components/crm', 516],
   ['src/components/crm-mobile', 140],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
@@ -187,7 +189,8 @@ const HORS_ASSUMES = new Map<string, number>([
   // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
   // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.
   ['src/components/kyc-report', 4],
-  ['src/components/matching-recherche', 23],
+  // 23 → 22 le 21.09.2026 : la feuille d'envoi `MrhSendSheet` est retirée.
+  ['src/components/matching-recherche', 22],
   ['src/components/ai-copilot', 14],
   ['src/hooks/useAdminSurfaces.ts', 7],
   ['src/hooks/useAtelierMatching.ts', 8],
@@ -197,9 +200,9 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/hooks/useCalendarScreen.ts', 6],
   ['src/pages/public', 4],
   ['src/components/auth', 4],
-  ['src/components/buyer-reception', 4],
   ['src/types/visit.ts', 4],
-  ['src/components/matching-atelier', 3],
+  // 3 → 2 le 21.09.2026 : la feuille d'envoi `AtlSendSheet` est retirée.
+  ['src/components/matching-atelier', 2],
   ['src/components/admin', 2],
   ['src/components/layout', 1],
   ['src/components/ui', 1],

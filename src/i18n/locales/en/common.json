@@ -529,7 +529,10 @@
       "whatsapp_morning_brief_sent": "Morning brief sent",
       "whatsapp_number_verified": "WhatsApp number linked",
       "whatsapp_optin_invited": "WhatsApp invitation sent",
-      "whatsapp_send_blocked": "WhatsApp send blocked"
+      "whatsapp_send_blocked": "WhatsApp send blocked",
+      "match_ecarte": "Match dismissed",
+      "match_reporte": "Match postponed",
+      "match_propose": "Property proposed by the agent"
     },
     "entity": {
       "admin_console": "Admin console",

@@ -155,6 +155,23 @@ describe('sendRelanceEmail — la garde, puis Resend, dans cet ordre', () => {
     expect(journal).toEqual([])
   })
 
+  it('⛔ refuse (422) un bien dans la relance — lien d’annonce ou référence —, avant toute RPC ni Resend', async () => {
+    const admin = { rpc: rpcDe(GARDE_OK) } as never
+    const lien = await sendRelanceEmail(admin, APPELANT, { ...RELANCE, body: 'Voici un bien : https://www.homegate.ch/acheter/4001234567' }, CORS)
+    expect(lien.status).toBe(422)
+    expect(await lien.json()).toMatchObject({ error: 'property_in_message' })
+    const reference = await sendRelanceEmail(admin, APPELANT, { ...RELANCE, subject: 'Le MG-IN-3F2A1C pour vous' })
+    expect(reference.status).toBe(422)
+    // Ni périmètre, ni quota consommé, ni Resend : un refus de contenu ne coûte rien.
+    expect(journal).toEqual([])
+  })
+
+  it('laisse partir une relance qui parle d’une visite fixée, sans lien ni référence', async () => {
+    const admin = { rpc: rpcDe(GARDE_OK) } as never
+    const res = await sendRelanceEmail(admin, APPELANT, { ...RELANCE, body: 'Bonjour Marie,\nJe vous confirme la visite de jeudi 14h.' })
+    expect(res.status).toBe(200)
+  })
+
   it('refuse (500) sans clé Resend, avant de consommer une place de quota', async () => {
     env.RESEND_API_KEY = undefined
     const admin = { rpc: rpcDe(GARDE_OK) } as never
@@ -238,6 +255,15 @@ describe('executeSendClientEmail — le « oui » part, en direct', () => {
     expect(p.audits).toHaveLength(1)
     expect(p.audits[0]).toMatchObject({ agency_id: AGENCY, action: 'whatsapp_ai_send_client_email', actor_kind: 'ai' })
     expect((p.audits[0].metadata as Record<string, unknown>).email_sent).toBe(true)
+  })
+
+  it('⛔ un bien dans l’email ne part pas, et l’agent lit pourquoi — pas un code', async () => {
+    const p = porte()
+    const reponse = await executeSendClientEmail(p.ctx, { ...PAYLOAD, body: 'Bonjour Marie,\nJe vous propose le MG-MK-99887.' })
+    expect(reponse).toMatch(/^Rien n'est parti : ce message contient un bien/)
+    expect(reponse).not.toContain('property_in_message')
+    expect(deroule()).toEqual([])
+    expect((p.audits[0].metadata as Record<string, unknown>).email_sent).toBe(false)
   })
 
   it('un STOP arrête l’envoi, et l’agent le lit en clair — pas un code', async () => {

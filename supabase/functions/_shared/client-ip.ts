@@ -5,7 +5,7 @@
 //
 // La distinction n'est pas cosmétique. Le reste du dépôt lit
 // `x-forwarded-for.split(',')[0]` (appointment-book, appointment-manage,
-// magic-link-get, buyer-reception-get). C'est acceptable pour tracer, et faux dès
+// magic-link-get). C'est acceptable pour tracer, et faux dès
 // qu'on compte dessus : la tête de la chaîne est précisément le segment que
 // l'appelant écrit lui-même.
 //

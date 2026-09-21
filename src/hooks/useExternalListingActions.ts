@@ -1,12 +1,17 @@
 /**
  * État local des actions agent sur un bien externe (issu du matching
- * hors-catalogue) : notes, envois et flag « importé ». Purement client
+ * hors-catalogue) : notes et flag « importé ». Purement client
  * (localStorage) — ces annotations survivent au refresh mais pas au changement
  * d'appareil, aucune persistance Supabase.
  *
+ * ⛔ Plus d'historique d'envoi (21.09.2026) : l'e-mail « fiche bien » est retiré, le
+ * matching reste chez l'agent. Un état écrit avant garde son champ `sends`, qui
+ * n'est plus relu et tombe à la prochaine écriture du bien.
+ *
  * ⚠ Rangé PAR COMPTE (`megga_external_listing_actions:<uid>`, audit S11) et PURGÉ
- * à la déconnexion : ces notes portent le nom du contact destinataire, et une clé
- * fixe les montrait au compte suivant du même navigateur. L'ancienne clé non
+ * à la déconnexion : ces notes sont un texte libre de l'agent, et l'historique
+ * d'envoi portait le nom du contact destinataire ; une clé fixe les montrait au
+ * compte suivant du même navigateur. L'ancienne clé non
  * indexée est retirée au premier démarrage — son propriétaire est inconnu.
  * Des notes qui survivraient à la déconnexion demanderaient une table sous RLS
  * d'agence, pas le stockage du navigateur.
@@ -24,16 +29,8 @@ export interface ExternalNote {
   created_at: string
 }
 
-export interface SendRecord {
-  id: string
-  contact_name: string
-  channel: 'email' | 'internal'
-  sent_at: string
-}
-
 interface ExternalListingState {
   notes: ExternalNote[]
-  sends: SendRecord[]
   imported: boolean
   imported_at: string | null
 }
@@ -65,15 +62,24 @@ function saveState(uid: string | null, state: StateMap) {
   }
 }
 
-/** État d'un bien donné, avec valeurs par défaut s'il n'a jamais été annoté. */
+/**
+ * État d'un bien donné, avec valeurs par défaut s'il n'a jamais été annoté. Les champs sont
+ * repris un par un : un `sends` d'avant le 21.09.2026 (nom du destinataire) ne survit pas à
+ * la prochaine écriture.
+ */
 function getListingState(stateMap: StateMap, externalId: string): ExternalListingState {
-  return stateMap[externalId] || { notes: [], sends: [], imported: false, imported_at: null }
+  const s = stateMap[externalId]
+  return {
+    notes: s?.notes ?? [],
+    imported: s?.imported ?? false,
+    imported_at: s?.imported_at ?? null,
+  }
 }
 
 // ── Hook ─────────────────────────────────────────────────────────────────
 
 /**
- * Notes/envois/import mémorisés pour un bien externe, avec écriture localStorage
+ * Notes/import mémorisés pour un bien externe, avec écriture localStorage
  * transparente. Retourne l'état courant du bien + les actions de mutation.
  */
 export function useExternalListingActions(listing: ExternalListing | undefined) {
@@ -120,20 +126,6 @@ export function useExternalListingActions(listing: ExternalListing | undefined) 
     })
   }, [listingState, updateState])
 
-  // Record send
-  const recordSend = useCallback((contactName: string, channel: 'email' | 'internal') => {
-    const send: SendRecord = {
-      id: `send_${Date.now()}`,
-      contact_name: contactName,
-      channel,
-      sent_at: new Date().toISOString(),
-    }
-    updateState({
-      ...listingState,
-      sends: [...listingState.sends, send],
-    })
-  }, [listingState, updateState])
-
   // Mark as imported
   const markImported = useCallback(() => {
     updateState({
@@ -145,12 +137,10 @@ export function useExternalListingActions(listing: ExternalListing | undefined) 
 
   return {
     notes: listingState.notes,
-    sends: listingState.sends,
     imported: listingState.imported,
     importedAt: listingState.imported_at,
     addNote,
     deleteNote,
-    recordSend,
     markImported,
   }
 }

@@ -1,24 +1,17 @@
 {
   "loop": {
     "inboxTitle": "To handle",
-    "likedTitle": "Liked {{title}}",
+    "likedTitle": "Interested in {{title}}",
     "likedSub": "{{when}} · {{price}}{{score}}",
     "matchPct": " · match {{score}}%",
     "proposeVisit": "Propose a visit",
     "later": "Later",
     "handled": "Visit in preparation · logged in their file",
-    "filEyebrow": "Their reception",
-    "filTitle": "Sent dossiers",
-    "filMeta": "{{sent}} sent · {{opened}} opened",
     "openAtelier": "Open the atelier",
-    "empty": "No dossier sent yet.",
-    "pillLiked": "Liked",
-    "pillSeen": "Seen",
-    "pillSent": "Sent",
-    "pillDismissed": "Passed",
-    "metaLiked": "Sent {{sent}} · opened · liked {{when}}",
-    "metaSeen": "Sent {{sent}} · opened · no reaction",
-    "metaSent": "Sent {{sent}} · not opened yet",
+    "empty": "No property proposed yet.",
+    "pillLiked": "Interested",
+    "pillSent": "Proposed",
+    "pillDismissed": "Not interested",
     "metaDismissed": "Reason logged · recalibrates matching",
     "motif": "“{{motif}}”"
   },
@@ -69,7 +62,7 @@
     "nextAction": {
       "call": "Qualification call",
       "visit": "Schedule a viewing",
-      "match": "Send 3 properties from the portfolio",
+      "match": "Propose properties",
       "kyc": "Start KYC"
     },
     "lead": {
@@ -226,7 +219,6 @@
     "followUp": "Follow up",
     "noInteractionDays": "No interaction for {{days}} days.",
     "call": "Call",
-    "sendSelection": "Send property selection",
     "sendSelectionDesc": "Suggest properties matching the search criteria.",
     "seeMatches": "See matches",
     "sellerUpdate": "Seller check-in",
@@ -359,7 +351,7 @@
   },
   "nextAction": {
     "planifier_visite": "Schedule a visit",
-    "envoyer_biens": "Send properties",
+    "envoyer_biens": "Propose properties",
     "relancer": "Follow up",
     "qualifier_lead": "Qualify the lead",
     "repondre": "Reply",
@@ -715,7 +707,7 @@
         "rooms": "{{n}} rm",
         "status": {
           "suggested": "Suggested",
-          "sent": "Sent",
+          "sent": "Proposed",
           "visit_planned": "Visit planned",
           "interested": "Interested",
           "rejected": "Rejected",
@@ -936,7 +928,7 @@
     },
     "kycDossier": "KYC file",
     "cta": {
-      "transmit": "Send properties",
+      "transmit": "Propose properties",
       "viewMandate": "View mandate"
     },
     "menu": {
@@ -1068,50 +1060,16 @@
     },
     "page": {
       "infos": "Their information",
-      "loop": "Match loop"
+      "loop": "Loop"
     },
     "loop": {
-      "opened": "Opened",
       "toHandleCount": "To handle ({{count}})",
-      "transmittedCount": "Properties sent ({{count}})",
+      "transmittedCount": "Properties proposed ({{count}})",
       "openInMatching": "Open in Matching",
       "ignore": "Ignore",
       "nothingToHandle": "All up to date, nothing to handle right now.",
-      "emptyTitle": "No properties sent yet",
-      "emptyBody": "Send a selection of properties to {{name}}.<1/>Their feedback lands here."
-    },
-    "links": {
-      "title": "Links sent ({{count}})",
-      "loading": "Loading links…",
-      "failed": "Links could not be loaded.",
-      "empty": "No link sent yet.",
-      "selection_one": "Selection of {{count}} property",
-      "selection_other": "Selection of {{count}} properties",
-      "sentOn": "Sent on {{date}}",
-      "expiresOn": "expires {{date}}",
-      "revokedOn": "revoked on {{date}}",
-      "revoke": "Revoke link",
-      "channel": {
-        "whatsapp": "WhatsApp",
-        "link": "Copied link"
-      },
-      "status": {
-        "pending": "Not opened",
-        "viewed": "Opened",
-        "reacted": "Replied",
-        "expired": "Expired",
-        "revoked": "Revoked",
-        "unknown": "Unknown status"
-      },
-      "confirm": {
-        "title": "Revoke this link?",
-        "body_one": "The buyer will lose access to the property they received. Revoking is final: to give access back you will have to send a new link.",
-        "body_other": "The buyer will lose access to the {{count}} properties they received. Revoking is final: to give access back you will have to send a new link.",
-        "cta": "Revoke link",
-        "busy": "Revoking…",
-        "refused": "This link was no longer active. The list has just been refreshed.",
-        "failed": "The link was not revoked. Please try again."
-      }
+      "emptyTitle": "No properties proposed yet",
+      "emptyBody": "Propose properties to {{name}}, then log their answers.<1/>They land here."
     },
     "saved": {
       "coord": "Contact details saved",

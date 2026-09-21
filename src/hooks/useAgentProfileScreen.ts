@@ -209,9 +209,9 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
       // Le parcours qui perdait la donnée est exactement celui que cette série crée :
       // vérifier son numéro, revenir sur Profil dans la minute, corriger sa « Fonction »
       // → le cache rend encore `phone: ''` → `phone` repart à NULL. Le numéro vérifié
-      // disparaissait des trois surfaces clientes (réception acheteur, e-mails de
-      // matching, RDV d'accueil) SANS qu'aucun écran ne puisse le montrer ni le
-      // restaurer : seule une déliaison suivie d'une nouvelle vérification y parvenait.
+      // disparaissait des surfaces clientes (réception acheteur et e-mails de matching
+      // jusqu'à leur retrait le 21.09.2026, RDV d'accueil) SANS qu'aucun écran ne puisse
+      // le montrer ni le restaurer : seule une déliaison suivie d'une nouvelle vérification y parvenait.
       //
       // ⚠ `mobile_phone` part avec, pour la même raison inverse : plus aucune UI ne le
       // règle, donc l'écrire ne peut plus rien faire d'autre que l'effacer.

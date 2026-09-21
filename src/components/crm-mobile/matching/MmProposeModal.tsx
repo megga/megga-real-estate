@@ -1,40 +1,37 @@
 /**
- * Modale mobile de confirmation d'envoi de dossier (bottom-sheet). Étape
- * human-in-the-loop avant le geste `send` réel du matching.
+ * Modale mobile « Je l'ai proposé » (bottom-sheet) : l'agent confirme qu'il a présenté
+ * le bien à l'acheteur, avant le geste `send` du matching.
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
 import CrmBottomCard from '../primitives/CrmBottomCard'
 
-interface MmSendModalProps {
+interface MmProposeModalProps {
   open: boolean
   buyerFirst: string
   listingTitle: string
   listingAddr: string
   priceLabel: string
-  /** e-mail du destinataire (canal réel) ; null → consigné au dossier sans envoi. */
-  email: string | null
   onConfirm: () => void
   onCancel: () => void
 }
 
 /**
- * Confirmation d'envoi du dossier (human-in-the-loop, exigence MEGGA). Déclenche
- * le geste `send` réel (execSendDossier) après validation. L'envoi e-mail dépend
- * du canal réel (l'exécuteur n'envoie qu'en e-mail) — on n'affiche donc pas de
- * faux canal WhatsApp. Si pas d'e-mail : transmis au dossier client sans envoi.
+ * Confirmation de « Je l'ai proposé » : déclenche le geste `send` (`execProposer`).
+ * ⛔ Rien ne part vers l'acheteur (21.09.2026) : l'agent lui a présenté le bien par ses
+ * propres moyens ; le CRM consigne et pose le rappel à 3 jours que la modale annonce.
+ * Plus de ligne « canal » : il n'y a plus de canal.
  */
-export default function MmSendModal({
+export default function MmProposeModal({
   open,
   buyerFirst,
   listingTitle,
   listingAddr,
   priceLabel,
-  email,
   onConfirm,
   onCancel,
-}: MmSendModalProps) {
+}: MmProposeModalProps) {
   const { tk } = useMobileTokens()
   const { t } = useTranslation('matching')
 
@@ -42,7 +39,7 @@ export default function MmSendModal({
     <CrmBottomCard open={open} onClose={onCancel} ariaLabel={t('confirm.sendTitle')}>
       <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
         <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
-          {t('confirm.sendTitle')}
+          {t('confirm.sendQuestion', { firstName: buyerFirst })}
         </div>
         <p
           style={{
@@ -56,7 +53,7 @@ export default function MmSendModal({
           {t('confirm.sendBody', { firstName: buyerFirst })}
         </p>
 
-        {/* bien transmis */}
+        {/* bien proposé */}
         <div
           style={{
             display: 'flex',
@@ -123,14 +120,6 @@ export default function MmSendModal({
           </div>
         </div>
 
-        {/* canal */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 12 }}>
-          <MEIcon name={email ? 'mail' : 'file'} size={15} color={tk.muted} />
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>
-            {email ? t('mobile.channelEmail', { email }) : t('mobile.channelNone')}
-          </span>
-        </div>
-
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 18 }}>
           <button
             type="button"
@@ -170,7 +159,7 @@ export default function MmSendModal({
               gap: 'var(--crm-space-md)',
             }}
           >
-            <MEIcon name="send" size={16} strokeWidth={2} color={tk.accentInk} />
+            <MEIcon name="check" size={16} strokeWidth={2} color={tk.accentInk} />
             {t('confirm.sendCta')}
           </button>
         </div>

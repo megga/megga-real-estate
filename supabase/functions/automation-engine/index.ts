@@ -105,9 +105,14 @@ serve(async (req) => {
     const now = new Date()
 
     // ── Helper: map reminder type to trigger_event for rule lookup ──
-    function reminderTypeToTrigger(type: string): string {
+    // `follow_up_sent_property` ne se rattache plus à AUCUNE règle (21.09.2026, le matching
+    // reste chez l'agent) : la relance d'un bien proposé est un rappel POUR L'AGENT, jamais un
+    // e-mail au client, même si une agence a coché `auto_send` sur `property_sent`. Le `null`
+    // est explicite parce que le défaut le rabattrait sur `lead_inactive`, dont une règle
+    // `auto_send` lui écrirait quand même.
+    function reminderTypeToTrigger(type: string): string | null {
       switch (type) {
-        case 'follow_up_sent_property': return 'property_sent'
+        case 'follow_up_sent_property': return null
         case 'post_visit_feedback': return 'visit_completed'
         case 'dormant_lead': return 'lead_inactive'
         case 'missing_document': return 'document_missing'
@@ -118,6 +123,7 @@ serve(async (req) => {
     // ── Helper: check if auto_send is enabled for this reminder type ──
     async function shouldAutoSend(reminderType: string): Promise<boolean> {
       const triggerEvent = reminderTypeToTrigger(reminderType)
+      if (!triggerEvent) return false
       const { data } = await supabase
         .from('automation_rules')
         .select('auto_send')
@@ -230,42 +236,11 @@ serve(async (req) => {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // 1. Bien envoyé sans réponse après 3 jours
-    // Condition: match.status = 'sent' AND match.response_at IS NULL AND sent_at < NOW() - 3 days
+    // 1. (retiré le 21.09.2026) Bien envoyé sans réponse après 3 jours
+    // Le matching reste chez l'agent : aucun bien ne part plus au client par le CRM. Le geste
+    // « Je l'ai proposé » pose lui-même UNE relance interne à +3 jours (canal `task`) ; ce
+    // détecteur en créait une seconde par match, en canal `email`, donc adressable au client.
     // ══════════════════════════════════════════════════════════════════════════
-    {
-      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString()
-
-      const { data: unresponsedMatches } = await supabase
-        .from('matches')
-        .select('id, contact_id, property_id')
-        .eq('agency_id', agency_id)
-        .eq('status', 'sent')
-        .is('response_at', null)
-        .lt('sent_at', threeDaysAgo)
-
-      for (const match of unresponsedMatches || []) {
-        const exists = await reminderExists(match.contact_id, 'follow_up_sent_property', {
-          match_id: match.id,
-        })
-        if (!exists) {
-          await createReminder({
-            agency_id,
-            contact_id: match.contact_id,
-            property_id: match.property_id,
-            transaction_id: null,
-            match_id: match.id,
-            type: 'follow_up_sent_property',
-            trigger_rule: 'no_response',
-            trigger_days: 3,
-            status: 'pending',
-            trigger_at: now.toISOString(),
-            channel: 'email',
-            message_template: null,
-          })
-        }
-      }
-    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // 2. Visite effectuée sans feedback après 1 jour
@@ -343,6 +318,8 @@ serve(async (req) => {
     // ══════════════════════════════════════════════════════════════════════════
     // 4. Acheteur chaud non relancé depuis 7 jours
     // Condition: contacts.score = 'hot' AND last_interaction_at < NOW() - 7 days AND type IN (buyer, both)
+    // Canal `notification` : un rappel pour l'agent, jamais un envoi (et `shouldAutoSend` écarte
+    // de toute façon ce type, cf. reminderTypeToTrigger).
     // ══════════════════════════════════════════════════════════════════════════
     {
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()

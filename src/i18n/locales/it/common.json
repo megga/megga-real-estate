@@ -519,7 +519,10 @@
       "whatsapp_morning_brief_sent": "Brief del mattino inviato",
       "whatsapp_number_verified": "Numero WhatsApp collegato",
       "whatsapp_optin_invited": "Invito WhatsApp inviato",
-      "whatsapp_send_blocked": "Invio WhatsApp bloccato"
+      "whatsapp_send_blocked": "Invio WhatsApp bloccato",
+      "match_ecarte": "Match scartato",
+      "match_reporte": "Match rinviato",
+      "match_propose": "Immobile proposto dall'agente"
     },
     "entity": {
       "admin_console": "Console di amministrazione",

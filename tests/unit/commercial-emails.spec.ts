@@ -1,117 +1,28 @@
-// Les deux e-mails COMMERCIAUX du produit : fiche de bien et relance.
+// L'e-mail COMMERCIAL du produit : la relance écrite par l'agent.
 //
-// Ils se distinguent de tous les autres sur un point qui n'est pas cosmétique : ils
-// portent un lien de DÉSINSCRIPTION. Leur mention de pied ne peut donc pas être celle des
-// transactionnels, qui affirme l'absence d'un tel lien — c'est le premier invariant testé
-// de part et d'autre.
+// Il se distingue de tous les autres sur un point qui n'est pas cosmétique : il porte un
+// lien de DÉSINSCRIPTION. Sa mention de pied ne peut donc pas être celle des
+// transactionnels, qui affirme l'absence d'un tel lien — c'est le premier invariant testé.
+//
+// ⚠ La « fiche de bien » (`_shared/property-email.ts`, `send-property-email`) en était le
+// second ; elle est partie le 21.09.2026 : le matching reste chez l'agent, rien ne part plus
+// vers l'acheteur (docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md).
 import { describe, it, expect } from 'vitest'
-import { buildPropertyEmail, formatCHF } from '../../supabase/functions/_shared/property-email'
 import { buildRelanceEmail } from '../../supabase/functions/_shared/relance-email'
 
 const DESINSCRIPTION = '<a href="https://app.getmegga.com/desinscription/jeton">Se désinscrire</a>'
-
-const bien = {
-  contactFirstName: 'Marie',
-  agentName: 'Gregory Lyonnet',
-  agentPhone: '+41 22 555 10 10',
-  message: null,
-  property: {
-    title: '3.5 pièces avec terrasse',
-    address: 'Rue Ancienne 12, 1227 Carouge',
-    city: 'Carouge',
-    price: 1_190_000,
-    rooms: 3.5,
-    surface_m2: 92,
-    type: 'Appartement',
-    photo_url: null,
-    source_url: 'https://www.example.ch/annonce/12345',
-    source_agency: 'Régie du Rhône',
-    source_portal: 'Homegate',
-  },
-}
 
 describe('⛔ la mention de pied doit être VRAIE pour ce message', () => {
   it('un e-mail commercial ne prétend pas être sans désinscription', () => {
     // La mention des transactionnels dit « c'est pourquoi il ne contient pas de lien de
     // désinscription ». L'écrire ici serait faux : le lien est juste en dessous.
-    for (const html of [
-      buildPropertyEmail({ ...bien, unsubscribeHtml: DESINSCRIPTION }).html,
-      buildRelanceEmail({ subject: 'Objet', body: 'Corps', unsubscribeHtml: DESINSCRIPTION }).html,
-    ]) {
-      expect(html).not.toContain('ne contient pas de lien de désinscription')
-      expect(html).toContain('desinscription/jeton')
-    }
+    const html = buildRelanceEmail({ subject: 'Objet', body: 'Corps', unsubscribeHtml: DESINSCRIPTION }).html
+    expect(html).not.toContain('ne contient pas de lien de désinscription')
+    expect(html).toContain('desinscription/jeton')
   })
 
   it('sans bloc de désinscription fourni, aucun bloc vide', () => {
-    expect(buildPropertyEmail(bien).html).not.toContain('desinscription')
-  })
-})
-
-describe('buildPropertyEmail', () => {
-  it('le PRIX ouvre l’objet, sans tiret cadratin', () => {
-    const { subject } = buildPropertyEmail(bien)
-    // Apostrophe ASCII (U+0027) — cf. le test de `formatCHF` juste dessous.
-    expect(subject).toMatch(/^CHF 1'190'000 · 3\.5 pièces avec terrasse$/)
-    expect(subject).not.toMatch(/[–—]/)
-  })
-
-  /**
-   * ⚠ L'APOSTROPHE EST L'ASCII `U+0027`, ET CE TEST A LONGTEMPS FIGÉ L'INVERSE.
-   *
-   * Il attendait `’` (U+2019, la typographique), en accord avec le `formatCHF` de
-   * `property-email.ts` — mais en désaccord avec TOUT le reste : `src/lib/utils.ts`,
-   * le `formatCHF` de `weekly-digest.ts` et sa propre spec, le code de
-   * `send-property-email` que ce module remplace, et l'exemple du CLAUDE.md §6.
-   * Mesuré au point de code le 16 août 2026 : les quatre portent `U+0027`.
-   *
-   * Les deux caractères sont indiscernables dans un diff comme à la relecture ;
-   * seul `ord()` les sépare. C'est pourquoi la valeur attendue est écrite ici en
-   * ÉCHAPPEMENT plutôt qu'en littéral : le test doit dire lequel des deux il exige.
-   */
-  it('formatCHF suit l’apostrophe suisse (ASCII U+0027, pas U+2019)', () => {
-    expect(formatCHF(720000)).toBe('CHF 720\u0027000')
-    expect(formatCHF(1190000)).toBe('CHF 1\u0027190\u0027000')
-    expect(formatCHF(720000)).not.toContain('’')
-  })
-
-  it('sans prix, dit « Prix sur demande » plutôt qu’un zéro', () => {
-    const { subject, html } = buildPropertyEmail({ ...bien, property: { ...bien.property, price: 0 } })
-    expect(subject).toMatch(/^Prix sur demande/)
-    expect(html).toContain('Prix sur demande')
-  })
-
-  it('porte les faits, la source et le lien de l’annonce', () => {
-    const html = buildPropertyEmail(bien).html
-    expect(html).toContain('3.5 pièces · 92 m² · Appartement')
-    expect(html).toContain('Régie du Rhône')
-    expect(html).toContain('https://www.example.ch/annonce/12345')
-    expect(html).toContain('Voir l’annonce')
-  })
-
-  it('⛔ échappe TOUT — rien ne l’était avant', () => {
-    const html = buildPropertyEmail({
-      ...bien,
-      contactFirstName: '<img src=x>',
-      agentName: '<script>alert(1)</script>',
-      message: 'Regardez <b>ceci</b>',
-      property: { ...bien.property, title: '<i>Titre</i>', source_agency: '<u>Agence</u>' },
-    }).html
-    expect(html).not.toContain('<img src=x')
-    expect(html).not.toContain('<script>alert(1)</script>')
-    expect(html).not.toContain('<b>ceci</b>')
-    expect(html).not.toContain('<i>Titre</i>')
-    expect(html).toContain('&lt;img')
-  })
-
-  it('le mot de l’agent remplace la phrase par défaut, et garde ses sauts de ligne', () => {
-    const html = buildPropertyEmail({ ...bien, message: 'Ligne un\nLigne deux' }).html
-    expect(html).toContain('white-space:pre-line')
-    expect(html).not.toContain('Voici un bien qui pourrait vous intéresser.')
-  })
-
-  it('⛔ aucune pilule : le contact n’a pas de compte MEGGA', () => {
-    expect(buildPropertyEmail(bien).html).not.toContain('Ouvrir mon espace')
+    expect(buildRelanceEmail({ subject: 'Objet', body: 'Corps' }).html).not.toContain('desinscription')
   })
 })
 

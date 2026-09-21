@@ -519,7 +519,10 @@
       "whatsapp_morning_brief_sent": "Morgenbriefing gesendet",
       "whatsapp_number_verified": "WhatsApp-Nummer verknüpft",
       "whatsapp_optin_invited": "WhatsApp-Einladung gesendet",
-      "whatsapp_send_blocked": "WhatsApp-Versand blockiert"
+      "whatsapp_send_blocked": "WhatsApp-Versand blockiert",
+      "match_ecarte": "Match verworfen",
+      "match_reporte": "Match zurückgestellt",
+      "match_propose": "Objekt vom Makler vorgeschlagen"
     },
     "entity": {
       "admin_console": "Admin-Konsole",

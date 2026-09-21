@@ -125,7 +125,7 @@ export function VdBonPanel({
         {/* Header download/email icon buttons removed — both were no-op
             placeholders. Real PDF download + email-send for visit bons
             are tracked as a follow-up chip (will reuse PR #444's
-            @react-pdf flow + the send-property-email Edge Function). */}
+            @react-pdf flow ; `send-property-email` was removed on 21.09.2026). */}
       </div>
 
       {/* Aperçu document PDF */}

@@ -44,7 +44,6 @@ import { readFileSafely, rel, scanRoots } from './helpers/fs-scan'
 const DOMAINE_MANROPE = [
   'src/components/crm-mobile',
   'src/components/kyc-magic-link',
-  'src/components/buyer-reception',
   'src/components/kyc-report',
   'src/pages/public',
 ]
