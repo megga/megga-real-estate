@@ -23,6 +23,7 @@ import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { packParId } from '../_shared/credits.ts'
+import { planEffectifAgence } from '../_shared/credits-edge.ts'
 import { labsOuvertAuPlan } from '../_shared/labs.ts'
 import { appDashboardUrl } from '../_shared/app-url.ts'
 
@@ -62,8 +63,11 @@ serve(async (req: Request) => {
 
   // Le studio n'est ouvert qu'à partir de Pro : on ne vend pas des crédits qu'un plan
   // Starter ne pourrait pas dépenser.
-  const { data: agency } = await supabase.from('agencies').select('id, name, plan, stripe_customer_id').eq('id', profile.agency_id).single()
-  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
+  // Le plan EFFECTIF (l'abonnement), jamais `agencies.plan` : le webhook Stripe ne l'écrit pas.
+  const { data: agency } = await supabase.from('agencies').select('id, name, stripe_customer_id').eq('id', profile.agency_id).single()
+  const plan = await planEffectifAgence(supabase, profile.agency_id)
+  if (plan === null) return json({ error: 'plan_unavailable' }, 503)
+  if (!labsOuvertAuPlan(plan)) return json({ error: 'upgrade_required' }, 403)
 
   try {
     // Même client Stripe que l'abonnement : la facture des crédits se lit au même endroit.

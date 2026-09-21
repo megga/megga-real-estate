@@ -161,6 +161,7 @@
   },
   "errors": {
     "upgrade_required": "Das Studio ist ab dem Pro-Plan verfügbar.",
+    "plan_unavailable": "Der Tarif der Agentur konnte nicht gelesen werden. Bitte gleich erneut versuchen.",
     "provider_not_configured": "Der Generierungsdienst ist nicht konfiguriert.",
     "storage_not_configured": "Der Speicher für Produktionen ist nicht konfiguriert.",
     "storage_failed": "Die Datei konnte nicht gespeichert werden.",

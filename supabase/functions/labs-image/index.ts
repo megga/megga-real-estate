@@ -28,7 +28,7 @@ import {
   base64ToBytes, cleanPrompt, imageExtFor, isUuid, labsImageCostChf, labsImagePrompt, labsOuvertAuPlan,
 } from '../_shared/labs.ts'
 import { creditsPourImage } from '../_shared/credits.ts'
-import { debiterCredits, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
+import { debiterCredits, planEffectifAgence, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -99,9 +99,10 @@ serve(async (req: Request) => {
     sourceUrl = src.url as string
   }
 
-  // 3. Plan, puis crédits.
-  const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
+  // 3. Plan EFFECTIF (l'abonnement, jamais `agencies.plan`), puis crédits.
+  const plan = await planEffectifAgence(supabase, profile.agency_id)
+  if (plan === null) return json({ error: 'plan_unavailable' }, 503)
+  if (!labsOuvertAuPlan(plan)) return json({ error: 'upgrade_required' }, 403)
 
   // 4. La source, par le fetch sûr (l'URL vient de la base, elle est revalidée quand même).
   let source: SafeFetchResult | null = null

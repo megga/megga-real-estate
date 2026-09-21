@@ -161,6 +161,7 @@
   },
   "errors": {
     "upgrade_required": "Lo studio è disponibile dal piano Pro.",
+    "plan_unavailable": "Non è stato possibile leggere il piano dell'agenzia. Riprova tra un istante.",
     "provider_not_configured": "Il servizio di generazione non è configurato.",
     "storage_not_configured": "Lo spazio delle produzioni non è configurato.",
     "storage_failed": "Il file non è stato salvato.",

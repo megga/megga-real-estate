@@ -8722,6 +8722,7 @@ export type Database = {
         }
         Returns: number
       }
+      agency_plan_effectif: { Args: { p_agency: string }; Returns: string }
       analytics_cockpit: {
         Args: { p_period?: string; p_scope?: string }
         Returns: Json
