@@ -181,3 +181,68 @@ describe('bancSupabase — le tri sur plusieurs colonnes et les pages', () => {
     expect(await ids(`${ordre}&offset=6&limit=2`)).toEqual([])
   })
 })
+
+/**
+ * La sélection du marché (21.09.2026) se lit `order=score.desc,created_at.desc.nullslast,id.asc`. Le
+ * banc comparait les scores comme des CHAÎNES : « 100 » < « 97 », et le seul bien à 100 d'une sélection
+ * s'affichait après les 97 — un ordre que la production ne rend jamais.
+ */
+describe('bancSupabase — deux nombres se rangent comme des nombres', () => {
+  const SCORES = [
+    { id: 'm8', score: 97, created_at: '2026-09-13T00:00:00Z' },
+    { id: 'm9', score: 100, created_at: '2026-09-11T00:00:00Z' },
+    { id: 'm10', score: 90, created_at: null },
+    { id: 'm11', score: 100, created_at: null },
+  ]
+  beforeAll(() => { reglerBanc({ etat: 'nominal', tables: { essais: LIGNES, scores: SCORES } }) })
+
+  const ids = async (requete: string) => ((await lire(`scores?select=*&${requete}`)) as { id: string }[]).map((l) => l.id)
+
+  it('100 avant 97, dans les deux sens', async () => {
+    expect(await ids('order=score.desc')).toEqual(['m9', 'm11', 'm8', 'm10'])
+    expect(await ids('order=score.asc')).toEqual(['m10', 'm8', 'm9', 'm11'])
+  })
+
+  it('une valeur absente suit `nullslast` / `nullsfirst`, quel que soit le sens', async () => {
+    expect(await ids('order=score.desc,created_at.desc.nullslast,id.asc')).toEqual(['m9', 'm11', 'm8', 'm10'])
+    expect(await ids('order=score.desc,created_at.desc.nullsfirst,id.asc')).toEqual(['m11', 'm9', 'm8', 'm10'])
+    expect(await ids('order=created_at.asc.nullslast,id.asc')).toEqual(['m9', 'm8', 'm10', 'm11'])
+  })
+
+  /**
+   * ⛔ Sur une colonne MIXTE, comparer deux nombres en nombres et le reste en chaînes formait un cycle :
+   * 97 < 100, 100 < '50' (« 100 » < « 50 »), '50' < 97. `sort` rendait alors un ordre qui dépendait de
+   * l'ordre d'ENTRÉE. D'où deux entrées permutées, qui doivent rendre la même chose : l'absent, les
+   * nombres, puis les chaînes.
+   */
+  it('une colonne mixte se range de la même façon quel que soit l’ordre d’entrée', async () => {
+    const x1 = { id: 'x1', v: 100 }, x2 = { id: 'x2', v: '50' }, x3 = { id: 'x3', v: 97 }
+    const x4 = { id: 'x4', v: null }, x5 = { id: 'x5', v: 'abc' }
+    for (const entree of [[x1, x2, x3, x4, x5], [x5, x4, x3, x2, x1], [x2, x4, x1, x5, x3], [x3, x2, x1, x5, x4]]) {
+      reglerBanc({ tables: { essais: LIGNES, mixte: entree } })
+      const lus = async (ordre: string) => ((await lire(`mixte?select=*&order=${ordre}`)) as { id: string }[]).map((l) => l.id)
+      expect(await lus('v.asc')).toEqual(['x4', 'x3', 'x1', 'x2', 'x5'])
+      expect(await lus('v.desc')).toEqual(['x5', 'x2', 'x1', 'x3', 'x4'])
+    }
+  })
+})
+
+describe('bancSupabase — une écriture suivie de `.single()`', () => {
+  /**
+   * ⛔ `postgrest-js` pose le même `Accept` sur `.insert(…).select().single()` que sur une lecture.
+   * Le banc rendait un TABLEAU après toute écriture : `created.id` valait `undefined` et le deal
+   * créé par « Proposer » n'avait pas d'identifiant, sans rien dans la console.
+   */
+  it('POST rend un OBJET quand l’en-tête le demande, un tableau sinon', async () => {
+    reglerBanc({ etat: 'nominal', tables: { essais: [...LIGNES] }, ecrivables: ['essais'] })
+    const objet = await window.fetch(`${REST}essais?select=id`, {
+      method: 'POST', headers: new Headers({ Accept: OBJET_SEUL }), body: JSON.stringify({ nom: 'Charlie' }),
+    }).then((r) => r.json()) as Record<string, unknown>
+    expect(Array.isArray(objet)).toBe(false)
+    expect(objet).toMatchObject({ nom: 'Charlie' })
+
+    const tableau = await window.fetch(`${REST}essais`, { method: 'POST', body: JSON.stringify({ nom: 'Delta' }) }).then((r) => r.json())
+    expect(Array.isArray(tableau)).toBe(true)
+    reglerBanc({ tables: { essais: LIGNES }, ecrivables: [] })
+  })
+})

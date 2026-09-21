@@ -90,8 +90,8 @@ const contrat = {
    * ⛔ SANS ELLES, LE BANC RÉPOND `{ok:true, banc:true}` À TOUT. C'était sans
    * conséquence tant que les bancs montaient des surfaces `/dashboard` : leurs
    * données viennent de `rest/v1`, et les edges n'y servent qu'à écrire. La face
-   * PUBLIQUE est l'inverse — `/kyc/:token`, `/reception/:token` et
-   * `/rendez-vous/:token` LISENT tout par une edge, jetons compris. Leur servir
+   * PUBLIQUE est l'inverse — `/kyc/:token`, `/rendez-vous/:token` et
+   * `/accept-invite/:token` LISENT tout par une edge, jetons compris. Leur servir
    * `{ok:true}` ne montre pas un écran vide : ça montre un écran d'ERREUR, ou
    * rien du tout.
    *
@@ -163,6 +163,25 @@ function valeur(v: string): unknown {
 }
 
 /**
+ * -1, 0 ou 1, par FAMILLE puis dans la famille : les valeurs absentes, puis les nombres (en nombres),
+ * puis tout le reste (en chaînes).
+ *
+ * ⛔ UN ORDRE DOIT ÊTRE TRANSITIF, ou `sort` rend un ordre qui dépend de l'ordre d'entrée. Comparer deux
+ * nombres en nombres et un nombre à une chaîne en chaînes ne l'était pas sur une colonne mixte : 97 < 100
+ * (nombres), 100 < '50' (« 100 » < « 50 »), '50' < 97 (« 50 » < « 97 ») — un cycle. Les familles le
+ * rompent. L'absent reste en tête, comme quand il valait la chaîne vide.
+ */
+function comparerValeurs(a: unknown, b: unknown): number {
+  const famille = (v: unknown): number => (v == null ? 0 : typeof v === 'number' ? 1 : 2)
+  const fa = famille(a), fb = famille(b)
+  if (fa !== fb) return Math.sign(fa - fb)
+  if (fa === 0) return 0
+  if (fa === 1) return Math.sign((a as number) - (b as number))
+  const x = String(a), y = String(b)
+  return x === y ? 0 : x < y ? -1 : 1
+}
+
+/**
  * Applique les filtres et le tri de la requête aux lignes de la fixture.
  *
  * ⛔ SANS ÇA LE BANC MENT PAR EXCÈS. Le journal d'erreurs du Monitoring
@@ -181,6 +200,12 @@ function valeur(v: string): unknown {
  * `postgrest-js` écrit pour deux `.order()` à la suite) : lu comme une seule, le
  * sens devenait `desc,id`, donc croissant. Et `.range(a, b)` s'écrit `offset=a` +
  * `limit=b-a+1` : sans `offset`, chaque page du journal d'audit rendait la PREMIÈRE.
+ *
+ * ⛔ DEUX NOMBRES SE COMPARENT COMME DES NOMBRES : comparés en chaînes, « 100 » passait avant « 97 », et
+ * le score parfait de la sélection du marché se rangeait APRÈS un 97 (21.09.2026). Le reste garde sa
+ * comparaison de chaînes (dates ISO, textes) ; sur une colonne MIXTE, les nombres passent avant les
+ * chaînes (`comparerValeurs`). Une valeur absente suit `nullsfirst` / `nullslast` quand la requête les
+ * écrit ; sinon elle passe en tête, comme avant.
  */
 function filtrer(lignes: unknown[], requete: string): unknown[] {
   const p = new URLSearchParams(requete)
@@ -212,13 +237,17 @@ function filtrer(lignes: unknown[], requete: string): unknown[] {
   const ordre = p.get('order')
   if (ordre) {
     const cles = ordre.split(',').map((terme) => {
-      const [col, sens] = terme.split('.')
-      return { col: col!, desc: sens === 'desc' }
+      const [col, ...modes] = terme.split('.')
+      const nulls = modes.includes('nullsfirst') ? -1 : modes.includes('nullslast') ? 1 : 0
+      return { col: col!, desc: modes.includes('desc'), nulls }
     })
     out = [...out].sort((a, b) => {
-      for (const { col, desc } of cles) {
-        const x = String(a[col] ?? ''), y = String(b[col] ?? '')
-        if (x !== y) return (x < y ? -1 : 1) * (desc ? -1 : 1)
+      for (const { col, desc, nulls } of cles) {
+        const va = a[col], vb = b[col]
+        // La place d'une valeur absente ne dépend pas du sens : `nullslast` la met en fin, `desc` ou non.
+        if (nulls !== 0 && (va == null) !== (vb == null)) return va == null ? nulls : -nulls
+        const ordreNaturel = comparerValeurs(va, vb)
+        if (ordreNaturel !== 0) return ordreNaturel * (desc ? -1 : 1)
       }
       return 0
     })
@@ -333,7 +362,7 @@ function repondre(url: string, init?: RequestInit): Response | null {
   if (lignes === undefined) contrat.signaler(chemin)
   const methode = (init?.method ?? 'GET').toUpperCase()
   if (lignes && methode !== 'GET' && methode !== 'HEAD' && contrat.ecrivables.includes(chemin)) {
-    return ecrire(methode, lignes as Record<string, unknown>[], requete, init, contrat.completions[chemin])
+    return ecrire(methode, lignes as Record<string, unknown>[], requete, init, contrat.completions[chemin], objetSeul)
   }
   const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
   const sortie = vide ? [] : filtrer(lignes ?? [], requete)
@@ -346,13 +375,17 @@ function repondre(url: string, init?: RequestInit): Response | null {
  * `POST` insère (identifiant et horodatages posés s'ils manquent) ; `PATCH` et
  * `DELETE` visent les lignes que le PRÉDICAT de la requête désigne — le même
  * filtre que la lecture, pour qu'une écriture ne touche jamais plus de lignes que
- * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit.
+ * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit. La forme rendue
+ * suit l'en-tête Accept, comme une lecture.
  */
 function ecrire(
   methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit,
   completer?: (ligne: Record<string, unknown>) => Record<string, unknown>,
+  objetSeul = false,
 ): Response {
-  if (contrat.etat !== 'nominal') return json([], 0)
+  // ⛔ Même forme que la lecture : `.select().single()` après une écriture attend un OBJET.
+  const rendre = (l: Record<string, unknown>[]) => json(objetSeul ? (l[0] ?? null) : l, l.length)
+  if (contrat.etat !== 'nominal') return rendre([])
   const corps: unknown = lireCorps(init)
   const maintenant = new Date().toISOString()
   if (methode === 'POST') {
@@ -361,7 +394,7 @@ function ecrire(
       .map((l) => ({ id: crypto.randomUUID(), created_at: maintenant, updated_at: maintenant, ...l }))
       .map((l) => (completer ? { ...l, ...completer(l) } : l))
     lignes.push(...nouvelles)
-    return json(nouvelles, nouvelles.length)
+    return rendre(nouvelles)
   }
   const cibles = filtrer(lignes, requete) as Record<string, unknown>[]
   if (methode === 'PATCH') {
@@ -370,7 +403,7 @@ function ecrire(
   } else if (methode === 'DELETE') {
     for (const l of cibles) lignes.splice(lignes.indexOf(l), 1)
   }
-  return json(cibles, cibles.length)
+  return rendre(cibles)
 }
 
 /** Corps JSON d'une écriture, ou `null`. */
