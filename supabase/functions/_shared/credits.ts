@@ -83,7 +83,7 @@ export function packLeMoinsCher(): CreditPack {
 }
 
 // ─── La dotation mensuelle des plans ─────────────────────────────────────────
-// ⚠ Miroir de la table `credit_plan_allowances` (migration 20260920180000) — c'est la
+// ⚠ Miroir de la table `credit_plan_allowances` (migration 20260921110000) — c'est la
 // TABLE qui fait foi en base (la RPC `credits_wallet_ensure` la lit) ; ce miroir sert
 // les tests de marge et l'affichage. Traduit des anciens quotas (Pro : 50 images +
 // 10 vidéos de 8 s ≈ 1 690 crédits ; Entreprise : 200 + 40 ≈ 6 760) en chiffres RONDS,

@@ -97,7 +97,7 @@ contacts (
   created_at, updated_at
 )
 
--- Labs — le studio de génération (20260920120000). Dossiers et productions d'une agence.
+-- Labs — le studio de génération (20260921100000). Dossiers et productions d'une agence.
 labs_folders (
   id, agency_id → agencies, created_by → auth.users,
   name,             -- 1..80 caractères, trigger tg_labs_folders_guard (auteur + horodatages posés en base)
@@ -125,7 +125,7 @@ labs_assets (
   -- Publiée en Realtime (replica identity full). Bucket Storage `labs` (public, {agency_id}/{uuid}.ext)
   -- pour les imports ; productions sur R2 sous labs/{agency_id}/.
 
--- Crédits (20.09.2026, migration 20260920180000) — la monnaie du studio Labs
+-- Crédits (20.09.2026, migration 20260921110000) — la monnaie du studio Labs
 credit_plan_allowances (
   plan,             -- PK : 'starter' 0 · 'pro' 1500 · 'entreprise' 5000 · 'agency' 5000
   monthly_credits, updated_at

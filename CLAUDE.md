@@ -837,7 +837,7 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
 **Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. ⛔ **Les quotas par genre sont REMPLACÉS par des CRÉDITS depuis le 20.09.2026**
-(migration `20260920180000`, modèle Higgsfield) : un solde par agence — dotation
+(migration `20260921110000`, modèle Higgsfield) : un solde par agence — dotation
 mensuelle du plan (Pro 1 500, Entreprise 5 000, jamais reportée) + crédits achetés
 (ne périment pas) — débité production par production **AVANT** d'appeler le
 fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 720p et

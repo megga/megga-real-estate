@@ -1,6 +1,6 @@
 /**
  * Types du studio Labs (`/dashboard/labs`) : dossiers et productions d'une agence.
- * Miroir camelCase des tables `labs_folders` / `labs_assets` (migration 20260920120000).
+ * Miroir camelCase des tables `labs_folders` / `labs_assets` (migration 20260921100000).
  */
 
 export type LabsAssetKind = 'image' | 'video' | 'upload'

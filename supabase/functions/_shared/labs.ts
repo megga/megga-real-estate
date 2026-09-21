@@ -63,7 +63,7 @@ export const LABS_PROMPT_MAX_CHARS = 1000
 
 // ─── La porte du plan ─────────────────────────────────────────────────────────
 // ⚠ Les QUOTAS mensuels par genre (50 images / 10 vidéos sur Pro) ont été REMPLACÉS
-// le 20.09.2026 par les CRÉDITS (`_shared/credits.ts`, migration 20260920180000) :
+// le 20.09.2026 par les CRÉDITS (`_shared/credits.ts`, migration 20260921110000) :
 // une seule monnaie, débitée production par production. Ne reste au plan qu'une porte
 // binaire — le studio est ouvert à partir de Pro, comme le poste `virtual_staging`
 // du catalogue (`src/lib/plans.ts`) le dit depuis toujours.
