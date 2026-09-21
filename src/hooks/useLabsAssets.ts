@@ -197,20 +197,21 @@ export function useLabsVideoPolling(assets: LabsAsset[], poser: (id: string, pat
   useEffect(() => {
     if (fx || !actif || enCours.length === 0) return
     let arrete = false
+    let suivant: ReturnType<typeof setTimeout> | null = null
+    // ⛔ Le tour SUIVANT part quand le précédent a FINI. Une finalisation (mux, copie R2)
+    // dure bien plus que l'intervalle, et `setInterval` empilait les appels sur la même
+    // vidéo ; l'edge tient désormais un bail, l'écran cesse en plus de la marteler.
     const tour = async () => {
       for (const id of enCours) {
         if (arrete) return
         const r = await invokeLabs<{ asset: AssetRow }>('labs-video-status', { assetId: id })
         if (arrete) return
-        if (r.data?.asset) {
-          const a = labsAssetFromRow(r.data.asset)
-          poser(id, a)
-        }
+        if (r.data?.asset) poser(id, labsAssetFromRow(r.data.asset))
       }
+      if (!arrete) suivant = setTimeout(() => { void tour() }, SONDAGE_MS)
     }
     void tour()
-    const timer = setInterval(() => { void tour() }, SONDAGE_MS)
-    return () => { arrete = true; clearInterval(timer) }
+    return () => { arrete = true; if (suivant) clearTimeout(suivant) }
     // `cle` résume la liste ; `poser` est stable par construction du cache.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cle, fx, actif])

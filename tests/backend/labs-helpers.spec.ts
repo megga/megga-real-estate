@@ -7,10 +7,11 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  LABS_VIDEO_ABANDON_MS, LABS_VIDEO_DELAI_MS,
   LABS_VIDEO_MAX_S, LABS_VIDEO_MIN_S, LABS_VOICEOVER_MAX_CHARS, LABS_VOICE_LANGS,
-  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, imageExtFor, labsImagePrompt,
-  labsOuvertAuPlan, labsVideoCostUsd, labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, monthStartIso,
-  pcmDurationSeconds, pcmToWav, sampleRateFromMime,
+  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, falCancelUrl, falRefusPassager,
+  imageExtFor, labsImagePrompt, labsOuvertAuPlan, labsVideoCostUsd, labsVideoDuration, labsVideoPrompt, labsVideoSuite,
+  labsVoiceoverPrompt, monthStartIso, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../../supabase/functions/_shared/labs.ts'
 
 describe('labs — voix off : enveloppe WAV', () => {
@@ -146,5 +147,38 @@ describe('labs — prompts de garde', () => {
   it('la vidéo dit si la piste sonore vient de la narration', () => {
     expect(labsVideoPrompt('travelling', true)).toContain('Aucune parole ni musique')
     expect(labsVideoPrompt('travelling', false)).toContain('Ambiance sonore discrète')
+  })
+})
+
+// Revue post-fusion de #1338 (21.09.2026) : une vidéo que fal.ai a RENDUE se finalise,
+// quel que soit le temps passé — l'âge ne tranche qu'après fal. Avant, le délai était
+// testé d'abord : une vidéo finie pendant que l'agent travaillait sur un autre onglet
+// était jetée et remboursée à son retour, alors que fal l'avait facturée.
+describe('labs — le sondage d’une vidéo', () => {
+  const vingtMinutes = 20 * 60 * 1000
+  it('une vidéo que fal a terminée se finalise, même vieille de vingt minutes', () => {
+    expect(labsVideoSuite({ ageMs: vingtMinutes, falStatus: 'COMPLETED', falErreur: false })).toEqual({ suite: 'finaliser' })
+    expect(labsVideoSuite({ ageMs: 3 * 24 * 3600 * 1000, falStatus: 'COMPLETED', falErreur: false })).toEqual({ suite: 'finaliser' })
+  })
+  it('une vidéo terminée EN ERREUR chez fal échoue, et se rembourse', () => {
+    expect(labsVideoSuite({ ageMs: 1000, falStatus: 'COMPLETED', falErreur: true })).toEqual({ suite: 'echouer', code: 'provider_failed' })
+    expect(labsVideoSuite({ ageMs: 1000, falStatus: 'FAILED', falErreur: false })).toEqual({ suite: 'echouer', code: 'provider_failed' })
+  })
+  it('le délai ne jette que ce que fal dit encore en file ou en cours', () => {
+    expect(labsVideoSuite({ ageMs: LABS_VIDEO_DELAI_MS - 1, falStatus: 'IN_PROGRESS', falErreur: false })).toEqual({ suite: 'attendre' })
+    expect(labsVideoSuite({ ageMs: LABS_VIDEO_DELAI_MS + 1, falStatus: 'IN_QUEUE', falErreur: false })).toEqual({ suite: 'echouer', code: 'timeout' })
+  })
+  it('un fal injoignable ne fait rien jeter avant un jour', () => {
+    expect(labsVideoSuite({ ageMs: vingtMinutes, falStatus: null, falErreur: false })).toEqual({ suite: 'attendre' })
+    expect(labsVideoSuite({ ageMs: LABS_VIDEO_ABANDON_MS + 1, falStatus: null, falErreur: false })).toEqual({ suite: 'echouer', code: 'timeout' })
+  })
+  it('un refus passager de fal se retente ; un refus définitif, non', () => {
+    for (const s of [408, 429, 500, 502, 503, 504]) expect(falRefusPassager(s), String(s)).toBe(true)
+    for (const s of [400, 401, 404, 422]) expect(falRefusPassager(s), String(s)).toBe(false)
+  })
+  it('l’annulation se tire de l’URL d’état de la file', () => {
+    expect(falCancelUrl('https://queue.fal.run/fal-ai/x/requests/abc/status')).toBe('https://queue.fal.run/fal-ai/x/requests/abc/cancel')
+    expect(falCancelUrl('https://queue.fal.run/fal-ai/x/requests/abc')).toBeNull()
+    expect(falCancelUrl(null)).toBeNull()
   })
 })

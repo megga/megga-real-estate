@@ -74,6 +74,43 @@ export function labsOuvertAuPlan(plan: string | null | undefined): boolean {
   return (LABS_PLANS_OUVERTS as readonly string[]).includes((plan ?? 'starter').toLowerCase())
 }
 
+// ─── Le sondage d'une vidéo ───────────────────────────────────────────────────
+
+/** Au-delà, une vidéo que fal.ai dit ENCORE en file ou en cours est abandonnée (et rendue). */
+export const LABS_VIDEO_DELAI_MS = 15 * 60 * 1000
+/** Au-delà, une vidéo dont fal.ai ne répond plus est abandonnée — fal garde ses résultats des jours. */
+export const LABS_VIDEO_ABANDON_MS = 24 * 60 * 60 * 1000
+
+export type LabsVideoSuite =
+  | { suite: 'attendre' }
+  | { suite: 'finaliser' }
+  | { suite: 'echouer'; code: 'timeout' | 'provider_failed' }
+
+/**
+ * Que faire d'une vidéo en cours, d'après fal.ai PUIS son âge.
+ *
+ * ⛔ L'ÂGE NE TRANCHE QU'APRÈS fal.ai. Le sondage ne tourne que tant que l'écran Labs
+ * est actif : une vidéo terminée pendant que l'agent travaillait ailleurs n'a été vue
+ * par personne. Tester le délai d'abord, comme avant la revue du 21.09.2026, la jetait
+ * et la remboursait au retour — alors que fal l'avait rendue, et facturée.
+ */
+export function labsVideoSuite(p: { ageMs: number; falStatus: string | null; falErreur: boolean }): LabsVideoSuite {
+  if (p.falStatus === 'COMPLETED') return p.falErreur ? { suite: 'echouer', code: 'provider_failed' } : { suite: 'finaliser' }
+  if (p.falStatus === 'FAILED' || p.falStatus === 'ERROR') return { suite: 'echouer', code: 'provider_failed' }
+  const delai = p.falStatus === null ? LABS_VIDEO_ABANDON_MS : LABS_VIDEO_DELAI_MS
+  return p.ageMs > delai ? { suite: 'echouer', code: 'timeout' } : { suite: 'attendre' }
+}
+
+/** Un refus de fal.ai qui se RETENTE (délai, quota, panne) — tout autre refus est définitif. */
+export function falRefusPassager(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500
+}
+
+/** L'URL d'annulation d'une requête de la file fal.ai, tirée de son URL d'état. */
+export function falCancelUrl(statusUrl: string | null | undefined): string | null {
+  return typeof statusUrl === 'string' && /\/status$/.test(statusUrl) ? statusUrl.replace(/\/status$/, '/cancel') : null
+}
+
 /** Début du mois civil courant, en UTC — la dotation de crédits se remet à neuf ce jour-là. */
 export function monthStartIso(now: Date = new Date()): string {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
