@@ -50,7 +50,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { crmPalette } from '@/components/crm/tokens'
 import { adminSurfaces } from '@/hooks/useAdminSurfaces'
 
@@ -114,7 +114,12 @@ const BORDURE_DISCRETE = { clair: MXC_COLOR.n800, sombre: MXC_COLOR.n300 }
 const ACCENTS = new Set([MXC_COLOR.accent.toLowerCase()])
 
 /** Tous les barreaux de l'échelle, en minuscules. */
-const ECHELLE = new Set(Object.values(MXC_COLOR).map((v) => v.toLowerCase()))
+// ⚠ DEUX JEUX depuis le 20.09.2026 : les barreaux de la vitrine, et l'échelle
+// SOMBRE propre au CRM (`MXC_DARK_SURFACE`), dont la feuille tire ses six
+// rôles de surface aplatis et son survol.
+const ECHELLE = new Set(
+  [...Object.values(MXC_COLOR), ...Object.values(MXC_DARK_SURFACE)].map((v) => v.toLowerCase()),
+)
 
 /** L'échelle GRAPHITE, retirée du CRM le 10 août 2026 — en hex ET en triplet. */
 const GRAPHITE = ['#12161c', '#161a21', '#1a1d26', '#1d212a', '#252a36']

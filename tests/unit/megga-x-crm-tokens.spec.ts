@@ -15,8 +15,7 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import {
-  MXC_COLOR, MXC_CARD_SHADOW, MXC_SYSTEM, mxCrmPalette,
-} from '@/components/megga-x-crm/tokens'
+  MXC_COLOR, MXC_CARD_SHADOW, MXC_SYSTEM, mxCrmPalette, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { pfAccents, pfColors } from '@/components/crm/settings/focus/pfKitCore'
 import { crmPalette } from '@/components/crm/tokens'
 import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm/settings/data'
@@ -89,6 +88,7 @@ describe('MEGGA X CRM — les tokens sortent bien de la vitrine', () => {
   it('chaque couleur de système est la variable de la vitrine', () => {
     const expected: Record<keyof typeof MXC_SYSTEM, string> = {
       blue300: 'system-colors--blue-300',
+      blue400: 'system-colors--blue-400',
       yellow400: 'system-colors--yellow-400',
       green300: 'system-colors--green-300', green400: 'system-colors--green-400',
       red400: 'system-colors--red-400',
@@ -277,10 +277,28 @@ describe('MEGGA X CRM — les encres restent lisibles', () => {
     expect(contrast(MXC_COLOR.n600, MXC_COLOR.n300)).toBeGreaterThanOrEqual(4.5)
   })
 
+  /**
+   * ⚠ LE FILET SOMBRE N'EST PLUS UN BARREAU DE LA VITRINE (20.09.2026).
+   * Il descend de `MXC_DARK_SURFACE`, l'échelle propre au CRM — et il est
+   * dimensionné pour PORTER SEUL, le pipeline ayant adopté la grammaire lignée.
+   * Mesuré : `#353b44` sur le canvas rend ΔL* 16,45 quand l'ancien `#181818`
+   * sur `#030303` n'en valait que 7,43.
+   */
   it('en sombre la séparation vient de la bordure, pas d’une ombre', () => {
     const p = mxCrmPalette(true)
     expect(p.shadow).toBe('none')
-    expect(p.cardBorder).toBe(MXC_COLOR.n400)
+    expect(p.cardBorder).toBe(MXC_DARK_SURFACE.line)
+  })
+
+  it('le filet sombre est assez fort pour porter seul la structure', () => {
+    const p = mxCrmPalette(true)
+    // Sous la grammaire lignée le fond ne sépare plus rien : si ce rapport
+    // retombe, le pipeline perd sa structure sans qu'aucun pixel ne rougisse.
+    // ⚠ 1,5 → 1,24 le 20.09.2026 : les filets ont été unifiés ET rendus
+    // discrets (ΔL* 16,45 → 10,13, ratio 1,285). 1,24 est le bord MESURÉ —
+    // ce que rend un voile de 0,08, la dernière opacité encore franche ;
+    // 0,07 tombe à 7,95 et la ligne y devient limite.
+    expect(contrast(p.cardBorder, p.pageBg)).toBeGreaterThanOrEqual(1.24)
   })
 })
 
@@ -311,7 +329,7 @@ describe('MEGGA X CRM — palette des Réglages', () => {
     expect(SET_PALETTE.shadow).toContain(MXC_CARD_SHADOW)
 
     applySetTheme(true)
-    expect(SET_PALETTE.shadow).toContain(`inset 0 0 0 1px ${MXC_COLOR.n400}`)
+    expect(SET_PALETTE.shadow).toContain(`inset 0 0 0 1px ${MXC_DARK_SURFACE.line}`)
     // En sombre la vitrine sépare par la bordure SEULE — pas d'ombre à ajouter.
     expect(SET_PALETTE.shadow).not.toContain(MXC_CARD_SHADOW)
   })
@@ -319,8 +337,12 @@ describe('MEGGA X CRM — palette des Réglages', () => {
   it('ne laisse aucune surface Graphite en sombre', () => {
     applySetTheme(true)
     const surfaces = [SET_PALETTE.bg, SET_PALETTE.card, SET_PALETTE.cardSubtle, SET_PALETTE.heroBg]
-    const mx = Object.values(MXC_COLOR) as string[]
-    for (const s of surfaces) expect(mx).toContain(s)
+    // ⚠ DEUX ÉCHELLES DÉSORMAIS, et c'est la décision du 20.09.2026 : les
+    // neutres de la vitrine pour tout ce qui n'est pas une surface sombre, et
+    // `MXC_DARK_SURFACE` pour les surfaces sombres du CRM. Une valeur hors de
+    // CES DEUX jeux reste un littéral inventé, et fait toujours rougir.
+    const connus = [...Object.values(MXC_COLOR), ...Object.values(MXC_DARK_SURFACE)] as string[]
+    for (const s of surfaces) expect(connus, `${s} hors des deux échelles`).toContain(s)
   })
 
 

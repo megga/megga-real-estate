@@ -40,7 +40,7 @@
 /** Clé de section — ce que la barre compare à l'actif. */
 export type CrmSidebarSectionId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar' | 'kyc' | 'dashboard' | 'settings' | 'messagerie'
+  | 'biens' | 'calendar' | 'kyc' | 'dashboard' | 'settings' | 'messagerie' | 'labs'
 
 /** Une entrée de navigation : clé, glyphe, clé de libellé, route. */
 export interface CrmSidebarSection {
@@ -76,6 +76,9 @@ export const CRM_SIDEBAR_GROUPS: CrmSidebarGroup[] = [
     items: [
       { id: 'contacts', icon: 'users',    labelKey: 'nav.contacts', route: '/dashboard/contacts' },
       { id: 'biens',    icon: 'building', labelKey: 'nav.listings', route: '/dashboard/listings' },
+      // Le studio produit les visuels d'un BIEN (staging, vidéo) : il vit à côté de
+      // « Mes biens », avant Matching qui, lui, lit les deux entités.
+      { id: 'labs',     icon: 'sparkle',  labelKey: 'nav.labs',     route: '/dashboard/labs' },
       { id: 'matching', icon: 'compass',  labelKey: 'nav.matching', route: '/dashboard/matching' },
     ],
   },

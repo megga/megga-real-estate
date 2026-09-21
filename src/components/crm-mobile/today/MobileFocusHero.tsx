@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm/today/focusQueue'
 import { useMobileTokens } from '../useMobileTokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
 // Icônes des types Focus (RXIcon desktop) → MEIcon (source unique mobile).
 const FOCUS_ICON: Record<string, MEIconName> = {
@@ -229,7 +229,7 @@ export function MobileFocusHero({
           }}
         />
       ) : (
-        <div key={item.id} style={{ position: 'absolute', inset: 0, background: '#1A1B22', opacity: vis ? 1 : 0, transition: 'opacity .4s ease' }} />
+        <div key={item.id} style={{ position: 'absolute', inset: 0, background: MXC_DARK_SURFACE.s1, opacity: vis ? 1 : 0, transition: 'opacity .4s ease' }} />
       )}
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,9,12,.58) 0%, rgba(8,9,12,.30) 30%, rgba(8,9,12,.95) 100%)' }} />
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', height: '100%', flex: 1, padding: 'var(--crm-space-4xl)' }}>

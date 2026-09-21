@@ -116,6 +116,8 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   agency_verification_notice_undeliverable: 'kyc', agency_verification_run: 'kyc', agency_verification_validated: 'kyc',
   // Ce que MEGGA AI produit pour l'agent
   whatsapp_morning_brief_sent: 'ai', weekly_report_sent: 'ai', virtual_staging: 'ai',
+  labs_image_generated: 'ai', labs_video_generated: 'ai',
+  labs_folder_created: 'doc', labs_folder_renamed: 'doc', labs_folder_deleted: 'doc',
   // Équipe et compte
   role_changed: 'team', team_invite_sent: 'team', team_invite_accepted: 'team',
   team_invite_cancelled: 'team', team_invite_resent: 'team', account_deleted: 'team',

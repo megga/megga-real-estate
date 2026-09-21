@@ -22,12 +22,16 @@
  * y vaut `#0B0C0E`, l'ancienne règle « l'accent EST l'encre ».
  */
 import { describe, it, expect, afterEach } from 'vitest'
-import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_SYSTEM, MXC_DARK_SURFACE, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 import { vxPalette } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 
 /** Les barreaux que la vitrine publie — la seule source de couleur autorisée. */
 const ECHELLE = new Set(
-  [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)].map((v) => v.toLowerCase()),
+  // ⚠ TROISIÈME JEU depuis le 20.09.2026 : les SURFACES sombres du CRM ne sortent
+  // plus des barreaux de la vitrine mais de `MXC_DARK_SURFACE` — décision écrite
+  // sur ce module. Hors de ces trois jeux, une valeur reste un littéral inventé.
+  [...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM),
+   ...Object.values(MXC_DARK_SURFACE)].map((v) => v.toLowerCase()),
 )
 
 /**

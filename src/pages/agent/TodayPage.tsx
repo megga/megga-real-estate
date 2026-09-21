@@ -328,7 +328,25 @@ export default function TodayPage() {
           <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)' }}>
             {/* Viewport pager — clippe les deux pages, capte la molette */}
             <div ref={viewportRef} style={{
-              position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
+              position: 'relative', height: '100%', overflow: 'hidden',
+              /**
+               * ⛔ CE CADRE N'AVAIT AUCUN FOND, et en CLAIR ça se voyait :
+               * « pourquoi MEGGA AI est plus blanc que les autres ? » (Julien,
+               * 20.09.2026). Il ne l'était pas — c'est CE cadre qui était plus
+               * gris. Mesuré au rendu, les trois panneaux côte à côte : barre
+               * latérale `#ffffff`, dock `#ffffff`, et celui-ci TRANSPARENT,
+               * donc laissant voir le canvas `#f9f9f9`. ΔL* 2,07 d'écart, sur
+               * 752 px de large — assez pour se lire comme un autre blanc.
+               *
+               * ⚠ En SOMBRE le défaut était invisible : `TK.frame` y vaut le
+               * gris unique, donc transparent ou peint revenait au même. C'est
+               * le clair, qui sépare par un palier, qui le révèle. Même famille
+               * que les ombres noires sur l'ancien canvas.
+               */
+              background: TK.frame,
+              // ⚠ `26` était un littéral hors échelle, et désaccordé de la carte
+              // latérale comme du dock, qui rendent tous deux 20 px.
+              borderRadius: 'var(--crm-radius-4xl)',
               border: `1px solid ${TK.border}`,
               boxShadow: TK.shadowLg,
             }}>

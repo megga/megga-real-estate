@@ -6,6 +6,14 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Labs — le studio de génération (20 septembre 2026)
+> Sert les objectifs 1 (temps administratif) et 3 (closing). Julien : « une page qui va intégrer un labs… virtual staging en photo, mais aussi en vidéo… une galerie avec une barre de prompt… les voix off… organiser, créer, modifier, supprimer des dossiers ».
+
+- **`/dashboard/labs`**, section « Clients & biens » de la barre latérale. Carte plein cadre comme les autres pagers ; le titre de la galerie est le menu des dossiers (créer, renommer, supprimer, quota du mois — un dossier supprimé laisse ses productions sans dossier), galerie masonry collée et sans rayon (densité 3–6 colonnes, filtres images/vidéos/favoris) — bord à bord, ni écart ni coins arrondis ni ombre de survol, au bureau comme au mobile, barre de prompt flottante reprise du Labs v2 de référence (attache, texte auto-croissant, puces, coût estimé, ⌘↵), visionneuse (prompt copiable, dossier, animer, réutiliser, source, télécharger, favori, supprimer). Mobile : galerie en lecture seule. Banc `/dev/labs` sur fixtures.
+- **Image** : Nano Banana 2 (`gemini-3.1-flash-image-preview`), à partir d'un texte ou d'une photo importée / d'une production, avec un prompt de garde immobilier (architecture inchangée, aucune personne, aucun texte). **Vidéo** : Seedance 2.5 sur fal.ai (image-to-video ou text-to-video, 720p/1080p, 4–30 s) — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 ; l'endpoint est une constante unique. **Voix off** : texte lu par Gemini TTS — **pas par Seedance**, qui génère bien un son mais dont on ne choisit pas les mots —, dans la langue choisie (fr/de/en/it), **écoutable avant de payer** (bouton ▶ dans la barre, et dans la visionneuse pour une piste déjà produite), refusée si elle dépasse 30 s, multiplexée sur la vidéo muette à l'arrivée.
+- Backend : tables `labs_folders` / `labs_assets` (RLS agence, suppression douce, Realtime), bucket Storage `labs`, edges `labs-image` / `labs-video` / `labs-video-status`, `_shared/labs.ts` (pur, 15 tests) et `_shared/r2.ts`. Quotas mensuels par plan : images sur `virtual_staging`, vidéos sur le nouveau poste `labs_video` (Pro 10 · Entreprise 40) — **à valider**. Audit `labs_image_generated` / `labs_video_generated` (acteur IA) et `labs_folder_*`.
+- ⛔ **Rien n'a été éprouvé contre Gemini ni fal.ai** ; `FAL_KEY` reste à poser dans Supabase. Détail : system-map §6quater.
+
 #### Audit CRM — journal des actions IA, relance WhatsApp, invitations d'équipe (14 septembre 2026)
 > Sert les objectifs 2 (risque) et 5 (outil fiable). Trois constats relevés pendant les PR #1308 et #1319, laissés hors de leur périmètre.
 

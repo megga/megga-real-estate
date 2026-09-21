@@ -214,21 +214,56 @@ du deal), pas parce qu'elles décorent.
 `crmStep`, le choix de teinte (Graphite / Noir pur), `useDarkTone` et
 `megga.darkTone` sont supprimés. Le **mode** sombre est conservé.
 
-Correspondance appliquée, **par rôle et non par numéro** — Graphite *montait* ses
-sous-surfaces, MEGGA X les *creuse* :
+⛔ **UNE SEULE SURFACE DEPUIS LE 20.09.2026** (décision Julien : « il faut
+vraiment tout uniformiser, on doit juste voir les filets »). Le tableau
+ci-dessous a listé SIX paliers distincts jusqu'à cette date ; il n'en reste
+qu'un. Et l'échelle a quitté les barreaux de la vitrine — `#030303` y descend
+parce qu'une page marketing se PARCOURT, le CRM s'HABITE. Valeurs dans
+`MXC_DARK_SURFACE` ([megga-x-crm/tokens.ts](src/components/megga-x-crm/tokens.ts)).
 
 | Rôle | Token | Valeur |
 |---|---|---|
-| canvas | `sp.pageBg` | `#030303` |
-| cadre bento, rail, top nav | `sp.frameBg` | `#050505` |
-| carte, colonne, ligne | `sp.cardBg` | `#090909` |
-| sous-carte **creusée** | `sp.cardSubBg` | `#050505` |
-| survol, **élevée** | `sp.focusSurface` | `#181818` |
-| flottante (modale, popover) | `sp.solidBg` | `#090909` |
+| canvas | `sp.pageBg` | `#16181c` |
+| cadre bento, rail, barre d'onglets | `sp.frameBg` | `#16181c` |
+| carte, colonne, ligne | `sp.cardBg` | `#16181c` |
+| sous-carte | `sp.cardSubBg` | `#16181c` |
+| flottante (modale, popover) | `sp.solidBg` | `#16181c` |
+| survol — un **ÉTAT**, pas un palier | `sp.focusSurface` | `#1b1e23` |
+| **LE FILET** — un seul, discret | `sp.cardBorder` | `#2b2d30` |
 
-1. **La séparation vient de la BORDURE**, pas de l'écart de luminance —
-   `sp.shadow` vaut `'none'` en sombre, comme la vitrine. Écart mesuré
-   canvas↔carte : 1,078:1 (Graphite) → **1,036:1** (MEGGA X).
+⚠ **La grammaire du Pipeline est LIGNÉE** : les colonnes ne se remplissent plus,
+leur teinte d'étape est mélangée à **0,94 vers le canvas** — assez pour que le
+balayage indigo→orange reste lisible (ΔL\* 2,73 à 3,93), quatre fois plus faible
+que le filet. Ne pas monter ce facteur sans remesurer les DEUX bouts du
+balayage : à 0,95 l'indigo passe sous le seuil et le bout froid s'efface avant
+le chaud.
+
+1. **La séparation vient de la BORDURE**, et désormais d'ELLE SEULE —
+   `sp.shadow` vaut `'none'` en sombre. Il n'y a plus d'écart de luminance du
+   tout entre canvas et carte : le filet rend **ΔL\* 10,13** sur le canvas,
+   contre 7,43 pour l'ancien `#181818` sur `#030303`.
+   ⛔ **ET IL Y EN AVAIT CINQ, DE ΔL\* 7,95 À 16,45** — plus du simple au double
+   sur un seul écran, pour un rôle unique : le jeton à 16,45, deux voiles à
+   15,43 et 9,04, un anneau à 7,95. Aucune porte ne comparait les filets ENTRE
+   EUX, chacun étant plausible isolément. Ils rendent tous `#2b2d30` depuis le
+   20.09.2026. ⚠ Deux NOTATIONS subsistent, et c'est voulu : un opaque
+   (`line`) pour une surface neutre, un voile `rgba(255,255,255,0.09)` pour une
+   surface TEINTÉE, où un aplat ferait une tache. Elles se comparent APRÈS
+   composition, jamais sur leur écriture. ⚠ Le plancher est mesuré : à 0,07
+   (ΔL\* 7,95) la ligne devient limite, en dessous elle s'efface — ne pas
+   descendre sous 0,08 en cherchant « plus discret ».
+   ⛔ **AUCUNE OMBRE PORTÉE NOIRE**, et cinq vivaient encore ici : le dock MEGGA
+   AI (70 px de flou à 75 % de noir), le pager du cockpit, ses cartes, les blocs
+   d'agenda. Toutes invisibles sur `#030303` — du noir sur du noir — et toutes
+   révélées par le plancher relevé. Un RING (`0 0 0 1px`, flou nul) n'en est pas
+   une : c'est un filet dessiné en `box-shadow` pour ne pas décaler la mise en
+   page. C'est ce chiffre qui a
+   imposé `#16181c` plutôt qu'un gris plus sombre — sans fond pour séparer, un
+   filet faible ne laisse plus aucune structure.
+1bis. ⛔ **L'ENCRE COURANTE N'EST PLUS BLANCHE** : `sp.ink` vaut `n800`
+   (`#ededed`), et la rampe descend n800 → n700 → n600. Le blanc pur est la
+   SOURCE de la bave sur fond sombre ; APCA passe de Lc 108 à **Lc 95**, encore
+   au-dessus du seuil préféré pour du texte courant.
 2. ⛔ **Un élément posé sur une surface TEINTÉE reste un VOILE translucide**, pas
    un palier opaque. La migration Graphite avait converti mécaniquement les
    pastilles « + » des colonnes du pipeline en S3 opaque : des blocs gris au
@@ -239,6 +274,50 @@ sous-surfaces, MEGGA X les *creuse* :
 4. ⛔ **Les couleurs de système de la vitrine sont PÂLES** — réglées pour un
    canvas `#030303`. Sous encre blanche : 1,7:1. Sous `n100` : 11–19:1. Un
    remplissage pâle prend TOUJOURS l'encre sombre.
+
+⛔ **L'ONBOARDING N'EST PAS UNE SURFACE DU CRM, et sa couture est assumée.**
+`IdentityShell` vit dans le scope **`.megga-x`** — la transcription verbatim de la
+feuille de la vitrine, qui déclare ses propres neutres. Son canvas sombre
+`#030303` n'est pas un reste du chantier : c'est **le canvas de la vitrine**,
+imposé par le scope. Le repeindre en `#16181c` désynchroniserait l'onboarding de
+ce qu'il prolonge.
+
+Conséquence mesurée le 20.09.2026, à connaître avant de la « corriger » :
+
+| passage | avant le chantier | après |
+|---|---|---|
+| CRM **sombre** → onboarding | ΔL\* **0,00** | ΔL\* **7,37** |
+| CRM **clair** → onboarding | ΔL\* 97,10 | ΔL\* **~0** |
+
+Le sombre du CRM collait à l'onboarding **par accident** — il empruntait le
+canvas de la vitrine. Maintenant qu'il a le sien, le joint se voit en sombre.
+Il est laissé tel quel : entrer dans l'onboarding, c'est changer de mode (on
+configure l'agence, on ne travaille pas ses deals), et un seuil visible est
+honnête. ⚠ La couture INVERSE, elle, a disparu : en clair l'onboarding rendait
+du `#030303` sur un CRM à `#f9f9f9` — ΔL\* 97 — depuis toujours.
+
+✅ **Le parcours suit désormais le thème du CRM, clair ET sombre** (décision
+Julien, 20.09.2026). Il était mono-thème : aucun fichier de `crm-identity/` ne
+connaissait `dark`. Mécanique — `IdentityShell` stampe `data-mx-theme` sur
+`<html>` d'après `useCrmDark()`, et un bloc de
+[megga-x-additions.css](src/styles/megga-x-additions.css) redéclare les **dix
+variables neutres** en MIROIR DE RÔLE (n100↔n1000, n200↔n900, n300↔n800,
+n400↔n700). Aucune règle de la feuille transcrite n'est touchée.
+
+⚠ Trois pièges, tous mesurés au rendu, tous documentés dans ce bloc CSS :
+1. **Le stamp est sur `<html>`**, pas sur le `<MeggaX>` : `.megga-x` déclare les
+   dix variables, donc un `<MeggaX>` IMBRIQUÉ les remettrait au sombre — et le
+   parcours en monte un par écran, modale et carte de rendez-vous.
+2. **`n500` sort du miroir.** Il lui donnerait `#a3a3a3`, soit **2,52:1** sur
+   blanc : un gris moyen ne contraste pas symétriquement, il rend mieux sur noir.
+   Il prend `#686868` (5,57:1) et se confond donc avec `n600` en clair.
+3. **L'accent n'est pas un neutre, donc son encre non plus.** Mesuré : le bouton
+   primaire rendait `#030303` sur `#424bfb` — **3,57:1**. Les sept règles dont le
+   remplissage est `--primary-colors--100` gardent l'encre BLANCHE.
+   ⚠ Et **cinq fonds sombres sont écrits en DUR** dans la feuille, hors de portée
+   d'un remappage de variables : deux concernent l'onboarding et sont surchargés
+   (`.card.sign-in-card`, `.input.select-input`), trois ne doivent pas basculer
+   (un voile de lightbox, deux couleurs de marque).
 
 Garde-fous : [megga-x-crm-tokens.spec.ts](tests/unit/megga-x-crm-tokens.spec.ts)
 (couleurs = barreaux réels de la vitrine, seuils AA, aucune police en dur, aucun
@@ -268,8 +347,14 @@ d'écran n'est restée sur Graphite).
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
   décision du 10 août écrite quatre points plus haut. Remesuré le 5 septembre 2026
   par `npm run lint:claude-md` : **127 sites peignent une affordance en accent**
-  (120 `background: *.accent`, 7 `bg-accent`) dans 82 fichiers, contre **11** au
-  ghost canonique. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
+  (120 `background: *.accent`, 7 `bg-accent`) dans 95 fichiers, contre **11** au
+  ghost canonique. ⚠ **Les fichiers passent de 82 à 95 le 20.09.2026**, et la règle
+  n'a pas bougé : c'est le studio Labs qui entre — son écran, puis sa reprise
+  « organisation », dont la barre de gestes de la sélection et le menu « Ranger
+  dans… » peignent leur affordance PRIMAIRE en accent, exactement ce que la règle
+  vive prescrit — et les deux PR de sombre. ⚠ Les **sites**, eux, n'ont pas été
+  remesurés ici : la porte ne les a pas signalés, et recopier un chiffre sans le
+  mesurer est exactement ce que ce document s'interdit. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
   pas une dérive de la règle mais deux chantiers de septembre — la refonte du
   chrome du CRM (barre latérale + barre d'onglets, PR #1279) et la messagerie
   (PR #1276), qui peignent l'un et l'autre leurs affordances primaires en accent,
@@ -305,8 +390,9 @@ d'écran n'est restée sur Graphite).
   doit épouser le pager ») : leur voile couvre la Messagerie et non l'écran, et elles se
   masquent avec l'écran de leur onglet. Les ramener dans `<body>` rendrait le voile plein écran.
   ⚠ **« TOUJOURS … avec `z-[100]` » n'est
-  vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
-  modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
+  vrai ni pour l'un ni pour l'autre.** Mesuré le 20.09.2026 : **41 fichiers appellent
+  `createPortal`** (36 le 05.09.2026, dont 33 nommés modale/panneau/dialogue — la règle
+  tenait à trois près ; les trois du studio Labs la suivent) —
   mais le z-index est un **désordre assumé nulle part** : **185 sites `zIndex`
   portant 50 valeurs DISTINCTES** (remesuré le 14.09.2026 au motif du registre,
   commentaires blanchis ; 175 et 44 le 16.08 — les deux dernières valeurs venues, 4099
@@ -360,7 +446,12 @@ d'écran n'est restée sur Graphite).
 
 **Thème CSS Variables :**
 ```
-Dark mode :   Page #1C1C1C | Cards #2A2A2A | Borders #383838 | Text #ECECEF | Muted #8E8E96
+Dark mode :   ⚠ APLATI le 20.09.2026 — ce bloc était un SECOND thème sombre parallèle,
+              complet et distinct de MEGGA X (5 gris de surface, #1C1C1C page / #2A2A2A carte).
+              Mesuré au rendu, #1C1C1C peignait encore 582k px² du cockpit.
+              Les six rôles de surface rendent le canvas : Page = Cards = Section = Sidebar
+              = Input = Elevated = #16181c | Hover #1b1e23 | Border #2b2d30 (filet unique)
+              | Text #ededed | Secondary #cccccc | Muted #a3a3a3
 Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, bg-theme-hover, bg-theme-active
               text-theme-primary, text-theme-secondary, text-theme-tertiary, text-theme-muted
               border-theme-border, border-theme-border-subtle
@@ -760,6 +851,47 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
+**Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. ⛔ **Les quotas par genre sont REMPLACÉS par des CRÉDITS depuis le 20.09.2026**
+(migration `20260921110000`, modèle Higgsfield) : un solde par agence — dotation
+mensuelle du plan (Pro 1 500, Entreprise 4 800, jamais reportée) + crédits achetés
+(ne périment pas) — débité production par production **AVANT** d'appeler le
+fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 720p et
+40/s en 1080p, voix off +10. Packs en `price_data` Stripe (200 · 500 · 1 200 · 3 000
+crédits, CHF 10 · 22 · 49 · 109 — aucun produit ni secret à poser) ; recharge
+automatique sous un seuil, hors session, sur la carte du premier achat. Écran :
+Réglages › **Consommation** (`?tab=credits`). ⛔ **Le retour de Stripe rend un REÇU, pas
+un « merci »** (20.09.2026) : `credits-checkout-status` relit la session chez Stripe
+— pack, montant, solde APRÈS, lien de facture — et **crédite lui aussi**, idempotent par
+PaymentIntent, parce qu'un écran qui attend le webhook affiche « paiement en cours » sur
+un paiement abouti dès que l'événement traîne. Son seul rempart est la confrontation de
+`session.metadata.agency_id` avec l'agence du jeton (`not_found` sinon), gardée par
+`credits-confidentialite.spec.ts`. Le solde et un raccourci d'achat vivent aussi dans le
+**menu de compte** (`CrmProfileCredits`), packs dépliés avec leur prix — jamais un clic
+qui débite sans annoncer le montant. ⛔ **Le coût fournisseur et la marge ne
+sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
+interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
+de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
+
+⚠ **Le studio savait PRODUIRE et ne savait pas RANGER — repris le 20.09.2026.** Classer une
+production demandait de l'ouvrir et d'y trouver une liste déroulante (trois gestes et un
+aller-retour par image, trente-six pour la douzaine qu'une séance de staging produit) ;
+quatre variantes d'un salon demandaient quatre clics, chacun suivi de quinze secondes où
+RIEN ne bougeait à l'écran ; retrouver un prompt de la semaine passée voulait dire faire
+défiler trois cents vignettes. Ajoutés, **sans une ligne de migration** : sélection multiple
+(grammaire de la Messagerie — case au survol, Maj+clic en plage, ⌘A, Échap ; l'en-tête
+DEVIENT la barre de gestes ; un `.in('id', …)` par geste), « Ranger dans… » au survol d'une
+vignette (`LabsFolderPicker`, porté dans `<body>`), recherche sur le prompt et la voix off
+(accents pliés), **variations ×1/×2/×4** en image avec tuiles d'attente locales — pas en
+vidéo, où quatre d'un coup vaudraient 40 % du quota mensuel —, « Refaire » en un clic
+(échec compris), un **préréglage de home staging pièce × style qui ÉCRIT la consigne en
+clair** dans la barre (jamais un prompt caché : l'agent doit pouvoir la relire et la
+corriger), et un **avant/après coulissant** dans la visionneuse. ⚠ Le vocabulaire de
+staging est celui de la fiche bien (`useVirtualStaging`), confronté par
+[labs-organisation.spec.ts](tests/unit/labs-organisation.spec.ts) — une seule exception
+nommée, `autre`.
+
+Détail : system-map §6quater, cerveau `megga/labs-studio`.
+
 **Messagerie (e-mail) : ✅ LOT 1 EN PRODUCTION depuis le 04.09.2026.** ⛔ **Ce paragraphe a affirmé l'inverse pendant vingt-quatre heures, et ses quatre mesures étaient inversées.** Il donnait la [PR #1274](https://github.com/megga/megga-real-estate/pull/1274) pour « OUVERTE au 04.09.2026 » et la production pour vide — « 0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%` » — alors qu'elle a été **mergée ce jour-là à 08:55 UTC** (`26187ba7`). Remesuré en production le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, 1 job cron `mail%`** (`mail-sync-2min`). La prétention n'était pas vague, elle était fausse sur chacun de ses chiffres — et aucune porte ne la mesurait.
 
 **Lot 1 (backend) — MERGÉ ET EN PRODUCTION** ([PR #1274](https://github.com/megga/megga-real-estate/pull/1274), types régénérés par [#1275](https://github.com/megga/megga-real-estate/pull/1275)). Mesuré en prod le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, le cron `mail-sync-2min` (`*/2 * * * *`) actif**, `mail_threads` publiée en Realtime avec `replica identity full`. Deux migrations : `20260904074500_mail_module.sql` (les 9 tables et 11 fonctions, RLS sur les 9, `purge_activity_events_retention` étendue à la catégorie `messaging`, 25 comptes par tick) et `20260904074600_mail_sync_failures.sql` (échecs consécutifs, `status='error'` au 5ᵉ). Côté code : **9 modules purs** dans `supabase/functions/_shared/mail/` — dont **6 seulement portent des specs**, soit **103 tests** au merge (depuis le 13.09.2026 : **10 modules**, 7 avec specs, **150 tests** — `disconnect.ts` est venu avec la révocation dans `delete-account` ; depuis le 14.09.2026 : **11 modules**, 8 avec specs, **173 tests** — `logos.ts`, les logos des expéditeurs ; avec le lot 3 IMAP (14.09.2026) : **17 modules**, 13 avec specs, **242 tests** ; avec le dossier Spam, **262** ; avec les gestes en lot, **18 modules**, 14 avec specs, **267** ; après la revue de sécurité du 15.09.2026, **298**, puis **19 modules**, 15 avec specs, **352** au bout de la revue, **362** avec ses défauts faibles — l'état de `main` depuis la fusion de la PR #1328, recompté dans son run Vitest du 15.09.2026 : 15 fichiers, 362 tests) ; `sync.ts`, `guard.ts` et `types.ts` ne sont exercés que par les specs backend — et **5 edge functions** (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`).
@@ -936,6 +1068,23 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (✅ posé le 16.08.2026),
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
+
+> ⛔ **L'ABONNEMENT PRO N'EST PAS ACHETABLE EN PRODUCTION — aucun identifiant de prix Stripe
+> n'atteint le build** (relevé le 21.09.2026). « Passer à Pro » envoie à `stripe-checkout` l'id
+> d'un objet Price lu dans `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` (`src/lib/constants.ts`) ;
+> or `deploy-app.yml` ne passe au build que `VITE_SUPABASE_*`, `VITE_MAPBOX_TOKEN` et
+> `VITE_INTERCOM_APP_ID`, et aucun secret ni variable GitHub ne porte ces noms. Le bouton répond
+> donc « Configuration Stripe manquante, contactez le support » (`billing.stripeMissing`).
+>
+> ⚠ Le **montant** n'est pas dans le code : c'est celui de l'objet Price. `BillingSection` ne fait
+> que l'AFFICHER (Pro : CHF 89 depuis le 21.09.2026, CHF 74 le mois en annuel, « deux mois
+> offerts »). Pour que l'écran dise vrai il faut, hors dépôt : (1) créer dans Stripe les deux Price
+> du produit Pro, CHF 89 par mois et CHF 890 par an (les « deux mois offerts » que l'écran annonce) ; (2) poser leurs ids en secrets GitHub
+> `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` ET les ajouter à l'`env` du build de
+> `deploy-app.yml` ; (3) poser les mêmes ids en secrets Supabase `STRIPE_PRICE_PRO_MONTHLY` /
+> `_YEARLY` — `_shared/stripe-prices.ts` refuse tout id absent de cette table (`price_not_allowed`,
+> ou `stripe_prices_not_configured` si elle est vide). Aucun abonné à migrer : les 13 agences de
+> production sont en `starter`.
 
 > ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
 > les **263 chunks** réellement servis par `app.getmegga.com` : le jeton (`pk.eyJ…`) est dans

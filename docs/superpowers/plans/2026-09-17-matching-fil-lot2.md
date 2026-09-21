@@ -40,7 +40,7 @@
 | `tests/unit/matching-fil-modele.spec.ts` (modifié) | Tests des ajouts |
 | `src/hooks/useAtelierMatching.ts` (modifié) | `refAnnonceMarche`, `rattacherDeal` (extrait), `execEnvoyerSelection` |
 | `tests/unit/matching-fil-gestes.spec.ts` (modifié) | Tests de `execEnvoyerSelection` et du rattachement |
-| `supabase/migrations/20260921120000_matching_fil_marche.sql` (créé) | La RPC de résumé |
+| `supabase/migrations/20260921121000_matching_fil_marche.sql` (créé) | La RPC de résumé |
 | `src/types/database.ts` (modifié) | Le type de la RPC |
 | `src/hooks/useMatchingFil.ts` (modifié) | Résumés « Marché », helpers partagés |
 | `src/hooks/useSelectionMarche.ts` (créé) | Les biens d'une sélection, vingt à la fois |
@@ -70,7 +70,7 @@ sinon un `new_lead` sur le meilleur bien), UNE relance à +5 j et UNE ligne `dos
 les `match_ids` (`execEnvoyerSelection`). Le lien « Chercher plus loin dans Recherche » est reporté au
 lot 3 : Recherche ne sait pas s'ouvrir sur un acheteur, et on n'y touche pas. Sur une ligne « Marché »,
 `E` envoie les biens cochés ; `P` et `X` n'y font rien. Un filtre « Bien » masque les lignes « Marché ».
-La RPC de résumé est `matching_fil_marche()` (migration `20260921120000`, à renommer au jour de la
+La RPC de résumé est `matching_fil_marche()` (migration `20260921121000`, à renommer au jour de la
 fusion si elle a lieu après le 21.09.2026 : date-guard de `deploy.yml`).
 ```
 
@@ -532,12 +532,12 @@ git commit -m "feat(matching): l'envoi d'une sélection, un deal, une relance, u
 ### Task 3 : La RPC de résumé
 
 **Files :**
-- Create : `supabase/migrations/20260921120000_matching_fil_marche.sql`
+- Create : `supabase/migrations/20260921121000_matching_fil_marche.sql`
 - Modify : `src/types/database.ts`
 
 - [ ] **Step 1 : Écrire la migration**
 
-Créer `supabase/migrations/20260921120000_matching_fil_marche.sql` :
+Créer `supabase/migrations/20260921121000_matching_fil_marche.sql` :
 
 ```sql
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -642,7 +642,7 @@ Expected : les deux sortent en 0.
 - [ ] **Step 4 : Point de commit (au signal)**
 
 ```bash
-git add supabase/migrations/20260921120000_matching_fil_marche.sql src/types/database.ts
+git add supabase/migrations/20260921121000_matching_fil_marche.sql src/types/database.ts
 git commit -m "feat(db): matching_fil_marche, une ligne « Marché » par acheteur"
 ```
 
@@ -2123,7 +2123,7 @@ Aucun code. Lire l'écran (`get_page_text`, `javascript_tool`), capture pour la 
 
 - [ ] **Step 1** : dans `.claude-flow/knowledge/megga-memory.seed.json` (format `JSON.stringify(d, null, 2) + '\n'`, vérifié par script), compléter la valeur de l'entrée `megga/matching-fil` par :
 
-« LOT 2 (banc) : une ligne « Marché » par acheteur, résumée par la RPC matching_fil_marche() (migration 20260921120000, SECURITY INVOKER, idx_matches_agency_focus ; à renommer au jour de la fusion — date-guard) ; sélection chargée à l'ouverture, 20 à la fois (useSelectionMarche) ; cochés d'office = tous critères tenus, 5 au plus (precoches) ; envoi de sélection = execEnvoyerSelection : UN deal, UNE relance +5 j, UN dossier_envoye listant les match_ids (rattacherDeal partagé avec execSendDossier). Écart moteur connu : automation-engine pose une relance +3 j PAR match envoyé sans relance portant son match_id. Lien vers Recherche reporté au lot 3. Banc : m1 passé à sent (cohérent avec rl1), annonces ml-fil-1..4, matchs m8..m13 notés par calculateScoreV2. »
+« LOT 2 (banc) : une ligne « Marché » par acheteur, résumée par la RPC matching_fil_marche() (migration 20260921121000, SECURITY INVOKER, idx_matches_agency_focus ; à renommer au jour de la fusion — date-guard) ; sélection chargée à l'ouverture, 20 à la fois (useSelectionMarche) ; cochés d'office = tous critères tenus, 5 au plus (precoches) ; envoi de sélection = execEnvoyerSelection : UN deal, UNE relance +5 j, UN dossier_envoye listant les match_ids (rattacherDeal partagé avec execSendDossier). Écart moteur connu : automation-engine pose une relance +3 j PAR match envoyé sans relance portant son match_id. Lien vers Recherche reporté au lot 3. Banc : m1 passé à sent (cohérent avec rl1), annonces ml-fil-1..4, matchs m8..m13 notés par calculateScoreV2. »
 
 - [ ] **Step 2** : `npm run ruflo:seed`, puis `CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "sélection du marché par acheteur dans le fil de matchs" -n megga` → `megga/matching-fil` en tête.
 
@@ -2140,7 +2140,7 @@ git commit -m "docs(cerveau): le fil de matchs, lot 2"
 
 Tâches 0 à 14 faites, non commitées. Trois relectures ont modifié le plan ; le code du dépôt fait foi. Écarts :
 
-- **Migration** datée `20260921120000` (le jour de l'exécution) ; toujours à renommer si la fusion a lieu plus tard. Vignettes : `nullif(…, '')`, trois premières NON vides, `created_at desc nulls last`.
+- **Migration** datée `20260921121000` (le jour de l'exécution) ; toujours à renommer si la fusion a lieu plus tard. Vignettes : `nullif(…, '')`, trois premières NON vides, `created_at desc nulls last`.
 - **`execEnvoyerSelection`** ne repasse en `sent` que les matchs encore `suggested` DE CET ACHETEUR (comme l'edge) ; `MAX_BIENS_LIEN = 50` (plafond de `buyer-reception-create`, qui coupe en silence) refusé avant toute écriture et câblé dans l'écran ; échec de la relance signalé en console. Mock de `matching-fil-gestes.spec.ts` fidèle à supabase-js (écriture enregistrée au `then`, lectures et erreurs injectables).
 - **Cochés d'office** sur des faits (`criteresNonTenus` : prix dans les bornes, tous les équipements), pas sur le seul verdict du moteur ; FIGÉS une fois par acheteur au premier chargement réel ; après un envoi, rien n'est recoché. Le résumé « À vérifier » d'un bien lit la même fonction.
 - **`useSelectionMarche`** : données provisoires gardées pour le MÊME acheteur seulement (sinon on voyait, et on pouvait écarter, les biens d'un autre) ; départage `created_at`, `id` ; `isFetching`, `refetch`.

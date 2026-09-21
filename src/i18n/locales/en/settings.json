@@ -774,6 +774,10 @@
       "preferences": {
         "label": "Preferences",
         "short": "Preferences"
+      },
+      "credits": {
+        "label": "Usage",
+        "short": "Usage"
       }
     },
     "groups": {
@@ -1062,5 +1066,105 @@
       "agencyNotLoaded": "Agency not loaded, sign in again to save.",
       "logoUploadError": "Could not upload the logo."
     }
+  },
+  "credits": {
+    "title": "Usage",
+    "subtitle": "Your Labs studio credits and your WhatsApp messages: what is left, what you produced, and how to top up.",
+    "balance": {
+      "title": "Balance",
+      "included": "{{n}} included this month",
+      "purchased": "{{n}} purchased",
+      "allowance": "Your plan includes {{n}} credits per month. They renew on the 1st and do not roll over; purchased credits never expire.",
+      "topup": "Top up",
+      "noPlan": "The Labs studio is available from the Pro plan.",
+      "goPlan": "See plans"
+    },
+    "month": {
+      "title": "This month",
+      "images": "Images",
+      "videos": "Videos",
+      "spent": "Credits spent",
+      "refunded": "{{n}} refunded on failures"
+    },
+    "whatsapp": {
+      "title": "WhatsApp this month",
+      "body": "The messages MEGGA sends on WhatsApp for your agency: MEGGA AI's replies to your team, and your messages to clients.",
+      "agent": "Exchanges with MEGGA AI",
+      "client": "Messages to your clients",
+      "unclassified": "{{n}} other messages, unclassified",
+      "error": "Could not load WhatsApp usage."
+    },
+    "tariff": {
+      "title": "What a production costs",
+      "image": "Image (2K)",
+      "image1k": "Image (1K)",
+      "video720": "Video 720p, per second",
+      "video1080": "Video 1080p, per second",
+      "voiceover": "Voice-over, per video",
+      "example": "An 8 s video in 720p with voice-over: {{n}} credits.",
+      "unit_one": "{{n}} credit",
+      "unit_other": "{{n}} credits"
+    },
+    "packs": {
+      "title": "Top up",
+      "body": "One-off payment. Purchased credits never expire.",
+      "buy": "Buy",
+      "credits": "{{n}} credits",
+      "price": "CHF {{chf}}",
+      "perCredit": "{{chf}} ct. per credit",
+      "discount": "−{{n}}%",
+      "best": "Best value",
+      "opening": "Opening payment…",
+      "bench": "On this bench, buying leads nowhere.",
+      "error": "The payment could not be opened. Try again."
+    },
+    "auto": {
+      "title": "Auto top-up",
+      "body": "When the balance drops below a threshold, a pack is bought with the saved card. You never hit zero in the middle of a series.",
+      "enabled": "On",
+      "disabled": "Off",
+      "threshold": "When the balance drops below",
+      "pack": "Buy",
+      "card": "Card {{brand}} •••• {{last4}}",
+      "noCard": "No card saved. Buy a pack by card: it will be saved for auto top-up.",
+      "lastError": "The last top-up failed ({{error}}). Check the card; it will retry on the next debit.",
+      "saved": "Saved",
+      "saveError": "The setting could not be saved."
+    },
+    "ledger": {
+      "title": "History",
+      "empty": "No movements yet.",
+      "balanceAfter": "balance {{n}}",
+      "kinds": {
+        "grant_monthly": "Monthly allowance",
+        "purchase": "Purchase of {{n}} credits",
+        "auto_topup": "Auto top-up, {{n}} credits",
+        "debit_image": "Image",
+        "debit_video": "Video {{res}} · {{s}} s",
+        "debit_video_vo": "Video {{res}} · {{s}} s · voice-over",
+        "refund": "Refund, failed production",
+        "adjustment": "Adjustment"
+      }
+    },
+    "receipt": {
+      "pendingTitle": "Confirming payment",
+      "pendingBody": "One moment: Stripe is finalising the transaction.",
+      "slowBody": "Stripe is still validating the payment. Your credits will arrive on their own, you can close this window.",
+      "paidTitle": "Payment confirmed",
+      "paidBody": "{{n}} credits were added to your balance.",
+      "unpaidTitle": "Payment not completed",
+      "unpaidBody": "Nothing was charged. You can try again.",
+      "expiredTitle": "Payment link expired",
+      "expiredBody": "This payment session has expired. Start the purchase again to open a new one.",
+      "unknownTitle": "Payment not confirmed",
+      "unknownBody": "We could not read the status of this payment. If it went through, your balance will update on its own.",
+      "newBalance": "New balance",
+      "paidAmount": "Paid",
+      "done": "Done",
+      "retry": "Try again",
+      "close": "Close",
+      "invoice": "View invoice"
+    },
+    "canceled": "Payment cancelled, nothing was charged."
   }
 }

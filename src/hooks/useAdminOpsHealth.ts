@@ -4,6 +4,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { adminWhatsAppUsageFromRow, type AdminWhatsAppUsageRow } from '@/lib/whatsappUsage'
 
 export interface SyndicationHealth {
   by_status: Array<{ portal: string; status: string; count: number }>
@@ -86,6 +87,22 @@ export function useAiCosts(months = 6) {
       const { data, error } = await supabase.rpc('get_admin_ai_costs', { p_months: months })
       if (error) throw error
       return (data ?? []) as AiCostRow[]
+    },
+    staleTime: 60_000,
+  })
+}
+
+/**
+ * Messages WhatsApp par mois et par agence — volumes, et ce que Meta en FACTURE (livrés
+ * `billable`, par catégorie). Réservé à la console : c'est la structure de coût de MEGGA.
+ */
+export function useAdminWhatsAppUsage(months = 3) {
+  return useQuery({
+    queryKey: ['admin-whatsapp-usage', months],
+    queryFn: async (): Promise<AdminWhatsAppUsageRow[]> => {
+      const { data, error } = await supabase.rpc('get_admin_whatsapp_usage', { p_months: months })
+      if (error) throw error
+      return (data ?? []).map(adminWhatsAppUsageFromRow)
     },
     staleTime: 60_000,
   })

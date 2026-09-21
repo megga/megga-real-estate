@@ -65,6 +65,15 @@ export const MXC_SYSTEM = {
    * 10,6:1 — et il n'est employé QUE pour ça.
    */
   blue300: '#8dc1ff',
+  /**
+   * `--system-colors--blue-400`. Transcrit le 20.09.2026 — et il a fallu EN
+   * DÉCIDER, comme le dit l'en-tête de ce bloc. Motif : le plancher sombre
+   * relevé à `#16181c`, le ton `info` de la console admin (`#4C86E8`) est tombé
+   * à 4,37:1 sur la carte, sous l'AA. `blue400` rend 6,32:1 au pire des trois
+   * surfaces, et laisse `blue300` à son rôle d'encre teintée la plus claire —
+   * les deux restent distinguables là où un seul barreau les aurait confondus.
+   */
+  blue400: '#64a7ff',
   yellow400: '#efc42c',
   green300: '#adecbb',
   green400: '#74d184',
@@ -87,6 +96,106 @@ export const MXC_SYSTEM = {
  * un oubli : ne pas « réparer » en ajoutant une ombre sombre.
  */
 export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
+
+/**
+ * Les SURFACES sombres du CRM — seule famille de couleurs qui ne sorte PAS des
+ * barreaux de la vitrine, et c'est une décision, pas un oubli.
+ *
+ * ⛔ **POURQUOI ON EN SORT.** La vitrine descend à `#030303` parce qu'une page
+ * marketing se PARCOURT : on y reste une minute, le noir profond y est un effet.
+ * Le CRM se HABITE — un agent y lit des listes et des colonnes pendant des
+ * heures. Mesuré sur l'échelle de la vitrine : le canvas rend `L* 0,82` et la
+ * marche canvas→carte vaut `ΔL* 1,65`, sous le seuil où l'œil voit une marche
+ * sur de grandes surfaces. D'où `shadow: 'none'` ET une structure qui reposait
+ * en entier sur un filet à `#181818`. Deux coûts qui s'additionnent : l'encre
+ * blanche « bave » sur un plancher à 0,09 % de luminance (halation — pire avec
+ * un astigmatisme, ~1 personne sur 3), et la page n'offre aucun repère de
+ * clarté pour se structurer.
+ *
+ * ⚠ **CE N'EST PAS UN PROBLÈME DE RATIO DE CONTRASTE, et c'est ce qui trompe.**
+ * `#030303` et `#16181c` rendent APCA `Lc -107,9` et `Lc -106,8` sous encre
+ * blanche : l'écart est nul. La grandeur qui bouge est le PLANCHER — `Y` passe
+ * de 0,091 % à 0,908 %, DIX fois plus haut. Chercher la fatigue dans le ratio
+ * ne la trouve jamais.
+ *
+ * ⛔ **UNE SEULE SURFACE, ET C'EST LE POINT** (décision Julien, 20.09.2026 :
+ * « il faut vraiment tout uniformiser, on doit juste voir les filets »). Le
+ * canvas, le cadre, le rail, la barre d'onglets, la carte, la sous-carte, la
+ * tête de tableau et les surfaces flottantes rendent TOUS `s0`. Ce qui sépare
+ * est le FILET, jamais un écart de clarté. Les barreaux au-dessus ne décrivent
+ * donc plus une pile de surfaces : ils servent aux ÉTATS (survol, pressé) et
+ * au filet lui-même.
+ *
+ * ⚠ Conséquence à connaître avant d'ajouter une surface : poser un palier pour
+ * « faire ressortir » un bloc RÉINTRODUIT la pile qu'on vient de retirer. Ce
+ * qui doit ressortir prend une bordure, pas un fond.
+ *
+ * Les cinq barreaux, et le rôle que chacun tient désormais :
+ *
+ * | Rôle                              | Jeton  | Valeur    | L*    |
+ * |-----------------------------------|--------|-----------|-------|
+ * | TOUTE surface : canvas, rail,      | `s0`   | `#16181c` |  8,20 |
+ * | carte, sous-carte, modale, popover |        |           |       |
+ * | survol, pressé — un ÉTAT           | `s1`   | `#1b1e23` | 11,16 |
+ * | état sur une surface déjà survolée | `s2`   | `#20242a` | 14,04 |
+ * | (réserve — aucun emploi structurel)| `s3`   | `#2b3038` | 19,69 |
+ * | LE FILET                           | `line` | `#353b44` | 24,65 |
+ *
+ * ⚠ Le survol reste à **ΔL* 2,96** du canvas : assez pour se voir, trop peu
+ * pour relire comme une surface. C'est voulu — un état n'est pas un palier.
+ *
+ * ⛔ **LE FILET EST DIMENSIONNÉ POUR PORTER SEUL** (décision Julien, 20.09.2026 :
+ * grammaire LIGNÉE). Le pipeline ne remplit plus ses colonnes — elles sont
+ * « limite transparentes », et seuls le contour et les séparateurs se voient.
+ * Quand le fond ne sépare plus rien, la question n'est plus « quel gris de
+ * carte » mais « le filet se voit-il sur le canvas ». Mesuré : `#353b44` rend
+ * **ΔL* 16,45**, contre 13,00 pour un canvas à `#131517` et **7,43** pour
+ * l'ancien `#181818` sur `#030303`. C'est ce chiffre, et non le confort du
+ * canvas, qui a écarté `#131517` : la grammaire lignée est incompatible avec un
+ * filet faible.
+ *
+ * ⚠ La sous-carte reste CREUSÉE (`cardSubBg` = le barreau du cadre, sous la
+ * carte) : MEGGA X creuse ses sous-surfaces, il ne les monte pas.
+ *
+ * ⚠ Le cast est FROID de 2,35 % (R22 G24 B28), pas neutre. Deux raisons
+ * mesurées : un gris mathématiquement neutre vire au tiède sur un panneau dont
+ * le point blanc est plus froid que D65, et le balayage de teinte du pipeline
+ * (`CRM_STAGE_HUE`, indigo → chaud) perd moins à 1,57 % qu'il ne gagnerait à
+ * une neutralité qui laisse le canvas tirer au brun. Au-delà de ~3 % le canvas
+ * se met à concurrencer les teintes qui PORTENT l'information : ne pas monter.
+ */
+export const MXC_DARK_SURFACE = {
+  /** Canvas de page. */
+  s0: '#16181c',
+  /** Cadre bento, rail, top nav, bande d'onglets — et sous-carte creusée. */
+  s1: '#1b1e23',
+  /** Carte, colonne de kanban, ligne de liste, surface flottante. */
+  s2: '#20242a',
+  /** Survol et surface élevée. */
+  s3: '#2b3038',
+  /**
+   * LE FILET — un seul, et volontairement DISCRET.
+   *
+   * ⛔ IL Y EN AVAIT CINQ, DE ΔL* 7,95 À 16,45 — plus du simple au double, sur
+   * un seul écran (relevé au rendu le 20.09.2026) : ce jeton à 16,45, deux
+   * voiles à 15,43 et 9,04, un anneau à 7,95. Le même rôle, cinq forces. C'est
+   * ce désaccord qui se voyait, avant même la question de la discrétion.
+   *
+   * `#2b2d30` rend **ΔL* 10,13** sur le canvas — 38 % de moins que le `#353b44`
+   * d'avant. Le plancher est MESURÉ, pas choisi : à ΔL* 7,95 (un voile de 0,07)
+   * la ligne devient limite, en dessous elle s'efface. 10,13 laisse la marge
+   * qu'il faut à un filet qui porte SEUL la structure du Pipeline.
+   *
+   * ⚠ C'est exactement ce que rend `rgba(255,255,255,0.09)` composé sur le
+   * canvas. Les deux notations sont donc interchangeables À L'ŒIL : l'opaque
+   * pour une surface neutre, le voile pour une surface TEINTÉE — où un aplat
+   * ferait une tache (cf. l'avertissement porté par `encreSur`).
+   *
+   * ⚠ Ne pas le confondre avec `s3` (#2b3038) : proches en valeur, opposés en
+   * rôle. `s3` est une SURFACE de réserve, celui-ci est une LIGNE.
+   */
+  line: '#2b2d30',
+} as const
 
 /**
  * Luminance relative WCAG d'un `#rrggbb` OU d'un `rgb(r, g, b)`.
@@ -188,36 +297,59 @@ export function mxCrmPalette(dark: boolean): CrmPalette {
     }
   }
 
+  const S = MXC_DARK_SURFACE
+
   return {
     isDark: true,
-    pageBg: C.n100,
-    frameBg: C.n200,
-    frameBorder: C.n400,
-    cardBg: C.n300,
-    cardBorder: C.n400,
-    cardSubBg: C.n200,
-    ink: C.n1000,
+    // ⛔ CINQ RÔLES, UNE SEULE VALEUR. Le canvas, le cadre, la carte et la
+    // sous-carte rendent le MÊME gris : la séparation est le filet, et lui
+    // seul. Ne pas « réparer » en redonnant un palier à l'un des quatre —
+    // c'est la pile qu'on a retirée.
+    pageBg: S.s0,
+    frameBg: S.s0,
+    frameBorder: S.line,
+    cardBg: S.s0,
+    cardBorder: S.line,
+    // ⚠ PLUS CREUSÉE : elle ne descend plus sous la carte, elle en est
+    // séparée par un filet. Une sous-carte sans bordure devient invisible —
+    // c'est la contrepartie à vérifier au rendu, pas à compenser par un fond.
+    cardSubBg: S.s0,
+    /**
+     * ⛔ L'ENCRE COURANTE N'EST PLUS BLANCHE, et c'est la moitié du geste.
+     * Le blanc pur est la SOURCE de la bave, pas le fond : sur l'ancien canvas
+     * il rendait `Lc -107,9`, très au-dessus du `Lc 90` qui suffit déjà au
+     * texte courant. `n800` rend `Lc -95,3` sur le canvas — on reste au-dessus
+     * du seuil préféré en retirant douze points de stimulus brut.
+     * La rampe descend donc n800 → n700 → n600, en miroir du clair
+     * (n100 → n400 → n500). L'ordre de Sugar tient : ink > soft > sub.
+     * ⚠ `accentInk` et `focusInk` restent BLANCS : sur l'aplat d'accent c'est
+     * le blanc qui porte les 5,78:1, et `n800` les ferait tomber.
+     */
+    ink: C.n800,
     sub: C.n600,
-    soft: C.n800,
+    soft: C.n700,
     accent: C.accent,
     accentInk: C.n1000,
     focusBg: C.accent,
     focusInk: C.n1000,
-    focusSurface: C.n400,
-    // En sombre la vitrine sépare par la bordure : pas d'ombre à imiter.
+    // Le survol est un ÉTAT : il descend au premier barreau, pas au dernier.
+    focusSurface: S.s1,
+    // En sombre MEGGA X sépare par la bordure : pas d'ombre à imiter.
     focusShadow: 'none',
     shadow: 'none',
     shadowSm: 'none',
-    tableHeadBg: C.n200,
-    avatarBorder: C.n400,
-    iconBtnBg: C.n400,
-    iconRailBg: C.n200,
-    dotBorder: C.n300,
-    kbdBg: C.n400,
-    solidBg: C.n300,
-    solidBgSub: C.n200,
-    solidBgSub2: C.n100,
-    solidBorder: C.n400,
+    tableHeadBg: S.s0,
+    avatarBorder: S.line,
+    iconBtnBg: S.s1,
+    iconRailBg: S.s0,
+    dotBorder: S.s0,
+    kbdBg: S.s1,
+    // Flottantes : même gris que la page. Le filet ferme la forme, et une
+    // modale porte en plus son voile — les deux suffisent à la décoller.
+    solidBg: S.s0,
+    solidBgSub: S.s0,
+    solidBgSub2: S.s0,
+    solidBorder: S.line,
     solidShadow: 'none',
   }
 }

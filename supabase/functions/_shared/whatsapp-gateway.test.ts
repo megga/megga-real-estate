@@ -368,6 +368,35 @@ describe('whatsapp-gateway — statuts de livraison Meta', () => {
     expect(ups.map(u => u.status)).toEqual(['sent', 'read'])
   })
 
+  it('lit ce que Meta FACTURE (objet `pricing`) et le rend tel quel', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'wamid.P1', status: 'delivered', timestamp: '1', recipient_id: '41791112233',
+        pricing: { billable: true, pricing_model: 'PMP', category: 'marketing', type: 'regular' } },
+      { id: 'wamid.P2', status: 'sent', timestamp: '2',
+        pricing: { billable: false, pricing_model: 'PMP', category: 'service', type: 'free_customer_service' } },
+    ]))
+    expect(ups[0].pricing).toEqual({ billable: true, category: 'marketing', type: 'regular' })
+    expect(ups[1].pricing).toEqual({ billable: false, category: 'service', type: 'free_customer_service' })
+  })
+
+  it('`pricing` absent → null ; billable non booléen → false (jamais facturé par défaut)', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'a', status: 'read', timestamp: '1' },
+      { id: 'b', status: 'delivered', timestamp: '2', pricing: { billable: 'true', category: 7 } },
+    ]))
+    expect(ups[0].pricing).toBeNull()
+    // Une chaîne `'true'` n'est pas `true` : on ne compte pas un message comme facturé sur
+    // une valeur qu'on n'a pas su lire, et une catégorie non textuelle ne s'invente pas.
+    expect(ups[1].pricing).toEqual({ billable: false, category: null, type: null })
+  })
+
+  it('une catégorie Meta inconnue passe telle quelle — la liste n\'est pas fermée', () => {
+    const ups = meta.parseStatusUpdates!(statusPayload([
+      { id: 'c', status: 'delivered', timestamp: '1', pricing: { billable: true, category: 'authentication_international', type: 'regular' } },
+    ]))
+    expect(ups[0].pricing?.category).toBe('authentication_international')
+  })
+
   it('renvoie [] pour un payload message entrant (pas de statuses)', () => {
     const inbound = {
       object: 'whatsapp_business_account',

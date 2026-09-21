@@ -13,13 +13,14 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 import { CRM_GRAPHITE, CRM_TOKENS, crmPalette } from '@/components/crm/tokens'
-import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { mxCrmPalette, MXC_CARD_SHADOW, MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { TK, applyTK } from '@/components/crm/today/tk'
 import { SET_PALETTE, applySetTheme } from '@/components/crm/settings/data'
 import { buildCalPalette } from '@/components/crm/calendar/data'
 import { VxSP_DARK } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 import { MT_DARK } from '@/components/crm-mobile/tokens'
 import { adminSurfaces } from '@/hooks/useAdminSurfaces'
+import { deriveAiPalette } from '@/components/ai-copilot/panel/aiPanel'
 
 /** Luminance relative WCAG — sert à vérifier la monotonie de l'échelle. */
 function luminance(hex: string): number {
@@ -105,11 +106,188 @@ describe('palette du CRM — MEGGA X, plus aucune direction alternative', () => 
     }
   })
 
-  it('creuse les sous-surfaces flottantes au lieu de les élever', () => {
-    // Propriété conservée de Graphite : une sous-surface de modale se CREUSE.
+  /**
+   * ⛔ CETTE CLAUSE DISAIT L'INVERSE — « creuse les sous-surfaces flottantes au
+   * lieu de les élever », propriété héritée de Graphite. Elle est morte avec la
+   * décision du 20.09.2026 : le CRM sombre n'a plus de PILE de surfaces du tout.
+   * Canvas, cadre, rail, carte, sous-carte et surfaces flottantes rendent le
+   * MÊME gris ; ce qui sépare est le filet. Creuser ou élever revenaient au même
+   * défaut — un palier de plus à lire.
+   *
+   * Ce que la clause garde désormais : qu'aucun palier ne revienne. Un
+   * `cardBg` remonté d'un cran « pour faire ressortir la carte » la fait rougir.
+   */
+  it('ne pose AUCUN palier : toutes les surfaces rendent le même gris', () => {
     const p = mxCrmPalette(true)
-    expect(luminance(p.solidBgSub)).toBeLessThan(luminance(p.solidBg))
-    expect(luminance(p.solidBgSub2)).toBeLessThan(luminance(p.solidBgSub))
+    const surfaces = [
+      p.pageBg, p.frameBg, p.cardBg, p.cardSubBg,
+      p.solidBg, p.solidBgSub, p.solidBgSub2, p.tableHeadBg, p.iconRailBg,
+    ]
+    expect(new Set(surfaces).size, `${new Set(surfaces).size} gris de surface au lieu d’un`).toBe(1)
+  })
+
+  it('le filet se détache assez du gris unique pour porter seul', () => {
+    const p = mxCrmPalette(true)
+    // Sans écart de fond, c'est lui OU rien. Sous ce seuil la structure s'efface
+    // sans qu'aucune autre garde ne le voie.
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+      return (hi + 0.05) / (lo + 0.05)
+    }
+    // ⚠ 1,5 → 1,24 le 20.09.2026 : le filet a été rendu DISCRET (ΔL* 16,45 →
+    // 10,13, soit un ratio de 1,285). 1,24 est le bord mesuré — c'est ce que
+    // rend un voile de 0,08, la dernière opacité encore franche.
+    expect(ratio(p.cardBorder, p.pageBg)).toBeGreaterThanOrEqual(1.24)
+  })
+
+  it('le dock MEGGA AI ne pose AUCUNE ombre portée en sombre', () => {
+    /**
+     * ⛔ IL EN POSAIT DEUX, ET ELLES ÉTAIENT INVISIBLES. `rgba(0,0,0,.7)` sur
+     * 70 px de flou et `rgba(0,0,0,.55)` sur 22 px : sur un canvas `#030303` on
+     * ne voit pas du noir sur du noir. Le plancher monté à `#16181c`, elles
+     * peignaient une ZONE D'OMBRE autour du panneau — repéré à l'œil par Julien
+     * le 20.09.2026, par aucune porte.
+     *
+     * La règle existait pourtant déjà (`CLAUDE.md` §3 : en sombre on sépare par
+     * la bordure, `shadow` vaut `'none'`), elle n'était simplement mesurée
+     * nulle part pour ce panneau. Elle l'est ici.
+     */
+    const p = deriveAiPalette(mxCrmPalette(true), true)
+    expect(p.panelShadow, 'une ombre portée est revenue sur le dock')
+      .not.toMatch(/rgba?\(\s*0\s*,\s*0\s*,\s*0/)
+    // …et il doit garder son filet, sinon il flotte sans contour.
+    expect(p.panelShadow, 'le dock a perdu son filet').toContain('0 0 0 1px')
+  })
+
+  it('AUCUNE palette sombre ne pose d’ombre portée noire', () => {
+    /**
+     * ⛔ LA CLAUSE DU DOCK NE GARDAIT QUE LE DOCK, et le défaut était partout.
+     * Après l'avoir réparé, le PAGER en portait encore une — `TK.shadowLg`,
+     * 70 px de flou à 75 % de noir sous un panneau de 1128×822 — plus deux sur
+     * les cartes du cockpit et une sur chaque bloc d'agenda. Cinq au total,
+     * relevées AU RENDU par Julien, par aucune porte.
+     *
+     * Toutes invisibles sur l'ancien canvas `#030303` : on ne voit pas du noir
+     * sur du noir. Le plancher monté à `#16181c`, chacune assombrit le canvas
+     * autour de ce qu'elle borde. C'est le mode d'échec propre à ce chantier —
+     * il ne CRÉE pas ces ombres, il les RÉVÈLE.
+     *
+     * La règle est écrite depuis toujours (`CLAUDE.md` §3 : en sombre on sépare
+     * par la bordure). Elle est désormais mesurée sur toutes les palettes
+     * sombres, pas sur une seule.
+     *
+     * ⚠ Un RING (`0 0 0 1px`, flou nul) n'est pas une ombre portée : c'est un
+     * filet dessiné en `box-shadow` pour ne pas décaler la mise en page. Seul
+     * un flou strictement positif est refusé.
+     */
+    const sombres: Record<string, string> = {
+      'mxCrmPalette.shadow': mxCrmPalette(true).shadow,
+      'mxCrmPalette.shadowSm': mxCrmPalette(true).shadowSm,
+      'dock.panelShadow': deriveAiPalette(mxCrmPalette(true), true).panelShadow,
+    }
+    applyTK(true)
+    for (const k of ['shadow', 'shadowSm', 'shadowLg'] as const) {
+      sombres[`TK.${k}`] = TK[k]
+    }
+    // Une ombre PORTÉE : une couleur sombre suivie de décalages puis d'un flou > 0.
+    const PORTEE = /rgba?\(\s*0\s*,\s*0\s*,\s*0[^)]*\)/
+    const fautes = Object.entries(sombres)
+      .filter(([, v]) => typeof v === 'string' && PORTEE.test(v.replace(/inset[^,]*/g, '')))
+      .map(([k, v]) => `${k} : ${v.slice(0, 60)}`)
+    expect(fautes, `ombre portée noire en sombre :\n  ${fautes.join('\n  ')}`).toEqual([])
+  })
+
+  it('TOUS les filets sombres rendent la MÊME valeur sur le canvas', () => {
+    /**
+     * ⛔ CINQ FORCES POUR UN SEUL RÔLE, ET RIEN NE LE MESURAIT. Relevé au rendu
+     * le 20.09.2026 sur un SEUL écran : ΔL* 16,45 (le jeton), 15,43 et 9,04
+     * (deux voiles), 7,95 (un anneau). Plus du simple au double. Aucune porte
+     * ne comparait les filets ENTRE EUX — chacun était plausible isolément.
+     *
+     * ⚠ Deux notations coexistent, et c'est voulu : un OPAQUE pour une surface
+     * neutre, un VOILE pour une surface teintée (où un aplat ferait une tache).
+     * Elles doivent donc être comparées APRÈS composition sur le canvas, jamais
+     * sur leur écriture — c'est le même piège que sur `encreSur`.
+     */
+    const canvas = mxCrmPalette(true).pageBg
+    const canaux = (c: string): number[] => {
+      const n = (c.match(/[\d.]+/g) ?? []).map(Number)
+      if (c.startsWith('#')) {
+        return [0, 2, 4].map((i) => parseInt(c.slice(1).slice(i, i + 2), 16))
+      }
+      const a = n[3] ?? 1
+      const f = [0, 2, 4].map((i) => parseInt(canvas.slice(1).slice(i, i + 2), 16))
+      return [0, 1, 2].map((i) => n[i] * a + f[i] * (1 - a))
+    }
+    applyTK(true)
+    const filets: Record<string, string> = {
+      'MXC_DARK_SURFACE.line': MXC_DARK_SURFACE.line,
+      'mxCrmPalette.cardBorder': mxCrmPalette(true).cardBorder,
+      'mxCrmPalette.frameBorder': mxCrmPalette(true).frameBorder,
+      'TK.border': TK.border,
+      'TK.borderHi': TK.borderHi,
+      'TK.cardBorder': TK.cardBorder,
+      'CAL.line': buildCalPalette(true).line,
+    }
+    const vus = Object.entries(filets).map(([k, v]) => ({ k, v, rgb: canaux(v) }))
+    // Sans cette assertion, une valeur illisible rendrait NaN et passerait tout.
+    for (const f of vus) {
+      expect(f.rgb.every(Number.isFinite), `${f.k} illisible : ${f.v}`).toBe(true)
+    }
+    const ref = vus[0].rgb
+    const ecarts = vus
+      .filter((f) => f.rgb.some((c, i) => Math.abs(c - ref[i]) > 2))
+      .map((f) => `${f.k} : ${f.v} → rgb(${f.rgb.map((c) => Math.round(c)).join(',')})`)
+    expect(
+      ecarts,
+      `filets désaccordés (référence ${vus[0].k}) :\n  ${ecarts.join('\n  ')}`,
+    ).toEqual([])
+  })
+
+  it('en CLAIR, aucune ombre n’est plus large que la gouttière qui la reçoit', () => {
+    /**
+     * ⛔ LA CLAUSE VOISINE NE GARDAIT QUE LE SOMBRE, et le clair avait le même
+     * défaut sous une autre forme : trois ombres sur mesure, de 22 à 70 px de
+     * flou, plus le halo de 80 px du dock. Entre le pager et le dock il n'y a
+     * que 12 px — les deux halos s'y recouvraient et peignaient une bande
+     * sombre (relevé par Julien le 20.09.2026).
+     *
+     * ⚠ Le clair GARDE une ombre : c'est sa grammaire. Ce qui est interdit,
+     * c'est une valeur sur mesure — la direction n'en connaît qu'une,
+     * `MXC_CARD_SHADOW`, et son flou de 6 px tient dans la gouttière.
+     */
+    applyTK(false)
+    const clairs: Record<string, string> = {
+      'TK.shadow': TK.shadow,
+      'TK.shadowLg': TK.shadowLg,
+      'mxCrmPalette.shadow': mxCrmPalette(false).shadow,
+      'dock.panelShadow': deriveAiPalette(mxCrmPalette(false), false).panelShadow,
+    }
+    // Le flou le plus large de chaque ombre, `inset` exclu (un ring ne floute pas).
+    const flou = (v: string): number => {
+      // ⚠ UN OFFSET PEUT S'ÉCRIRE `0`, SANS UNITÉ — et `MXC_CARD_SHADOW` le fait
+      // (`0 2px 6px #15086b21`). Une sonde qui exige `0px` rend 0 partout, donc
+      // un seuil de 0, donc une clause vraie par vacuité. C'est l'assertion de
+      // lisibilité juste en dessous qui l'a dit, comme prévu.
+      const nb = String.raw`(?:[-\d.]+px|0)`
+      const re = new RegExp(`${nb}\\s+${nb}\\s+(\\d+)px`, 'g')
+      const m = [...v.replace(/inset[^,]*/g, '').matchAll(re)]
+      return m.length ? Math.max(...m.map((x) => Number(x[1]))) : 0
+    }
+    const reference = flou(MXC_CARD_SHADOW)
+    expect(reference, 'MXC_CARD_SHADOW illisible : la clause ne mesure rien').toBeGreaterThan(0)
+    const trop = Object.entries(clairs)
+      .filter(([, v]) => flou(v) > reference)
+      .map(([k, v]) => `${k} : flou ${flou(v)}px > ${reference}px — ${v.slice(0, 44)}`)
+    expect(trop, `ombre plus large que celle de la direction :\n  ${trop.join('\n  ')}`).toEqual([])
+  })
+
+  it('le survol reste un ÉTAT, pas un palier de plus', () => {
+    const p = mxCrmPalette(true)
+    // Il doit se voir…
+    expect(luminance(p.focusSurface)).toBeGreaterThan(luminance(p.cardBg))
+    // …sans se relire comme une surface : il reste sous le filet.
+    expect(luminance(p.focusSurface)).toBeLessThan(luminance(p.cardBorder))
   })
 
   it('ne pose aucun blanc translucide en REMPLISSAGE', () => {
@@ -136,18 +314,31 @@ describe('palettes d’écran dérivées', () => {
    * qu'il portait : il vérifie qu'elles rendent bien un neutre MEGGA X, et
    * donc qu'aucune ne retombe sur Graphite.
    */
-  const NEUTRES = Object.values(MXC_COLOR) as string[]
+  /**
+   * ⚠ DEUX ÉCHELLES DEPUIS LE 20.09.2026. Les surfaces SOMBRES du CRM sortent
+   * des barreaux de la vitrine — décision écrite sur `MXC_DARK_SURFACE`. Ce
+   * test garde donc l'union des deux, et rien d'autre : une valeur hors de ces
+   * deux jeux reste un gris inventé.
+   */
+  const NEUTRES = [...Object.values(MXC_COLOR), ...Object.values(MXC_DARK_SURFACE)] as string[]
 
   const cases: { name: string; read: () => string; attendu: string }[] = [
     // (Le wizard de création avait sa palette ici ; il est retiré depuis le 16.09.2026 —
     // « Nouveau bien » peint avec `crmPalette`, déjà gardé plus haut.)
-    { name: 'cockpit TK.frame', read: () => { applyTK(true); return TK.frame }, attendu: MXC_COLOR.n200 },
-    { name: 'cockpit TK.cardHi', read: () => { applyTK(true); return TK.cardHi }, attendu: MXC_COLOR.n400 },
-    { name: 'calendrier popBg', read: () => buildCalPalette(true).popBg, attendu: MXC_COLOR.n300 },
-    { name: 'fiche bien VxSP.cardSub', read: () => VxSP_DARK.cardSub, attendu: MXC_COLOR.n200 },
-    { name: 'mobile MT.pageBg', read: () => MT_DARK.pageBg, attendu: MXC_COLOR.n100 },
-    { name: 'mobile MT.card', read: () => MT_DARK.card, attendu: MXC_COLOR.n300 },
-    { name: 'mobile MT.tabBarBg', read: () => MT_DARK.tabBarBg, attendu: MXC_COLOR.n300 },
+    { name: 'cockpit TK.frame', read: () => { applyTK(true); return TK.frame }, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'cockpit TK.cardHi', read: () => { applyTK(true); return TK.cardHi }, attendu: MXC_DARK_SURFACE.s1 },
+    { name: 'calendrier popBg', read: () => buildCalPalette(true).popBg, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'fiche bien VxSP.cardSub', read: () => VxSP_DARK.cardSub, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'mobile MT.pageBg', read: () => MT_DARK.pageBg, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'mobile MT.card', read: () => MT_DARK.card, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'mobile MT.tabBarBg', read: () => MT_DARK.tabBarBg, attendu: MXC_DARK_SURFACE.s0 },
+    // ⛔ AJOUTÉ LE 20.09.2026 APRÈS UNE FUITE MESURÉE AU RENDU. `relanceBg`
+    // valait `n200` (#050505) : une fois le canvas monté à #16181c, le bento de
+    // relance rendait PLUS SOMBRE que la page — un trou noir de 232k px² sur le
+    // banc `/dev/mobile`. Cette clause ne l'a pas vu parce qu'elle n'énumérait
+    // que `pageBg`, `card` et `tabBarBg` : exactement l'avertissement écrit plus
+    // bas dans ce fichier, « les clauses n'énumèrent que ce qu'on leur a nommé ».
+    { name: 'mobile MT.relanceBg', read: () => MT_DARK.relanceBg, attendu: MXC_DARK_SURFACE.s0 },
     // ⛔ LA CONSOLE ADMIN EST LA SEULE SURFACE QUI Y ÉTAIT RESTÉE, et ce test ne
     // pouvait pas le voir : ses cinq paliers ne vivaient pas dans une palette JS
     // mais dans `admin-console.css`, que ce fichier n'ouvre pas (zéro
@@ -155,8 +346,8 @@ describe('palettes d’écran dérivées', () => {
     // Depuis le 14 août 2026 `adminSurfaces()` DÉSCEND de `mxCrmPalette()`, donc
     // elle entre ici comme les autres — et `admin-console-css.spec.ts` tient
     // l'autre langage.
-    { name: 'console admin surf.card', read: () => adminSurfaces(true).card, attendu: MXC_COLOR.n300 },
-    { name: 'console admin surf.cardSub', read: () => adminSurfaces(true).cardSub, attendu: MXC_COLOR.n200 },
+    { name: 'console admin surf.card', read: () => adminSurfaces(true).card, attendu: MXC_DARK_SURFACE.s0 },
+    { name: 'console admin surf.cardSub', read: () => adminSurfaces(true).cardSub, attendu: MXC_DARK_SURFACE.s0 },
   ]
 
   it.each(cases)('$name rend un neutre MEGGA X', ({ read, attendu }) => {

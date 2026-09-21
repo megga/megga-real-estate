@@ -5,7 +5,7 @@
 // `labels`). Constantes/palette/types dans pfKitCore.tsx (règle react-refresh).
 
 import { crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import {
   useEffect, useRef, useState,
   type ReactNode, type RefObject,
@@ -226,8 +226,10 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
   const scaledH = nat ? nat.h * scale : D
   const clamp = (p: { x: number; y: number }, sw: number, sh: number) => ({ x: Math.min(0, Math.max(D - sw, p.x)), y: Math.min(0, Math.max(D - sh, p.y)) })
 
-  const mCard = c.dark ? '#242426' : '#FFFFFF'
-  const mView = c.dark ? '#161616' : c.cardSub
+  // Une carte rend la surface unique ; l'emplacement média prend le barreau
+  // au-dessus, comme partout ailleurs.
+  const mCard = c.dark ? MXC_DARK_SURFACE.s0 : '#FFFFFF'
+  const mView = c.dark ? MXC_DARK_SURFACE.s1 : c.cardSub
   const mBtnSub = c.dark ? 'rgba(255,255,255,0.09)' : c.cardSub
   const mRing = c.dark ? 'rgba(255,255,255,0.10)' : c.hair
   const mOverlay = c.dark ? 'rgba(0,0,0,0.58)' : crmVoileEncre(false, 0.42)

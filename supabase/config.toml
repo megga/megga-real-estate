@@ -439,6 +439,26 @@ verify_jwt = false
 [functions.whatsapp-agent-async]
 verify_jwt = false
 
+[functions.labs-image]
+verify_jwt = false
+
+[functions.labs-video]
+verify_jwt = false
+
+[functions.labs-video-status]
+verify_jwt = false
+
+[functions.credits-checkout]
+verify_jwt = false
+
+[functions.credits-auto-topup]
+verify_jwt = false
+
+# Le reçu du retour de Stripe : s'authentifie en interne (requireAgentAuth), puis
+# confronte l'agence de la session à celle du jeton.
+[functions.credits-checkout-status]
+verify_jwt = false
+
 [functions.learn-agent-style]
 verify_jwt = false
 
@@ -603,6 +623,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.kyc-screening]
+verify_jwt = false
+
+[functions.labs-voice-preview]
 verify_jwt = false
 
 [functions.log-auth-event]

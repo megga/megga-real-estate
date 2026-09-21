@@ -98,6 +98,8 @@ const PAGES = new Set([
   // la préférence sombre ; `MailOAuthCallbackPage` ne peint rien du tout — elles
   // entrent quand même, parce qu'un cliquet ne sert pas qu'à constater.
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
+  // Labs (20.09.2026) — ne fait que monter l'app et porter la préférence sombre.
+  'LabsPage.tsx',
   // Nouvel onglet (7 septembre 2026) — la page d'accueil d'un onglet neuf.
   // Styles en ligne, donc PLEINEMENT vue par les douze clauses. Mesurée avant
   // d'entrer : 0 marqueur. Elle entre le jour de sa naissance plutôt qu'un lot
@@ -304,6 +306,10 @@ const ZONES: RootSpec[] = [
   // Elle entre donc vide de dette : le lot s'interdit tout littéral de couleur,
   // de rayon, d'espacement, de taille et de police (règle 1 du lot 2).
   { root: 'src/components/crm/messagerie', keep: (n) => /\.tsx?$/.test(n) },
+  // Labs (studio de génération, 20.09.2026) — même régime que la Messagerie : la zone
+  // entre AVEC son premier fichier, vide de dette (jetons de couleur, de rayon,
+  // d'espacement, de taille ; police par `var(--crm-font)`).
+  { root: 'src/components/crm/labs', keep: (n) => /\.tsx?$/.test(n) },
   // Vague C — ce que le plan rangeait sous « Reste (pages) », et qui n'est pas un
   // reste : les deux sélecteurs d'affichage de la fiche bien (rendus par
   // `/dashboard/listings/:id/edit`) et le bandeau de consentement.
@@ -952,7 +958,12 @@ function classesDe(code: string): string {
  */
 const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/admin', { hors: 53, total: 86 }],
-  ['src/components/ai-copilot/panel', { hors: 97, total: 121 }],
+  // ⚠ −1 le 20.09.2026 : le rayon du dock MEGGA AI était le littéral `22`,
+  // hors échelle ET désaccordé de la carte de la barre latérale (20 px).
+  // Il lit `--crm-radius-4xl`.
+  // ⚠ −2 le 20.09.2026 : l'en-tête « Suggestions · … » du dock est retiré
+  // (décision Julien), avec ses deux valeurs de gouttière en dur.
+  ['src/components/ai-copilot/panel', { hors: 94, total: 118 }],
   ['src/components/auth', { hors: 0, total: 13 }],
   ['src/components/auth-bento', { hors: 16, total: 28 }],
   // total 319 -> 318 (21.09.2026) : la modale mobile « Je l'ai proposé » (ex-`MmSendModal`) perd sa
@@ -1111,9 +1122,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // du cadre de travail, qui répond à `CrmPageSkeleton` et au coin que mesurent les popovers.
   // 292/891 → 217/784 le 16.09.2026 : la fiche bien refaite bord à bord écrit ses marges,
   // rayons et tailles en jetons (`ListingDetailPage`). Puis 216/783 le même jour :
-  // `ListingWizardPage` est retirée avec l'ancien wizard. Puis 216/763 le 21.09.2026 : la fiche
-  // d'une annonce du marché perd son « Envoyer par e-mail » et son historique d'envoi.
-  ['src/pages/agent', { hors: 216, total: 763 }],
+  // `ListingWizardPage` est retirée avec l'ancien wizard.
+  // ⚠ −1 le 20.09.2026 : le cadre du pager de « Aujourd'hui » rendait le
+  // littéral `26`, hors échelle et désaccordé du dock comme de la carte
+  // latérale. Il lit `--crm-radius-4xl`.
+  // ⚠ 762 le 21.09.2026 : la fiche d'une annonce du marché perd son « Envoyer par e-mail » et son
+  // historique d'envoi (le matching reste chez l'agent).
+  ['src/pages/agent', { hors: 215, total: 762 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   // {66,257} -> {10,178} (21.09.2026) : `BuyerReceptionPage` est retirée avec la page de
   // réception acheteur (le matching reste chez l'agent), et ses littéraux avec elle.

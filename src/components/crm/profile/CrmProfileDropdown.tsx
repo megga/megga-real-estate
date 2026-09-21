@@ -23,6 +23,7 @@ import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { useNavigate } from 'react-router-dom'
 import { consoleAReprendre } from '@/lib/adminEntry'
 import { PlanBadge } from '../PlanBadge'
+import { CrmProfileCredits } from './CrmProfileCredits'
 import { formuleDepuisBase, type FormuleAffichee } from '@/components/megga-x-crm/plans'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
@@ -167,12 +168,17 @@ interface CrmProfileDropdownProps {
   coin: CoinCadre | null
   onClose?: () => void
   onSettings?: () => void
+  /**
+   * Ouvre Réglages › Consommation — la section des crédits, pas la racine des Réglages.
+   * Omise (console admin, bancs), la ligne « Crédits Labs » n'est plus qu'un affichage.
+   */
+  onCredits?: () => void
   onHelp?: () => void
   onLogout?: () => void
 }
 
 export default function CrmProfileDropdown({
-  sp, dark, setDark, coin, onClose, onSettings, onHelp, onLogout,
+  sp, dark, setDark, coin, onClose, onSettings, onCredits, onHelp, onLogout,
 }: CrmProfileDropdownProps) {
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
@@ -222,6 +228,12 @@ export default function CrmProfileDropdown({
       animation: 'crm-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
       <ProfileHeader sp={sp} name={fullName} initials={initials} formule={formule} />
+
+      {/* Les crédits du studio, tout en haut : c'est la seule donnée CHIFFRÉE du menu,
+          et la seule qu'on vient y chercher plusieurs fois par jour. Le bloc se rend
+          lui-même invisible si le plan n'ouvre pas le studio. */}
+      <Sep sp={sp} />
+      <CrmProfileCredits sp={sp} onVoirConsommation={onCredits} onClose={onClose} />
 
       {/* Section « Plateforme » — libellée, pour que la console se distingue des
           réglages du compte : on ne quitte pas son agence, on change d'outil. */}

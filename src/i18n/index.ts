@@ -23,11 +23,12 @@ import frMatching from './locales/fr/matching.json'
 import frAdmin from './locales/fr/admin.json'
 import frAuth from './locales/fr/auth.json'
 import frOnboarding from './locales/fr/onboarding.json'
+import frLabs from './locales/fr/labs.json'
 
 const NAMESPACES = [
   'common', 'dashboard', 'settings', 'contacts', 'pipeline', 'listings',
   'kyc', 'messages', 'calendar', 'matching',
-  'admin', 'auth', 'onboarding',
+  'admin', 'auth', 'onboarding', 'labs',
 ] as const
 
 type Namespace = typeof NAMESPACES[number]
@@ -35,7 +36,7 @@ type SupportedLang = 'fr' | 'de' | 'en' | 'it'
 
 // DE/EN/IT sont lazy-loadés à la demande (évite ~420KB dans le main bundle)
 async function loadDe() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding, labs] = await Promise.all([
     import('./locales/de/common.json'),
     import('./locales/de/dashboard.json'),
     import('./locales/de/settings.json'),
@@ -49,12 +50,13 @@ async function loadDe() {
     import('./locales/de/admin.json'),
     import('./locales/de/auth.json'),
     import('./locales/de/onboarding.json'),
+    import('./locales/de/labs.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default, labs: labs.default }
 }
 
 async function loadEn() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding, labs] = await Promise.all([
     import('./locales/en/common.json'),
     import('./locales/en/dashboard.json'),
     import('./locales/en/settings.json'),
@@ -68,12 +70,13 @@ async function loadEn() {
     import('./locales/en/admin.json'),
     import('./locales/en/auth.json'),
     import('./locales/en/onboarding.json'),
+    import('./locales/en/labs.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default, labs: labs.default }
 }
 
 async function loadIt() {
-  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding] = await Promise.all([
+  const [common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth, onboarding, labs] = await Promise.all([
     import('./locales/it/common.json'),
     import('./locales/it/dashboard.json'),
     import('./locales/it/settings.json'),
@@ -87,8 +90,9 @@ async function loadIt() {
     import('./locales/it/admin.json'),
     import('./locales/it/auth.json'),
     import('./locales/it/onboarding.json'),
+    import('./locales/it/labs.json'),
   ])
-  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default }
+  return { common: common.default, dashboard: dashboard.default, settings: settings.default, contacts: contacts.default, pipeline: pipeline.default, listings: listings.default, kyc: kyc.default, messages: messages.default, calendar: calendar.default, matching: matching.default, admin: admin.default, auth: auth.default, onboarding: onboarding.default, labs: labs.default }
 }
 
 /** Dispatch vers le loader lazy voulu ; FR renvoie directement les bundles déjà importés. */
@@ -100,7 +104,7 @@ async function loadLanguage(lng: SupportedLang): Promise<Record<Namespace, unkno
     common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
     pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
     calendar: frCalendar, matching: frMatching,
-    admin: frAdmin, auth: frAuth, onboarding: frOnboarding,
+    admin: frAdmin, auth: frAuth, onboarding: frOnboarding, labs: frLabs,
   }
 }
 
@@ -193,7 +197,7 @@ i18n
         common: frCommon, dashboard: frDashboard, settings: frSettings, contacts: frContacts,
         pipeline: frPipeline, listings: frListings, kyc: frKyc, messages: frMessages,
         calendar: frCalendar, matching: frMatching,
-        admin: frAdmin, auth: frAuth, onboarding: frOnboarding,
+        admin: frAdmin, auth: frAuth, onboarding: frOnboarding, labs: frLabs,
       },
     },
     fallbackLng: 'fr',

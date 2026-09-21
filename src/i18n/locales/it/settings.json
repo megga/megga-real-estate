@@ -774,6 +774,10 @@
       "preferences": {
         "label": "Preferenze",
         "short": "Preferenze"
+      },
+      "credits": {
+        "label": "Consumo",
+        "short": "Consumo"
       }
     },
     "groups": {
@@ -1062,5 +1066,105 @@
       "agencyNotLoaded": "Agenzia non caricata, accedi di nuovo per salvare.",
       "logoUploadError": "Impossibile caricare il logo."
     }
+  },
+  "credits": {
+    "title": "Consumo",
+    "subtitle": "I tuoi crediti per lo studio Labs e i tuoi messaggi WhatsApp: quanto resta, cosa hai prodotto e come ricaricare.",
+    "balance": {
+      "title": "Saldo",
+      "included": "{{n}} inclusi questo mese",
+      "purchased": "{{n}} acquistati",
+      "allowance": "Il tuo piano include {{n}} crediti al mese. Si rinnovano il 1° e non si riportano; i crediti acquistati non scadono.",
+      "topup": "Ricarica",
+      "noPlan": "Lo studio Labs è disponibile dal piano Pro.",
+      "goPlan": "Vedi i piani"
+    },
+    "month": {
+      "title": "Questo mese",
+      "images": "Immagini",
+      "videos": "Video",
+      "spent": "Crediti spesi",
+      "refunded": "{{n}} restituiti su errori"
+    },
+    "whatsapp": {
+      "title": "WhatsApp questo mese",
+      "body": "I messaggi che MEGGA invia su WhatsApp per la tua agenzia: le risposte di MEGGA AI al tuo team e i tuoi invii ai clienti.",
+      "agent": "Scambi con MEGGA AI",
+      "client": "Messaggi ai tuoi clienti",
+      "unclassified": "{{n}} altri messaggi, non classificati",
+      "error": "Impossibile caricare l'utilizzo di WhatsApp."
+    },
+    "tariff": {
+      "title": "Quanto costa una produzione",
+      "image": "Immagine (2K)",
+      "image1k": "Immagine (1K)",
+      "video720": "Video 720p, al secondo",
+      "video1080": "Video 1080p, al secondo",
+      "voiceover": "Voce fuori campo, per video",
+      "example": "Un video di 8 s in 720p con voce fuori campo: {{n}} crediti.",
+      "unit_one": "{{n}} credito",
+      "unit_other": "{{n}} crediti"
+    },
+    "packs": {
+      "title": "Ricarica",
+      "body": "Pagamento unico. I crediti acquistati non scadono.",
+      "buy": "Acquista",
+      "credits": "{{n}} crediti",
+      "price": "CHF {{chf}}",
+      "perCredit": "{{chf}} ct. al credito",
+      "discount": "−{{n}} %",
+      "best": "Il più conveniente",
+      "opening": "Apertura del pagamento…",
+      "bench": "Su questo banco l'acquisto non porta da nessuna parte.",
+      "error": "Impossibile aprire il pagamento. Riprova."
+    },
+    "auto": {
+      "title": "Ricarica automatica",
+      "body": "Quando il saldo scende sotto una soglia, un pacchetto viene acquistato con la carta salvata. Non resti mai a zero a metà di una serie.",
+      "enabled": "Attiva",
+      "disabled": "Disattivata",
+      "threshold": "Quando il saldo scende sotto",
+      "pack": "Acquista",
+      "card": "Carta {{brand}} •••• {{last4}}",
+      "noCard": "Nessuna carta salvata. Acquista un pacchetto con carta: verrà salvata per la ricarica automatica.",
+      "lastError": "L'ultima ricarica non è riuscita ({{error}}). Controlla la carta; riproverà al prossimo addebito.",
+      "saved": "Salvato",
+      "saveError": "Impossibile salvare l'impostazione."
+    },
+    "ledger": {
+      "title": "Cronologia",
+      "empty": "Nessun movimento per ora.",
+      "balanceAfter": "saldo {{n}}",
+      "kinds": {
+        "grant_monthly": "Dotazione del mese",
+        "purchase": "Acquisto di {{n}} crediti",
+        "auto_topup": "Ricarica automatica, {{n}} crediti",
+        "debit_image": "Immagine",
+        "debit_video": "Video {{res}} · {{s}} s",
+        "debit_video_vo": "Video {{res}} · {{s}} s · voce fuori campo",
+        "refund": "Rimborso, produzione non riuscita",
+        "adjustment": "Rettifica"
+      }
+    },
+    "receipt": {
+      "pendingTitle": "Conferma del pagamento",
+      "pendingBody": "Un istante: Stripe sta finalizzando la transazione.",
+      "slowBody": "Stripe sta ancora convalidando il pagamento. I crediti arriveranno da soli, puoi chiudere questa finestra.",
+      "paidTitle": "Pagamento confermato",
+      "paidBody": "{{n}} crediti sono stati aggiunti al tuo saldo.",
+      "unpaidTitle": "Pagamento non completato",
+      "unpaidBody": "Non è stato addebitato nulla. Puoi riprovare.",
+      "expiredTitle": "Link di pagamento scaduto",
+      "expiredBody": "Questa sessione di pagamento è scaduta. Riavvia l'acquisto per aprirne una nuova.",
+      "unknownTitle": "Pagamento non confermato",
+      "unknownBody": "Non abbiamo potuto leggere lo stato di questo pagamento. Se è andato a buon fine, il saldo si aggiornerà da solo.",
+      "newBalance": "Nuovo saldo",
+      "paidAmount": "Pagato",
+      "done": "Fatto",
+      "retry": "Riprova",
+      "close": "Chiudi",
+      "invoice": "Vedi la fattura"
+    },
+    "canceled": "Pagamento annullato, nulla è stato addebitato."
   }
 }

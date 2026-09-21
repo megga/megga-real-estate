@@ -84,7 +84,47 @@ export function StageColumn({
          * Ce n'est PAS un gain de surface — le board défile.
          */
         borderRadius: 0,
-        borderLeft: premiere ? 'none' : `1px solid ${crmVoileEncre(dark, 0.10)}`,
+        /**
+         * ⛔ LE BALAYAGE DE L'ENTONNOIR, RENDU À LA GRAMMAIRE LIGNÉE (20.09.2026).
+         *
+         * Les panneaux teintés formaient, mis bout à bout, la PROGRESSION du
+         * funnel — indigo → orange. En retirant leur fond, ce balayage est tombé
+         * à huit pastilles de 9 px : l'étape restait LUE, elle n'était plus
+         * BALAYÉE. Or `CRM_STAGE_HUE` ENCODE une information (cf. CLAUDE.md §3),
+         * et un canal d'information réduit à un point de 9 px dans un kanban
+         * qu'on scrute des heures est un recul.
+         *
+         * Il revient sous la forme que la grammaire autorise : un FILET. Les
+         * colonnes étant bout à bout (`borderRadius: 0`, pas de rainure), ces
+         * traits se touchent et reconstituent le dégradé continu en haut du
+         * board — exactement ce que faisaient les fonds, en une ligne.
+         *
+         * ⚠ UN BALAYAGE A BESOIN DE CONTIGUÏTÉ. C'est pourquoi ce n'est pas le
+         * libellé qui est teinté : huit mots colorés séparés par des colonnes ne
+         * forment pas un dégradé que l'œil suit. Ne pas « simplifier » en
+         * déplaçant la teinte sur le texte.
+         *
+         * ⚠ NE PAS LE REMPLIR JUSQU'À L'ÉTAPE COURANTE. `CLAUDE.md` §3 décrit
+         * déjà une barre segmentée de 8 segments pour la fiche deal, qui dit
+         * « CE deal est à l'étape N ». Ici chaque trait est ENTIÈREMENT teint et
+         * attaché à SA colonne : un marqueur de colonne, pas une jauge de
+         * progression. Les deux formes se ressembleraient au premier coup d'œil
+         * et ne disent pas la même chose.
+         *
+         * Mesuré sur le canvas `#16181c`, seuil non-texte 3:1 : le pire cas est
+         * l'indigo de « Nouveau lead » à 3,97:1. Les huit passent.
+         */
+        borderTop: `2px solid ${tint.hue}`,
+        /**
+         * ⚠ EN SOMBRE LE SÉPARATEUR PORTE SEUL (grammaire lignée, 20.09.2026) :
+         * le panneau étant « limite transparent », cette ligne n'accompagne plus
+         * une différence de fond, elle EST la différence. Mesuré sur le canvas
+         * `#16181c` : le voile à 0,10 rend ΔL* 11,15 quand le filet du jeton en
+         * vaut 16,45 — la colonne serait moins découpée que la carte qu'elle
+         * contient. À 0,14 il rend 15,36, au niveau du jeton.
+         * Le mode clair garde 0,10 : ses colonnes sont toujours remplies.
+         */
+        borderLeft: premiere ? 'none' : `1px solid ${crmVoileEncre(dark, dark ? 0.09 : 0.10)}`,
         padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xl)',
         boxSizing: 'border-box',
         boxShadow: dragOver && draggingId ? `0 0 0 2px ${tint.hue} inset` : 'none',

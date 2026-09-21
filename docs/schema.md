@@ -97,6 +97,72 @@ contacts (
   created_at, updated_at
 )
 
+-- Labs — le studio de génération (20260921100000). Dossiers et productions d'une agence.
+labs_folders (
+  id, agency_id → agencies, created_by → auth.users,
+  name,             -- 1..80 caractères, trigger tg_labs_folders_guard (auteur + horodatages posés en base)
+  sort_order, created_at, updated_at
+)
+labs_assets (
+  id, agency_id → agencies, folder_id → labs_folders ON DELETE SET NULL, created_by,
+  kind,             -- 'image' (Nano Banana 2) | 'video' (Seedance via fal.ai) | 'upload' (photo importée)
+  status,           -- 'pending' | 'generating' | 'ready' | 'failed'
+  prompt, voiceover_text, voiceover_voice, voiceover_url,   -- voix off Gemini TTS, WAV sur R2
+  source_asset_id → labs_assets,   -- l'image de départ d'une vidéo ou d'une retouche
+  url, thumbnail_url, width, height, duration_s, aspect_ratio,
+  model, provider,  -- 'gemini' | 'fal' | 'upload'
+  provider_request_id, provider_status_url, provider_response_url,   -- file d'attente fal.ai (pas des secrets)
+  error_code,
+  cost_chf,         -- ⛔ le COÛT FOURNISSEUR (CHF), pour la console — ne sort JAMAIS vers l'agent
+  credits,          -- ce que la production a coûté à l'agence, en crédits (débité AVANT le fournisseur)
+  is_favorite, metadata,
+  created_at, completed_at,
+  deleted_at        -- suppression DOUCE : le fichier R2 vit encore, aucune policy DELETE
+)
+  -- RLS agence (get_my_agency_id) ; le client n'INSÈRE que kind='upload' (les générations
+  -- viennent des edges labs-image / labs-video sous le rôle de service) ; un agent ne
+  -- modifie que folder_id, is_favorite, deleted_at (trigger tg_labs_assets_guard rétablit le reste).
+  -- Publiée en Realtime (replica identity full). Bucket Storage `labs` (public, {agency_id}/{uuid}.ext)
+  -- pour les imports ; productions sur R2 sous labs/{agency_id}/.
+
+-- Crédits (20.09.2026, migration 20260921110000) — la monnaie du studio Labs
+credit_plan_allowances (
+  plan,             -- PK : 'starter' 0 · 'pro' 1500 · 'entreprise' 4800 · 'agency' 4800
+  monthly_credits, updated_at
+)
+  -- La dotation par plan ; lisible par tous les agents, réglable en base sans déploiement.
+
+credit_wallets (
+  agency_id → agencies (PK),
+  included,         -- la dotation du mois, remise à neuf le 1er (UTC), JAMAIS reportée
+  purchased,        -- les crédits achetés, qui ne périment pas
+  included_month,   -- 'YYYY-MM' de la dotation posée ('' à la création : posée à la première lecture)
+  included_plan,    -- le plan dont la dotation a été posée (une montée en cours de mois donne la différence)
+  auto_topup_enabled, auto_topup_threshold (50|100|200|500), auto_topup_pack ('200'|'500'|'1200'|'3000'),
+  auto_topup_locked_until,   -- verrou 10 min posé par credits_auto_topup_claim ; 24 h après un refus de carte
+  auto_topup_last_error, auto_topup_last_error_at,
+  stripe_payment_method_id, card_brand, card_last4,   -- la carte du premier achat (setup_future_usage)
+  created_at, updated_at
+)
+  -- RLS select agence ; AUCUNE policy d'écriture : tout passe par les RPC.
+
+credit_ledger (
+  id, agency_id → agencies,
+  kind,             -- 'grant_monthly' | 'purchase' | 'auto_topup' | 'debit' | 'refund' | 'adjustment'
+  amount,           -- signé : + crédite, − débite
+  bucket,           -- 'included' | 'purchased' | 'mixed'
+  included_after, purchased_after,
+  ref_type, ref_id, -- 'labs_asset' <id> | 'stripe_payment_intent' <pi_…> | 'month' 'YYYY-MM'
+  amount_chf,       -- pour les achats : le prix payé
+  metadata, created_by, created_at
+)
+  -- Append-only, RLS select agence. Index uniques : un paiement Stripe ne crédite qu'une
+  -- fois (ref_type, ref_id) ; une production n'est débitée et remboursée qu'une fois
+  -- (kind, ref_type, ref_id). C'est ce qui rend un rejeu de webhook inoffensif.
+  -- RPC : credits_balance() [authenticated], credits_set_auto_topup() [authenticated],
+  --       credits_debit / credits_refund / credits_purchase / credits_set_card /
+  --       credits_auto_topup_claim / credits_auto_topup_release / credits_wallet_ensure [service_role].
+
 -- Biens immobiliers
 properties (
   id, agency_id,

@@ -155,14 +155,14 @@ const HORS_ASSUMES = new Map<string, number>([
   // hors barreaux, mais DANS le SVG, que ce balayage ne lit pas ; le fichier ne sert plus
   // que de masque et les teintes sont montées dans le code. De l'ILLUSTRATION : aucun texte
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
-  // 518 → 516 le 21.09.2026 : le cyan de l'état « vu » de la fiche contact part avec la page de
+  // 504 → 502 le 21.09.2026 : le cyan de l'état « vu » de la fiche contact part avec la page de
   // réception de l'acheteur (le matching reste chez l'agent).
-  ['src/components/crm', 516],
-  ['src/components/crm-mobile', 140],
+  ['src/components/crm', 502],
+  ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
   // l'encre d'alerte recopiée `#8C5A00`.
-  ['src/components/crm-dossiers', 58],
+  ['src/components/crm-dossiers', 57],
   // `crm-wizard` (47) est SORTI le 16.09.2026 : l'ancien wizard et sa palette sont retirés,
   // il ne reste dans ce dossier que le modèle de saisie et deux hooks, sans une couleur.
   // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
@@ -192,7 +192,7 @@ const HORS_ASSUMES = new Map<string, number>([
   // 23 → 22 le 21.09.2026 : la feuille d'envoi `MrhSendSheet` est retirée.
   ['src/components/matching-recherche', 22],
   ['src/components/ai-copilot', 14],
-  ['src/hooks/useAdminSurfaces.ts', 7],
+  ['src/hooks/useAdminSurfaces.ts', 6],
   ['src/hooks/useAtelierMatching.ts', 8],
   ['src/hooks/useRelanceLeads.ts', 8],
   ['src/lib/crmAdapters.ts', 8],

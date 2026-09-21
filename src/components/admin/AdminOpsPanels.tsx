@@ -1,6 +1,7 @@
 // Panneaux ops admin (P3) — syndication IDX + WhatsApp ops (AdminMonitoringPage)
 // et coûts IA par agence (AdminToolUsagePage). Données : useAdminOpsHealth
-// (3 RPC serveur, migration 20260705172000).
+// (3 RPC serveur, migration 20260705172000). Depuis le 21.09.2026, aussi les
+// messages WhatsApp par agence et ce que Meta en facture (20260921120000).
 //
 // Rendu en grammaire Sugar (kit `adminKit`) : bentos séparés par l'ombre,
 // sous-groupes annoncés par une pastille de ton, compteurs en chiffres
@@ -8,9 +9,10 @@
 // tons fonctionnels de `useAdminSurfaces()`.
 
 import { useTranslation } from 'react-i18next'
-import { Coins, Radio } from 'lucide-react'
+import { Coins, MessageCircle, Radio } from 'lucide-react'
 import { format } from 'date-fns'
-import { useSyndicationHealth, useWhatsAppHealth, useAiCosts } from '@/hooks/useAdminOpsHealth'
+import { useSyndicationHealth, useWhatsAppHealth, useAiCosts, useAdminWhatsAppUsage } from '@/hooks/useAdminOpsHealth'
+import { categoriesParVolume, totauxParMois } from '@/lib/whatsappUsage'
 import {
   AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
@@ -316,6 +318,85 @@ export function AiCostsSection() {
                     <AdminTd align="right" numeric style={{ color: sp.sub }}>{row.calls}</AdminTd>
                     <AdminTd align="right" numeric style={{ fontWeight: 600 }}>
                       {Number(row.cost_usd).toFixed(4)} USD
+                    </AdminTd>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </AdminCard>
+  )
+}
+
+/** `2026-09` → `09.2026`, sans passer par `Date` : un mois UTC relu en heure locale glisse. */
+function moisLisible(m: string): string {
+  return /^\d{4}-\d{2}$/.test(m) ? `${m.slice(5, 7)}.${m.slice(0, 4)}` : m
+}
+
+/**
+ * Messages WhatsApp par mois et par agence, et ce que Meta en FACTURE.
+ *
+ * ⚠ Pourquoi cette section existe : depuis le 01.10.2026 Meta facture aussi les réponses
+ * envoyées dans les 24 h d'un message de l'agent — le gros du trafic du copilote. Rien ne
+ * comptait ces messages. « Facturés » = `billable` ET livrés : Meta ne facture qu'à la
+ * livraison, et c'est SON classement (colonne « Catégories ») qui fait foi, pas le nôtre —
+ * il facture par exemple le point du jour en marketing.
+ */
+export function WhatsAppUsageSection() {
+  const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
+  const { data, isLoading, isError } = useAdminWhatsAppUsage(3)
+  const totaux = totauxParMois(data ?? [])
+
+  return (
+    <AdminCard padding="6px 6px 16px">
+      <AdminGroupTitle
+        label={t('toolUsage.whatsapp.title')}
+        tone="info"
+        right={<span style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{t('toolUsage.whatsapp.subtitle')}</span>}
+      />
+
+      {isLoading ? (
+        <div style={{ padding: '0 var(--crm-space-lg)' }}><AdminSkeleton height={64} /></div>
+      ) : isError ? (
+        <AdminError message={t('toolUsage.whatsapp.error')} />
+      ) : !data || data.length === 0 ? (
+        <AdminEmpty icon={MessageCircle} title={t('toolUsage.whatsapp.empty')} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-4xl)', padding: '0 var(--crm-space-lg)' }}>
+            {totaux.map((m) => (
+              <OpsStat key={m.month} label={moisLisible(m.month)} value={t('toolUsage.whatsapp.monthValue', { sent: m.sent, billable: m.billable })} />
+            ))}
+          </div>
+
+          <div className="overflow-x-auto">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <AdminTh>{t('toolUsage.whatsapp.table.month')}</AdminTh>
+                  <AdminTh>{t('toolUsage.whatsapp.table.agency')}</AdminTh>
+                  <AdminTh align="right">{t('toolUsage.whatsapp.table.agent')}</AdminTh>
+                  <AdminTh align="right">{t('toolUsage.whatsapp.table.client')}</AdminTh>
+                  <AdminTh align="right">{t('toolUsage.whatsapp.table.delivered')}</AdminTh>
+                  <AdminTh align="right">{t('toolUsage.whatsapp.table.billable')}</AdminTh>
+                  <AdminTh>{t('toolUsage.whatsapp.table.categories')}</AdminTh>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((r) => (
+                  <tr key={`${r.month}:${r.agencyId ?? '-'}`}>
+                    <AdminTd numeric style={{ color: sp.soft }}>{moisLisible(r.month)}</AdminTd>
+                    <AdminTd>{r.agencyName ?? t('toolUsage.whatsapp.noAgency')}</AdminTd>
+                    <AdminTd align="right" numeric style={{ color: sp.sub }}>{r.agentMessages}</AdminTd>
+                    <AdminTd align="right" numeric style={{ color: sp.sub }}>{r.clientMessages}</AdminTd>
+                    <AdminTd align="right" numeric style={{ color: sp.sub }}>{r.delivered}</AdminTd>
+                    {/* Ce qui COÛTE : c'est la colonne qu'on vient lire. */}
+                    <AdminTd align="right" numeric style={{ fontWeight: 600 }}>{r.billable}</AdminTd>
+                    <AdminTd style={{ color: sp.sub }}>
+                      {categoriesParVolume(r.byCategory).map(([cat, n]) => `${cat} ${n}`).join(' · ') || '—'}
                     </AdminTd>
                   </tr>
                 ))}
