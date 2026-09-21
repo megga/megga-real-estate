@@ -20,8 +20,9 @@ import { describe, expect, it } from 'vitest'
 import {
   AUTO_TOPUP_SEUILS, CREDIT_CHF_BASE, CREDIT_PACKS, CREDITS_DOTATION_MENSUELLE, CREDITS_IMAGE,
   CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF, PRIX_PLAN_CHF,
-  chfParCredit, coutFournisseurImageChf, coutFournisseurVideoChf, coutPireCasDotationChf, creditsPourImage,
-  creditsPourVideo, dotationMensuelle, margeImage, margeVideo, packLeMoinsCher, packParId, rechargeDue,
+  chfParCredit, clientStripeReel, coutFournisseurImageChf, coutFournisseurVideoChf,
+  coutPireCasDotationChf, creditsPourImage, creditsPourVideo, dotationMensuelle, margeImage, margeVideo,
+  packLeMoinsCher, packParId, rechargeDue,
 } from '../../supabase/functions/_shared/credits'
 
 const RESOLUTIONS = ['720p', '1080p'] as const
@@ -139,5 +140,18 @@ describe('crédits — la recharge automatique', () => {
   })
   it('les seuils sont ceux que la base accepte (CHECK de `credit_wallets`)', () => {
     expect([...AUTO_TOPUP_SEUILS]).toEqual([50, 100, 200, 500])
+  })
+})
+
+// `admin_set_agency_plan` pose `manual_<agence>` dans `subscriptions` : Stripe refuse ce
+// client, et l'achat de crédits d'une agence passée en Pro par la console échouait.
+describe('crédits — le client Stripe', () => {
+  it('écarte le client factice de la console', () => {
+    expect(clientStripeReel('manual_0b2f3c4d-0000-4000-8000-000000000000', 'cus_Q1w2E3r4')).toBe('cus_Q1w2E3r4')
+    expect(clientStripeReel('manual_0b2f3c4d-0000-4000-8000-000000000000', null)).toBeNull()
+  })
+  it('garde l’ordre de préférence entre deux vrais clients', () => {
+    expect(clientStripeReel('cus_Abonnement', 'cus_Agence')).toBe('cus_Abonnement')
+    expect(clientStripeReel(undefined, '', 'cus_Agence')).toBe('cus_Agence')
   })
 })

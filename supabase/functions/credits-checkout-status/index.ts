@@ -26,7 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
-import { packParId } from '../_shared/credits.ts'
+import { clientStripeReel, packParId } from '../_shared/credits.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -111,6 +111,11 @@ serve(async (req: Request) => {
     })
     if (error) throw error
     const r = (data ?? {}) as { duplicate?: boolean; balance?: number }
+
+    // Le client qui a payé porte la carte : la recharge automatique le relira sur l'agence
+    // (`credits_auto_topup_claim`). Le webhook le note aussi ; ici, il ne dépend pas de lui.
+    const clientPaye = clientStripeReel(typeof session.customer === 'string' ? session.customer : session.customer?.id)
+    if (clientPaye) await admin.from('agencies').update({ stripe_customer_id: clientPaye }).eq('id', profile.agency_id)
 
     // Le grand livre porte l'achat ; le journal de l'agence porte le FAIT, une fois.
     if (!r.duplicate) {
