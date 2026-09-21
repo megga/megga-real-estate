@@ -85,29 +85,53 @@ serve(async (req: Request) => {
       return json({ ok: false, error: pi.status })
     }
 
-    const { data: achat } = await admin.rpc('credits_purchase', {
-      p_agency: agencyId,
-      p_amount: pack.credits,
-      p_kind: 'auto_topup',
-      p_ref_type: 'stripe_payment_intent',
-      p_ref_id: pi.id,
-      p_amount_chf: pack.chf,
-      p_metadata: { pack: pack.id, auto: true },
-    })
+    // La carte est DÉBITÉE : le crédit se retente sur une panne passagère.
+    let achat: { balance?: number; duplicate?: boolean } | null = null
+    let panne: string | null = null
+    for (let essai = 1; essai <= 3; essai++) {
+      const { data, error } = await admin.rpc('credits_purchase', {
+        p_agency: agencyId,
+        p_amount: pack.credits,
+        p_kind: 'auto_topup',
+        p_ref_type: 'stripe_payment_intent',
+        p_ref_id: pi.id,
+        p_amount_chf: pack.chf,
+        p_metadata: { pack: pack.id, auto: true },
+      })
+      const r = (data ?? null) as { ok?: boolean; error?: string; balance?: number; duplicate?: boolean } | null
+      if (!error && r?.ok !== false) {
+        achat = r ?? {}
+        break
+      }
+      panne = error?.message ?? r?.error ?? 'unknown'
+      if (essai < 3) await new Promise((fin) => setTimeout(fin, essai * 500))
+    }
+    // ⛔ UNE CARTE DÉBITÉE SANS CRÉDIT N'EST PAS UNE RÉUSSITE. Avant la revue du 21.09.2026,
+    // l'erreur était ignorée : verrou libéré, journal « recharge », `ok: true`, et plus rien.
+    // Le verrou reste désormais 24 h — aucune seconde charge — et le webhook
+    // `payment_intent.succeeded` créditera, idempotent par PaymentIntent.
+    if (!achat) {
+      console.error('credits-auto-topup credits_purchase:', panne, pi.id)
+      await admin.rpc('credits_auto_topup_release', { p_agency: agencyId, p_error: 'credit_pending' })
+      return json({ ok: false, error: 'credit_pending' }, 500)
+    }
     await admin.rpc('credits_auto_topup_release', { p_agency: agencyId, p_error: null })
 
-    await admin.from('activity_events').insert({
-      agency_id: agencyId,
-      actor_id: null,
-      actor_kind: 'system',
-      action: 'credits_auto_topup',
-      category: 'settings',
-      entity_type: 'agency',
-      entity_id: agencyId,
-      metadata: { pack: pack.id, credits: pack.credits, chf: pack.chf, payment_intent: pi.id },
-    })
+    // Le journal porte le fait une fois : si le webhook est passé avant, c'est lui qui l'a écrit.
+    if (!achat.duplicate) {
+      await admin.from('activity_events').insert({
+        agency_id: agencyId,
+        actor_id: null,
+        actor_kind: 'system',
+        action: 'credits_auto_topup',
+        category: 'settings',
+        entity_type: 'agency',
+        entity_id: agencyId,
+        metadata: { pack: pack.id, credits: pack.credits, chf: pack.chf, payment_intent: pi.id, balance: achat.balance ?? null },
+      })
+    }
 
-    return json({ ok: true, credits: pack.credits, balance: (achat as { balance?: number } | null)?.balance ?? null })
+    return json({ ok: true, credits: pack.credits, balance: achat.balance ?? null })
   } catch (e) {
     // `StripeCardError` (carte refusée, authentification exigée hors session…) : on
     // note le motif, sans la trace — le message Stripe cite parfois les 4 derniers chiffres.
