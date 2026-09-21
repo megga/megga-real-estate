@@ -14,7 +14,8 @@ import { CREDIT_PACKS, creditsPourImage, creditsPourVideo, type AutoTopupSeuil, 
 import type { LabsAsset, LabsFolder } from '@/types/labs'
 import type { WhatsAppUsage } from '@/lib/whatsappUsage'
 
-export type LabsFixtureState = 'full' | 'empty' | 'error'
+/** `starter` : un plan qui n'ouvre pas le studio — la barre dit « À partir du plan Pro ». */
+export type LabsFixtureState = 'full' | 'empty' | 'error' | 'starter'
 export const LabsFixturesContext = createContext<LabsFixtureState | null>(null)
 export function useLabsFixtures(): LabsFixtureState | null {
   return useContext(LabsFixturesContext)
@@ -192,6 +193,7 @@ let fxLivre: CreditLedgerEntry[] = [
 export function fxCreditBalance(state: LabsFixtureState): CreditBalance {
   if (state === 'error') throw new Error('fixture:error')
   if (state === 'empty') return { ...fxSolde, included: 0, purchased: 0, total: 0, hasCard: false, cardBrand: null, cardLast4: null }
+  if (state === 'starter') return { ...fxSolde, included: 0, purchased: 0, total: 0, plan: 'starter', monthlyAllowance: 0, hasCard: false, cardBrand: null, cardLast4: null }
   return { ...fxSolde }
 }
 

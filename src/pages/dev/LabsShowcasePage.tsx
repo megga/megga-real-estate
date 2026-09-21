@@ -1,6 +1,6 @@
 /**
- * Banc du studio Labs (`/dev/labs`) : trois états — studio garni, studio vide,
- * erreur de lecture — servis par `labs/fixtures.ts` au lieu du réseau, et les gestes
+ * Banc du studio Labs (`/dev/labs`) : quatre états — studio garni, studio vide,
+ * erreur de lecture, plan Starter (studio fermé) — servis par `labs/fixtures.ts` au lieu du réseau, et les gestes
  * (dossier, image, vidéo qui aboutit en six secondes) appliqués en mémoire.
  *
  * ⚠ DEV seulement (ternaire `import.meta.env.DEV` dans `App.tsx`) : un banc livré est
@@ -11,7 +11,7 @@ import { useState } from 'react'
 import { LabsApp } from '@/components/crm/labs/LabsApp'
 import { LabsFixturesContext, type LabsFixtureState } from '@/components/crm/labs/fixtures'
 
-const ETATS: LabsFixtureState[] = ['full', 'empty', 'error']
+const ETATS: LabsFixtureState[] = ['full', 'empty', 'error', 'starter']
 
 export default function LabsShowcasePage() {
   const [dark, setDark] = useState(false)

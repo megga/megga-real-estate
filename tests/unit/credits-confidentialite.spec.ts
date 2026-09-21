@@ -169,6 +169,7 @@ describe('crédits — la section existe, dans les quatre langues', () => {
     'credits.amount_one', 'credits.amount_other', 'menu.creditsHint',
     'prompt.estimate', 'prompt.estimateVideo', 'prompt.estimateMany_one', 'prompt.estimateMany_other', 'prompt.balance', 'prompt.recharge',
     'errors.insufficient_credits', 'errors.credits_partial', 'errors.credits_failed', 'errors.upgrade_required',
+    'prompt.proOnly', 'prompt.seePlans',
   ]
 
   it('aucune clé ne manque, aucune n’est vide', () => {

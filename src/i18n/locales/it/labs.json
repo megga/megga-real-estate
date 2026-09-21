@@ -83,7 +83,9 @@
     "estimateMany_one": "{{n}} crediti · {{count}} immagine",
     "estimateMany_other": "{{n}} crediti · {{count}} immagini",
     "balance": "saldo {{n}}",
-    "recharge": "Ricarica"
+    "recharge": "Ricarica",
+    "proOnly": "Dal piano Pro",
+    "seePlans": "Vedi i piani"
   },
   "voices": {
     "Kore": "Kore, pacata",

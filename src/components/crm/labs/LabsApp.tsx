@@ -48,7 +48,7 @@ import { useLabsGenerate } from '@/hooks/useLabsGenerate'
 import { useLabsUpload } from '@/hooks/useLabsUpload'
 import {
   LABS_DEFAULT_VOICE, LABS_DEFAULT_VOICE_LANG, LABS_STAGING_DEFAULT_ROOM, LABS_STAGING_DEFAULT_STYLE,
-  labsCountByFolder, labsDownloadName, labsEstimateCredits, labsFilter, labsPlage,
+  labsCountByFolder, labsDownloadName, labsEstimateCredits, labsFilter, labsOuvertAuPlan, labsPlage,
   labsSelectionEtat, labsStagingPrompt, labsTuileLocale, labsVariationsPossibles, labsVideoDurationS, labsVoiceoverSeconds,
   type LabsStagingRoom, type LabsStagingStyle, type LabsVariations, type LabsVoice, type LabsVoiceLang,
 } from '@/lib/labs'
@@ -146,6 +146,9 @@ export function LabsApp({ dark, setDark }: Props) {
   const source = sourceId ? assets.find((a) => a.id === sourceId) ?? null : null
   // Le solde : `null` tant que la RPC n'a pas répondu — l'écran laisse alors l'edge trancher.
   const solde = credits.balance?.total ?? null
+  // ⛔ Le PLAN d'abord : un Starter n'a pas « trop peu de crédits », il n'a pas le studio.
+  // Lu dans le solde (plan effectif, `agency_plan_effectif`) ; `false` tant qu'il n'est pas lu.
+  const planFerme = credits.balance != null && !labsOuvertAuPlan(credits.balance.plan)
 
   const hasVo = mode === 'video' && voOpen && voText.trim().length > 0
   const voSeconds = hasVo ? labsVoiceoverSeconds(voText) : null
@@ -197,6 +200,8 @@ export function LabsApp({ dark, setDark }: Props) {
 
   /** La Consommation, dans les Réglages : c'est là qu'on recharge. */
   const allerRecharger = () => navigate('/dashboard/settings?tab=credits')
+  /** La Facturation : c'est là que le plan change. */
+  const allerPlans = () => navigate('/dashboard/settings?tab=billing')
 
   const viderSelection = () => { setSelection(new Set()); setAncreId(null) }
 
@@ -226,6 +231,8 @@ export function LabsApp({ dark, setDark }: Props) {
   }
 
   const lancerImage = async (p: { prompt: string; folderId: string | null; sourceAssetId: string | null; ratio: LabsRatio | null; n: number }) => {
+    // « Refaire » passe par ici sans la barre : même porte du plan qu'elle.
+    if (planFerme) return direErreur('upgrade_required')
     // Ne lancer que ce que le solde PAIE : quatre appels pour un seul crédit disponible
     // feraient trois refus et trois messages — l'edge refuse de toute façon, un par un.
     const prixUnitaire = labsEstimateCredits({ mode: 'image', resolution, durationS: 0, hasVoiceover: false })
@@ -250,7 +257,7 @@ export function LabsApp({ dark, setDark }: Props) {
   }
 
   const generer = async () => {
-    if (!canGenerate || busy) return
+    if (!canGenerate || busy || planFerme) return
     setAvis(null)
     const dossier = view === 'favorites' ? null : folderId
     if (mode === 'image') {
@@ -645,6 +652,8 @@ export function LabsApp({ dark, setDark }: Props) {
               estimatedS={estimatedS}
               solde={solde}
               onRecharger={allerRecharger}
+              planFerme={planFerme}
+              onVoirPlans={allerPlans}
               onGenerate={() => { void generer() }}
             />
           </section>

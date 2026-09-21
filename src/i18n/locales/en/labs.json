@@ -83,7 +83,9 @@
     "estimateMany_one": "{{n}} credits · {{count}} image",
     "estimateMany_other": "{{n}} credits · {{count}} images",
     "balance": "balance {{n}}",
-    "recharge": "Top up"
+    "recharge": "Top up",
+    "proOnly": "From the Pro plan",
+    "seePlans": "See plans"
   },
   "voices": {
     "Kore": "Kore, composed",

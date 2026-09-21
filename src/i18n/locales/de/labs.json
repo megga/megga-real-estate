@@ -83,7 +83,9 @@
     "estimateMany_one": "{{n}} Credits · {{count}} Bild",
     "estimateMany_other": "{{n}} Credits · {{count}} Bilder",
     "balance": "Guthaben {{n}}",
-    "recharge": "Aufladen"
+    "recharge": "Aufladen",
+    "proOnly": "Ab dem Pro-Plan",
+    "seePlans": "Pläne ansehen"
   },
   "voices": {
     "Kore": "Kore, ruhig",

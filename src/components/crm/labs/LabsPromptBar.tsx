@@ -93,6 +93,12 @@ interface Props {
   /** Le solde de l'agence, `null` tant qu'il n'est pas lu. */
   solde: number | null
   onRecharger: () => void
+  /**
+   * Le plan n'ouvre pas le studio (Starter). ⛔ Ni « Générer » ni « Recharger » : des
+   * crédits achetés ne l'ouvriraient pas — c'est le PLAN qui manque, et la barre le dit.
+   */
+  planFerme: boolean
+  onVoirPlans: () => void
   onGenerate: () => void
 }
 
@@ -179,7 +185,10 @@ export function LabsPromptBar(p: Props) {
     : p.variations > 1
       ? t('prompt.estimateMany', { n: formatCredits(total), count: p.variations })
       : t('prompt.estimate', { n: formatCredits(total) })
-  const insuffisant = p.solde != null && p.solde < total
+  const insuffisant = !p.planFerme && p.solde != null && p.solde < total
+  // Le raccourci fait ce que fait le bouton visible — ni plus, ni une génération que la
+  // barre refuse (plan fermé, solde qui ne couvre pas le prix annoncé).
+  const peutLancer = p.canGenerate && !p.busy && !p.planFerme && !insuffisant
 
   return (
     <div
@@ -390,7 +399,7 @@ export function LabsPromptBar(p: Props) {
             value={p.prompt}
             onChange={(e) => p.onPrompt(e.target.value.slice(0, LABS_PROMPT_MAX_CHARS))}
             maxLength={LABS_PROMPT_MAX_CHARS}
-            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (p.canGenerate && !p.busy) p.onGenerate() } }}
+            onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (peutLancer) p.onGenerate() } }}
             placeholder={placeholder}
             rows={1}
             aria-label={t('prompt.aria')}
@@ -524,13 +533,25 @@ export function LabsPromptBar(p: Props) {
             fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
           }}
         >
-          {estimation}
-          {p.solde != null && (
+          {p.planFerme ? t('prompt.proOnly') : estimation}
+          {!p.planFerme && p.solde != null && (
             <span style={{ color: ls.soft, fontWeight: 500 }}>{' · '}{t('prompt.balance', { n: formatCredits(p.solde) })}</span>
           )}
         </span>
 
-        {insuffisant ? (
+        {p.planFerme ? (
+          <button
+            type="button"
+            onClick={p.onVoirPlans}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 40, padding: '0 var(--crm-space-4xl)',
+              border: 0, borderRadius: LABS_PILL, background: ls.accent, color: ls.accentInk,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, cursor: 'pointer', transition: LABS_TRANSITION, flexShrink: 0,
+            }}
+          >
+            {t('prompt.seePlans')}
+          </button>
+        ) : insuffisant ? (
           <button
             type="button"
             onClick={p.onRecharger}
