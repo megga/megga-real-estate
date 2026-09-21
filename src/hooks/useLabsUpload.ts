@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { LABS_STORAGE_BUCKET, labsAssetFromRow, labsUploadPath, labsUploadProblem } from '@/lib/labs'
+import { LABS_ASSET_COLONNES, LABS_STORAGE_BUCKET, labsAssetFromRow, labsUploadPath, labsUploadProblem } from '@/lib/labs'
 import { fxUpload, useLabsFixtures } from '@/components/crm/labs/fixtures'
 import type { LabsAsset } from '@/types/labs'
 
@@ -57,7 +57,7 @@ export function useLabsUpload() {
           provider: 'upload',
           metadata: { name: file.name, bytes: file.size, mime: file.type },
         })
-        .select('*')
+        .select(LABS_ASSET_COLONNES)
         .single()
       if (error || !data) return { asset: null, error: 'upload_failed' }
       return { asset: labsAssetFromRow(data), error: null }

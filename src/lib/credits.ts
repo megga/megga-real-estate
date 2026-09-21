@@ -5,7 +5,7 @@
  * ⛔ CE FICHIER NE CONNAÎT AUCUN COÛT FOURNISSEUR. Ni le prix de fal.ai, ni celui de
  * Google, ni le taux USD→CHF, ni la marge — tout cela vit dans
  * `supabase/functions/_shared/credits.ts`, côté serveur, et n'en sort pas. Un agent qui
- * lirait « ~CHF 0,09 l'image » à côté de « 5 crédits » saurait ce que MEGGA gagne ; le
+ * lirait le coût d'une image en francs à côté de « 5 crédits » saurait ce que MEGGA gagne ; le
  * produit vend des crédits, pas une transparence sur ses fournisseurs. La garde
  * `tests/unit/credits-confidentialite.spec.ts` interdit ces nombres à tout `src/`.
  *

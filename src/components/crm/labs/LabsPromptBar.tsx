@@ -235,7 +235,7 @@ export function LabsPromptBar(p: Props) {
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: ls.ink, flex: 1 }}>{t('prompt.voiceover')}</span>
             {/* ⚠ ÉCOUTER AVANT DE PAYER (Julien, 20.09.2026). Sans ce bouton, choisir
                 entre six voix et quatre langues se fait à l'aveugle, et le seul moyen
-                d'entendre le résultat était de lancer une vidéo à ~CHF 3,70. */}
+                d'entendre le résultat était de payer une vidéo entière. */}
             <button
               type="button"
               onClick={p.onEcouter}

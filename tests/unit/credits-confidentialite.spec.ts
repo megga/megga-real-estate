@@ -51,6 +51,9 @@ describe('crédits — le coût fournisseur ne sort pas du serveur', () => {
     [/coutFournisseur|margeImage|margeVideo|coutPireCas/, 'une fonction de marge'],
     [/_shared\/credits(\.ts)?['"]/, 'un import du module serveur de l’économie'],
     [/labsVideoCostUsd|labsImageCostChf|labsVideoCostChf/, 'une fonction de coût de l’edge'],
+    // Revue du 21.09.2026 : trois commentaires de `src/` citaient « ~CHF 0,09 » et
+    // « ~CHF 3,70 » — la décimale à VIRGULE passait sous les motifs ci-dessus.
+    [/~\s*CHF\s*\d+,\d+/, 'un coût en francs écrit en commentaire'],
   ]
 
   it('aucun fichier de `src/` ne porte le barème, le taux ni une fonction de marge', () => {
@@ -258,5 +261,45 @@ describe('crédits — les lectures du reçu', () => {
 
   it('creditRecuFromJson : un pack inconnu ne devient pas un pack', () => {
     expect(creditRecuFromJson({ status: 'paid', pack: '99999' }).pack).toBeNull()
+  })
+})
+
+// Revue post-fusion de #1338 (21.09.2026) : le coût fournisseur ne sortait pas de `src/`,
+// mais il sortait de la BASE — `labs_assets.cost_chf` lisible par tout membre, rendu par
+// les edges, et copié dans le journal d'audit que l'agence entière lit (et que la page
+// /dashboard/audit AFFICHE). La garde du texte de `src/` ne pouvait pas le voir.
+describe('crédits — la ligne d’une production ne porte pas le coût fournisseur', () => {
+  const EDGES = ['labs-image', 'labs-video', 'labs-video-status'].map((f) => [f, readFileSync(`supabase/functions/${f}/index.ts`, 'utf8')] as const)
+
+  it('la base ferme la colonne à authenticated (revoke de table, grant calculé sans elle)', () => {
+    const sql = readFileSync('supabase/migrations/20260922100400_labs_cout_serveur.sql', 'utf8')
+    expect(sql).toMatch(/revoke select on table public\.labs_assets from authenticated/)
+    expect(sql).toMatch(/v_secretes constant text\[\] := array\['cost_chf', 'finalizing_until'\]/)
+    expect(sql).toMatch(/has_column_privilege\('authenticated', 'public\.labs_assets', 'cost_chf', 'SELECT'\)/)
+  })
+
+  it('l’écran lit une liste de colonnes, sans le coût ni le bail — jamais `select(\'*\')`', async () => {
+    const { LABS_ASSET_COLONNES } = await import('@/lib/labs')
+    const cols = LABS_ASSET_COLONNES.split(',').map((c) => c.trim())
+    expect(cols).not.toContain('cost_chf')
+    expect(cols).not.toContain('finalizing_until')
+    // Contrôle positif : les colonnes que la galerie affiche y sont.
+    for (const c of ['id', 'url', 'thumbnail_url', 'status', 'credits', 'is_favorite']) expect(cols).toContain(c)
+    for (const f of ['src/hooks/useLabsAssets.ts', 'src/hooks/useLabsUpload.ts']) {
+      const code = readFileSync(f, 'utf8')
+      expect(code, f).toMatch(/labs_assets/)
+      expect(code, `${f} : select('*') sur labs_assets répondrait 42501`).not.toMatch(/select\('\*'\)/)
+    }
+  })
+
+  it.each(EDGES)('%s : toute production rendue passe par `assetPourAgent`', (_f, code) => {
+    const rendus = code.match(/json\(\{ asset\b[^}]*/g) ?? []
+    for (const r of rendus) expect(r).toMatch(/asset: assetPourAgent\(/)
+    // Contrôle positif : l'edge rend bien des productions.
+    expect(code).toMatch(/assetPourAgent\(/)
+  })
+
+  it.each(EDGES)('%s : le journal d’audit ne porte pas le coût', (_f, code) => {
+    expect(code).not.toMatch(/metadata:\s*\{[^}]*cost_chf/)
   })
 })

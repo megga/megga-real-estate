@@ -7,9 +7,9 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  LABS_VIDEO_ABANDON_MS, LABS_VIDEO_DELAI_MS,
+  LABS_COLONNES_SERVEUR, LABS_VIDEO_ABANDON_MS, LABS_VIDEO_DELAI_MS,
   LABS_VIDEO_MAX_S, LABS_VIDEO_MIN_S, LABS_VOICEOVER_MAX_CHARS, LABS_VOICE_LANGS,
-  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, falCancelUrl, falRefusPassager,
+  assetPourAgent, base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, falCancelUrl, falRefusPassager,
   imageExtFor, labsImagePrompt, labsOuvertAuPlan, labsVideoCostUsd, labsVideoDuration, labsVideoPrompt, labsVideoSuite,
   labsVoiceoverPrompt, monthStartIso, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../../supabase/functions/_shared/labs.ts'
@@ -180,5 +180,20 @@ describe('labs — le sondage d’une vidéo', () => {
     expect(falCancelUrl('https://queue.fal.run/fal-ai/x/requests/abc/status')).toBe('https://queue.fal.run/fal-ai/x/requests/abc/cancel')
     expect(falCancelUrl('https://queue.fal.run/fal-ai/x/requests/abc')).toBeNull()
     expect(falCancelUrl(null)).toBeNull()
+  })
+})
+
+// ⛔ Les edges lisent en `service_role`, que la RLS ne borne pas : toute production rendue
+// à l'agent perd le coût fournisseur (la marge s'en déduirait) et le bail de finalisation.
+describe('labs — ce qui ne sort pas vers l’agent', () => {
+  it('assetPourAgent retire les colonnes serveur et garde le reste', () => {
+    const ligne = { id: 'a', url: 'https://img/x.png', credits: 5, cost_chf: 0.5, finalizing_until: '2026-09-21T10:00:00Z' }
+    const vue = assetPourAgent(ligne)
+    for (const c of LABS_COLONNES_SERVEUR) expect(vue).not.toHaveProperty(c)
+    expect(vue).toEqual({ id: 'a', url: 'https://img/x.png', credits: 5 })
+    expect(ligne).toHaveProperty('cost_chf')
+  })
+  it('les colonnes serveur sont celles que la migration ferme', () => {
+    expect([...LABS_COLONNES_SERVEUR]).toEqual(['cost_chf', 'finalizing_until'])
   })
 })

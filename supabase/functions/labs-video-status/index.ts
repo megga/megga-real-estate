@@ -23,6 +23,8 @@
 //
 // ⛔ Un refus PASSAGER de fal.ai (429, 5xx, délai) rend le bail et attend le tour
 // suivant : un résultat payé ne se jette pas sur une panne d'une minute.
+//
+// ⛔ Le coût fournisseur ne sort pas : toute réponse passe par `assetPourAgent`.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
@@ -31,7 +33,7 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_MUX_ENDPOINT, LABS_VIDEO_ABANDON_MS, LABS_VIDEO_DELAI_MS,
-  falCancelUrl, falRefusPassager, isUuid, labsVideoSuite,
+  assetPourAgent, falCancelUrl, falRefusPassager, isUuid, labsVideoSuite,
 } from '../_shared/labs.ts'
 import { rembourserCredits } from '../_shared/credits-edge.ts'
 
@@ -107,7 +109,7 @@ serve(async (req: Request) => {
   if (!asset) return json({ error: 'asset_not_found' }, 404)
 
   const rendreLigne = (row: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
-    json({ asset: row, ...extra })
+    json({ asset: assetPourAgent(row), ...extra })
 
   // Terminal : on rend la ligne telle quelle.
   if (!EN_COURS.includes(asset.status as string)) return rendreLigne(asset)
@@ -265,6 +267,7 @@ serve(async (req: Request) => {
     entity_id: asset.id,
     severity: 'info',
     category: 'ai',
+    // ⛔ Jamais le coût fournisseur ici : le journal d'audit se lit dans toute l'agence.
     metadata: {
       profile_id: user.id,
       folder_id: asset.folder_id,
@@ -272,7 +275,7 @@ serve(async (req: Request) => {
       model: asset.model,
       duration_s: asset.duration_s,
       voiceover: !!asset.voiceover_url,
-      cost_chf: asset.cost_chf,
+      credits: asset.credits,
       mirrored: finalUrl !== videoUrl,
     },
   })

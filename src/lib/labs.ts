@@ -60,11 +60,26 @@ export const LABS_UPLOAD_MIMES = ['image/jpeg', 'image/png', 'image/webp'] as co
 type FolderRow = Database['public']['Tables']['labs_folders']['Row']
 type AssetRow = Database['public']['Tables']['labs_assets']['Row']
 
+/**
+ * Les colonnes de `labs_assets` que l'écran LIT. ⛔ Ni `cost_chf` ni `finalizing_until` :
+ * la base les refuse à `authenticated` (migration 20260922100400) — le coût fournisseur
+ * posé à côté du prix en crédits donnait la marge. Un `select('*')` y répondrait 42501.
+ */
+export const LABS_ASSET_COLONNES =
+  'id, agency_id, folder_id, created_by, kind, status, prompt, voiceover_text, voiceover_voice, voiceover_lang, voiceover_url, source_asset_id, url, thumbnail_url, width, height, duration_s, aspect_ratio, model, error_code, credits, is_favorite, created_at, completed_at' as const
+
+/** Une production telle que l'agent la reçoit : de la liste (`LABS_ASSET_COLONNES`) ou d'une edge. */
+export type LabsAssetRow = Pick<AssetRow,
+  | 'id' | 'agency_id' | 'folder_id' | 'created_by' | 'kind' | 'status' | 'prompt' | 'voiceover_text'
+  | 'voiceover_voice' | 'voiceover_lang' | 'voiceover_url' | 'source_asset_id' | 'url' | 'thumbnail_url'
+  | 'width' | 'height' | 'duration_s' | 'aspect_ratio' | 'model' | 'error_code' | 'credits' | 'is_favorite'
+  | 'created_at' | 'completed_at'>
+
 export function labsFolderFromRow(r: FolderRow): LabsFolder {
   return { id: r.id, name: r.name, sortOrder: r.sort_order, createdAt: r.created_at }
 }
 
-export function labsAssetFromRow(r: AssetRow): LabsAsset {
+export function labsAssetFromRow(r: LabsAssetRow): LabsAsset {
   return {
     id: r.id,
     folderId: r.folder_id,

@@ -74,6 +74,26 @@ export function labsOuvertAuPlan(plan: string | null | undefined): boolean {
   return (LABS_PLANS_OUVERTS as readonly string[]).includes((plan ?? 'starter').toLowerCase())
 }
 
+// ─── Ce qui ne sort pas vers l'agent ──────────────────────────────────────────
+
+/**
+ * Les colonnes de `labs_assets` qui restent au SERVEUR : le coût fournisseur (la marge
+ * s'en déduirait, à côté du prix en crédits) et le bail de finalisation. Miroir de la
+ * migration 20260922100400, qui les rend illisibles par `authenticated`.
+ */
+export const LABS_COLONNES_SERVEUR = ['cost_chf', 'finalizing_until'] as const
+type LabsColonneServeur = (typeof LABS_COLONNES_SERVEUR)[number]
+
+/**
+ * La ligne telle qu'un agent peut la voir. ⛔ TOUTE réponse d'edge qui porte une
+ * production passe par ici : les edges lisent en `service_role`, que la RLS ne borne pas.
+ */
+export function assetPourAgent<T extends Record<string, unknown>>(row: T): Omit<T, LabsColonneServeur> {
+  const copie: Record<string, unknown> = { ...row }
+  for (const c of LABS_COLONNES_SERVEUR) delete copie[c]
+  return copie as Omit<T, LabsColonneServeur>
+}
+
 // ─── Le sondage d'une vidéo ───────────────────────────────────────────────────
 
 /** Au-delà, une vidéo que fal.ai dit ENCORE en file ou en cours est abandonnée (et rendue). */

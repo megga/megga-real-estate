@@ -14,8 +14,10 @@
 //
 // ⚠ L'identifiant de la production est tiré AVANT l'appel au fournisseur : c'est la
 // référence du débit, et c'est elle qui rend le remboursement idempotent.
-// Le coût fournisseur (`cost_chf`, ~CHF 0,09 en 2K) reste écrit sur la ligne pour la
-// console — il ne sort JAMAIS vers l'agent, qui ne voit que des crédits.
+// Le coût fournisseur (`cost_chf`) reste écrit sur la ligne pour la console — il ne
+// sort JAMAIS vers l'agent, qui ne voit que des crédits : la colonne lui est illisible
+// (migration 20260922100400), la réponse passe par `assetPourAgent`, et le journal
+// d'audit, lisible par toute l'agence, ne le porte pas.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
@@ -25,7 +27,7 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_IMAGE_MODEL, LABS_IMAGE_RATIOS, type LabsImageRatio,
-  base64ToBytes, cleanPrompt, imageExtFor, isUuid, labsImageCostChf, labsImagePrompt, labsOuvertAuPlan,
+  assetPourAgent, base64ToBytes, cleanPrompt, imageExtFor, isUuid, labsImageCostChf, labsImagePrompt, labsOuvertAuPlan,
 } from '../_shared/labs.ts'
 import { creditsPourImage } from '../_shared/credits.ts'
 import { debiterCredits, planEffectifAgence, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
@@ -224,12 +226,11 @@ serve(async (req: Request) => {
       source_asset_id: sourceAssetId,
       model: LABS_IMAGE_MODEL,
       image_size: imageSize,
-      cost_chf: costChf,
       credits,
       balance: debit.balance,
     },
   })
   if (auditErr) console.error('labs-image audit:', redactedErrorMessage(auditErr))
 
-  return json({ asset, credits: { debited: credits, balance: debit.balance ?? null } })
+  return json({ asset: assetPourAgent(asset), credits: { debited: credits, balance: debit.balance ?? null } })
 })

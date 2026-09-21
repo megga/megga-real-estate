@@ -35,7 +35,7 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_TTS_MODEL, LABS_VIDEO_ENDPOINTS, LABS_VIDEO_MAX_S, LABS_VIDEO_RESOLUTIONS, type LabsVideoResolution,
-  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsOuvertAuPlan, labsVideoCostChf,
+  assetPourAgent, base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsOuvertAuPlan, labsVideoCostChf,
   labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../_shared/labs.ts'
 import { creditsPourVideo } from '../_shared/credits.ts'
@@ -273,5 +273,5 @@ serve(async (req: Request) => {
     return json({ error: 'record_failed', assetId }, 500)
   }
 
-  return json({ asset, credits: { debited: credits, balance: debit.balance ?? null } })
+  return json({ asset: assetPourAgent(asset), credits: { debited: credits, balance: debit.balance ?? null } })
 })
