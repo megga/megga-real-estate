@@ -1069,7 +1069,7 @@
   },
   "credits": {
     "title": "Consumo",
-    "subtitle": "I tuoi crediti per lo studio Labs: quanto resta, cosa hai prodotto e come ricaricare.",
+    "subtitle": "I tuoi crediti per lo studio Labs e i tuoi messaggi WhatsApp: quanto resta, cosa hai prodotto e come ricaricare.",
     "balance": {
       "title": "Saldo",
       "included": "{{n}} inclusi questo mese",
@@ -1085,6 +1085,14 @@
       "videos": "Video",
       "spent": "Crediti spesi",
       "refunded": "{{n}} restituiti su errori"
+    },
+    "whatsapp": {
+      "title": "WhatsApp questo mese",
+      "body": "I messaggi che MEGGA invia su WhatsApp per la tua agenzia: le risposte di MEGGA AI al tuo team e i tuoi invii ai clienti.",
+      "agent": "Scambi con MEGGA AI",
+      "client": "Messaggi ai tuoi clienti",
+      "unclassified": "{{n}} altri messaggi, non classificati",
+      "error": "Impossibile caricare l'utilizzo di WhatsApp."
     },
     "tariff": {
       "title": "Quanto costa una produzione",

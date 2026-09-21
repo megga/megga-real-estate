@@ -12,6 +12,7 @@ import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { labsVideoDurationS, labsVoiceoverSeconds } from '@/lib/labs'
 import { CREDIT_PACKS, creditsPourImage, creditsPourVideo, type AutoTopupSeuil, type CreditBalance, type CreditLedgerEntry, type CreditPackId, type CreditRecu } from '@/lib/credits'
 import type { LabsAsset, LabsFolder } from '@/types/labs'
+import type { WhatsAppUsage } from '@/lib/whatsappUsage'
 
 export type LabsFixtureState = 'full' | 'empty' | 'error'
 export const LabsFixturesContext = createContext<LabsFixtureState | null>(null)
@@ -223,6 +224,20 @@ export function fxCreditRecu(state: LabsFixtureState, sessionId: string): Credit
     balance: statut === 'paid' ? fxSolde.total + pack.credits : null,
     invoiceUrl: statut === 'paid' ? 'https://invoice.stripe.com/i/banc' : null,
   }
+}
+
+/**
+ * Le compteur WhatsApp du mois, au banc. Il vit ici parce que l'écran « Consommation » lit
+ * tout son banc dans ce contexte — crédits, grand livre, reçu. Les volumes sont ceux du
+ * profil « régulier » du chiffrage du 21.09.2026 : 8 messages de l'agent par jour ouvré
+ * (une HYPOTHÈSE) × 1,3 réponse par message (MESURÉ en production ce jour-là) × 22 jours,
+ * et une vingtaine d'envois clients.
+ */
+export function fxWhatsAppUsage(state: LabsFixtureState): WhatsAppUsage {
+  if (state === 'error') throw new Error('fixture:error')
+  const month = new Date().toISOString().slice(0, 7)
+  if (state === 'empty') return { month, agent: 0, client: 0, unclassified: 0 }
+  return { month, agent: 229, client: 23, unclassified: 0 }
 }
 
 export function fxSetAutoTopup(p: { enabled: boolean; threshold: AutoTopupSeuil; pack: CreditPackId }): void {

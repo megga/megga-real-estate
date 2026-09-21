@@ -422,6 +422,17 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
     { month: '2026-07', agency_id: AGENCES[0]!.id, agency_name: 'Rive Gauche Immobilier', provider: 'deepseek', module: 'copilote', calls: 881, tokens_in: 390_000, tokens_out: 104_000, cost_usd: 11.2 },
   ],
 
+  // Messages WhatsApp du mois par agence. La RPC garantit `billable` ≤ `delivered` ≤
+  // envoyés, et Σ catégories ≤ `delivered` (un livré peut n'avoir reçu aucun prix de Meta) ;
+  // ici la somme est ÉGALE, pour qu'une ligne se relise sans calcul. Une ligne sans agence
+  // (accusé STOP d'un numéro inconnu) prend son libellé traduit.
+  get_admin_whatsapp_usage: [
+    { month: '2026-09', agency_id: AGENCES[0]!.id, agency_name: 'Rive Gauche Immobilier', agent_messages: 612, client_messages: 84, delivered: 688, billable: 131, by_category: { service: 556, utility: 71, marketing: 60, authentication: 1 } },
+    { month: '2026-09', agency_id: AGENCES[3]!.id, agency_name: 'Zurichberg Wohnen AG', agent_messages: 205, client_messages: 12, delivered: 214, billable: 34, by_category: { service: 180, utility: 22, marketing: 12 } },
+    { month: '2026-09', agency_id: null, agency_name: null, agent_messages: 0, client_messages: 2, delivered: 2, billable: 0, by_category: { service: 2 } },
+    { month: '2026-08', agency_id: AGENCES[0]!.id, agency_name: 'Rive Gauche Immobilier', agent_messages: 540, client_messages: 61, delivered: 596, billable: 88, by_category: { service: 470, marketing: 55, utility: 71 } },
+  ],
+
   get_whatsapp_autonomy_suggestions: [
     { profile_id: UTILISATEURS[0]!.id, agent_name: 'Camille Roulet', agency_id: AGENCES[0]!.id, autonomy: 'assisted', tool: 'send_message', yes_count: 41, no_count: 2, last_no_at: ilYA(60 * 70), suggest_resume: true },
     { profile_id: UTILISATEURS[1]!.id, agent_name: 'Yannis Perreten', agency_id: AGENCES[0]!.id, autonomy: 'manual', tool: 'book_visit', yes_count: 6, no_count: 9, last_no_at: ilYA(60 * 12), suggest_resume: false },

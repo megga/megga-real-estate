@@ -7815,6 +7815,7 @@ export type Database = {
       whatsapp_messages: {
         Row: {
           agency_id: string | null
+          audience: string | null
           body: string | null
           claimed_at: string | null
           contact_id: string | null
@@ -7832,6 +7833,9 @@ export type Database = {
           media_r2_key: string | null
           media_type: string | null
           media_url: string | null
+          meta_billable: boolean | null
+          meta_category: string | null
+          meta_pricing_type: string | null
           processing_status: string
           provider: string
           provider_message_id: string
@@ -7851,6 +7855,7 @@ export type Database = {
         }
         Insert: {
           agency_id?: string | null
+          audience?: string | null
           body?: string | null
           claimed_at?: string | null
           contact_id?: string | null
@@ -7868,6 +7873,9 @@ export type Database = {
           media_r2_key?: string | null
           media_type?: string | null
           media_url?: string | null
+          meta_billable?: boolean | null
+          meta_category?: string | null
+          meta_pricing_type?: string | null
           processing_status?: string
           provider?: string
           provider_message_id: string
@@ -7887,6 +7895,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string | null
+          audience?: string | null
           body?: string | null
           claimed_at?: string | null
           contact_id?: string | null
@@ -7904,6 +7913,9 @@ export type Database = {
           media_r2_key?: string | null
           media_type?: string | null
           media_url?: string | null
+          meta_billable?: boolean | null
+          meta_category?: string | null
+          meta_pricing_type?: string | null
           processing_status?: string
           provider?: string
           provider_message_id?: string
@@ -9647,6 +9659,19 @@ export type Database = {
         }[]
       }
       get_admin_whatsapp_health: { Args: never; Returns: Json }
+      get_admin_whatsapp_usage: {
+        Args: { p_months?: number }
+        Returns: {
+          agency_id: string | null
+          agency_name: string | null
+          agent_messages: number
+          billable: number
+          by_category: Json
+          client_messages: number
+          delivered: number
+          month: string
+        }[]
+      }
       get_agency_activity_summary: {
         Args: { agency_ids: string[]; since_days?: number }
         Returns: {
@@ -11042,6 +11067,7 @@ export type Database = {
           last_message_at: string
         }[]
       }
+      whatsapp_usage_month: { Args: { p_month?: string }; Returns: Json }
     }
     Enums: {
       crm_offer_kind: "offer" | "counter"

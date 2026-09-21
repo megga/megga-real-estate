@@ -5,7 +5,8 @@
  *   1. SOLDE — combien il reste, d'où ça vient (inclus ce mois / achetés), et le geste
  *      qui compte : « Recharger ».
  *   2. CE MOIS-CI — ce qu'il a produit (images, vidéos), ce qu'il a dépensé, ce qui
- *      lui a été rendu sur des échecs.
+ *      lui a été rendu sur des échecs. Puis WHATSAPP (21.09.2026) : les messages que
+ *      MEGGA a envoyés ce mois, à l'équipe et aux clients — des volumes, pas un prix.
  *   3. RECHARGER — quatre packs, prix au crédit et remise, un clic vers Stripe.
  *   4. RECHARGE AUTOMATIQUE — un interrupteur, un seuil, un pack, la carte enregistrée.
  *   5. CE QUE COÛTE UNE PRODUCTION, puis l'HISTORIQUE — le grand livre, ligne par ligne.
@@ -30,6 +31,7 @@ import { useToast } from '@/components/ui/Toast'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { useCredits, useCreditRecu } from '@/hooks/useCredits'
+import { useWhatsAppUsage } from '@/hooks/useWhatsAppUsage'
 import {
   AUTO_TOPUP_SEUILS, CREDIT_PACKS, CREDITS_IMAGE, CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF,
   chfParCredit, consommationDuMois, creditsPourVideo, formatChf, formatCredits, remisePack,
@@ -47,6 +49,7 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
   const c: PfColors = pfColors(sp, surf, dark)
   const toast = useToast()
   const credits = useCredits()
+  const whatsapp = useWhatsAppUsage()
   const [params, setParams] = useSearchParams()
   const canceled = params.get('canceled') === 'true'
 
@@ -162,6 +165,30 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
           )}
         </Carte>
       </div>
+
+      {/* 2bis — WhatsApp. Des VOLUMES, jamais ce que Meta facture (cf. `lib/whatsappUsage`) :
+          c'est le compteur sur lequel un quota par plan s'appuiera un jour, montré à
+          l'agence avant d'en fixer un — un plafond qu'on découvre en l'atteignant se vit
+          comme une coupure. */}
+      <Carte c={c} kicker={t('credits.whatsapp.title')} sous={t('credits.whatsapp.body')}>
+        {whatsapp.isError ? (
+          <p style={{ margin: 0, color: danger, fontSize: 'var(--crm-text-md)' }}>{t('credits.whatsapp.error')}</p>
+        ) : !whatsapp.data ? (
+          <Squelette c={c} />
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--crm-space-2xl) var(--crm-space-lg)' }}>
+              <Chiffre c={c} valeur={whatsapp.data.agent} libelle={t('credits.whatsapp.agent')} lang={lang} />
+              <Chiffre c={c} valeur={whatsapp.data.client} libelle={t('credits.whatsapp.client')} lang={lang} />
+            </div>
+            {/* Zéro par construction — mais dit s'il ne l'est pas : un total qui ne boucle
+                pas se remarque, un chiffre avalé non. */}
+            {whatsapp.data.unclassified > 0 && (
+              <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: c.soft }}>{t('credits.whatsapp.unclassified', { n: formatCredits(whatsapp.data.unclassified, lang) })}</p>
+            )}
+          </>
+        )}
+      </Carte>
 
       {/* 3 — recharger */}
       <Carte c={c} kicker={t('credits.packs.title')} id="credits-packs" sous={t('credits.packs.body')}>

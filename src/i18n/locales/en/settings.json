@@ -1069,7 +1069,7 @@
   },
   "credits": {
     "title": "Usage",
-    "subtitle": "Your credits for the Labs studio: what is left, what you produced, and how to top up.",
+    "subtitle": "Your Labs studio credits and your WhatsApp messages: what is left, what you produced, and how to top up.",
     "balance": {
       "title": "Balance",
       "included": "{{n}} included this month",
@@ -1085,6 +1085,14 @@
       "videos": "Videos",
       "spent": "Credits spent",
       "refunded": "{{n}} refunded on failures"
+    },
+    "whatsapp": {
+      "title": "WhatsApp this month",
+      "body": "The messages MEGGA sends on WhatsApp for your agency: MEGGA AI's replies to your team, and your messages to clients.",
+      "agent": "Exchanges with MEGGA AI",
+      "client": "Messages to your clients",
+      "unclassified": "{{n}} other messages, unclassified",
+      "error": "Could not load WhatsApp usage."
     },
     "tariff": {
       "title": "What a production costs",

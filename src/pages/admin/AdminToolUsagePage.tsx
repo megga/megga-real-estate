@@ -4,7 +4,8 @@
  * Route : `/dashboard/admin/tool-usage`. Croise la RPC des appels
  * observés avec le catalogue `WHATSAPP_TOOL_CATALOG` (outils jamais appelés
  * inclus en lignes à 0), affiche tier + taux d'erreur par outil, puis les coûts
- * IA par agence via `AiCostsSection`. Vue observe-only, aucune action.
+ * IA par agence via `AiCostsSection`, et les messages WhatsApp par agence avec ce que
+ * Meta en facture via `WhatsAppUsageSection`. Vue observe-only, aucune action.
  *
  * Rendu en grammaire Sugar (kit `admin/kit`) : bento séparé par l'ombre, vrai
  * tableau `AdminTh`/`AdminTd`, chiffres tabulaires, et le `text-red-500` du
@@ -23,7 +24,7 @@ import {
 import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminToolUsage, type ToolUsageRow } from '@/hooks/useAdminToolUsage'
 import { WHATSAPP_TOOL_CATALOG } from '@/lib/whatsapp-tools-catalog'
-import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
+import { AiCostsSection, WhatsAppUsageSection } from '@/components/admin/AdminOpsPanels'
 
 const TIER_BY_TOOL = new Map(WHATSAPP_TOOL_CATALOG.map((tt) => [tt.name, tt.tier]))
 
@@ -153,6 +154,9 @@ export default function AdminToolUsagePage() {
 
       {/* Coûts IA par agence × provider × module (P3 admin — RPC 20260705172000) */}
       <AiCostsSection />
+
+      {/* Messages WhatsApp par agence, et ce que Meta en facture (RPC 20260921120000) */}
+      <WhatsAppUsageSection />
     </AdminPage>
   )
 }
