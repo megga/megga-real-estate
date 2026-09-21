@@ -160,6 +160,7 @@ describe('crédits — la section existe, dans les quatre langues', () => {
     'credits.receipt.unknownTitle', 'credits.receipt.unknownBody',
     'credits.receipt.newBalance', 'credits.receipt.paidAmount',
     'credits.receipt.done', 'credits.receipt.retry', 'credits.receipt.close', 'credits.receipt.invoice',
+    'credits.auto.adminOnly',
   ]
   const CLES_LABS = [
     'credits.amount_one', 'credits.amount_other', 'menu.creditsHint',

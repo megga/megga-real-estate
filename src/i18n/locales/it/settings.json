@@ -1129,7 +1129,8 @@
       "noCard": "Nessuna carta salvata. Acquista un pacchetto con carta: verrà salvata per la ricarica automatica.",
       "lastError": "L'ultima ricarica non è riuscita ({{error}}). Controlla la carta; riproverà al prossimo addebito.",
       "saved": "Salvato",
-      "saveError": "Impossibile salvare l'impostazione."
+      "saveError": "Impossibile salvare l'impostazione.",
+      "adminOnly": "Riservato agli amministratori dell'agenzia: la ricarica automatica addebita la sua carta."
     },
     "ledger": {
       "title": "Cronologia",

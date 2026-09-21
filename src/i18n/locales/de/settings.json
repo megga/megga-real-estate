@@ -1129,7 +1129,8 @@
       "noCard": "Keine Karte hinterlegt. Kaufen Sie ein Paket per Karte: sie wird für das automatische Aufladen gespeichert.",
       "lastError": "Das letzte Aufladen ist fehlgeschlagen ({{error}}). Prüfen Sie die Karte; beim nächsten Abzug wird es erneut versucht.",
       "saved": "Gespeichert",
-      "saveError": "Die Einstellung konnte nicht gespeichert werden."
+      "saveError": "Die Einstellung konnte nicht gespeichert werden.",
+      "adminOnly": "Nur für Administratoren der Agentur: Die automatische Aufladung belastet ihre Karte."
     },
     "ledger": {
       "title": "Verlauf",

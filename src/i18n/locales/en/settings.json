@@ -1129,7 +1129,8 @@
       "noCard": "No card saved. Buy a pack by card: it will be saved for auto top-up.",
       "lastError": "The last top-up failed ({{error}}). Check the card; it will retry on the next debit.",
       "saved": "Saved",
-      "saveError": "The setting could not be saved."
+      "saveError": "The setting could not be saved.",
+      "adminOnly": "Agency administrators only: automatic top-up charges the agency's card."
     },
     "ledger": {
       "title": "History",
