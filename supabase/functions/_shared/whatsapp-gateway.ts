@@ -131,6 +131,25 @@ export interface SendResult {
   error?: string
 }
 
+/**
+ * Ce que Meta FACTURE pour un message : l'objet `pricing` de ses statuts (tarification
+ * par message depuis le 01.07.2025).
+ *
+ * ⚠ Ce n'est PAS notre classement mais le SIEN, et c'est lui qui fait foi : un envoi que
+ * la garde traite en `utility` peut être facturé `marketing` — c'est le cas du point du
+ * jour, dont Meta classe le gabarit en marketing (cerveau `megga/whatsapp-overview`), et
+ * depuis le 01.10.2026 les réponses de service cessent d'être gratuites. `category` et
+ * `type` restent donc du TEXTE LIBRE : Meta n'en publie pas la liste fermée, et un
+ * CHECK ferait échouer l'écriture le jour où il en ajoute une.
+ */
+export interface MetaPricing {
+  billable: boolean
+  /** `marketing`, `utility`, `authentication`, `service`… */
+  category: string | null
+  /** `regular` (facturé), `free_customer_service`, `free_entry_point`… */
+  type: string | null
+}
+
 // Statut de livraison normalisé d'un message SORTANT (events `statuses` du webhook).
 export interface StatusUpdate {
   providerMessageId: string
@@ -139,6 +158,8 @@ export interface StatusUpdate {
   recipientPhone: string | null
   errorCode: number | null
   errorDetail: string | null
+  /** `null` quand l'event n'en porte pas — un `read` n'en a pas toujours. */
+  pricing: MetaPricing | null
 }
 
 /**
@@ -380,6 +401,7 @@ class MetaProvider implements WhatsAppProvider {
           const ts = tsRaw != null ? Number(tsRaw) : undefined
           const err = (s.errors as Array<Record<string, unknown>> | undefined)?.[0]
           const errData = err?.error_data as Record<string, unknown> | undefined
+          const pr = s.pricing as Record<string, unknown> | undefined
           out.push({
             providerMessageId: id,
             status: status as StatusUpdate['status'],
@@ -388,6 +410,14 @@ class MetaProvider implements WhatsAppProvider {
             errorCode: typeof err?.code === 'number' ? err.code : null,
             errorDetail: err
               ? (String(errData?.details ?? err.title ?? err.message ?? '').slice(0, 200) || null)
+              : null,
+            // Borné à 40 : la valeur vient de Meta, pas de nous, et finit dans une colonne.
+            pricing: pr && typeof pr === 'object'
+              ? {
+                  billable: pr.billable === true,
+                  category: typeof pr.category === 'string' ? pr.category.slice(0, 40) : null,
+                  type: typeof pr.type === 'string' ? pr.type.slice(0, 40) : null,
+                }
               : null,
           })
         }

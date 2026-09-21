@@ -136,6 +136,10 @@ const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
 const MobileMessagerieScreen = lazy(() => import('@/components/crm-mobile/messagerie/MobileMessagerieScreen'))
 const MailOAuthCallbackPage = lazy(() => import('@/pages/agent/MailOAuthCallbackPage'))
+// Labs (studio de génération : images Nano Banana 2, vidéos Seedance) — bureau et
+// mobile en lecture seule.
+const LabsPage = lazy(() => import('@/pages/agent/LabsPage'))
+const MobileLabsScreen = lazy(() => import('@/components/crm-mobile/labs/MobileLabsScreen'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
@@ -195,6 +199,10 @@ const ModalesShowcasePage = import.meta.env.DEV
 // app.getmegga.com (`dev-bancs-frontiere.spec.ts` le mesure).
 const MessagerieShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
+  : () => null
+// Banc du studio Labs — même ternaire, même raison.
+const LabsShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/LabsShowcasePage'))
   : () => null
 // ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
 // appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
@@ -429,6 +437,8 @@ const ROUTES_TABLEAU_DE_BORD = (
   <Route path="nouvel-onglet" element={<ResponsiveRoute desktop={<NewTabPage />} mobile={<Navigate to="/dashboard" replace />} />} />
   {/* Messagerie — bento 296px | 1fr. Mobile (< 768px) : lecture seule (D16). */}
   <Route path="messagerie" element={<ResponsiveRoute desktop={<MessageriePage />} mobile={<MobileMessagerieScreen />} />} />
+  {/* Labs — studio de génération. Mobile (< 768px) : galerie en lecture seule. */}
+  <Route path="labs" element={<ResponsiveRoute desktop={<LabsPage />} mobile={<MobileLabsScreen />} />} />
   {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
   <Route path="settings" element={<ResponsiveRoute desktop={<SettingsPage />} mobile={<MobileSettingsPage />} />} />
   {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
@@ -667,6 +677,8 @@ function AppRoutes() {
                   vide, aucune boîte. Sans session, la vraie route renverrait
                   vers la production (ProtectedRoute). */}
               <Route path="/dev/messagerie" element={<MessagerieShowcasePage />} />
+              {/* Labs — l'écran réel sur fixtures : studio garni, vide, erreur ; gestes en mémoire. */}
+              <Route path="/dev/labs" element={<LabsShowcasePage />} />
               {/* La FACE PUBLIQUE — les trois surfaces qu'un client ouvre sans
                   compte. ⚠ `/*` : le banc porte des routes IMBRIQUÉES, qui sont
                   ce qui donne aux pages le `:token` qu'elles lisent. Sans jeton

@@ -271,10 +271,10 @@
     {
       "id": "accent-detail-fichiers",
       "section": "§3 — Boutons",
-      "phrase": "dans 82 fichiers",
+      "phrase": "dans 95 fichiers",
       "severite": "derive",
       "tolerance": 0.15,
-      "mesureLe": "2026-09-05",
+      "mesureLe": "2026-09-20",
       "mesure": {
         "motifs": [
           "background: [A-Za-z_]+\\.accent",
@@ -290,17 +290,17 @@
         ]
       },
       "attendu": {
-        "fichiers": 82
+        "fichiers": 95
       },
       "note": "⚠ RÈGLE D'ORIGINE INCONNUE — le seul écart de ce registre qu'on ne sache pas reproduire. La règle ci-dessus rend 70 fichiers contre 36 annoncés : un facteur deux ne s'explique pas par un jour de commits, et aucune variante essayée (`.tsx` seuls, avec ou sans commentaires, bornée ou non) ne retombe sur 36. Ne pas « corriger » le 36 en 70 sans dire lequel des deux on garde comme référence."
     },
     {
       "id": "modales-portees",
       "section": "§3 — Modals",
-      "phrase": "33 des 36 fichiers de modale/panneau/dialogue",
+      "phrase": "41 fichiers appellent `createPortal`",
       "severite": "derive",
       "tolerance": 0.1,
-      "mesureLe": "2026-09-05",
+      "mesureLe": "2026-09-20",
       "mesure": {
         "motif": "createPortal",
         "mot": true,
@@ -312,7 +312,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 36
+        "fichiers": 41
       }
     },
     {
@@ -634,15 +634,15 @@
     {
       "id": "sm-edge-functions-entete",
       "section": "§0 — En une phrase",
-      "phrase": "87 edge functions",
+      "phrase": "96 edge functions",
       "severite": "derive",
-      "mesureLe": "2026-09-04",
+      "mesureLe": "2026-09-20",
       "mesure": {
         "fichier": "src/lib/edgeFunctionRoster.ts",
         "motif": "^\\s*'[a-z0-9-]+',"
       },
       "attendu": {
-        "occurrences": 87
+        "occurrences": 96
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.1,
@@ -652,15 +652,15 @@
     {
       "id": "sm-edge-functions-titre",
       "section": "§5 — Edge functions",
-      "phrase": "Edge functions (87) — catalogue par domaine",
+      "phrase": "Edge functions (96) — catalogue par domaine",
       "severite": "derive",
-      "mesureLe": "2026-09-04",
+      "mesureLe": "2026-09-20",
       "mesure": {
         "fichier": "src/lib/edgeFunctionRoster.ts",
         "motif": "^\\s*'[a-z0-9-]+',"
       },
       "attendu": {
-        "occurrences": 87
+        "occurrences": 96
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.1,

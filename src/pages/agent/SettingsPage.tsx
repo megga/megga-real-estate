@@ -18,6 +18,7 @@ import { SecuritySection } from '@/components/crm/settings/SecuritySection'
 import { ProfileFocusSection } from '@/components/crm/settings/focus/ProfileFocusSection'
 import { AgencyFocusSection } from '@/components/crm/settings/focus/AgencyFocusSection'
 import { PreferencesFocusSection } from '@/components/crm/settings/focus/PreferencesFocusSection'
+import { CreditsSection } from '@/components/crm/settings/CreditsSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
@@ -27,7 +28,7 @@ const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte
 
 /** Largeur de la barre de défilement des deux colonnes — retranchée du padding droit du contenu. */
 const BARRE = 9
-const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
+const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing', 'credits']
 
 /**
  * Section de réglages → clé du catalogue d'aide.
@@ -39,6 +40,7 @@ const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations'
  * volontairement sur `settings` : mieux vaut l'article voisin que l'onglet racine.
  */
 const SECTION_HELP: Partial<Record<SectionId, string>> = {
+  credits: 'billing',
   agency: 'agence',
   billing: 'billing',
 }
@@ -83,6 +85,22 @@ export default function SettingsPage() {
     ALLOWED.includes(tabParam) ? tabParam : 'profile',
   )
 
+  // ⛔ ET LE `?tab=` DOIT POUVOIR ARRIVER APRÈS LE MONTAGE. L'écran est gardé vivant
+  // (`EcransVivants`) : une cible `…/settings?tab=credits` posée sur un onglet Réglages
+  // DÉJÀ ouvert ne remonte rien, et la valeur de départ ci-dessus ne serait jamais
+  // relue — le raccourci « Crédits » du menu de compte, et le retour de Stripe,
+  // tombaient sur la section mémorisée. Le paramètre ne change que sur un lien
+  // profond : le réappliquer à chaque changement n'écrase donc pas un choix fait à la
+  // main dans la colonne (il ne touche pas à l'URL).
+  useEffect(() => {
+    if (ALLOWED.includes(tabParam)) setActive(tabParam)
+    // ⚠ `setActive` n'est PAS stable — `useTabScopedState` le reconstruit dès que la
+    // valeur change (il lit la courante dans sa closure, cf. son commentaire). L'inscrire
+    // ici rejouerait l'effet juste après l'avoir appliqué, et reposerait `tabParam` sur
+    // chaque choix fait dans la colonne. Le paramètre est la SEULE dépendance qui compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam])
+
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [active])
 
@@ -94,6 +112,7 @@ export default function SettingsPage() {
       case 'integrations': return <IntegrationsSection />
       case 'security': return <SecuritySection />
       case 'billing': return <BillingSection />
+      case 'credits': return <CreditsSection sp={sp} surf={surf} dark={dark} />
       default: return null
     }
   }

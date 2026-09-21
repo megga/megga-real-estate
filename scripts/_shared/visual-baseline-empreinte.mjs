@@ -51,13 +51,35 @@ export const CHEMIN_EMPREINTES = 'tests/e2e/visual-regression.spec.ts-snapshots/
  *
  * `crm/tokens.ts` et `megga-x-crm/tokens.ts` en font partie : ils portent
  * `crmStageTint` et `crmPalette`, donc la couleur de chaque colonne.
+ *
+ * ⛔ **LE CHROME MANQUAIT AUX DEUX ÉCRANS, ET LE DÉFAUT S'EST PRODUIT** (20.09.2026,
+ * PR du studio Labs). Les deux captures montent `CrmWorkspace`, donc elles
+ * PHOTOGRAPHIENT la barre latérale. Ajouter une entrée de navigation a déplacé
+ * **16 849 pixels** sur `dashboard-pipeline` — ratio 0,02 contre un seuil de 0,01,
+ * la comparaison a rougi — pendant que l'empreinte ne bougeait pas d'un BIT
+ * (`64f77fdf7bfcc04d` des deux côtés). C'est le mode « verte et fausse » que cette
+ * garde existe pour empêcher, arrivé sur elle-même : la clause de rattachement
+ * dormait, seule la clause de pixels a parlé.
+ *
+ * ⚠ La bande d'onglets N'Y EST PAS, et c'est mesuré, pas oublié : elle ne se rend
+ * que sous le fournisseur d'onglets (`useCrmTabsOptionnel`), absent du banc
+ * `/dev/messagerie` qui est une route de premier niveau. L'inscrire ferait rougir
+ * une capture qu'elle ne peint pas.
  */
+const CHROME = [
+  'src/components/crm/CrmWorkspace.tsx',
+  'src/components/crm/CrmSidebar.tsx',
+  'src/components/crm/crmSidebarNav.ts',
+  'src/components/crm/LiquidGlassRail.tsx',
+]
+
 export const ECRANS = {
   'dashboard-pipeline': [
     'src/pages/agent/PipelinePage.tsx',
     'src/components/crm/pipeline',
     'src/components/crm/tokens.ts',
     'src/components/megga-x-crm/tokens.ts',
+    ...CHROME,
   ],
   // La Messagerie photographiée est le BANC (`/dev/messagerie`), donc sa page de
   // banc et les fixtures qui la peuplent en font partie autant que les
@@ -67,6 +89,7 @@ export const ECRANS = {
     'src/components/crm/messagerie',
     'src/components/crm/tokens.ts',
     'src/components/megga-x-crm/tokens.ts',
+    ...CHROME,
   ],
 }
 

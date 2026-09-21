@@ -1014,9 +1014,14 @@ async function applyStatusUpdates(
 ): Promise<number> {
   let applied = 0
   for (const u of updates) {
+    // Ce que Meta FACTURE (cf. `MetaPricing`). Il voyage avec le statut dans le cas courant…
+    const prix = u.pricing
+      ? { meta_billable: u.pricing.billable, meta_category: u.pricing.category, meta_pricing_type: u.pricing.type }
+      : null
     const patch: Record<string, unknown> = {
       status: u.status,
       status_updated_at: u.timestamp ?? new Date().toISOString(),
+      ...(prix ?? {}),
     }
     if (u.status === 'failed') {
       patch.delivery_error = u.errorCode === 131047
@@ -1035,11 +1040,34 @@ async function applyStatusUpdates(
       console.error('wa status update failed:', error.message.slice(0, 120))
       continue
     }
-    if (!rows || rows.length === 0) continue // rejeu / hors ordre / message inconnu
+    if (!rows || rows.length === 0) {
+      // …mais il ne suit PAS l'échelle monotone. Un `delivered` arrivé après le `read` ne
+      // fait pas reculer le statut — à raison —, et c'est pourtant lui qui porte le prix :
+      // le laisser au filtre des statuts antérieurs perdrait la facturation de tout message
+      // livré dans le désordre. Réécrire la même valeur sur un rejeu ne coûte qu'un UPDATE.
+      if (prix) await recordPricing(admin, provider, u.providerMessageId, prix)
+      continue // rejeu / hors ordre / message inconnu
+    }
     applied++
     if (u.status === 'failed') await notifyDeliveryFailure(admin, provider, rows[0], u)
   }
   return applied
+}
+
+/** Le prix Meta seul, sans condition de statut. Best-effort : il ne bloque jamais le 200. */
+async function recordPricing(
+  admin: SupabaseClient,
+  provider: ReturnType<typeof getProvider>,
+  providerMessageId: string,
+  prix: { meta_billable: boolean; meta_category: string | null; meta_pricing_type: string | null },
+): Promise<void> {
+  const { error } = await admin
+    .from('whatsapp_messages')
+    .update(prix)
+    .eq('provider', provider.name)
+    .eq('provider_message_id', providerMessageId)
+    .eq('direction', 'outbound')
+  if (error) console.error('wa pricing update failed:', error.message.slice(0, 120))
 }
 
 // Après un échec de livraison : audit TOUJOURS, puis alerte WhatsApp à l'agent vérifié

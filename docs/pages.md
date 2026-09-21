@@ -70,6 +70,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |
+| `/dashboard/labs` | **Labs** — studio de génération plein cadre : menu des dossiers dans le titre (créer, renommer, supprimer, quota du mois), galerie masonry, barre de prompt flottante (image Nano Banana 2 · vidéo Seedance 2.5 via fal.ai · voix off Gemini TTS écoutable en 4 langues), visionneuse, import de photo. `ResponsiveRoute` → `MobileLabsScreen` sous 768 px, **lecture seule**. Quotas mensuels par plan (images = `virtual_staging`, vidéos = `labs_video`). Banc `/dev/labs` |
 | `/dashboard/messagerie` | **Messagerie e-mail** (boîte Gmail / Outlook de l'agent) : rail comptes + dossiers + libellés, liste, lecture, composer, 7 modales. `ResponsiveRoute` → `MobileMessagerieScreen` sous 768 px, **lecture seule**. ⚠ Les 9 tables `mail_*` sont en production ; **aucune boîte n'est connectable** tant que trois gestes hors dépôt manquent (system-map §6ter) |
 | `/dashboard/journey` | Parcours client |
 | `/dashboard/kyc` · `/:dossierId` | Dossiers LAB/KYC |
@@ -170,7 +171,7 @@ teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des e
 
 | Bancs | Ce qu'il en reste dans le bundle déployé |
 |---|---|
-| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `messagerie` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
+| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `messagerie` · `labs` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
 | `/dev/onboarding` | la `<Route>` elle-même est dans le bloc `DEV` ⇒ catch-all `path="*"` → `NotFoundPage` |
 | `/dev/crm` · `/dev/admin` | branchés dans `App()` **avant** `<BrowserRouter>` (leur banc porte son propre routeur). ⚠ Invisibles à un `grep path=` : c'est ce qui les a fait manquer aux inventaires précédents |
 

@@ -8,6 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import { tablePrixStripe } from '../_shared/stripe-prices.ts'
+import { packParId } from '../_shared/credits.ts'
 import {
   buildStripeIdentityRecord,
   isStripeVerificationStatus,
@@ -308,6 +309,77 @@ async function applySubscriptionState(
   return existing ? 'stale' : 'absent'
 }
 
+/**
+ * Un pack de crédits payé : créditer le solde (idempotent par PaymentIntent — le
+ * même événement rejoué ne recrédite pas), puis noter la CARTE si le paiement s'est
+ * fait par carte, pour la recharge automatique. TWINT ne se garde pas : `setup_future_usage`
+ * n'était demandé que sur la carte (cf. `credits-checkout`).
+ */
+async function crediterAchatDepuisSession(
+  session: Stripe.Checkout.Session,
+  customerId: string,
+): Promise<void> {
+  // Client ouvert ICI, même motif que `handleIdentityVerification` : le type de celui
+  // construit dans `serve` ne se réconcilie pas avec `ReturnType<typeof createClient>`.
+  const admin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+  const agencyId = session.metadata?.agency_id
+  const pack = packParId(session.metadata?.pack)
+  const piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
+  if (!agencyId || !pack || !piId) {
+    console.error('checkout crédits : métadonnées incomplètes', { agencyId, pack: session.metadata?.pack, piId })
+    return
+  }
+
+  const { data, error } = await admin.rpc('credits_purchase', {
+    p_agency: agencyId,
+    p_amount: pack.credits,
+    p_kind: 'purchase',
+    p_ref_type: 'stripe_payment_intent',
+    p_ref_id: piId,
+    p_amount_chf: (session.amount_total ?? pack.chf * 100) / 100,
+    p_metadata: { pack: pack.id, checkout_session: session.id, user_id: session.metadata?.user_id ?? null },
+  })
+  if (error) throw error
+  const r = (data ?? {}) as { duplicate?: boolean; balance?: number }
+
+  // La carte, pour la recharge automatique. Relue chez Stripe : la session ne porte pas le moyen de paiement.
+  try {
+    const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['payment_method'] })
+    const pm = pi.payment_method as Stripe.PaymentMethod | null
+    if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && pi.setup_future_usage === 'off_session') {
+      await admin.rpc('credits_set_card', {
+        p_agency: agencyId,
+        p_payment_method_id: pm.id,
+        p_brand: pm.card.brand ?? null,
+        p_last4: pm.card.last4 ?? null,
+      })
+    }
+  } catch (e) {
+    // La carte est un confort (recharge automatique), pas le paiement : on ne fait pas
+    // rejouer l'événement pour elle.
+    console.error('checkout crédits : carte non relue', (e as Error).message)
+  }
+
+  await admin.from('agencies').update({ stripe_customer_id: customerId }).eq('id', agencyId)
+
+  if (!r.duplicate) {
+    await admin.from('activity_events').insert({
+      agency_id: agencyId,
+      actor_id: null,
+      actor_kind: 'system',
+      action: 'credits_purchased',
+      category: 'settings',
+      entity_type: 'agency',
+      entity_id: agencyId,
+      metadata: { pack: pack.id, credits: pack.credits, chf: (session.amount_total ?? pack.chf * 100) / 100, payment_intent: piId, balance: r.balance ?? null },
+    })
+  }
+  console.log(`Agency ${agencyId} : pack ${pack.id} ${r.duplicate ? 'déjà crédité' : 'crédité'}`)
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -374,11 +446,24 @@ serve(async (req) => {
     claimedEventId = event.id
 
     switch (event.type) {
-      // ─── Checkout completed — activate subscription ───
+      // ─── Checkout completed — un pack de crédits, OU l'activation d'un abonnement ───
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        const subscriptionId = session.subscription as string
         const customerId = session.customer as string
+
+        // ⛔ Le mode PAIEMENT n'a pas d'abonnement : la branche historique faisait
+        // `subscriptions.retrieve(undefined)` et jetait, ce qui libérait la réservation et
+        // faisait rejouer Stripe indéfiniment. On aiguille sur `mode` AVANT tout.
+        if (session.mode === 'payment') {
+          if (session.metadata?.kind !== 'credits') {
+            console.log(`checkout.session.completed ${event.id} : paiement hors crédits — ignoré`)
+            break
+          }
+          await crediterAchatDepuisSession(session, customerId)
+          break
+        }
+
+        const subscriptionId = session.subscription as string
 
         // Retrieve full subscription from Stripe
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
@@ -682,6 +767,27 @@ serve(async (req) => {
       // Pourquoi ce webhook et pas le retour de navigation : l'utilisateur peut fermer
       // l'onglet chez Stripe. Une réponse HTTP au navigateur n'est pas une preuve ; ce
       // canal-ci est signé et rejoué par Stripe jusqu'à acquittement.
+      // ─── Recharge automatique aboutie : créditer si le chemin synchrone ne l'a pas fait ───
+      case 'payment_intent.succeeded': {
+        const pi = event.data.object as Stripe.PaymentIntent
+        if (pi.metadata?.kind !== 'credits' || pi.metadata?.auto !== '1') break
+        const agencyId = pi.metadata.agency_id
+        const pack = packParId(pi.metadata.pack)
+        if (!agencyId || !pack) break
+        const { data } = await supabaseAdmin.rpc('credits_purchase', {
+          p_agency: agencyId,
+          p_amount: pack.credits,
+          p_kind: 'auto_topup',
+          p_ref_type: 'stripe_payment_intent',
+          p_ref_id: pi.id,
+          p_amount_chf: pack.chf,
+          p_metadata: { pack: pack.id, auto: true, via: 'webhook' },
+        })
+        const r = (data ?? {}) as { duplicate?: boolean }
+        console.log(`payment_intent.succeeded ${pi.id} : recharge ${r.duplicate ? 'déjà créditée' : 'créditée'}`)
+        break
+      }
+
       case 'identity.verification_session.verified':
       case 'identity.verification_session.requires_input':
       case 'identity.verification_session.processing':

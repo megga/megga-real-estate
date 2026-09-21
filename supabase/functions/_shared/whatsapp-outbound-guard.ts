@@ -325,6 +325,13 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
       sent_by_profile_id: a.sentByProfileId ?? null,
       is_automated: a.isAutomated ?? false,
       is_agent_error: a.isAgentError ?? false,
+      // À QUI part ce message, tel que le REGISTRE l'a dérivé — le compteur mensuel sépare
+      // les échanges avec MEGGA AI (l'agent) des messages aux clients. ⛔ Ni `contactId` ni
+      // `profileId` : ce sont des indices DÉCLARÉS, que la RPC peut contredire. Tous les
+      // envois vers un agent déclarent son profil, ce qui rend `profile` fiable ici ; sans
+      // déclaration, la RPC classerait `contact` un agent qui a aussi une fiche (mesuré le
+      // 10.09.2026, cf. `whatsapp_send_allowed`).
+      audience: v.subject_kind === 'profile' ? 'agent' : 'client',
       // Trace des boutons proposés : sans elle, un message à boutons et son repli texte
       // laissent des lignes `whatsapp_messages` identiques, et la preuve de prod ne peut plus
       // distinguer l'un de l'autre. Les identifiants `pa:<uuid>:yes|no` ne sont pas une

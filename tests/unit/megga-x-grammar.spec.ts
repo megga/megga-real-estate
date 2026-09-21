@@ -98,6 +98,8 @@ const PAGES = new Set([
   // la préférence sombre ; `MailOAuthCallbackPage` ne peint rien du tout — elles
   // entrent quand même, parce qu'un cliquet ne sert pas qu'à constater.
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
+  // Labs (20.09.2026) — ne fait que monter l'app et porter la préférence sombre.
+  'LabsPage.tsx',
   // Nouvel onglet (7 septembre 2026) — la page d'accueil d'un onglet neuf.
   // Styles en ligne, donc PLEINEMENT vue par les douze clauses. Mesurée avant
   // d'entrer : 0 marqueur. Elle entre le jour de sa naissance plutôt qu'un lot
@@ -304,6 +306,10 @@ const ZONES: RootSpec[] = [
   // Elle entre donc vide de dette : le lot s'interdit tout littéral de couleur,
   // de rayon, d'espacement, de taille et de police (règle 1 du lot 2).
   { root: 'src/components/crm/messagerie', keep: (n) => /\.tsx?$/.test(n) },
+  // Labs (studio de génération, 20.09.2026) — même régime que la Messagerie : la zone
+  // entre AVEC son premier fichier, vide de dette (jetons de couleur, de rayon,
+  // d'espacement, de taille ; police par `var(--crm-font)`).
+  { root: 'src/components/crm/labs', keep: (n) => /\.tsx?$/.test(n) },
   // Vague C — ce que le plan rangeait sous « Reste (pages) », et qui n'est pas un
   // reste : les deux sélecteurs d'affichage de la fiche bien (rendus par
   // `/dashboard/listings/:id/edit`) et le bandeau de consentement.

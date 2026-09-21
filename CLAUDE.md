@@ -347,8 +347,14 @@ d'écran n'est restée sur Graphite).
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
   décision du 10 août écrite quatre points plus haut. Remesuré le 5 septembre 2026
   par `npm run lint:claude-md` : **127 sites peignent une affordance en accent**
-  (120 `background: *.accent`, 7 `bg-accent`) dans 82 fichiers, contre **11** au
-  ghost canonique. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
+  (120 `background: *.accent`, 7 `bg-accent`) dans 95 fichiers, contre **11** au
+  ghost canonique. ⚠ **Les fichiers passent de 82 à 95 le 20.09.2026**, et la règle
+  n'a pas bougé : c'est le studio Labs qui entre — son écran, puis sa reprise
+  « organisation », dont la barre de gestes de la sélection et le menu « Ranger
+  dans… » peignent leur affordance PRIMAIRE en accent, exactement ce que la règle
+  vive prescrit — et les deux PR de sombre. ⚠ Les **sites**, eux, n'ont pas été
+  remesurés ici : la porte ne les a pas signalés, et recopier un chiffre sans le
+  mesurer est exactement ce que ce document s'interdit. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
   pas une dérive de la règle mais deux chantiers de septembre — la refonte du
   chrome du CRM (barre latérale + barre d'onglets, PR #1279) et la messagerie
   (PR #1276), qui peignent l'un et l'autre leurs affordances primaires en accent,
@@ -384,8 +390,9 @@ d'écran n'est restée sur Graphite).
   doit épouser le pager ») : leur voile couvre la Messagerie et non l'écran, et elles se
   masquent avec l'écran de leur onglet. Les ramener dans `<body>` rendrait le voile plein écran.
   ⚠ **« TOUJOURS … avec `z-[100]` » n'est
-  vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
-  modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
+  vrai ni pour l'un ni pour l'autre.** Mesuré le 20.09.2026 : **41 fichiers appellent
+  `createPortal`** (36 le 05.09.2026, dont 33 nommés modale/panneau/dialogue — la règle
+  tenait à trois près ; les trois du studio Labs la suivent) —
   mais le z-index est un **désordre assumé nulle part** : **185 sites `zIndex`
   portant 50 valeurs DISTINCTES** (remesuré le 14.09.2026 au motif du registre,
   commentaires blanchis ; 175 et 44 le 16.08 — les deux dernières valeurs venues, 4099
@@ -829,6 +836,47 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
+**Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. ⛔ **Les quotas par genre sont REMPLACÉS par des CRÉDITS depuis le 20.09.2026**
+(migration `20260921110000`, modèle Higgsfield) : un solde par agence — dotation
+mensuelle du plan (Pro 1 500, Entreprise 4 800, jamais reportée) + crédits achetés
+(ne périment pas) — débité production par production **AVANT** d'appeler le
+fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 720p et
+40/s en 1080p, voix off +10. Packs en `price_data` Stripe (200 · 500 · 1 200 · 3 000
+crédits, CHF 10 · 22 · 49 · 109 — aucun produit ni secret à poser) ; recharge
+automatique sous un seuil, hors session, sur la carte du premier achat. Écran :
+Réglages › **Consommation** (`?tab=credits`). ⛔ **Le retour de Stripe rend un REÇU, pas
+un « merci »** (20.09.2026) : `credits-checkout-status` relit la session chez Stripe
+— pack, montant, solde APRÈS, lien de facture — et **crédite lui aussi**, idempotent par
+PaymentIntent, parce qu'un écran qui attend le webhook affiche « paiement en cours » sur
+un paiement abouti dès que l'événement traîne. Son seul rempart est la confrontation de
+`session.metadata.agency_id` avec l'agence du jeton (`not_found` sinon), gardée par
+`credits-confidentialite.spec.ts`. Le solde et un raccourci d'achat vivent aussi dans le
+**menu de compte** (`CrmProfileCredits`), packs dépliés avec leur prix — jamais un clic
+qui débite sans annoncer le montant. ⛔ **Le coût fournisseur et la marge ne
+sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
+interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
+de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
+
+⚠ **Le studio savait PRODUIRE et ne savait pas RANGER — repris le 20.09.2026.** Classer une
+production demandait de l'ouvrir et d'y trouver une liste déroulante (trois gestes et un
+aller-retour par image, trente-six pour la douzaine qu'une séance de staging produit) ;
+quatre variantes d'un salon demandaient quatre clics, chacun suivi de quinze secondes où
+RIEN ne bougeait à l'écran ; retrouver un prompt de la semaine passée voulait dire faire
+défiler trois cents vignettes. Ajoutés, **sans une ligne de migration** : sélection multiple
+(grammaire de la Messagerie — case au survol, Maj+clic en plage, ⌘A, Échap ; l'en-tête
+DEVIENT la barre de gestes ; un `.in('id', …)` par geste), « Ranger dans… » au survol d'une
+vignette (`LabsFolderPicker`, porté dans `<body>`), recherche sur le prompt et la voix off
+(accents pliés), **variations ×1/×2/×4** en image avec tuiles d'attente locales — pas en
+vidéo, où quatre d'un coup vaudraient 40 % du quota mensuel —, « Refaire » en un clic
+(échec compris), un **préréglage de home staging pièce × style qui ÉCRIT la consigne en
+clair** dans la barre (jamais un prompt caché : l'agent doit pouvoir la relire et la
+corriger), et un **avant/après coulissant** dans la visionneuse. ⚠ Le vocabulaire de
+staging est celui de la fiche bien (`useVirtualStaging`), confronté par
+[labs-organisation.spec.ts](tests/unit/labs-organisation.spec.ts) — une seule exception
+nommée, `autre`.
+
+Détail : system-map §6quater, cerveau `megga/labs-studio`.
+
 **Messagerie (e-mail) : ✅ LOT 1 EN PRODUCTION depuis le 04.09.2026.** ⛔ **Ce paragraphe a affirmé l'inverse pendant vingt-quatre heures, et ses quatre mesures étaient inversées.** Il donnait la [PR #1274](https://github.com/megga/megga-real-estate/pull/1274) pour « OUVERTE au 04.09.2026 » et la production pour vide — « 0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%` » — alors qu'elle a été **mergée ce jour-là à 08:55 UTC** (`26187ba7`). Remesuré en production le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, 1 job cron `mail%`** (`mail-sync-2min`). La prétention n'était pas vague, elle était fausse sur chacun de ses chiffres — et aucune porte ne la mesurait.
 
 **Lot 1 (backend) — MERGÉ ET EN PRODUCTION** ([PR #1274](https://github.com/megga/megga-real-estate/pull/1274), types régénérés par [#1275](https://github.com/megga/megga-real-estate/pull/1275)). Mesuré en prod le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, le cron `mail-sync-2min` (`*/2 * * * *`) actif**, `mail_threads` publiée en Realtime avec `replica identity full`. Deux migrations : `20260904074500_mail_module.sql` (les 9 tables et 11 fonctions, RLS sur les 9, `purge_activity_events_retention` étendue à la catégorie `messaging`, 25 comptes par tick) et `20260904074600_mail_sync_failures.sql` (échecs consécutifs, `status='error'` au 5ᵉ). Côté code : **9 modules purs** dans `supabase/functions/_shared/mail/` — dont **6 seulement portent des specs**, soit **103 tests** au merge (depuis le 13.09.2026 : **10 modules**, 7 avec specs, **150 tests** — `disconnect.ts` est venu avec la révocation dans `delete-account` ; depuis le 14.09.2026 : **11 modules**, 8 avec specs, **173 tests** — `logos.ts`, les logos des expéditeurs ; avec le lot 3 IMAP (14.09.2026) : **17 modules**, 13 avec specs, **242 tests** ; avec le dossier Spam, **262** ; avec les gestes en lot, **18 modules**, 14 avec specs, **267** ; après la revue de sécurité du 15.09.2026, **298**, puis **19 modules**, 15 avec specs, **352** au bout de la revue, **362** avec ses défauts faibles — l'état de `main` depuis la fusion de la PR #1328, recompté dans son run Vitest du 15.09.2026 : 15 fichiers, 362 tests) ; `sync.ts`, `guard.ts` et `types.ts` ne sont exercés que par les specs backend — et **5 edge functions** (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`).
@@ -1003,6 +1051,23 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (✅ posé le 16.08.2026),
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
+
+> ⛔ **L'ABONNEMENT PRO N'EST PAS ACHETABLE EN PRODUCTION — aucun identifiant de prix Stripe
+> n'atteint le build** (relevé le 21.09.2026). « Passer à Pro » envoie à `stripe-checkout` l'id
+> d'un objet Price lu dans `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` (`src/lib/constants.ts`) ;
+> or `deploy-app.yml` ne passe au build que `VITE_SUPABASE_*`, `VITE_MAPBOX_TOKEN` et
+> `VITE_INTERCOM_APP_ID`, et aucun secret ni variable GitHub ne porte ces noms. Le bouton répond
+> donc « Configuration Stripe manquante, contactez le support » (`billing.stripeMissing`).
+>
+> ⚠ Le **montant** n'est pas dans le code : c'est celui de l'objet Price. `BillingSection` ne fait
+> que l'AFFICHER (Pro : CHF 89 depuis le 21.09.2026, CHF 74 le mois en annuel, « deux mois
+> offerts »). Pour que l'écran dise vrai il faut, hors dépôt : (1) créer dans Stripe les deux Price
+> du produit Pro, CHF 89 par mois et CHF 890 par an (les « deux mois offerts » que l'écran annonce) ; (2) poser leurs ids en secrets GitHub
+> `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` ET les ajouter à l'`env` du build de
+> `deploy-app.yml` ; (3) poser les mêmes ids en secrets Supabase `STRIPE_PRICE_PRO_MONTHLY` /
+> `_YEARLY` — `_shared/stripe-prices.ts` refuse tout id absent de cette table (`price_not_allowed`,
+> ou `stripe_prices_not_configured` si elle est vide). Aucun abonné à migrer : les 13 agences de
+> production sont en `starter`.
 
 > ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
 > les **263 chunks** réellement servis par `app.getmegga.com` : le jeton (`pk.eyJ…`) est dans

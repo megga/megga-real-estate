@@ -2608,6 +2608,145 @@ export type Database = {
           },
         ]
       }
+      credit_ledger: {
+        Row: {
+          agency_id: string
+          amount: number
+          amount_chf: number | null
+          bucket: string
+          created_at: string
+          created_by: string | null
+          id: string
+          included_after: number
+          kind: string
+          metadata: Json
+          purchased_after: number
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          agency_id: string
+          amount: number
+          amount_chf?: number | null
+          bucket: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_after: number
+          kind: string
+          metadata?: Json
+          purchased_after: number
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          agency_id?: string
+          amount?: number
+          amount_chf?: number | null
+          bucket?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          included_after?: number
+          kind?: string
+          metadata?: Json
+          purchased_after?: number
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_plan_allowances: {
+        Row: {
+          monthly_credits: number
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          monthly_credits: number
+          plan: string
+          updated_at?: string
+        }
+        Update: {
+          monthly_credits?: number
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      credit_wallets: {
+        Row: {
+          agency_id: string
+          auto_topup_enabled: boolean
+          auto_topup_last_error: string | null
+          auto_topup_last_error_at: string | null
+          auto_topup_locked_until: string | null
+          auto_topup_pack: string
+          auto_topup_threshold: number
+          card_brand: string | null
+          card_last4: string | null
+          created_at: string
+          included: number
+          included_month: string
+          included_plan: string | null
+          purchased: number
+          stripe_payment_method_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          auto_topup_enabled?: boolean
+          auto_topup_last_error?: string | null
+          auto_topup_last_error_at?: string | null
+          auto_topup_locked_until?: string | null
+          auto_topup_pack?: string
+          auto_topup_threshold?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          included?: number
+          included_month?: string
+          included_plan?: string | null
+          purchased?: number
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          auto_topup_enabled?: boolean
+          auto_topup_last_error?: string | null
+          auto_topup_last_error_at?: string | null
+          auto_topup_locked_until?: string | null
+          auto_topup_pack?: string
+          auto_topup_threshold?: number
+          card_brand?: string | null
+          card_last4?: string | null
+          created_at?: string
+          included?: number
+          included_month?: string
+          included_plan?: string | null
+          purchased?: number
+          stripe_payment_method_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_wallets_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: true
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_open_tabs: {
         Row: {
           active_index: number
@@ -3576,6 +3715,168 @@ export type Database = {
             columns: ["supersedes_id"]
             isOneToOne: false
             referencedRelation: "kyc_screening_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labs_assets: {
+        Row: {
+          agency_id: string
+          aspect_ratio: string | null
+          completed_at: string | null
+          cost_chf: number | null
+          created_at: string
+          created_by: string | null
+          credits: number | null
+          deleted_at: string | null
+          duration_s: number | null
+          error_code: string | null
+          folder_id: string | null
+          height: number | null
+          id: string
+          is_favorite: boolean
+          kind: string
+          metadata: Json
+          model: string | null
+          prompt: string | null
+          provider: string | null
+          provider_request_id: string | null
+          provider_response_url: string | null
+          provider_status_url: string | null
+          source_asset_id: string | null
+          status: string
+          thumbnail_url: string | null
+          url: string | null
+          voiceover_lang: string | null
+          voiceover_text: string | null
+          voiceover_url: string | null
+          voiceover_voice: string | null
+          width: number | null
+        }
+        Insert: {
+          agency_id: string
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          cost_chf?: number | null
+          created_at?: string
+          created_by?: string | null
+          credits?: number | null
+          deleted_at?: string | null
+          duration_s?: number | null
+          error_code?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean
+          kind: string
+          metadata?: Json
+          model?: string | null
+          prompt?: string | null
+          provider?: string | null
+          provider_request_id?: string | null
+          provider_response_url?: string | null
+          provider_status_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          url?: string | null
+          voiceover_lang?: string | null
+          voiceover_text?: string | null
+          voiceover_url?: string | null
+          voiceover_voice?: string | null
+          width?: number | null
+        }
+        Update: {
+          agency_id?: string
+          aspect_ratio?: string | null
+          completed_at?: string | null
+          cost_chf?: number | null
+          created_at?: string
+          created_by?: string | null
+          credits?: number | null
+          deleted_at?: string | null
+          duration_s?: number | null
+          error_code?: string | null
+          folder_id?: string | null
+          height?: number | null
+          id?: string
+          is_favorite?: boolean
+          kind?: string
+          metadata?: Json
+          model?: string | null
+          prompt?: string | null
+          provider?: string | null
+          provider_request_id?: string | null
+          provider_response_url?: string | null
+          provider_status_url?: string | null
+          source_asset_id?: string | null
+          status?: string
+          thumbnail_url?: string | null
+          url?: string | null
+          voiceover_lang?: string | null
+          voiceover_text?: string | null
+          voiceover_url?: string | null
+          voiceover_voice?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labs_assets_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_assets_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "labs_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "labs_assets_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "labs_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      labs_folders: {
+        Row: {
+          agency_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "labs_folders_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
@@ -7514,6 +7815,7 @@ export type Database = {
       whatsapp_messages: {
         Row: {
           agency_id: string | null
+          audience: string | null
           body: string | null
           claimed_at: string | null
           contact_id: string | null
@@ -7531,6 +7833,9 @@ export type Database = {
           media_r2_key: string | null
           media_type: string | null
           media_url: string | null
+          meta_billable: boolean | null
+          meta_category: string | null
+          meta_pricing_type: string | null
           processing_status: string
           provider: string
           provider_message_id: string
@@ -7550,6 +7855,7 @@ export type Database = {
         }
         Insert: {
           agency_id?: string | null
+          audience?: string | null
           body?: string | null
           claimed_at?: string | null
           contact_id?: string | null
@@ -7567,6 +7873,9 @@ export type Database = {
           media_r2_key?: string | null
           media_type?: string | null
           media_url?: string | null
+          meta_billable?: boolean | null
+          meta_category?: string | null
+          meta_pricing_type?: string | null
           processing_status?: string
           provider?: string
           provider_message_id: string
@@ -7586,6 +7895,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string | null
+          audience?: string | null
           body?: string | null
           claimed_at?: string | null
           contact_id?: string | null
@@ -7603,6 +7913,9 @@ export type Database = {
           media_r2_key?: string | null
           media_type?: string | null
           media_url?: string | null
+          meta_billable?: boolean | null
+          meta_category?: string | null
+          meta_pricing_type?: string | null
           processing_status?: string
           provider?: string
           provider_message_id?: string
@@ -8663,6 +8976,51 @@ export type Database = {
           status: Database["public"]["Enums"]["crm_offer_status"]
         }[]
       }
+      credits_auto_topup_claim: { Args: { p_agency: string }; Returns: Json }
+      credits_auto_topup_release: {
+        Args: { p_agency: string; p_error: string | null }
+        Returns: undefined
+      }
+      credits_balance: { Args: never; Returns: Json }
+      credits_debit: {
+        Args: {
+          p_actor?: string | null
+          p_agency: string
+          p_amount: number
+          p_metadata?: Json
+          p_ref_id: string
+          p_ref_type: string
+        }
+        Returns: Json
+      }
+      credits_purchase: {
+        Args: {
+          p_agency: string
+          p_amount: number
+          p_amount_chf: number
+          p_kind: string
+          p_metadata?: Json
+          p_ref_id: string
+          p_ref_type: string
+        }
+        Returns: Json
+      }
+      credits_refund: {
+        Args: { p_agency: string; p_reason: string; p_ref_id: string; p_ref_type: string }
+        Returns: Json
+      }
+      credits_set_auto_topup: {
+        Args: { p_enabled: boolean; p_pack: string; p_threshold: number }
+        Returns: Json
+      }
+      credits_set_card: {
+        Args: { p_agency: string; p_brand: string | null; p_last4: string | null; p_payment_method_id: string }
+        Returns: undefined
+      }
+      credits_wallet_ensure: {
+        Args: { p_agency: string }
+        Returns: Database["public"]["Tables"]["credit_wallets"]["Row"]
+      }
       crm_tab_badges: { Args: never; Returns: Json }
       crm_tabs_resolve_labels: { Args: { p_refs: Json }; Returns: Json }
       crm_tabs_save: {
@@ -9301,6 +9659,19 @@ export type Database = {
         }[]
       }
       get_admin_whatsapp_health: { Args: never; Returns: Json }
+      get_admin_whatsapp_usage: {
+        Args: { p_months?: number }
+        Returns: {
+          agency_id: string | null
+          agency_name: string | null
+          agent_messages: number
+          billable: number
+          by_category: Json
+          client_messages: number
+          delivered: number
+          month: string
+        }[]
+      }
       get_agency_activity_summary: {
         Args: { agency_ids: string[]; since_days?: number }
         Returns: {
@@ -10696,6 +11067,7 @@ export type Database = {
           last_message_at: string
         }[]
       }
+      whatsapp_usage_month: { Args: { p_month?: string }; Returns: Json }
     }
     Enums: {
       crm_offer_kind: "offer" | "counter"

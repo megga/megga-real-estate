@@ -345,6 +345,24 @@ describe('sendOutboundGuarded — persistance et jeton d’accusé', () => {
     })
   })
 
+  it('l’audience vient du VERDICT, jamais de ce que l’appelant déclare', async () => {
+    // Le compteur mensuel sépare MEGGA AI (agent) et clients. Un appelant qui déclarerait un
+    // contact pour un numéro d'agent ne doit pas faire compter l'échange comme un message
+    // client : c'est `subject_kind`, dérivé par le registre, qui décide.
+    const agent = harness({ verdict: { ...OK_VERDICT, subject_kind: 'profile', legal_basis: 'contract' } })
+    await sendOutboundGuarded(baseArgs(agent, { contactId: 'c-1', profileId: null }))
+    expect(agent.upserted[0].row.audience).toBe('agent')
+
+    const client = harness({ verdict: { ...OK_VERDICT, subject_kind: 'contact' } })
+    await sendOutboundGuarded(baseArgs(client, { contactId: null, profileId: 'p-1' }))
+    expect(client.upserted[0].row.audience).toBe('client')
+
+    // Numéro inconnu ou ambigu (`phone`) : ce n'est pas un agent vérifié, donc un client.
+    const inconnu = harness({ verdict: { ...OK_VERDICT, subject_kind: 'phone' } })
+    await sendOutboundGuarded(baseArgs(inconnu))
+    expect(inconnu.upserted[0].row.audience).toBe('client')
+  })
+
   it('isAgentError traverse jusqu’à la ligne — l’alerte de livraison le relit', async () => {
     const h = harness()
     await sendOutboundGuarded(baseArgs(h, { isAgentError: true, profileId: 'p-1', contactId: null }))
