@@ -25,6 +25,7 @@ import {
   base64ToBytes, cleanVoice, cleanVoiceLang, labsOuvertAuPlan, labsVoiceoverPrompt,
   pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../_shared/labs.ts'
+import { planEffectifAgence } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -87,11 +88,11 @@ serve(async (req: Request) => {
   const voice = cleanVoice(body.voiceName)
   const lang = cleanVoiceLang(body.voiceLang)
 
-  // Le même mur que la génération : écouter une voix est déjà un usage du studio.
-  const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  // La porte des générations, à l'identique : les quotas par genre sont partis avec
-  // l'arrivée des crédits (`labsQuotaFor` n'existe plus), il ne reste que le plan.
-  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
+  // Le même mur que la génération : écouter une voix est déjà un usage du studio. Le plan
+  // EFFECTIF (l'abonnement, jamais `agencies.plan`), comme les générations.
+  const plan = await planEffectifAgence(supabase, profile.agency_id)
+  if (plan === null) return json({ error: 'plan_unavailable' }, 503)
+  if (!labsOuvertAuPlan(plan)) return json({ error: 'upgrade_required' }, 403)
 
   if (tropVite(user.id)) return json({ error: 'too_many_previews' }, 429)
 

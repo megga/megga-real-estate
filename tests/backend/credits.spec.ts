@@ -20,8 +20,9 @@ import { describe, expect, it } from 'vitest'
 import {
   AUTO_TOPUP_SEUILS, CREDIT_CHF_BASE, CREDIT_PACKS, CREDITS_DOTATION_MENSUELLE, CREDITS_IMAGE,
   CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF, PRIX_PLAN_CHF,
-  chfParCredit, coutFournisseurImageChf, coutFournisseurVideoChf, coutPireCasDotationChf, creditsPourImage,
-  creditsPourVideo, dotationMensuelle, margeImage, margeVideo, packLeMoinsCher, packParId, rechargeDue,
+  carteGardeePourRecharge, chfParCredit, clientStripeReel, coutFournisseurImageChf, coutFournisseurVideoChf,
+  coutPireCasDotationChf, creditsPourImage, creditsPourVideo, dotationMensuelle, margeImage, margeVideo,
+  packLeMoinsCher, packParId, rechargeDue,
 } from '../../supabase/functions/_shared/credits'
 
 const RESOLUTIONS = ['720p', '1080p'] as const
@@ -139,5 +140,35 @@ describe('crédits — la recharge automatique', () => {
   })
   it('les seuils sont ceux que la base accepte (CHECK de `credit_wallets`)', () => {
     expect([...AUTO_TOPUP_SEUILS]).toEqual([50, 100, 200, 500])
+  })
+})
+
+// Revue post-fusion de #1338 (21.09.2026). `credits-checkout` demande la garde de la carte
+// PAR MOYEN DE PAIEMENT ; Stripe la range sous `payment_method_options.card`, et le champ
+// de premier niveau reste `null`. Ne lire que celui-ci ne gardait JAMAIS la carte.
+describe('crédits — la carte gardée pour la recharge', () => {
+  it('lit la demande posée par moyen de paiement', () => {
+    expect(carteGardeePourRecharge({ setup_future_usage: null, payment_method_options: { card: { setup_future_usage: 'off_session' } } })).toBe(true)
+  })
+  it('lit aussi la demande de premier niveau', () => {
+    expect(carteGardeePourRecharge({ setup_future_usage: 'off_session' })).toBe(true)
+  })
+  it('ne garde rien sans demande hors session', () => {
+    expect(carteGardeePourRecharge({ setup_future_usage: null, payment_method_options: { card: {} } })).toBe(false)
+    expect(carteGardeePourRecharge({ setup_future_usage: 'on_session' })).toBe(false)
+    expect(carteGardeePourRecharge(null)).toBe(false)
+  })
+})
+
+// `admin_set_agency_plan` pose `manual_<agence>` dans `subscriptions` : Stripe refuse ce
+// client, et l'achat de crédits d'une agence passée en Pro par la console échouait.
+describe('crédits — le client Stripe', () => {
+  it('écarte le client factice de la console', () => {
+    expect(clientStripeReel('manual_0b2f3c4d-0000-4000-8000-000000000000', 'cus_Q1w2E3r4')).toBe('cus_Q1w2E3r4')
+    expect(clientStripeReel('manual_0b2f3c4d-0000-4000-8000-000000000000', null)).toBeNull()
+  })
+  it('garde l’ordre de préférence entre deux vrais clients', () => {
+    expect(clientStripeReel('cus_Abonnement', 'cus_Agence')).toBe('cus_Abonnement')
+    expect(clientStripeReel(undefined, '', 'cus_Agence')).toBe('cus_Agence')
   })
 })

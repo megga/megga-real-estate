@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
+import { useAuth } from '@/hooks/useAuth'
 import { useCredits, useCreditRecu } from '@/hooks/useCredits'
 import { useWhatsAppUsage } from '@/hooks/useWhatsAppUsage'
 import {
@@ -50,6 +51,10 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
   const toast = useToast()
   const credits = useCredits()
   const whatsapp = useWhatsAppUsage()
+  const { profile } = useAuth()
+  // Miroir de `is_agency_admin()` : la recharge automatique DÉBITE la carte de l'agence,
+  // et `credits_set_auto_topup` la refuse à un agent simple. Le banc montre les réglages.
+  const dirige = credits.enBanc || profile?.role === 'admin' || profile?.role === 'manager'
   const [params, setParams] = useSearchParams()
   const canceled = params.get('canceled') === 'true'
 
@@ -93,7 +98,7 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
     setAuto(next)
     const r = await credits.reglerAutoRecharge.mutateAsync(next)
     if (!r.ok) {
-      toast.error(r.error === 'no_card' ? t('credits.auto.noCard') : t('credits.auto.saveError'))
+      toast.error(r.error === 'no_card' ? t('credits.auto.noCard') : r.error === 'forbidden' ? t('credits.auto.adminOnly') : t('credits.auto.saveError'))
       if (b) setAuto({ enabled: b.autoTopupEnabled, threshold: b.autoTopupThreshold, pack: b.autoTopupPack })
       return
     }
@@ -239,23 +244,26 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
         {b && auto && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
-              <Interrupteur c={c} sp={sp} on={auto.enabled} onClick={() => { void regler({ ...auto, enabled: !auto.enabled }) }} disabled={!b.hasCard && !auto.enabled} />
+              <Interrupteur c={c} sp={sp} on={auto.enabled} onClick={() => { void regler({ ...auto, enabled: !auto.enabled }) }} disabled={!dirige || (!b.hasCard && !auto.enabled)} />
               <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: c.ink }}>{auto.enabled ? t('credits.auto.enabled') : t('credits.auto.disabled')}</span>
               {saved && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: c.green }}>{t('credits.auto.saved')}</span>}
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap', fontSize: 'var(--crm-text-lg)', color: c.ink }}>
               <span>{t('credits.auto.threshold')}</span>
-              <Choix c={c} value={String(auto.threshold)} onChange={(v) => { void regler({ ...auto, threshold: Number(v) as AutoTopupSeuil }) }}
+              <Choix c={c} disabled={!dirige} value={String(auto.threshold)} onChange={(v) => { void regler({ ...auto, threshold: Number(v) as AutoTopupSeuil }) }}
                 options={AUTO_TOPUP_SEUILS.map((s) => ({ id: String(s), label: t('labs:credits.amount', { count: s, n: formatCredits(s, lang) }) }))} />
               <span>{t('credits.auto.pack')}</span>
-              <Choix c={c} value={auto.pack} onChange={(v) => { void regler({ ...auto, pack: v as CreditPackId }) }}
+              <Choix c={c} disabled={!dirige} value={auto.pack} onChange={(v) => { void regler({ ...auto, pack: v as CreditPackId }) }}
                 options={CREDIT_PACKS.map((p) => ({ id: p.id, label: `${t('credits.packs.credits', { n: formatCredits(p.credits, lang) })} · ${t('credits.packs.price', { chf: p.chf })}` }))} />
             </div>
 
             <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: b.hasCard ? c.soft : c.sub, lineHeight: 1.45 }}>
               {b.hasCard ? t('credits.auto.card', { brand: capitale(b.cardBrand ?? ''), last4: b.cardLast4 ?? '' }) : t('credits.auto.noCard')}
             </p>
+            {!dirige && (
+              <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: c.sub, lineHeight: 1.45 }}>{t('credits.auto.adminOnly')}</p>
+            )}
             {b.autoTopupLastError && (
               <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: danger, fontWeight: 500, lineHeight: 1.45 }}>{t('credits.auto.lastError', { error: b.autoTopupLastError })}</p>
             )}
@@ -426,14 +434,16 @@ function Interrupteur(p: { c: PfColors; sp: FocusSectionProps['sp']; on: boolean
   )
 }
 
-function Choix(p: { c: PfColors; value: string; onChange: (v: string) => void; options: { id: string; label: string }[] }) {
+function Choix(p: { c: PfColors; value: string; onChange: (v: string) => void; options: { id: string; label: string }[]; disabled?: boolean }) {
   return (
     <select
       value={p.value}
       onChange={(e) => p.onChange(e.target.value)}
+      disabled={p.disabled}
       style={{
         height: 36, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${p.c.hair}`,
-        background: p.c.inputBg, color: p.c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500, cursor: 'pointer',
+        background: p.c.inputBg, color: p.c.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 500,
+        cursor: p.disabled ? 'not-allowed' : 'pointer', opacity: p.disabled ? 0.6 : 1,
       }}
     >
       {p.options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}

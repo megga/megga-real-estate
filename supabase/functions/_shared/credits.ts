@@ -122,6 +122,37 @@ export function rechargeDue(p: { enabled: boolean; hasCard: boolean; balance: nu
   return p.enabled && p.hasCard && p.balance < p.threshold
 }
 
+/**
+ * La carte d'un paiement est-elle gardée pour la recharge HORS SESSION ?
+ *
+ * ⛔ `credits-checkout` la demande PAR MOYEN DE PAIEMENT
+ * (`payment_method_options.card.setup_future_usage`), pour ne pas l'exiger de TWINT :
+ * Stripe range alors la valeur sous `payment_method_options.card`, et le champ de
+ * PREMIER niveau du PaymentIntent reste `null`. Ne lire que celui-ci, comme avant la
+ * revue du 21.09.2026, ne gardait jamais aucune carte — la recharge automatique ne
+ * pouvait pas s'activer.
+ */
+export function carteGardeePourRecharge(pi: {
+  setup_future_usage?: string | null
+  payment_method_options?: { card?: { setup_future_usage?: string | null } | null } | null
+} | null | undefined): boolean {
+  if (!pi) return false
+  return pi.setup_future_usage === 'off_session' || pi.payment_method_options?.card?.setup_future_usage === 'off_session'
+}
+
+/**
+ * Le premier identifiant de client Stripe RÉEL (`cus_…`) parmi les candidats.
+ * ⚠ `admin_set_agency_plan` pose `manual_<agence>` dans `subscriptions` : une valeur
+ * factice, que Stripe refuse (« No such customer »). La transmettre au Checkout faisait
+ * échouer tout achat de crédits d'une agence passée en Pro par la console.
+ */
+export function clientStripeReel(...ids: Array<string | null | undefined>): string | null {
+  for (const id of ids) {
+    if (typeof id === 'string' && /^cus_[A-Za-z0-9]+$/.test(id)) return id
+  }
+  return null
+}
+
 // ─── CONFIDENTIEL — le coût fournisseur et la marge ──────────────────────────
 // ⛔ Rien de ce bloc ne doit être importé par `src/`. Le taux USD→CHF et les barèmes
 // sont ceux de `labs.ts` (relevés le 20.09.2026) : Nano Banana 2 en 2K 0,101 $ l'image,

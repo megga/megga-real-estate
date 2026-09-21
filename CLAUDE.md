@@ -856,6 +856,22 @@ qui débite sans annoncer le montant. ⛔ **Le coût fournisseur et la marge ne
 sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
 interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
 de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
+⛔ **REVUE POST-FUSION DU 21.09.2026 — six défauts bloquants corrigés** (migrations
+`20260922100000` à `…100400`, une par défaut) : (1) `cost_chf` ne sortait pas de `src/` mais sortait de la BASE —
+lisible par tout membre, rendu par les edges, copié dans le journal que `/dashboard/audit`
+affiche ; colonne fermée à `authenticated`, réponses par `assetPourAgent`, l'écran lit
+`LABS_ASSET_COLONNES`. (2) La carte n'était JAMAIS gardée : `setup_future_usage` est posé
+par moyen de paiement, et on lisait le champ de premier niveau (`carteGardeePourRecharge`).
+(3) Le plan se lit sur l'abonnement (`agency_plan_effectif`), jamais `agencies.plan` ; une
+montée de plan se paie contre ce que le mois a déjà donné. (4) `credits-checkout` envoyait à
+Stripe le client factice `manual_<agence>` (`clientStripeReel`). (5) Une vidéo finie mais
+non sondée était jetée au bout de 15 min : l'âge ne tranche plus qu'APRÈS fal.ai, et un bail
+(`labs_asset_claim_finalize`) ne laisse passer qu'un finaliseur. (6) Un crédit en échec après
+une charge de carte était acquitté (webhook, recharge automatique) ; il fait désormais
+rejouer Stripe. La recharge automatique se règle par un DIRIGEANT (`is_agency_admin()`), et
+un Starter voit « À partir du plan Pro » dans Labs, jamais « Recharger ». ⚠ Hors dépôt : le
+point de terminaison Stripe doit être abonné à `payment_intent.succeeded`, filet de la
+recharge automatique.
 
 ⚠ **Le studio savait PRODUIRE et ne savait pas RANGER — repris le 20.09.2026.** Classer une
 production demandait de l'ouvrir et d'y trouver une liste déroulante (trois gestes et un

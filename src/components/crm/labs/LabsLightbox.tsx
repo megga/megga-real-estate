@@ -273,8 +273,8 @@ export function LabsLightbox(p: Props) {
               « Animer » et « Refaire » y ont tous deux été peints en accent le temps d'un
               essai : deux aplats indigo l'un sur l'autre, de même taille et de même
               poids, ne hiérarchisent rien — l'œil choisit le premier, qui n'est pas le
-              plus fréquent. Refaire coûte ~CHF 0,09 et se répète jusqu'à ce que l'image
-              soit bonne ; animer coûte ~CHF 3,70 et se fait une fois, à la fin. C'est
+              plus fréquent. Refaire coûte quelques crédits et se répète jusqu'à ce que
+              l'image soit bonne ; animer en coûte trente fois plus et se fait une fois, à la fin. C'est
               l'acte RÉPÉTÉ qui prend l'accent, pas le plus spectaculaire.
 
               ⚠ REFAIRE et RÉUTILISER ne sont pas le même geste, et l'écran doit le dire :

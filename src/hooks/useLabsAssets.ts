@@ -11,17 +11,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useEcranActif } from '@/hooks/useEcranActif'
-import { invokeLabs, labsAssetFromRow } from '@/lib/labs'
+import { LABS_ASSET_COLONNES, invokeLabs, labsAssetFromRow, type LabsAssetRow } from '@/lib/labs'
 import { fxAssets, fxEcouter, fxPatchAsset, fxRemoveAsset, useLabsFixtures } from '@/components/crm/labs/fixtures'
 import type { LabsAsset } from '@/types/labs'
-import type { Database } from '@/types/database'
 
 export const LABS_ASSETS_KEY = ['labs', 'assets'] as const
 const LIMITE = 300
 const REGROUPEMENT_MS = 800
 const SONDAGE_MS = 5000
 
-type AssetRow = Database['public']['Tables']['labs_assets']['Row']
 
 export function useLabsAssets() {
   const { profile } = useAuth()
@@ -36,7 +34,7 @@ export function useLabsAssets() {
     queryFn: async (): Promise<LabsAsset[]> => {
       if (fx) return fxAssets(fx)
       const { data, error } = await supabase
-        .from('labs_assets').select('*')
+        .from('labs_assets').select(LABS_ASSET_COLONNES)
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(LIMITE)
@@ -163,7 +161,7 @@ export function useLabsAssets() {
   })
 
   /** Ajoute une production fraîchement rendue par une edge, en tête. */
-  const inserer = (row: AssetRow | LabsAsset) => {
+  const inserer = (row: LabsAssetRow | LabsAsset) => {
     const asset = 'agency_id' in row ? labsAssetFromRow(row) : row
     qc.setQueryData<LabsAsset[]>(key, (prev) => [asset, ...(prev ?? []).filter((a) => a.id !== asset.id)])
   }
@@ -197,20 +195,21 @@ export function useLabsVideoPolling(assets: LabsAsset[], poser: (id: string, pat
   useEffect(() => {
     if (fx || !actif || enCours.length === 0) return
     let arrete = false
+    let suivant: ReturnType<typeof setTimeout> | null = null
+    // ⛔ Le tour SUIVANT part quand le précédent a FINI. Une finalisation (mux, copie R2)
+    // dure bien plus que l'intervalle, et `setInterval` empilait les appels sur la même
+    // vidéo ; l'edge tient désormais un bail, l'écran cesse en plus de la marteler.
     const tour = async () => {
       for (const id of enCours) {
         if (arrete) return
-        const r = await invokeLabs<{ asset: AssetRow }>('labs-video-status', { assetId: id })
+        const r = await invokeLabs<{ asset: LabsAssetRow }>('labs-video-status', { assetId: id })
         if (arrete) return
-        if (r.data?.asset) {
-          const a = labsAssetFromRow(r.data.asset)
-          poser(id, a)
-        }
+        if (r.data?.asset) poser(id, labsAssetFromRow(r.data.asset))
       }
+      if (!arrete) suivant = setTimeout(() => { void tour() }, SONDAGE_MS)
     }
     void tour()
-    const timer = setInterval(() => { void tour() }, SONDAGE_MS)
-    return () => { arrete = true; clearInterval(timer) }
+    return () => { arrete = true; if (suivant) clearTimeout(suivant) }
     // `cle` résume la liste ; `poser` est stable par construction du cache.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cle, fx, actif])

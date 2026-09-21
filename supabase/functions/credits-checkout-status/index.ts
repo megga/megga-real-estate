@@ -26,7 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
-import { packParId } from '../_shared/credits.ts'
+import { carteGardeePourRecharge, clientStripeReel, packParId } from '../_shared/credits.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,7 +66,8 @@ serve(async (req: Request) => {
   if (!sessionId) return json({ error: 'invalid_session' }, 400)
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['invoice', 'payment_intent'] })
+    // `payment_intent.payment_method` déplié d'emblée : la carte se lit sans second appel à Stripe.
+    const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['invoice', 'payment_intent.payment_method'] })
 
     // L'agence de la MÉTADONNÉE contre celle du jeton : c'est le seul lien de propriété.
     if (session.metadata?.kind !== 'credits' || session.metadata?.agency_id !== profile.agency_id) {
@@ -112,6 +113,11 @@ serve(async (req: Request) => {
     if (error) throw error
     const r = (data ?? {}) as { duplicate?: boolean; balance?: number }
 
+    // Le client qui a payé porte la carte : la recharge automatique le relira sur l'agence
+    // (`credits_auto_topup_claim`). Le webhook le note aussi ; ici, il ne dépend pas de lui.
+    const clientPaye = clientStripeReel(typeof session.customer === 'string' ? session.customer : session.customer?.id)
+    if (clientPaye) await admin.from('agencies').update({ stripe_customer_id: clientPaye }).eq('id', profile.agency_id)
+
     // Le grand livre porte l'achat ; le journal de l'agence porte le FAIT, une fois.
     if (!r.duplicate) {
       await admin.from('activity_events').insert({
@@ -133,7 +139,9 @@ serve(async (req: Request) => {
         ? pi as Stripe.PaymentIntent
         : await stripe.paymentIntents.retrieve(piId, { expand: ['payment_method'] })
       const pm = plein.payment_method as Stripe.PaymentMethod | null
-      if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && plein.setup_future_usage === 'off_session') {
+      // ⛔ `carteGardeePourRecharge` : la demande est posée PAR MOYEN DE PAIEMENT, le champ
+      // de premier niveau reste `null` — le lire seul ne gardait jamais la carte.
+      if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && carteGardeePourRecharge(plein)) {
         await admin.rpc('credits_set_card', {
           p_agency: profile.agency_id,
           p_payment_method_id: pm.id,

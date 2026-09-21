@@ -3731,6 +3731,7 @@ export type Database = {
           deleted_at: string | null
           duration_s: number | null
           error_code: string | null
+          finalizing_until: string | null
           folder_id: string | null
           height: number | null
           id: string
@@ -3764,6 +3765,7 @@ export type Database = {
           deleted_at?: string | null
           duration_s?: number | null
           error_code?: string | null
+          finalizing_until?: string | null
           folder_id?: string | null
           height?: number | null
           id?: string
@@ -3797,6 +3799,7 @@ export type Database = {
           deleted_at?: string | null
           duration_s?: number | null
           error_code?: string | null
+          finalizing_until?: string | null
           folder_id?: string | null
           height?: number | null
           id?: string
@@ -8722,6 +8725,7 @@ export type Database = {
         }
         Returns: number
       }
+      agency_plan_effectif: { Args: { p_agency: string }; Returns: string }
       analytics_cockpit: {
         Args: { p_period?: string; p_scope?: string }
         Returns: Json
@@ -9985,6 +9989,10 @@ export type Database = {
           p_starts_at: string
         }
         Returns: string
+      }
+      labs_asset_claim_finalize: {
+        Args: { p_agency: string; p_asset: string; p_lease_seconds?: number }
+        Returns: boolean
       }
       log_auth_event_limited: {
         Args: {

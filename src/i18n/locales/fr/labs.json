@@ -83,7 +83,9 @@
     "estimateMany_one": "{{n}} crédits · {{count}} image",
     "estimateMany_other": "{{n}} crédits · {{count}} images",
     "balance": "solde {{n}}",
-    "recharge": "Recharger"
+    "recharge": "Recharger",
+    "proOnly": "À partir du plan Pro",
+    "seePlans": "Voir les plans"
   },
   "voices": {
     "Kore": "Kore, posée",
@@ -161,6 +163,7 @@
   },
   "errors": {
     "upgrade_required": "Le studio est disponible à partir du plan Pro.",
+    "plan_unavailable": "Le plan de l'agence n'a pas pu être lu. Réessayez dans un instant.",
     "provider_not_configured": "Le service de génération n'est pas configuré.",
     "storage_not_configured": "Le stockage des productions n'est pas configuré.",
     "storage_failed": "Le fichier n'a pas pu être enregistré.",

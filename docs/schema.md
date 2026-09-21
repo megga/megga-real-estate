@@ -113,8 +113,10 @@ labs_assets (
   model, provider,  -- 'gemini' | 'fal' | 'upload'
   provider_request_id, provider_status_url, provider_response_url,   -- file d'attente fal.ai (pas des secrets)
   error_code,
-  cost_chf,         -- ⛔ le COÛT FOURNISSEUR (CHF), pour la console — ne sort JAMAIS vers l'agent
+  cost_chf,         -- ⛔ le COÛT FOURNISSEUR (CHF), pour la console — ILLISIBLE par authenticated
+                    --    (revoke + grant de colonnes, 20260922100400) ; les edges rendent assetPourAgent()
   credits,          -- ce que la production a coûté à l'agence, en crédits (débité AVANT le fournisseur)
+  finalizing_until, -- bail de finalisation d'une vidéo (labs_asset_claim_finalize, 20260922100300) — colonne serveur
   is_favorite, metadata,
   created_at, completed_at,
   deleted_at        -- suppression DOUCE : le fichier R2 vit encore, aucune policy DELETE
@@ -124,6 +126,8 @@ labs_assets (
   -- modifie que folder_id, is_favorite, deleted_at (trigger tg_labs_assets_guard rétablit le reste).
   -- Publiée en Realtime (replica identity full). Bucket Storage `labs` (public, {agency_id}/{uuid}.ext)
   -- pour les imports ; productions sur R2 sous labs/{agency_id}/.
+  -- ⚠ SELECT par colonnes (20260922100400) : une colonne AJOUTÉE naît illisible pour authenticated —
+  -- l'accorder dans sa migration. L'écran lit LABS_ASSET_COLONNES, jamais select('*') (42501).
 
 -- Crédits (20.09.2026, migration 20260921110000) — la monnaie du studio Labs
 credit_plan_allowances (
@@ -144,7 +148,8 @@ credit_wallets (
   stripe_payment_method_id, card_brand, card_last4,   -- la carte du premier achat (setup_future_usage)
   created_at, updated_at
 )
-  -- RLS select agence ; AUCUNE policy d'écriture : tout passe par les RPC.
+  -- Illisible en direct par authenticated depuis 20260922100200 (elle portait l'identifiant Stripe du
+  -- moyen de paiement) : l'écran passe par credits_balance(). AUCUNE écriture directe : tout passe par les RPC.
 
 credit_ledger (
   id, agency_id → agencies,
@@ -159,9 +164,13 @@ credit_ledger (
   -- Append-only, RLS select agence. Index uniques : un paiement Stripe ne crédite qu'une
   -- fois (ref_type, ref_id) ; une production n'est débitée et remboursée qu'une fois
   -- (kind, ref_type, ref_id). C'est ce qui rend un rejeu de webhook inoffensif.
-  -- RPC : credits_balance() [authenticated], credits_set_auto_topup() [authenticated],
-  --       credits_debit / credits_refund / credits_purchase / credits_set_card /
-  --       credits_auto_topup_claim / credits_auto_topup_release / credits_wallet_ensure [service_role].
+  -- RPC : credits_balance() [authenticated], credits_set_auto_topup() [authenticated, DIRIGEANT seul —
+  --       is_agency_admin(), 20260922100200], credits_debit / credits_refund / credits_purchase /
+  --       credits_set_card / credits_auto_topup_claim (client Stripe `cus_…` seulement) /
+  --       credits_auto_topup_release / credits_wallet_ensure [service_role].
+  -- Plan : agency_plan_effectif(agence) [service_role, 20260922100000] — l'abonnement actif / en essai / en retard,
+  --       sinon starter ; JAMAIS agencies.plan. La dotation d'une montée de plan se calcule contre
+  --       ce que le mois a DÉJÀ donné (grand livre), pas contre le plan précédent.
 
 -- Biens immobiliers
 properties (
