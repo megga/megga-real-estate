@@ -9104,6 +9104,10 @@ export type Database = {
       }
       flatfox_sync_health: { Args: never; Returns: Json }
       flatfox_active_count_refresh: { Args: never; Returns: number }
+      flatfox_balayer_retraits: {
+        Args: { p_limit?: number; p_plafond?: number; p_sync_start: string }
+        Returns: number
+      }
       focus_top_matches: {
         Args: { p_limit?: number }
         Returns: {
