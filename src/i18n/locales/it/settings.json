@@ -1148,7 +1148,7 @@
     },
     "receipt": {
       "pendingTitle": "Conferma del pagamento",
-      "pendingBody": "Un istante — Stripe sta finalizzando la transazione.",
+      "pendingBody": "Un istante: Stripe sta finalizzando la transazione.",
       "slowBody": "Stripe sta ancora convalidando il pagamento. I crediti arriveranno da soli, puoi chiudere questa finestra.",
       "paidTitle": "Pagamento confermato",
       "paidBody": "{{n}} crediti sono stati aggiunti al tuo saldo.",

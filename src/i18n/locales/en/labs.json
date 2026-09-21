@@ -224,8 +224,8 @@
     "style": "Style",
     "hintSource": "The instruction is written into the bar below: read it, adjust it, then generate.",
     "hintScratch": "Without a source photo the scene is invented from scratch. Import a photo to furnish a real room.",
-    "promptSource": "{{room}} to furnish, {{style}} style — {{hint}}. Keep the architecture, windows, floors and perspective of the photo exactly as they are; add only furniture and decoration, with consistent shadows and the existing light. Photorealistic.",
-    "promptScratch": "{{room}}, {{style}} style — {{hint}}. Real-estate interior photography, natural light, eye-level perspective, photorealistic.",
+    "promptSource": "{{room}} to furnish, {{style}} style: {{hint}}. Keep the architecture, windows, floors and perspective of the photo exactly as they are; add only furniture and decoration, with consistent shadows and the existing light. Photorealistic.",
+    "promptScratch": "{{room}}, {{style}} style: {{hint}}. Real-estate interior photography, natural light, eye-level perspective, photorealistic.",
     "rooms": {
       "salon": "Living room",
       "chambre": "Bedroom",

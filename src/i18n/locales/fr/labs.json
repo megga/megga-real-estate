@@ -224,8 +224,8 @@
     "style": "Style",
     "hintSource": "La consigne s'écrit dans la barre ci-dessous : relisez-la, ajustez-la, puis générez.",
     "hintScratch": "Sans photo source, la scène est créée de toutes pièces. Importez une photo pour meubler une vraie pièce.",
-    "promptSource": "{{room}} à meubler, style {{style}} — {{hint}}. Conserve exactement l'architecture, les fenêtres, les sols et la perspective de la photo ; n'ajoute que le mobilier et la décoration, avec des ombres cohérentes et la lumière existante. Rendu photoréaliste.",
-    "promptScratch": "{{room}}, style {{style}} — {{hint}}. Photographie d'intérieur immobilière, lumière naturelle, perspective à hauteur d'œil, rendu photoréaliste.",
+    "promptSource": "{{room}} à meubler, style {{style}} : {{hint}}. Conserve exactement l'architecture, les fenêtres, les sols et la perspective de la photo ; n'ajoute que le mobilier et la décoration, avec des ombres cohérentes et la lumière existante. Rendu photoréaliste.",
+    "promptScratch": "{{room}}, style {{style}} : {{hint}}. Photographie d'intérieur immobilière, lumière naturelle, perspective à hauteur d'œil, rendu photoréaliste.",
     "rooms": {
       "salon": "Salon",
       "chambre": "Chambre",

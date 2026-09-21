@@ -224,8 +224,8 @@
     "style": "Stil",
     "hintSource": "Die Anweisung wird unten in die Leiste geschrieben: lesen, anpassen, dann erzeugen.",
     "hintScratch": "Ohne Ausgangsfoto wird die Szene komplett erfunden. Importieren Sie ein Foto, um einen echten Raum zu möblieren.",
-    "promptSource": "{{room}} zum Möblieren, Stil {{style}} — {{hint}}. Architektur, Fenster, Böden und Perspektive des Fotos exakt beibehalten; nur Möbel und Dekoration hinzufügen, mit stimmigen Schatten und dem vorhandenen Licht. Fotorealistisch.",
-    "promptScratch": "{{room}}, Stil {{style}} — {{hint}}. Immobilien-Innenaufnahme, natürliches Licht, Perspektive auf Augenhöhe, fotorealistisch.",
+    "promptSource": "{{room}} zum Möblieren, Stil {{style}}: {{hint}}. Architektur, Fenster, Böden und Perspektive des Fotos exakt beibehalten; nur Möbel und Dekoration hinzufügen, mit stimmigen Schatten und dem vorhandenen Licht. Fotorealistisch.",
+    "promptScratch": "{{room}}, Stil {{style}}: {{hint}}. Immobilien-Innenaufnahme, natürliches Licht, Perspektive auf Augenhöhe, fotorealistisch.",
     "rooms": {
       "salon": "Wohnzimmer",
       "chambre": "Schlafzimmer",

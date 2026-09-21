@@ -224,8 +224,8 @@
     "style": "Stile",
     "hintSource": "L'istruzione viene scritta nella barra qui sotto: rileggila, correggila, poi genera.",
     "hintScratch": "Senza foto di partenza la scena è inventata. Importa una foto per arredare una stanza reale.",
-    "promptSource": "{{room}} da arredare, stile {{style}} — {{hint}}. Mantieni esattamente l'architettura, le finestre, i pavimenti e la prospettiva della foto; aggiungi solo mobili e decorazioni, con ombre coerenti e la luce esistente. Fotorealistico.",
-    "promptScratch": "{{room}}, stile {{style}} — {{hint}}. Fotografia d'interni immobiliare, luce naturale, prospettiva ad altezza d'occhi, fotorealistico.",
+    "promptSource": "{{room}} da arredare, stile {{style}}: {{hint}}. Mantieni esattamente l'architettura, le finestre, i pavimenti e la prospettiva della foto; aggiungi solo mobili e decorazioni, con ombre coerenti e la luce esistente. Fotorealistico.",
+    "promptScratch": "{{room}}, stile {{style}}: {{hint}}. Fotografia d'interni immobiliare, luce naturale, prospettiva ad altezza d'occhi, fotorealistico.",
     "rooms": {
       "salon": "Soggiorno",
       "chambre": "Camera da letto",

@@ -1148,7 +1148,7 @@
     },
     "receipt": {
       "pendingTitle": "Zahlung wird bestätigt",
-      "pendingBody": "Einen Moment — Stripe schliesst die Transaktion ab.",
+      "pendingBody": "Einen Moment: Stripe schliesst die Transaktion ab.",
       "slowBody": "Stripe prüft die Zahlung noch. Ihre Credits werden automatisch gutgeschrieben, Sie können dieses Fenster schliessen.",
       "paidTitle": "Zahlung bestätigt",
       "paidBody": "{{n}} Credits wurden Ihrem Guthaben hinzugefügt.",
