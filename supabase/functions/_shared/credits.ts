@@ -123,6 +123,24 @@ export function rechargeDue(p: { enabled: boolean; hasCard: boolean; balance: nu
 }
 
 /**
+ * La carte d'un paiement est-elle gardée pour la recharge HORS SESSION ?
+ *
+ * ⛔ `credits-checkout` la demande PAR MOYEN DE PAIEMENT
+ * (`payment_method_options.card.setup_future_usage`), pour ne pas l'exiger de TWINT :
+ * Stripe range alors la valeur sous `payment_method_options.card`, et le champ de
+ * PREMIER niveau du PaymentIntent reste `null`. Ne lire que celui-ci, comme avant la
+ * revue du 21.09.2026, ne gardait jamais aucune carte — la recharge automatique ne
+ * pouvait pas s'activer.
+ */
+export function carteGardeePourRecharge(pi: {
+  setup_future_usage?: string | null
+  payment_method_options?: { card?: { setup_future_usage?: string | null } | null } | null
+} | null | undefined): boolean {
+  if (!pi) return false
+  return pi.setup_future_usage === 'off_session' || pi.payment_method_options?.card?.setup_future_usage === 'off_session'
+}
+
+/**
  * Le premier identifiant de client Stripe RÉEL (`cus_…`) parmi les candidats.
  * ⚠ `admin_set_agency_plan` pose `manual_<agence>` dans `subscriptions` : une valeur
  * factice, que Stripe refuse (« No such customer »). La transmettre au Checkout faisait

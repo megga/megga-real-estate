@@ -8,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import { tablePrixStripe } from '../_shared/stripe-prices.ts'
-import { packParId } from '../_shared/credits.ts'
+import { carteGardeePourRecharge, packParId } from '../_shared/credits.ts'
 import {
   buildStripeIdentityRecord,
   isStripeVerificationStatus,
@@ -349,7 +349,9 @@ async function crediterAchatDepuisSession(
   try {
     const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['payment_method'] })
     const pm = pi.payment_method as Stripe.PaymentMethod | null
-    if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && pi.setup_future_usage === 'off_session') {
+    // ⛔ `carteGardeePourRecharge` : `credits-checkout` demande la garde PAR MOYEN DE
+    // PAIEMENT ; le champ de premier niveau reste `null`, et le lire seul ne gardait rien.
+    if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && carteGardeePourRecharge(pi)) {
       await admin.rpc('credits_set_card', {
         p_agency: agencyId,
         p_payment_method_id: pm.id,
