@@ -524,6 +524,29 @@ market_listings (
 --    affiche un loyer nul, à l'écran, sans erreur.
 ```
 
+`market_listings.removed_at` (21.09.2026) : la date à laquelle le CRM a CONSTATÉ le retrait, posée par
+`trg_ml_date_retrait` au passage à `removed`, effacée au retour. NULL pour toute annonce retirée avant la mise en
+service de la pige : on ne reconstitue pas le passé. ⚠ `updated_at` n'en tient pas lieu : la sonde de résurrection
+RealAdvisor le repousse chaque nuit sur les retirées.
+
+```sql
+-- Historique des prix et des statuts du marché, écrit par DÉCLENCHEUR (`ml_historique_prix`, SECURITY DEFINER)
+-- et par lui seul. Lisible par tout agent authentifié, jamais écrit par un client.
+market_price_history (
+  id, market_listing_id,               -- FK market_listings ON DELETE CASCADE
+  kind,                                -- suivi | apparition | baisse | hausse | prix | retrait | retour | statut
+  old_price, new_price,                -- prix effectif (current_price ?? price) avant / après
+  change_pct,                          -- borné à ±999,99
+  old_status, new_status,
+  transaction_type, canton, type, city, -- contexte À L'INSTANT de l'événement : pige_mouvements filtre dessus
+  detected_at
+)
+-- `suivi` = relevé initial de chaque annonce vivante à la mise en service ; `apparition` = chaque insertion
+-- depuis, datée à la DÉTECTION par la collecte (pas à la publication). Index : `idx_market_price_history_listing`
+-- (market_listing_id, detected_at desc) pour la fiche, `idx_mph_evenements` (kind, detected_at desc, id desc)
+-- pour le flux « Ce qui a bougé » (RPC `pige_mouvements`, SECURITY INVOKER, paginée par clé, sans comptage).
+```
+
 EXCEPTION — tables KYB : le filtrage par agence NE SUFFIT PAS. Elles portent la PII
 des dirigeants et actionnaires (date de naissance, n° de pièce d'identité), donc
 lecture ET écriture restreintes à is_agency_admin() + is_super_admin() : un agent

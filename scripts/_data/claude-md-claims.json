@@ -513,17 +513,17 @@
     {
       "id": "ml-flatfox-actives",
       "section": "§2 — Marketplace",
-      "phrase": "~41k flatfox actives",
+      "phrase": "~36k flatfox vivantes au 21.09.2026",
       "severite": "derive",
-      "mesureLe": "2026-09-10",
+      "mesureLe": "2026-09-21",
       "mesure": {
-        "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
+        "sql": "select round(count(*) filter (where source_portal='flatfox' and status in ('active','price_reduced'))/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 41
+        "valeur": 36
       },
       "tolerance": 0.15,
-      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste. Dérivé le 10.09.2026 : 40 747 (+16 % en 24 jours, au-delà des 15 % de tolérance). C'est le flux Flatfox qui a crû, pas la prose d'alors qui s'était trompée.",
+      "note": "⛔ VIVANTES depuis le 21.09.2026, plus `status='active'` : la pige étend `trg_ra_price_status` à Flatfox, une location en baisse passe `price_reduced` et reste en ligne — c'est ce que compte aussi `flatfox_active_count_refresh()` (20260921151000). ⚠ 36 n'est PAS ce que la requête rendait le 21.09.2026 (48 : la base portait 12 492 fantômes du balayage en panne depuis le 05.09) ; c'est le vivier réel mesuré ce jour-là — 35 931 annonces publiées par Flatfox (`total_expected` du passage), 35 914 vues au passage — et ce que la requête rend une fois la migration 20260921145000 appliquée. Un run `--prod` qui précède son application lit encore 48. APRÈS elle, un écart dit que le rattrapage n'a pas eu lieu (plafond de 40 % dépassé, ou aucun passage complet) : lire les NOTICE de la migration. Historique : 35 145 le 17.08.2026, 40 747 le 10.09.2026 — ce dernier portait déjà les fantômes des premières nuits de la panne.",
       "grandeur": "ml-flatfox-actives"
     },
     {
@@ -670,7 +670,7 @@
     {
       "id": "sm-hooks",
       "section": "§2 — Hooks",
-      "phrase": "`src/hooks/`, 139, React Query",
+      "phrase": "`src/hooks/`, 147, React Query",
       "severite": "derive",
       "mesureLe": "2026-09-21",
       "mesure": {
@@ -684,7 +684,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 139
+        "fichiers": 147
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15
@@ -692,15 +692,15 @@
     {
       "id": "sm-cerveau-entrees",
       "section": "§ cerveau",
-      "phrase": "(271 entrées curées au 05.09.2026)",
+      "phrase": "(313 entrées curées au 21.09.2026)",
       "severite": "derive",
-      "mesureLe": "2026-09-05",
+      "mesureLe": "2026-09-21",
       "mesure": {
         "fichier": ".claude-flow/knowledge/megga-memory.seed.json",
         "motif": "\"key\":"
       },
       "attendu": {
-        "occurrences": 271
+        "occurrences": 313
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
@@ -774,18 +774,19 @@
     {
       "id": "sm-flatfox-actifs",
       "section": "§4 — Pipeline",
-      "phrase": "~41k actifs, 26 cantons",
+      "phrase": "~36k vivantes, 26 cantons",
       "severite": "derive",
-      "mesureLe": "2026-09-10",
+      "mesureLe": "2026-09-21",
       "mesure": {
-        "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
+        "sql": "select round(count(*) filter (where source_portal='flatfox' and status in ('active','price_reduced'))/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 41
+        "valeur": 36
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
-      "grandeur": "ml-flatfox-actives"
+      "grandeur": "ml-flatfox-actives",
+      "note": "Même grandeur et même requête que `ml-flatfox-actives` (CLAUDE.md §2), dont la note dit pourquoi 36 et pourquoi « vivantes »."
     },
     {
       "id": "sm-perf-rows",

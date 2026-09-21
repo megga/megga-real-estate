@@ -65,7 +65,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
-| `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche). Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur |
+| `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche). Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » (nouveaux, en baisse, retirés) |
 | `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
@@ -78,7 +78,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/audit` | Journal d'audit |
 | `/dashboard/rendez-vous-accueil` | Réservation de l'appel d'accueil avec l'équipe MEGGA, à la sortie du wizard d'identité. Écran passable, jamais bloquant |
 | `/dashboard/settings` | Réglages (7 sections : profil, agence, notifications, intégrations, facturation, sécurité, préférences) |
-| `/dashboard/market/:externalId` | Détail d'une annonce du marché (`market_listings`) |
+| `/dashboard/market/:externalId` | Détail d'une annonce du marché (`market_listings`), avec l'historique de son prix |
 
 **Redirections internes** : `/dashboard/parcours` → `/journey`, `/dashboard/visites/*`
 → `/visits/*`, `/dashboard/marche/:id` → `/market/:id`. `/dashboard/network`,
