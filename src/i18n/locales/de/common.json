@@ -532,7 +532,13 @@
       "labs_video_generated": "Video im Labs-Studio generiert",
       "labs_folder_created": "Labs-Ordner erstellt",
       "labs_folder_renamed": "Labs-Ordner umbenannt",
-      "labs_folder_deleted": "Labs-Ordner gelöscht"
+      "labs_folder_deleted": "Labs-Ordner gelöscht",
+      "match_reaction": "Antwort des Käufers erfasst",
+      "match_pas_encore": "Noch keine Antwort des Käufers",
+      "match_retour_prix": "Abgelehntes Objekt nach Preissenkung zurück",
+      "recherche_ajustee": "Suche nach Absagen angepasst",
+      "matchs_reevalues": "Matches neu bewertet",
+      "correction_ignoree": "Suchkorrektur ignoriert"
     },
     "entity": {
       "admin_console": "Admin-Konsole",

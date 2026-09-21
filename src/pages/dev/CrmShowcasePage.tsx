@@ -196,7 +196,7 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 12 matchs, 2 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 20 matchs, 4 rappels, 1 visite, journal à 4 lignes' },
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]

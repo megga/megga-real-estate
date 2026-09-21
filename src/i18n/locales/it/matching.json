@@ -522,7 +522,6 @@
   },
   "fil": {
     "titre": "Matching",
-    "aTraiter": "Da gestire · {{count}}",
     "chargement": "Caricamento dei match",
     "filtres": {
       "bien": "Filtra per immobile",
@@ -534,7 +533,7 @@
       "inconnu": "Selezione attuale"
     },
     "vosBiens": "I Suoi immobili",
-    "listeAria": "Match da gestire",
+    "listeAria": "Match da proporre",
     "acheteurs_one": "{{count}} acquirente",
     "acheteurs_other": "{{count}} acquirenti",
     "sansEcart": "Nessuna differenza segnalata",
@@ -638,7 +637,11 @@
       "titre": "Tutto in ordine",
       "texte": "Nessuno dei Suoi immobili è in attesa di essere proposto.",
       "contacts": "Completa la ricerca di un contatto",
-      "marche": "Vedi il mercato"
+      "marche": "Vedi il mercato",
+      "attenteTitre": "Nessuna risposta in attesa",
+      "attenteTexte": "Gli immobili che propone attendono qui la risposta dell'acquirente.",
+      "conclureTitre": "Nessuna visita da pianificare",
+      "conclureTexte": "Gli immobili che interessano un acquirente attendono qui la loro visita."
     },
     "filtreVide": "Nulla corrisponde a questi filtri.",
     "choisir": "Scelga un match dall'elenco.",
@@ -675,6 +678,106 @@
     },
     "propose": "Proposto a {{prenom}} · promemoria tra 3 giorni",
     "proposeSelection_one": "{{count}} immobile proposto a {{prenom}} · promemoria tra 3 giorni",
-    "proposeSelection_other": "{{count}} immobili proposti a {{prenom}} · promemoria tra 3 giorni"
+    "proposeSelection_other": "{{count}} immobili proposti a {{prenom}} · promemoria tra 3 giorni",
+    "onglets": {
+      "aria": "Fasi del ciclo",
+      "aProposer": "Da proporre",
+      "enAttente": "In attesa",
+      "aConclure": "Da concludere"
+    },
+    "motifs": {
+      "prix": "Prezzo",
+      "quartier": "Quartiere",
+      "surface": "Superficie",
+      "pieces": "Locali",
+      "type": "Tipo di immobile",
+      "equipements": "Dotazioni",
+      "etat": "Stato",
+      "autre": "Altro"
+    },
+    "motifsAide": "Perché? Un clic registra il rifiuto.",
+    "note": "Nota (facoltativa)",
+    "annulerMotif": "Annulla",
+    "retours": {
+      "titre": "Riscontri da registrare per {{nom}}",
+      "sousTitre_one": "{{count}} immobile proposto attende una risposta",
+      "sousTitre_other": "{{count}} immobili proposti attendono una risposta",
+      "proposeLe": "proposto il {{date}}",
+      "interesse": "Interessato",
+      "pasInteresse": "Non interessato",
+      "pasEncore": "Non ancora",
+      "listeAria": "Immobili proposti a {{prenom}}"
+    },
+    "attente": {
+      "listeAria": "Acquirenti in attesa di risposta",
+      "ligne_one": "{{count}} immobile proposto",
+      "ligne_other": "{{count}} immobili proposti",
+      "relance": "sollecito il {{date}}",
+      "relanceDue": "sollecito dovuto dal {{date}}"
+    },
+    "repondu": {
+      "interesse": "{{prenom}} interessato/a a «{{titre}}»",
+      "refuse": "«{{titre}}»: non interessato/a ({{motif}})",
+      "pasEncore": "Sollecito a {{prenom}} rinviato di 3 giorni",
+      "planifier": "Pianifica la visita"
+    },
+    "conclure": {
+      "listeAria": "Acquirenti interessati",
+      "ligne": "{{titre}} · interessato/a il {{date}}",
+      "titreAria": "Visita da pianificare: {{acheteur}} per {{bien}}",
+      "interesseLe": "Interessato/a il {{date}}",
+      "planifier": "Pianifica una visita",
+      "date": "Data",
+      "heure": "Ora",
+      "duree": "Durata",
+      "minutes": "{{n}} min",
+      "confirmer": "Pianifica la visita",
+      "aucuneInvitation": "A {{prenom}} non viene inviato nulla: la visita entra nella Sua agenda.",
+      "agenceAnnonce": "Visita con l'agenzia dell'annuncio: entra nella Sua agenda, a {{prenom}} non viene inviato nulla.",
+      "voirAnnonce": "Vedi l'annuncio originale",
+      "dateRequise": "Scelga una data e un orario futuri.",
+      "planifiee": "Visita di {{prenom}} pianificata il {{date}}"
+    },
+    "signal": {
+      "baisseRefus": "Rifiutato da {{prenom}} a {{prix}} · ribassato di {{montant}} da allora",
+      "baissePropose": "Prezzo ridotto di {{montant}} da quando l'ha proposto",
+      "court": "Prezzo ridotto di {{montant}}"
+    },
+    "corrections": {
+      "section": "Ricerche da adattare",
+      "listeAria": "Correzioni di ricerca proposte",
+      "ligne_one": "{{motif}} · {{count}} rifiuto",
+      "ligne_other": "{{motif}} · {{count}} rifiuti",
+      "titreAria": "Ricerca da adattare per {{nom}}",
+      "sousTitre_one": "Rifiutato {{count}} volta per «{{motif}}»",
+      "sousTitre_other": "Rifiutato {{count}} volte per «{{motif}}»",
+      "pourquoi": "Immobili rifiutati",
+      "refuseLe": "rifiutato il {{date}}",
+      "proposition": "Correzione proposta",
+      "budget": "Ridurre il budget massimo a (CHF)",
+      "surface": "Aumentare la superficie minima a (m²)",
+      "pieces": "Aumentare il numero minimo di locali a",
+      "avant": "oggi: {{valeur}}",
+      "sansMax": "oggi: senza massimo",
+      "sansMin": "oggi: senza minimo",
+      "zones": "Togliere dalle zone: {{liste}}",
+      "zonesApres": "Nuove zone: {{liste}}",
+      "type": "Proporre solo: {{type}}",
+      "typeAvant": "oggi: {{type}}",
+      "tousTypes": "oggi: tutti i tipi",
+      "equipements": "Aggiungere alle dotazioni desiderate: {{liste}}",
+      "effet": "Gli immobili da proporre saranno rivalutati; quelli che non corrispondono più usciranno dalla lista.",
+      "valider": "Adatta la ricerca",
+      "ignorer": "Ignora",
+      "valeurInvalide": "Inserisca un numero positivo.",
+      "sousMinimum": "Il budget minimo è di {{valeur}}: il massimo non può essere inferiore.",
+      "auDelaMaximum": "Il massimo è di {{valeur}}: il minimo non può essere superiore.",
+      "fait_one": "Ricerca di {{prenom}} adattata · {{count}} immobile tolto dalle proposte",
+      "fait_other": "Ricerca di {{prenom}} adattata · {{count}} immobili tolti dalle proposte",
+      "faitAucun": "Ricerca di {{prenom}} adattata · nessun immobile tolto",
+      "ignoree": "Correzione ignorata",
+      "nouvelle": "Una correzione della ricerca di {{prenom}} La attende in «Da proporre».",
+      "erreur": "Non è stato possibile adattare la ricerca. Riprovi."
+    }
   }
 }

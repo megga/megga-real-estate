@@ -542,7 +542,13 @@
       "labs_video_generated": "Video generated in the Labs studio",
       "labs_folder_created": "Labs folder created",
       "labs_folder_renamed": "Labs folder renamed",
-      "labs_folder_deleted": "Labs folder deleted"
+      "labs_folder_deleted": "Labs folder deleted",
+      "match_reaction": "Buyer's answer recorded",
+      "match_pas_encore": "No answer from the buyer yet",
+      "match_retour_prix": "Declined property back after a price drop",
+      "recherche_ajustee": "Search adjusted after declines",
+      "matchs_reevalues": "Matches re-scored",
+      "correction_ignoree": "Search correction ignored"
     },
     "entity": {
       "admin_console": "Admin console",

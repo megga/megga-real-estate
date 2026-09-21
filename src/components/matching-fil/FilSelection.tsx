@@ -10,6 +10,8 @@
  * ⚠ Seul ce qui reste À VÉRIFIER s'affiche, pas la grille complète : sur vingt biens, c'est ce qui les
  * distingue. Même règle que le pré-cochage (`criteresNonTenus`) : un bien laissé décoché dit pourquoi.
  *
+ * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) le dit sous ses détails (`texteSignal`).
+ *
  * ⚠ Chaque case porte `data-bien` : `MatchingFil` y rend le focus après un « Écarter » ou son annulation.
  */
 import { useId, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react'
@@ -17,7 +19,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { criteresNonTenus, initiales, lignesCriteres, palierScore, type FilMatch, type FilSelectionResume } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, teinteEcart, teinteTenu } from './filAffichage'
+import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, teinteTenu, texteSignal, unSeulClic } from './filAffichage'
 import { FilAvatar, FilScore, FilVignette } from './filAtomes'
 import { resumeRecherche } from './filValeurs'
 
@@ -41,9 +43,6 @@ interface Props {
   onProposer: () => void
   onVoirContact: () => void
 }
-
-/** Le second clic d'un double clic tombe sur ce que le premier a déplacé : ignoré (`detail` 2). */
-const unSeulClic = (faire: () => void) => (e: MouseEvent) => { if (e.detail > 1) return; faire() }
 
 export default function FilSelection({
   sp, resume, matchs, coches, aPlus, isLoading, isError, aDesDonnees, isFetching,
@@ -75,7 +74,7 @@ export default function FilSelection({
   const voirPlus = useRef<HTMLButtonElement>(null)
   const attente = useRef<{ avant: number; bouton: HTMLElement } | null>(null)
   const lancer = (faire: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
-    if (e.detail > 1 || isFetching) return
+    if (secondClic(e) || isFetching) return
     attente.current = document.activeElement === e.currentTarget ? { avant: matchs.length, bouton: e.currentTarget } : null
     faire()
   }
@@ -194,6 +193,8 @@ function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
   const { t } = useTranslation('matching')
   const lignes = lignesCriteres(m)
   const aVerifier = criteresNonTenus(lignes)
+  // Un bien refusé pour le PRIX et revenu par une baisse (lot B) : c'est ce qui le ramène, on le dit.
+  const signal = texteSignal(m, t)
   // Aucun verdict du tout : le dire tel quel plutôt que lister chaque critère « à vérifier ».
   const nonEvalues = lignes.length > 0 && lignes.every((l) => l.ok === null)
   const details = [
@@ -223,6 +224,7 @@ function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
             {m.bien.titre}
           </span>
           <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{details}</span>
+          {signal && <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.ink }}>{signal}</span>}
           <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
             {icone && (
               <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>

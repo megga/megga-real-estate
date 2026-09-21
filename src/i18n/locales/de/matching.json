@@ -522,7 +522,6 @@
   },
   "fil": {
     "titre": "Matching",
-    "aTraiter": "Zu bearbeiten · {{count}}",
     "chargement": "Matches werden geladen",
     "filtres": {
       "bien": "Nach Objekt filtern",
@@ -534,7 +533,7 @@
       "inconnu": "Aktuelle Auswahl"
     },
     "vosBiens": "Ihre Objekte",
-    "listeAria": "Zu bearbeitende Matches",
+    "listeAria": "Vorzuschlagende Matches",
     "acheteurs_one": "{{count}} Käufer",
     "acheteurs_other": "{{count}} Käufer",
     "sansEcart": "Keine Abweichung gemeldet",
@@ -638,7 +637,11 @@
       "titre": "Alles erledigt",
       "texte": "Keines Ihrer Objekte wartet auf einen Vorschlag.",
       "contacts": "Suche eines Kontakts ergänzen",
-      "marche": "Markt ansehen"
+      "marche": "Markt ansehen",
+      "attenteTitre": "Keine Antwort ausstehend",
+      "attenteTexte": "Vorgeschlagene Objekte warten hier auf die Antwort des Käufers.",
+      "conclureTitre": "Keine Besichtigung zu planen",
+      "conclureTexte": "Objekte, die einen Käufer interessieren, warten hier auf ihre Besichtigung."
     },
     "filtreVide": "Nichts entspricht diesen Filtern.",
     "choisir": "Wählen Sie einen Match aus der Liste.",
@@ -675,6 +678,106 @@
     },
     "propose": "{{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
     "proposeSelection_one": "{{count}} Objekt {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
-    "proposeSelection_other": "{{count}} Objekte {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen"
+    "proposeSelection_other": "{{count}} Objekte {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
+    "onglets": {
+      "aria": "Schritte des Ablaufs",
+      "aProposer": "Vorzuschlagen",
+      "enAttente": "Ausstehend",
+      "aConclure": "Abzuschliessen"
+    },
+    "motifs": {
+      "prix": "Preis",
+      "quartier": "Quartier",
+      "surface": "Fläche",
+      "pieces": "Zimmer",
+      "type": "Objektart",
+      "equipements": "Ausstattung",
+      "etat": "Zustand",
+      "autre": "Anderes"
+    },
+    "motifsAide": "Warum? Ein Klick erfasst die Absage.",
+    "note": "Notiz (optional)",
+    "annulerMotif": "Abbrechen",
+    "retours": {
+      "titre": "Rückmeldungen von {{nom}} erfassen",
+      "sousTitre_one": "{{count}} vorgeschlagenes Objekt wartet auf eine Antwort",
+      "sousTitre_other": "{{count}} vorgeschlagene Objekte warten auf eine Antwort",
+      "proposeLe": "vorgeschlagen am {{date}}",
+      "interesse": "Interessiert",
+      "pasInteresse": "Nicht interessiert",
+      "pasEncore": "Noch nicht",
+      "listeAria": "{{prenom}} vorgeschlagene Objekte"
+    },
+    "attente": {
+      "listeAria": "Käufer mit ausstehender Antwort",
+      "ligne_one": "{{count}} Objekt vorgeschlagen",
+      "ligne_other": "{{count}} Objekte vorgeschlagen",
+      "relance": "Nachfassen am {{date}}",
+      "relanceDue": "Nachfassen fällig seit {{date}}"
+    },
+    "repondu": {
+      "interesse": "{{prenom}} interessiert an „{{titre}}“",
+      "refuse": "„{{titre}}“: nicht interessiert ({{motif}})",
+      "pasEncore": "Nachfassen bei {{prenom}} um 3 Tage verschoben",
+      "planifier": "Besichtigung planen"
+    },
+    "conclure": {
+      "listeAria": "Interessierte Käufer",
+      "ligne": "{{titre}} · interessiert seit {{date}}",
+      "titreAria": "Zu planende Besichtigung: {{acheteur}} für {{bien}}",
+      "interesseLe": "Interessiert seit {{date}}",
+      "planifier": "Besichtigung planen",
+      "date": "Datum",
+      "heure": "Uhrzeit",
+      "duree": "Dauer",
+      "minutes": "{{n}} Min.",
+      "confirmer": "Besichtigung planen",
+      "aucuneInvitation": "{{prenom}} erhält nichts: Die Besichtigung wird in Ihrer Agenda eingetragen.",
+      "agenceAnnonce": "Besichtigung mit der Agentur des Inserats: Sie wird in Ihrer Agenda eingetragen, {{prenom}} erhält nichts.",
+      "voirAnnonce": "Originalinserat ansehen",
+      "dateRequise": "Wählen Sie ein künftiges Datum und eine Uhrzeit.",
+      "planifiee": "Besichtigung mit {{prenom}} am {{date}} geplant"
+    },
+    "signal": {
+      "baisseRefus": "Von {{prenom}} bei {{prix}} abgelehnt · seither um {{montant}} gesenkt",
+      "baissePropose": "Preis um {{montant}} gesenkt, seit Sie es vorgeschlagen haben",
+      "court": "Preis um {{montant}} gesenkt"
+    },
+    "corrections": {
+      "section": "Anzupassende Suchen",
+      "listeAria": "Vorgeschlagene Suchkorrekturen",
+      "ligne_one": "{{motif}} · {{count}} Absage",
+      "ligne_other": "{{motif}} · {{count}} Absagen",
+      "titreAria": "Anzupassende Suche von {{nom}}",
+      "sousTitre_one": "{{count}}-mal abgelehnt wegen „{{motif}}“",
+      "sousTitre_other": "{{count}}-mal abgelehnt wegen „{{motif}}“",
+      "pourquoi": "Abgelehnte Objekte",
+      "refuseLe": "abgelehnt am {{date}}",
+      "proposition": "Vorgeschlagene Korrektur",
+      "budget": "Maximalbudget senken auf (CHF)",
+      "surface": "Mindestfläche erhöhen auf (m²)",
+      "pieces": "Mindestzimmerzahl erhöhen auf",
+      "avant": "heute: {{valeur}}",
+      "sansMax": "heute: ohne Maximum",
+      "sansMin": "heute: ohne Minimum",
+      "zones": "Aus den Gebieten entfernen: {{liste}}",
+      "zonesApres": "Neue Gebiete: {{liste}}",
+      "type": "Nur noch vorschlagen: {{type}}",
+      "typeAvant": "heute: {{type}}",
+      "tousTypes": "heute: alle Objektarten",
+      "equipements": "Zur gewünschten Ausstattung hinzufügen: {{liste}}",
+      "effet": "Die vorzuschlagenden Objekte werden neu bewertet; was nicht mehr passt, fällt aus der Liste.",
+      "valider": "Suche anpassen",
+      "ignorer": "Ignorieren",
+      "valeurInvalide": "Geben Sie eine positive Zahl ein.",
+      "sousMinimum": "Das Mindestbudget beträgt {{valeur}}: Das Maximum kann nicht tiefer liegen.",
+      "auDelaMaximum": "Das Maximum beträgt {{valeur}}: Das Minimum kann nicht höher liegen.",
+      "fait_one": "Suche von {{prenom}} angepasst · {{count}} Objekt aus den Vorschlägen entfernt",
+      "fait_other": "Suche von {{prenom}} angepasst · {{count}} Objekte aus den Vorschlägen entfernt",
+      "faitAucun": "Suche von {{prenom}} angepasst · kein Objekt entfernt",
+      "ignoree": "Korrektur ignoriert",
+      "nouvelle": "Eine Korrektur der Suche von {{prenom}} wartet unter „Vorzuschlagen“.",
+      "erreur": "Die Suche konnte nicht angepasst werden. Versuchen Sie es erneut."
+    }
   }
 }

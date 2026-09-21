@@ -91,6 +91,10 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // tomberait en « Système » : agent-notifications-scenarios.spec.ts).
   match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
   match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching',
+  // La boucle chez l'agent (lot B, 21.09.2026) : réponses consignées, relance repoussée, retour d'un bien par
+  // une baisse de prix, et « Apprendre » (recherche ajustée, correction ignorée).
+  match_reaction: 'matching', match_pas_encore: 'matching', match_retour_prix: 'matching',
+  recherche_ajustee: 'matching', matchs_reevalues: 'matching', correction_ignoree: 'matching',
   // Agenda
   visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
   onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',

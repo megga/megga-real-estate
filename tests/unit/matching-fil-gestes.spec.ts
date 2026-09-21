@@ -15,7 +15,8 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
-  execDismiss, execProposer, execProposerSelection, execReact, execRelance, execSnooze,
+  execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
+  execProposerSelection, execReact, execRelance, execRepondre, execSnooze,
 } from '@/hooks/useAtelierMatching'
 
 type Genre = 'select' | 'insert' | 'update'
@@ -122,6 +123,8 @@ describe('rien ne sort vers l’acheteur', () => {
     expect(ecrit('update:matches').valeurs).toMatchObject({ status: 'sent', sent_via: 'agent' })
     const relance = ecrit('insert:reminders').valeurs as { trigger_at: string }
     expect(relance).toMatchObject({ type: 'follow_up_sent_property', channel: 'task', trigger_days: 3, match_id: 'm-1' })
+    // Un seul bien : pas de `match_ids`, colonne que l'écran écrirait avant que la migration la crée.
+    expect(relance).not.toHaveProperty('match_ids')
     expect(dansJours(relance.trigger_at)).toBe(3)
     expect(ecrit('insert:activity_events').valeurs).toMatchObject({
       action: 'match_propose',
@@ -222,15 +225,12 @@ describe('execProposerSelection — un geste, un suivi', () => {
     expect(seq()).toEqual(['update:matches', 'insert:transactions'])
   })
 
-  it('une relance refusée est signalée, sans faire croire le geste échoué', async () => {
-    h.erreurs['insert:reminders'] = { message: 'refus', code: '42501' }
-    const trace = vi.spyOn(console, 'error').mockImplementation(() => undefined)
-    try {
-      await expect(execProposerSelection(CTX, JULIE, DEUX)).resolves.toEqual({ dealId: 'deal-neuf', deja: false })
-      expect(trace).toHaveBeenCalledWith('[atelier] reminder insert failed', expect.objectContaining({ code: '42501' }))
-    } finally {
-      trace.mockRestore()
-    }
+  it('une relance refusée fait lever : le geste le dit, au lieu de passer pour réussi sans relance', async () => {
+    // `PGRST204` : ce que PostgREST rendait à l'écran parti avant la migration qui crée `match_ids`.
+    h.erreurs['insert:reminders'] = { message: 'colonne inconnue', code: 'PGRST204' }
+    await expect(execProposerSelection(CTX, JULIE, DEUX)).rejects.toMatchObject({ code: 'PGRST204' })
+    // Le reste est écrit : la relecture qui suit l'échec montre le bien proposé.
+    expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:activity_events', 'insert:reminders'])
   })
 })
 
@@ -327,6 +327,15 @@ describe('la relance suit la réponse', () => {
     expect(h.appels.map((a) => `${a.genre}:${a.table}`)).toEqual(['update:matches'])
   })
 
+  it('J’ai relancé : une lecture ou un report refusés font lever, sans relance en double', async () => {
+    h.erreurs['select:reminders'] = { message: 'refus', code: '42501' }
+    await expect(execRelance(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).rejects.toMatchObject({ code: '42501' })
+    expect(ecritures().some((e) => e.table === 'reminders')).toBe(false)
+    h.erreurs = { 'update:reminders': { message: 'refus', code: '42501' } }
+    h.lectures.reminders = [{ id: 'r-1' }]
+    await expect(execRelance(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).rejects.toMatchObject({ code: '42501' })
+  })
+
   it('J’ai relancé ne reprend que la relance de PROPOSITION du match, la plus récente', async () => {
     h.lectures.reminders = [{ id: 'r-2' }]
     await execRelance(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))
@@ -335,5 +344,188 @@ describe('la relance suit la réponse', () => {
       'match_id=m-1', 'type=follow_up_sent_property', 'status in pending,triggered', 'order created_at desc', 'limit 1',
     ])
     expect(ecrit('update:reminders').filtres).toEqual(['id=r-2'])
+  })
+})
+
+describe('la relance couvre TOUS les biens d’une proposition (lot B)', () => {
+  it('une sélection : `match_ids` porte chaque bien marqué, `match_id` le meilleur', async () => {
+    await execProposerSelection(CTX, { id: 'c-1', first: 'Julie', last: 'Morand' }, [
+      { matchId: 'm-b', score: 91, bien: annonce('ml-2', 'MG-MK-2') },
+      { matchId: 'm-a', score: 97, bien: annonce('ml-1', 'MG-MK-1') },
+    ])
+    expect(ecrit('insert:reminders').valeurs).toMatchObject({ match_id: 'm-a', match_ids: ['m-b', 'm-a'] })
+  })
+
+  it('un bien : `match_id` seul, sans `match_ids` — l’atelier, le mobile et « Aujourd’hui » en production', async () => {
+    await execProposer(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))
+    expect(ecrit('insert:reminders').valeurs).toMatchObject({ match_id: 'm-1' })
+    expect(ecrit('insert:reminders').valeurs).not.toHaveProperty('match_ids')
+    h.appels.length = 0
+    await execProposerSelection(CTX, { id: 'c-1', first: 'Julie', last: 'Morand' }, [{ matchId: 'm-a', score: 97, bien: annonce('ml-1', 'MG-MK-1') }])
+    expect(ecrit('insert:reminders').valeurs).not.toHaveProperty('match_ids')
+  })
+})
+
+describe('execRepondre — la réponse consignée par l’agent (lot B)', () => {
+  it('Intéressé : depuis `sent` seulement, efface un motif d’avant, ne touche aucune relance', async () => {
+    await expect(execRepondre(ACHETEUR, { genre: 'interested' })).resolves.toEqual({ deja: false })
+    expect(seq()).toEqual(['update:matches'])
+    const e = ecrit('update:matches')
+    expect(e.valeurs).toEqual({ status: 'interested', reaction_motif: null, reaction_note: null, apprentissage_at: null })
+    expect(e.filtres).toEqual(['id=m-1', 'contact_id=c-1', 'status in sent'])
+    expect(h.invoke).not.toHaveBeenCalled()
+  })
+
+  it('Pas intéressé : le motif et la note sans espaces, depuis `sent` ou `interested`', async () => {
+    await execRepondre(ACHETEUR, { genre: 'rejected', motif: 'prix', note: '  Trop cher  ' })
+    const e = ecrit('update:matches')
+    expect(e.valeurs).toEqual({ status: 'rejected', reaction_motif: 'prix', reaction_note: 'Trop cher', apprentissage_at: null })
+    expect(e.filtres).toEqual(['id=m-1', 'contact_id=c-1', 'status in sent,interested'])
+  })
+
+  it('une note vide ne s’écrit pas ; rien de réécrit : `deja`', async () => {
+    h.retours['update:matches'] = []
+    await expect(execRepondre(ACHETEUR, { genre: 'rejected', motif: 'autre', note: '   ' })).resolves.toEqual({ deja: true })
+    expect(ecrit('update:matches').valeurs).toMatchObject({ reaction_note: null })
+  })
+
+  it('un refus de la base fait lever', async () => {
+    h.erreurs['update:matches'] = { message: 'refus', code: '42501' }
+    await expect(execRepondre(ACHETEUR, { genre: 'interested' })).rejects.toMatchObject({ code: '42501' })
+  })
+})
+
+describe('execPasEncore — la relance de la proposition repoussée de 3 jours', () => {
+  // Le bien attend encore sa réponse : `sent`, de cet acheteur.
+  beforeEach(() => { h.lectures.matches = [{ id: 'm-1' }] })
+
+  it('reprend la relance qui COUVRE ce bien, même portée par un autre ; rien sur le match', async () => {
+    h.lectures.reminders = [
+      { id: 'r-autre', match_id: 'm-9', match_ids: ['m-9'] },
+      { id: 'r-sel', match_id: 'm-best', match_ids: ['m-best', 'm-1'] },
+    ]
+    await expect(execPasEncore(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).resolves.toEqual({ deja: false })
+    expect(lectures().find((l) => l.table === 'matches')!.filtres).toEqual(['id=m-1', 'contact_id=c-1', 'status=sent'])
+    // Une relance repoussée depuis « Aujourd'hui » (`snoozed`) est encore la sienne.
+    expect(lectures().find((l) => l.table === 'reminders')!.filtres).toEqual([
+      'contact_id=c-1', 'type=follow_up_sent_property', 'status in pending,triggered,snoozed', 'order created_at desc',
+    ])
+    const report = ecrit('update:reminders')
+    expect(report.filtres).toEqual(['id=r-sel'])
+    expect(report.valeurs).toMatchObject({ status: 'pending' })
+    expect(dansJours((report.valeurs as { trigger_at: string }).trigger_at)).toBe(3)
+    expect(ecrit('insert:activity_events').valeurs).toMatchObject({ action: 'match_pas_encore', metadata: { match_id: 'm-1', relance_id: 'r-sel' } })
+    expect(ecritures().some((e) => e.table === 'matches')).toBe(false)
+  })
+
+  it('une relance d’avant le lot B (sans `match_ids`) se reconnaît à son `match_id`', async () => {
+    h.lectures.reminders = [{ id: 'r-vieille', match_id: 'm-1', match_ids: null }]
+    await execPasEncore(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))
+    expect(ecrit('update:reminders').filtres).toEqual(['id=r-vieille'])
+  })
+
+  it('aucune relance en cours : en pose une à +3 j pour ce bien, au nom élidé nulle part', async () => {
+    await execPasEncore(CTX, { ...ACHETEUR, first: 'Emma', last: 'Schneider' }, annonce('ml-1', 'MG-MK-1'))
+    const relance = ecrit('insert:reminders').valeurs
+    expect(relance).toMatchObject({
+      match_id: 'm-1', channel: 'task', trigger_days: 3, message_template: 'Retour : Emma Schneider sur MG-MK-1',
+    })
+    expect(relance).not.toHaveProperty('match_ids')
+  })
+
+  it('un bien déjà répondu (un collègue, un autre onglet) : rien d’écrit, `deja`', async () => {
+    h.lectures.matches = []
+    h.lectures.reminders = [{ id: 'r-sel', match_id: 'm-1', match_ids: null }]
+    await expect(execPasEncore(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).resolves.toEqual({ deja: true })
+    expect(ecritures()).toEqual([])
+    expect(lectures().map((l) => l.table)).toEqual(['matches'])
+  })
+
+  it('une relance qui ne se pose pas fait lever : « Pas encore » ne se dit pas fait', async () => {
+    h.erreurs['insert:reminders'] = { message: 'refus', code: '42501' }
+    await expect(execPasEncore(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).rejects.toMatchObject({ code: '42501' })
+    expect(ecritures().some((e) => e.table === 'activity_events')).toBe(false)
+  })
+})
+
+describe('execPlanifierVisite — la visite créée en interne, aucune invitation (lot B)', () => {
+  const VISITE = { debut: '2026-09-24T12:00:00.000Z', dureeMinutes: 45, lieu: 'Avenue de Champel 12, Genève' }
+  const MANDAT = {
+    kind: 'property' as const, id: 'p1', key: 'p:p1', ref: 'MG-IN-P1', title: 'Champel', price: 1_450_000, addr: 'Genève',
+    rooms: 4.5, area: 118, type: 'apartment', gallery: [], sourceUrl: null, agency: { name: null, phone: null },
+  }
+
+  it('un bien en mandat : match → visit_planned, visite `planned` rattachée au deal, deal avancé, journal', async () => {
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: false })
+    expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:visits', 'insert:activity_events', 'update:transactions'])
+    expect(ecritures()[0]!.valeurs).toEqual({ status: 'visit_planned' })
+    expect(ecritures()[0]!.filtres).toEqual(['id=m-1', 'contact_id=c-1', 'status=interested'])
+    expect(ecrit('insert:visits').valeurs).toMatchObject({
+      agency_id: 'ag-1', agent_id: 'u-1', property_id: 'p1', contact_id: 'c-1', transaction_id: 'deal-neuf',
+      scheduled_at: VISITE.debut, duration_minutes: 45, status: 'planned', visit_type: 'sur_place', buyer_name: 'Julie Morand',
+      reminder_sent: true,
+    })
+    expect(ecrit('update:transactions').valeurs).toEqual({ stage: 'visit_planned' })
+    expect(ecrit('update:transactions').filtres).toEqual(['id=deal-neuf', 'stage in new_lead,to_qualify,active_search,to_recontact'])
+    expect(ecrit('insert:activity_events').valeurs).toMatchObject({
+      action: 'visit_scheduled', category: 'contact', metadata: { match_id: 'm-1', deal_id: 'deal-neuf', scheduled_at: VISITE.debut },
+    })
+    expect(h.invoke).not.toHaveBeenCalled()
+  })
+
+  it('une annonce du marché : un événement « visite » de l’agenda, jamais une ligne `visits`', async () => {
+    await execPlanifierVisite(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'), VISITE)
+    expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:calendar_events', 'update:transactions'])
+    expect(ecrit('insert:calendar_events').valeurs).toMatchObject({
+      agency_id: 'ag-1', type: 'visite', title: 'Visite · Annonce ml-1', starts_at: VISITE.debut,
+      ends_at: '2026-09-24T12:45:00.000Z', contact_id: 'c-1', location: VISITE.lieu,
+    })
+  })
+
+  it('un match qui n’est plus « intéressé » : rien d’autre, `deja`', async () => {
+    h.retours['update:matches'] = []
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: true })
+    expect(h.appels.map((a) => `${a.genre}:${a.table}`)).toEqual(['update:matches'])
+  })
+
+  it('une visite refusée : le match redevient « intéressé », et le geste lève', async () => {
+    h.erreurs['insert:visits'] = { message: 'refus', code: '42501' }
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).rejects.toMatchObject({ code: '42501' })
+    const retour = ecritures().filter((e) => e.table === 'matches')[1]!
+    expect(retour.valeurs).toEqual({ status: 'interested' })
+    expect(retour.filtres).toEqual(['id=m-1', 'status=visit_planned'])
+  })
+})
+
+describe('Apprendre — les deux gestes d’une correction (lot B)', () => {
+  const C = { contactId: 'c-1', nom: 'Julie Morand', rechercheId: 'cs-1', motif: 'prix', refusIds: ['r-1', 'r-2'] }
+  const BUDGET = { cle: 'budget_max' as const, apres: 1_550_000 }
+
+  it('Ignorer : les refus sont pris en compte, et le journal le dit — lisible, famille `contact`', async () => {
+    await execIgnorerCorrection(CTX, C)
+    const e = ecrit('update:matches')
+    expect(typeof (e.valeurs as { apprentissage_at: unknown }).apprentissage_at).toBe('string')
+    expect(e.filtres).toEqual(['id in r-1,r-2', 'client_search_id=cs-1', 'status=rejected'])
+    expect(ecrit('insert:activity_events').valeurs).toMatchObject({
+      action: 'correction_ignoree', entity_id: 'c-1', category: 'contact', object_label: 'Julie Morand',
+      metadata: { client_search_id: 'cs-1', motif: 'prix', match_ids: ['r-1', 'r-2'] },
+    })
+  })
+
+  it('Ajuster : UN appel au moteur (mode rescore-search), la SEULE clé corrigée, aucune écriture du client', async () => {
+    h.invoke = vi.fn(() => Promise.resolve({ data: { reevalues: 5, ecartes: 1 }, error: null }))
+    await expect(execAjusterRecherche(C, BUDGET)).resolves.toEqual({ reevalues: 5, ecartes: 1 })
+    expect(h.invoke).toHaveBeenCalledWith('matching-engine', {
+      body: {
+        mode: 'rescore-search', client_search_id: 'cs-1', correction: { cle: 'budget_max', valeur: 1_550_000 },
+        motif: 'prix', refus_ids: ['r-1', 'r-2'],
+      },
+    })
+    expect(h.appels).toEqual([])
+  })
+
+  it('Ajuster en échec fait lever : la correction reste à l’écran', async () => {
+    h.invoke = vi.fn(() => Promise.resolve({ data: null, error: { message: 'internal_error' } }))
+    await expect(execAjusterRecherche(C, BUDGET)).rejects.toMatchObject({ message: 'internal_error' })
   })
 })

@@ -522,7 +522,6 @@
   },
   "fil": {
     "titre": "Matching",
-    "aTraiter": "À traiter · {{count}}",
     "chargement": "Chargement des matchs",
     "filtres": {
       "bien": "Filtrer par bien",
@@ -534,7 +533,7 @@
       "inconnu": "Sélection actuelle"
     },
     "vosBiens": "Vos biens",
-    "listeAria": "Matchs à traiter",
+    "listeAria": "Matchs à proposer",
     "acheteurs_one": "{{count}} acheteur",
     "acheteurs_other": "{{count}} acheteurs",
     "sansEcart": "Aucun écart signalé",
@@ -638,7 +637,11 @@
       "titre": "Tout est à jour",
       "texte": "Aucun de vos biens n'attend d'être proposé.",
       "contacts": "Compléter la recherche d'un contact",
-      "marche": "Voir le marché"
+      "marche": "Voir le marché",
+      "attenteTitre": "Aucune réponse attendue",
+      "attenteTexte": "Les biens que vous proposez attendent ici la réponse de l'acheteur.",
+      "conclureTitre": "Aucune visite à planifier",
+      "conclureTexte": "Les biens qui intéressent un acheteur attendent ici leur visite."
     },
     "filtreVide": "Rien ne correspond à ces filtres.",
     "choisir": "Choisissez un match dans la liste.",
@@ -675,6 +678,106 @@
     },
     "propose": "Proposé à {{prenom}} · rappel dans 3 jours",
     "proposeSelection_one": "{{count}} bien proposé à {{prenom}} · rappel dans 3 jours",
-    "proposeSelection_other": "{{count}} biens proposés à {{prenom}} · rappel dans 3 jours"
+    "proposeSelection_other": "{{count}} biens proposés à {{prenom}} · rappel dans 3 jours",
+    "onglets": {
+      "aria": "Étapes de la boucle",
+      "aProposer": "À proposer",
+      "enAttente": "En attente",
+      "aConclure": "À conclure"
+    },
+    "motifs": {
+      "prix": "Prix",
+      "quartier": "Quartier",
+      "surface": "Surface",
+      "pieces": "Pièces",
+      "type": "Type de bien",
+      "equipements": "Équipements",
+      "etat": "État du bien",
+      "autre": "Autre"
+    },
+    "motifsAide": "Pourquoi ? Un clic consigne le refus.",
+    "note": "Note (facultative)",
+    "annulerMotif": "Annuler",
+    "retours": {
+      "titre": "Retours à consigner pour {{nom}}",
+      "sousTitre_one": "{{count}} bien proposé attend sa réponse",
+      "sousTitre_other": "{{count}} biens proposés attendent sa réponse",
+      "proposeLe": "proposé le {{date}}",
+      "interesse": "Intéressé",
+      "pasInteresse": "Pas intéressé",
+      "pasEncore": "Pas encore",
+      "listeAria": "Biens proposés à {{prenom}}"
+    },
+    "attente": {
+      "listeAria": "Acheteurs en attente de réponse",
+      "ligne_one": "{{count}} bien proposé",
+      "ligne_other": "{{count}} biens proposés",
+      "relance": "relance le {{date}}",
+      "relanceDue": "relance due depuis le {{date}}"
+    },
+    "repondu": {
+      "interesse": "{{prenom}} intéressé·e par « {{titre}} »",
+      "refuse": "« {{titre}} » : pas intéressé·e ({{motif}})",
+      "pasEncore": "Relance repoussée de 3 jours pour {{prenom}}",
+      "planifier": "Planifier la visite"
+    },
+    "conclure": {
+      "listeAria": "Acheteurs intéressés",
+      "ligne": "{{titre}} · intéressé·e le {{date}}",
+      "titreAria": "Visite à planifier : {{acheteur}} pour {{bien}}",
+      "interesseLe": "Intéressé·e le {{date}}",
+      "planifier": "Planifier une visite",
+      "date": "Date",
+      "heure": "Heure",
+      "duree": "Durée",
+      "minutes": "{{n}} min",
+      "confirmer": "Planifier la visite",
+      "aucuneInvitation": "Rien n'est envoyé à {{prenom}} : la visite entre dans votre agenda.",
+      "agenceAnnonce": "Visite avec l'agence de l'annonce : elle entre dans votre agenda, rien n'est envoyé à {{prenom}}.",
+      "voirAnnonce": "Voir l'annonce d'origine",
+      "dateRequise": "Choisissez une date et une heure à venir.",
+      "planifiee": "Visite planifiée avec {{prenom}} le {{date}}"
+    },
+    "signal": {
+      "baisseRefus": "Refusé par {{prenom}} à {{prix}} · baissé de {{montant}} depuis",
+      "baissePropose": "Prix baissé de {{montant}} depuis que vous l'avez proposé",
+      "court": "Prix baissé de {{montant}}"
+    },
+    "corrections": {
+      "section": "Recherches à ajuster",
+      "listeAria": "Corrections de recherche proposées",
+      "ligne_one": "{{motif}} · {{count}} refus",
+      "ligne_other": "{{motif}} · {{count}} refus",
+      "titreAria": "Recherche à ajuster pour {{nom}}",
+      "sousTitre_one": "Refusé {{count}} fois pour « {{motif}} »",
+      "sousTitre_other": "Refusé {{count}} fois pour « {{motif}} »",
+      "pourquoi": "Les biens refusés",
+      "refuseLe": "refusé le {{date}}",
+      "proposition": "La correction proposée",
+      "budget": "Abaisser son budget maximum à (CHF)",
+      "surface": "Relever sa surface minimum à (m²)",
+      "pieces": "Relever son minimum de pièces à",
+      "avant": "aujourd'hui : {{valeur}}",
+      "sansMax": "aujourd'hui : sans maximum",
+      "sansMin": "aujourd'hui : sans minimum",
+      "zones": "Retirer de ses zones : {{liste}}",
+      "zonesApres": "Ses zones deviennent : {{liste}}",
+      "type": "Ne lui proposer que : {{type}}",
+      "typeAvant": "aujourd'hui : {{type}}",
+      "tousTypes": "aujourd'hui : tous les types",
+      "equipements": "Ajouter à ses équipements voulus : {{liste}}",
+      "effet": "Ses biens à proposer seront réévalués ; ceux qui ne correspondent plus sortiront de la liste.",
+      "valider": "Ajuster la recherche",
+      "ignorer": "Ignorer",
+      "valeurInvalide": "Saisissez un nombre positif.",
+      "sousMinimum": "Son budget minimum est de {{valeur}} : le maximum ne peut pas être plus bas.",
+      "auDelaMaximum": "Son maximum est de {{valeur}} : le minimum ne peut pas être plus haut.",
+      "fait_one": "Recherche ajustée pour {{prenom}} · {{count}} bien retiré des propositions",
+      "fait_other": "Recherche ajustée pour {{prenom}} · {{count}} biens retirés des propositions",
+      "faitAucun": "Recherche ajustée pour {{prenom}} · aucun bien retiré",
+      "ignoree": "Correction ignorée",
+      "nouvelle": "Une recherche à ajuster pour {{prenom}} vous attend dans « À proposer ».",
+      "erreur": "La recherche n'a pas pu être ajustée. Réessayez."
+    }
   }
 }

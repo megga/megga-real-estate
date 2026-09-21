@@ -13,6 +13,9 @@ import {
   type ScoreResult,
 } from '../_shared/matching-normalize.ts'
 import {
+  estUuid, fusionnerCorrection, lireCorrection, lireRefus, renoter, REFUS_MAX, tranches, type MatchARenoter,
+} from '../_shared/matching-renotation.ts'
+import {
   buildRentStatsIndex,
   rentPosition,
   type RentStatsIndex,
@@ -26,10 +29,21 @@ const corsHeaders = {
 }
 
 interface RequestBody {
-  mode: 'match-property' | 'match-contact' | 'scan-all'
+  mode: 'match-property' | 'match-contact' | 'scan-all' | 'rescore-search'
   property_id?: string
   contact_id?: string
   include_market?: boolean // Aussi matcher contre market_listings (veille marché)
+  /** rescore-search : la recherche dont les matchs à proposer sont renotés (lot B, « Apprendre »). */
+  client_search_id?: string
+  /**
+   * rescore-search : la SEULE clé corrigée et sa valeur (`{ cle, valeur }`), fusionnée dans les critères
+   * d'aujourd'hui APRÈS la renotation. Absente : ses critères actuels, rien de posé.
+   */
+  correction?: unknown
+  /** rescore-search : le motif de refus qui a produit la correction (journal). */
+  motif?: string
+  /** rescore-search : les refus pris en compte (`apprentissage_at`), `REFUS_MAX` au plus. */
+  refus_ids?: unknown
 }
 
 // Ligne de match prête à insérer (commune interne/marché).
@@ -48,6 +62,136 @@ const numOrNull = (v: unknown): number | null => {
   if (v == null || v === '') return null
   const n = typeof v === 'string' ? Number(v) : (v as number)
   return Number.isFinite(n) ? n : null
+}
+
+// colonnes lues par le scoring (jamais description/photos — règles perf §7)
+const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features'
+/**
+ * Ce que le barème lit d'une annonce du marché — ce que rend `match_candidate_listings` —, et ce que son
+ * pré-filtre dur trie (`quality_score`) : la renotation le rejoue (`renoter`).
+ */
+const COLS_ANNONCE_NOTE = 'id, price, current_price, type, canton, city, rooms, surface_m2, features, status, price_at_first_seen, transaction_type, quality_score'
+/** Les motifs qu'« Apprendre » chiffre (le CHECK `matches_reaction_motif_check` en porte d'autres). */
+const MOTIFS_CORRECTION = new Set(['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements'])
+/** `max_rows` de PostgREST : au-delà, une lecture tronque EN SILENCE. */
+const PAGE_MATCHS = 1000
+const LOT_IDS = 100
+const LOT_NOTES = 500
+
+/**
+ * `rescore-search` — la réévaluation des matchs à proposer d'une recherche ajustée (lot B, « Apprendre »).
+ *
+ * ⚠ L'ORDRE EST LE CONTRAT. (1) renoter EN MÉMOIRE avec les critères d'aujourd'hui où la seule clé corrigée
+ * est remplacée ; (2) écrire les notes (`matching_appliquer_notes`) ; (3) d'UN BLOC, `matching_ajuster_recherche` :
+ * la clé fusionnée dans la recherche (et dans la fiche si elle portait les mêmes critères — sans quoi le pont
+ * `sync_contact_client_search` remettrait l'ancienne au prochain enregistrement de la fiche), les refus pris
+ * en compte, UNE ligne au journal. Une panne avant (3) laisse la correction proposée à l'écran, et la même
+ * validation renote puis écrit tout ; (3) n'a pas de milieu. Écrire les critères d'abord effaçait la
+ * correction (plus d'écart à proposer) sans avoir rien renoté.
+ *
+ * ⚠ La mise à jour des critères déclenche `trigger_matching_on_search_updated`, qui relance le moteur en
+ * `match-contact` (pg_net, asynchrone) : les biens que la recherche corrigée retient DE PLUS y naissent.
+ */
+async function renoterRecherche(
+  supabase: SupabaseClient,
+  agencyId: string,
+  acteurId: string | null,
+  body: RequestBody,
+  cfg: ScoringConfig,
+  rentIndex: RentStatsIndex,
+): Promise<{ statut: number; corps: Record<string, unknown> }> {
+  const refus = lireRefus(body.refus_ids)
+  const correction = body.correction === undefined ? null : lireCorrection(body.correction)
+  if (!estUuid(body.client_search_id) || refus === null || (body.correction !== undefined && correction === null)
+    || (body.motif !== undefined && !MOTIFS_CORRECTION.has(body.motif))) {
+    return { statut: 400, corps: { error: 'invalid_body' } }
+  }
+  // Une borne, pas un plafond de travail : le fil ne lit pas davantage de refus (`REFUS_MAX`).
+  if (refus.length > REFUS_MAX) return { statut: 413, corps: { error: 'too_many_refus', max: REFUS_MAX } }
+
+  const { data: recherche, error: rErr } = await supabase
+    .from('client_searches')
+    .select('id, contact_id, criteria')
+    .eq('id', body.client_search_id)
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+  if (rErr) throw rErr
+  if (!recherche) return { statut: 404, corps: { error: 'search_not_found' } }
+  const avant = (recherche.criteria ?? null) as Record<string, unknown> | null
+  const criteres = correction ? fusionnerCorrection(avant, correction) : avant
+  if (!criteres) return { statut: 400, corps: { error: 'invalid_body' } }
+
+  // 1. Les matchs à proposer de la recherche, page par page (idx_matches_agency_focus).
+  const matchs: MatchARenoter[] = []
+  for (let depuis = 0; ; depuis += PAGE_MATCHS) {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('id, property_id, market_listing_id, score_version')
+      .eq('agency_id', agencyId)
+      .eq('contact_id', recherche.contact_id)
+      .eq('client_search_id', recherche.id)
+      .eq('status', 'suggested')
+      .order('id')
+      .range(depuis, depuis + PAGE_MATCHS - 1)
+    if (error) throw error
+    const page = (data ?? []) as MatchARenoter[]
+    matchs.push(...page)
+    if (page.length < PAGE_MATCHS) break
+  }
+
+  // Leurs biens, colonnes du barème seulement.
+  const biens = new Map<string, Record<string, unknown>>()
+  const mandats = [...new Set(matchs.map((m) => m.property_id).filter((id): id is string => id != null))]
+  for (const lot of tranches(mandats, LOT_IDS)) {
+    const { data, error } = await supabase.from('properties').select(PROP_COLS).eq('agency_id', agencyId).in('id', lot)
+    if (error) throw error
+    for (const p of (data ?? []) as Record<string, unknown>[]) biens.set(p.id as string, p)
+  }
+  const annonces = [...new Set(matchs.map((m) => m.market_listing_id).filter((id): id is string => id != null))]
+  for (const lot of tranches(annonces, LOT_IDS)) {
+    const { data, error } = await supabase.from('market_listings').select(COLS_ANNONCE_NOTE).in('id', lot)
+    if (error) throw error
+    for (const a of (data ?? []) as Record<string, unknown>[]) biens.set(a.id as string, a)
+  }
+
+  // 1-2. Le VRAI barème, sur les critères corrigés — AVANT de les poser.
+  const notes = renoter(matchs, biens, criteres, cfg, (a) => rentPosition({
+    canton: (a.canton as string | null) ?? null,
+    type: (a.type as string | null) ?? null,
+    surface_m2: numOrNull(a.surface_m2),
+    loyer: numOrNull(a.current_price) ?? numOrNull(a.price),
+  }, rentIndex))
+  const ecartes: string[] = []
+  let reevalues = 0
+  for (const lot of tranches(notes, LOT_NOTES)) {
+    const { data, error } = await supabase.rpc('matching_appliquer_notes', {
+      p_agency_id: agencyId, p_client_search_id: recherche.id, p_notes: lot,
+    })
+    if (error) throw error
+    for (const l of (data ?? []) as { id: string; status: string }[]) {
+      reevalues++
+      if (l.status === 'ignored') ecartes.push(l.id)
+    }
+  }
+
+  // 3. D'UN BLOC : la clé corrigée (recherche, fiche identique), les refus pris en compte — deux NOUVEAUX
+  //    refus pour ce motif en proposeront une autre —, et UNE ligne au journal (CLAUDE.md §5), qui dit ce
+  //    que la renotation a produit.
+  const { data: ajuste, error: aErr } = await supabase.rpc('matching_ajuster_recherche', {
+    p_agency_id: agencyId,
+    p_client_search_id: recherche.id,
+    p_acteur_id: acteurId,
+    p_cle: correction?.cle ?? null,
+    p_valeur: correction?.valeur ?? null,
+    p_motif: body.motif ?? null,
+    p_refus_ids: refus,
+    p_bilan: { reevalues, ecartes: ecartes.length, match_ids_ecartes: ecartes.slice(0, 50), score_version: cfg.version },
+  })
+  if (aErr) throw aErr
+  // Supprimée entre la lecture et l'écriture : rien n'a été posé.
+  if (ajuste == null) return { statut: 404, corps: { error: 'search_not_found' } }
+
+  return { statut: 200, corps: { reevalues, ecartes: ecartes.length, mode: 'rescore-search', scoreVersion: cfg.version } }
 }
 
 serve(async (req) => {
@@ -73,6 +217,8 @@ serve(async (req) => {
 
     let supabase: SupabaseClient
     let agency_id: string
+    // L'agent derrière le JWT — `null` pour un appel de service : le journal de `rescore-search` le nomme.
+    let acteurId: string | null = null
 
     if (isServiceRole) {
       supabase = admin
@@ -88,6 +234,7 @@ serve(async (req) => {
       if (auth instanceof Response) return auth
       supabase = auth.supabase
       agency_id = auth.profile.agency_id // JWT-derived, on ignore body.agency_id
+      acteurId = auth.profile.id
     }
 
     // ── Barème de scoring (externalisé, ajustable sans redéploiement) ──
@@ -247,9 +394,6 @@ serve(async (req) => {
       newMarketMatches += await flush(rows, 'insert_market_matches', 'market')
     }
 
-    // colonnes lues par le scoring (jamais description/photos — règles perf §7)
-    const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features'
-
     if (mode === 'match-property' && property_id) {
       // ── Nouveau bien interne → scanner tous les acheteurs (interne uniquement) ──
       const { data: property, error: propError } = await supabase
@@ -325,6 +469,11 @@ serve(async (req) => {
       newMatches += await flush(rows, 'insert_internal_matches', 'internal')
 
       await matchSearchesAgainstMarket(searches || [], (s) => s.contact_id as string)
+    } else if (mode === 'rescore-search') {
+      const r = await renoterRecherche(supabase, agency_id, acteurId, body, cfg, rentIndex)
+      return new Response(JSON.stringify(r.corps), {
+        status: r.statut, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     } else {
       return new Response(JSON.stringify({ error: 'invalid_mode' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },

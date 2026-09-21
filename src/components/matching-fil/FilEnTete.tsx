@@ -1,6 +1,8 @@
 /**
- * En-tête du fil de matchs : le titre, le compte d'« À traiter », et les filtres Bien, Acheteur et
+ * En-tête du fil de matchs : le titre et les filtres Bien, Acheteur et
  * texte (§3.4). Ils remplacent les deux vues de l'atelier.
+ *
+ * Les comptes vivent dans les onglets (`FilOnglets`, lot B) : un par temps de la boucle.
  *
  * ⚠ Des `<select>` NATIFS : deux filtres à choix unique n'ont besoin ni de recherche ni de groupes,
  * et le natif est accessible et navigable au clavier d'office. `colorScheme` suit le thème, sinon
@@ -15,14 +17,12 @@ import { encreAccent } from './filAffichage'
 
 interface Props {
   sp: CrmPalette
-  /** `null` tant que le compte n'est pas connu (chargement, échec). */
-  compte: number | null
   filtres: FilFiltres
   options: { biens: OptionFiltre[]; acheteurs: OptionFiltre[] }
   onFiltres: (f: FilFiltres) => void
 }
 
-export default function FilEnTete({ sp, compte, filtres, options, onFiltres }: Props) {
+export default function FilEnTete({ sp, filtres, options, onFiltres }: Props) {
   const { t } = useTranslation('matching')
   const champ: CSSProperties = {
     height: 34, borderRadius: 'var(--crm-radius-pill)', background: sp.cardBg, color: sp.ink,
@@ -35,11 +35,6 @@ export default function FilEnTete({ sp, compte, filtres, options, onFiltres }: P
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: sp.ink }}>{t('fil.titre')}</h1>
-        {compte != null && (
-          <p style={{ margin: 0, marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub }}>
-            {t('fil.aTraiter', { count: compte })}
-          </p>
-        )}
       </div>
       <Choix sp={sp} style={champ} libelle={t('fil.filtres.bien')} tous={t('fil.filtres.tousLesBiens')}
         valeur={filtres.bienId} options={options.biens} onChange={(bienId) => onFiltres({ ...filtres, bienId })} />

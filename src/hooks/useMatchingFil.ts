@@ -1,8 +1,10 @@
 /**
- * Données du fil de matchs : « À traiter » sur les biens de l'agence (lot 1), et une ligne « Marché »
- * par acheteur, résumée côté serveur par `matching_fil_marche()` (lot 2).
+ * Données du fil de matchs : « À proposer » sur les biens de l'agence (lot 1), une ligne « Marché » par
+ * acheteur, résumée côté serveur par `matching_fil_marche()` (lot 2), et la BOUCLE (lot B) — les matchs
+ * proposés, répondus ou en visite, et les relances de proposition en cours.
  *
- * Conception : `docs/superpowers/specs/2026-09-17-matching-fil-design.md`, §8.
+ * Conceptions : `docs/superpowers/specs/2026-09-17-matching-fil-design.md` §8 ;
+ * `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md` §4 et §5.
  *
  * ⛔ DES LECTURES PLATES, AUCUNE JOINTURE EMBARQUÉE. L'atelier charge tous les matchs de l'agence
  * avec `properties(*)` et `market_listings(*)` — descriptions et galeries comprises, 1 628 lignes
@@ -16,10 +18,16 @@
  * repli : mesuré le 17.09.2026, il est vide pour 3 acheteurs sur 4.
  *
  * ⚠ UNE RECHERCHE MODIFIÉE GARDE LES RAISONS DE L'ANCIENNE : `insert_internal_matches` ne re-note pas
- * une paire existante (`ON CONFLICT DO NOTHING`). Aucun signal fiable ne permet de les écarter ici —
- * `client_searches.updated_at` bouge à CHAQUE enregistrement du contact (trigger de synchro), et s'y
- * fier effacerait les verdicts d'un acheteur dont on a corrigé la nationalité. La re-notation est un
- * chantier du moteur, à trancher avant la bascule de production (conception §13).
+ * une paire existante (`ON CONFLICT DO NOTHING`). Seule une correction d'« Apprendre » (lot B) renote les
+ * matchs à proposer de SA recherche (`matching-engine`, mode `rescore-search`). Aucun signal fiable ne
+ * permet d'écarter les autres ici — `client_searches.updated_at` bouge à CHAQUE enregistrement du contact
+ * (trigger de synchro), et s'y fier effacerait les verdicts d'un acheteur dont on a corrigé la nationalité.
+ *
+ * ⚠ LA BOUCLE SE LIT EN ENTIER, sans pagination : ses statuts (`sent`, `interested`, `rejected`,
+ * `visit_planned`) ne naissent que d'un geste de l'agent — aucun en production le 21.09.2026 —, servis par
+ * `idx_matches_boucle`. Au-delà de 1 000 lignes, `max_rows` tronquerait en silence : à surveiller avant la
+ * bascule (conception du fil, §13). Lue dans un ORDRE TOTAL, la plus récemment proposée d'abord : sans lui,
+ * une troncature garderait n'importe quelles lignes, et pas les mêmes d'une lecture à l'autre.
  *
  * ⚠ Le filtre « bien en mandat » est posé DEUX fois : `not(property_id, is, null)` pour la base, et
  * côté client pour le banc, qui ne connaît pas l'opérateur `not`.
@@ -33,16 +41,31 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
-import { refBienInterne, type AcheteurGeste, type BienGeste } from '@/hooks/useAtelierMatching'
+import {
+  refAnnonceMarche, refBienInterne, STATUTS_RELANCE_OUVERTE, type AcheteurGeste, type BienGeste,
+} from '@/hooks/useAtelierMatching'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycDossierStatus } from '@/types/kyc'
 import {
   compterHistorique, type FilBien, type FilMatch, type FilSelectionResume, type Historique, type RaisonsMoteur,
+  type SuiviMatch,
 } from '@/components/matching-fil/filModele'
+import type { RelanceProposition } from '@/components/matching-fil/filBoucle'
 
-interface LigneMatch {
+/** Ce qu'une ligne `matches` porte de son suivi (lot B). */
+interface ColonnesSuivi {
+  sent_at: string | null; response_at: string | null; reaction_motif: string | null; reaction_note: string | null
+  prix_propose: number | string | null
+}
+interface LigneMatch extends ColonnesSuivi {
   id: string; contact_id: string; property_id: string | null; client_search_id: string | null; score: number
   reasons: RaisonsMoteur | null; snoozed_until: string | null; created_at: string | null
+}
+/** Un match de la boucle : proposé, répondu ou en visite (lot B). */
+interface LigneBoucle extends ColonnesSuivi {
+  id: string; contact_id: string; property_id: string | null; market_listing_id: string | null
+  client_search_id: string | null; score: number; reasons: RaisonsMoteur | null; status: string
+  created_at: string | null; apprentissage_at: string | null
 }
 export interface LigneContact {
   id: string; first_name: string; last_name: string; email: string | null; phone: string | null
@@ -53,16 +76,36 @@ interface LigneBien {
   price: number | string | null; rooms: number | string | null; surface_m2: number | string | null
   address: string | null; city: string | null; canton: string | null; features: unknown; photos: string[] | null
 }
+/** Une annonce du marché, colonnes légères (§7 de CLAUDE.md) : la sélection (lot 2) et la boucle (lot B) la lisent pareil. */
+export interface LigneAnnonce {
+  id: string; title: string | null; type: string | null; transaction_type: string | null
+  price: number | string | null; current_price: number | string | null; rooms: number | string | null
+  surface_m2: number | string | null; address: string | null; city: string | null; canton: string | null
+  features: unknown; photos: string[] | null; photos_cf: unknown; status: string | null
+  source_portal: string | null; source_id: string | null; source_url: string | null
+}
+interface LigneRelance {
+  id: string; contact_id: string | null; match_id: string | null; match_ids: string[] | null; trigger_at: string | null
+}
 interface DonneesFil {
   matchs: FilMatch[]
   selections: FilSelectionResume[]
+  /** La boucle (lot B) : proposés, répondus, en visite. */
+  boucle: FilMatch[]
+  /** Les relances de proposition en cours. */
+  relances: RelanceProposition[]
   historique: Map<string, Historique>
   chargeLe: number
 }
 
 /** Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes. */
 export const CLE_FIL = 'matching-fil'
-const VIDE: DonneesFil = { matchs: [], selections: [], historique: new Map(), chargeLe: 0 }
+/** Les colonnes d'une annonce du marché que le fil lit. */
+export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url'
+/** Les statuts de la boucle — ceux que compte aussi « Déjà proposé » (`compterHistorique`), et l'index `idx_matches_boucle`. */
+const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
+const VIDE: DonneesFil = { matchs: [], selections: [], boucle: [], relances: [], historique: new Map(), chargeLe: 0 }
+const nonNul = (id: string | null): id is string => id != null
 
 export async function lire<T>(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
   const { data, error } = await requete
@@ -70,13 +113,13 @@ export async function lire<T>(requete: PromiseLike<{ data: unknown; error: unkno
   return (data ?? []) as T[]
 }
 
-export const nombreOuNull = (v: number | string | null): number | null => {
+const nombreOuNull = (v: number | string | null): number | null => {
   if (v == null || v === '') return null
   const n = typeof v === 'string' ? Number(v) : v
   return Number.isFinite(n) ? n : null
 }
 
-export function listeEquipements(brut: unknown): string[] {
+function listeEquipements(brut: unknown): string[] {
   if (Array.isArray(brut)) return brut.filter((f): f is string => typeof f === 'string')
   if (brut && typeof brut === 'object') {
     return Object.entries(brut as Record<string, unknown>).filter(([, v]) => Boolean(v)).map(([k]) => k)
@@ -92,6 +135,47 @@ function versBien(b: LigneBien): FilBien {
   }
 }
 
+/** La vignette d'une annonce : `photos_cf` porte des URL en chaîne OU des objets `{thumb, …}`, sinon `photos`. */
+function photoAnnonce(cf: unknown, photos: string[] | null): string | null {
+  const premier: unknown = Array.isArray(cf) ? cf[0] : undefined
+  if (typeof premier === 'string' && premier) return premier
+  if (premier && typeof premier === 'object') {
+    const thumb = (premier as Record<string, unknown>).thumb
+    if (typeof thumb === 'string' && thumb) return thumb
+  }
+  return photos?.find((p) => typeof p === 'string' && p !== '') ?? null
+}
+
+/** Une annonce du marché, dans la forme du fil. */
+export function versBienMarche(a: LigneAnnonce): FilBien {
+  const ref = refAnnonceMarche(a.source_portal, a.source_id, a.id)
+  return {
+    // Une annonce sans titre (le portail n'en donne pas toujours) : une ligne sans nom ne se coche pas
+    // en connaissance de cause, et la case comme « Écarter » se nomment d'après lui.
+    id: a.id, titre: a.title?.trim() || a.address?.trim() || a.city?.trim() || ref,
+    prix: nombreOuNull(a.current_price) ?? nombreOuNull(a.price),
+    location: a.transaction_type === 'rent', type: a.type, pieces: nombreOuNull(a.rooms), surface: nombreOuNull(a.surface_m2),
+    ville: a.city, canton: a.canton, adresse: a.address, equipements: listeEquipements(a.features),
+    photo: photoAnnonce(a.photos_cf, a.photos),
+    marche: { ref, sourceUrl: a.source_url },
+  }
+}
+
+function versSuivi(m: ColonnesSuivi & { status: string; apprentissage_at?: string | null }): SuiviMatch {
+  return {
+    statut: m.status as SuiviMatch['statut'], proposeLe: m.sent_at, reponduLe: m.response_at,
+    motif: m.reaction_motif, note: m.reaction_note, prixPropose: nombreOuNull(m.prix_propose), apprisLe: m.apprentissage_at ?? null,
+  }
+}
+
+/**
+ * Le suivi d'un match ENCORE à proposer — seulement s'il a déjà été proposé : un bien refusé pour le prix et
+ * revenu par une baisse (trigger `match_retour_prix_*`) garde son motif et son prix proposé.
+ */
+export function suiviAProposer(m: ColonnesSuivi): SuiviMatch | undefined {
+  return m.prix_propose != null || m.reaction_motif != null ? versSuivi({ ...m, status: 'suggested' }) : undefined
+}
+
 /** Un contact lu, dans la forme du fil. */
 export function versAcheteur(c: LigneContact, kyc: KycDossierStatus | null | undefined): FilMatch['acheteur'] {
   return {
@@ -102,10 +186,10 @@ export function versAcheteur(c: LigneContact, kyc: KycDossierStatus | null | und
 
 async function chargerFil(agencyId: string): Promise<DonneesFil> {
   const debut = Date.now()
-  const [bruts, resumes] = await Promise.all([
+  const [bruts, resumes, boucleBrute, relancesBrutes] = await Promise.all([
     lire<LigneMatch>(
       supabase.from('matches')
-        .select('id, contact_id, property_id, client_search_id, score, reasons, snoozed_until, created_at')
+        .select('id, contact_id, property_id, client_search_id, score, reasons, snoozed_until, created_at, sent_at, response_at, reaction_motif, reaction_note, prix_propose')
         .eq('agency_id', agencyId)
         .eq('status', 'suggested')
         .not('property_id', 'is', null)
@@ -125,14 +209,33 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
         console.error('[matching-fil] matching_fil_marche absente : migration pas encore appliquée', e)
         return []
       }),
+    lire<LigneBoucle>(
+      supabase.from('matches')
+        .select('id, contact_id, property_id, market_listing_id, client_search_id, score, reasons, status, created_at, sent_at, response_at, reaction_motif, reaction_note, prix_propose, apprentissage_at')
+        .eq('agency_id', agencyId)
+        .in('status', STATUTS_BOUCLE)
+        .order('sent_at', { ascending: false, nullsFirst: false })
+        .order('id'),
+    ),
+    // Les relances de PROPOSITION en cours, repoussées depuis « Aujourd'hui » comprises (`snoozed`) : « En
+    // attente » en tire l'échéance de chaque acheteur.
+    lire<LigneRelance>(
+      supabase.from('reminders')
+        .select('id, contact_id, match_id, match_ids, trigger_at')
+        .eq('agency_id', agencyId)
+        .eq('type', 'follow_up_sent_property')
+        .in('status', STATUTS_RELANCE_OUVERTE),
+    ),
   ])
   const lignes = bruts.filter((m) => m.property_id != null)
-  if (lignes.length === 0 && resumes.length === 0) return { matchs: [], selections: [], historique: new Map(), chargeLe: debut }
-  const contactIds = [...new Set([...lignes.map((m) => m.contact_id), ...resumes.map((r) => r.contact_id)])]
-  const bienIds = [...new Set(lignes.map((m) => m.property_id as string))]
-  const rechercheIds = [...new Set(lignes.map((m) => m.client_search_id).filter((id): id is string => id != null))]
+  if (lignes.length === 0 && resumes.length === 0 && boucleBrute.length === 0) return { ...VIDE, historique: new Map(), chargeLe: debut }
+  const avecBien = [...lignes, ...boucleBrute]
+  const contactIds = [...new Set([...avecBien.map((m) => m.contact_id), ...resumes.map((r) => r.contact_id)])]
+  const bienIds = [...new Set(avecBien.map((m) => m.property_id).filter(nonNul))]
+  const annonceIds = [...new Set(boucleBrute.map((m) => m.market_listing_id).filter(nonNul))]
+  const rechercheIds = [...new Set(avecBien.map((m) => m.client_search_id).filter(nonNul))]
 
-  const [contacts, recherches, biens, kyc, historique] = await Promise.all([
+  const [contacts, recherches, biens, annonces, kyc] = await Promise.all([
     lire<LigneContact>(supabase.from('contacts').select('id, first_name, last_name, email, phone, search_criteria').in('id', contactIds)),
     rechercheIds.length > 0
       ? lire<{ id: string; criteria: SearchCriteria | null }>(supabase.from('client_searches').select('id, criteria').in('id', rechercheIds))
@@ -144,21 +247,23 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
           .in('id', bienIds),
       )
       : Promise.resolve([]),
+    annonceIds.length > 0
+      ? lire<LigneAnnonce>(supabase.from('market_listings').select(COLONNES_ANNONCE).in('id', annonceIds))
+      : Promise.resolve([]),
     lire<{ contact_id: string; dossier_status: KycDossierStatus | null }>(
       supabase.from('kyc_cases').select('contact_id, dossier_status')
         .in('contact_id', contactIds).in('type', ['buyer_pp', 'buyer_pm']).order('created_at', { ascending: false }),
-    ),
-    lire<{ contact_id: string; status: string }>(
-      supabase.from('matches').select('contact_id, status')
-        .eq('agency_id', agencyId).in('contact_id', contactIds).in('status', ['sent', 'interested', 'rejected', 'visit_planned']),
     ),
   ])
 
   const contactParId = new Map(contacts.map((c) => [c.id, c]))
   const criteresParRecherche = new Map(recherches.map((r) => [r.id, r.criteria]))
   const bienParId = new Map(biens.map((b) => [b.id, versBien(b)]))
+  const annonceParId = new Map(annonces.map((a) => [a.id, versBienMarche(a)]))
   const kycParContact = new Map<string, KycDossierStatus | null>()
   for (const k of kyc) if (!kycParContact.has(k.contact_id)) kycParContact.set(k.contact_id, k.dossier_status)
+  const criteresDe = (m: { client_search_id: string | null }, c: LigneContact): SearchCriteria | null =>
+    (m.client_search_id ? criteresParRecherche.get(m.client_search_id) : null) ?? c.search_criteria
 
   const matchs: FilMatch[] = []
   for (const m of lignes) {
@@ -168,8 +273,20 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     if (!c || !bien) continue
     matchs.push({
       id: m.id, score: m.score, raisons: m.reasons, creeLe: m.created_at, reporteJusquau: m.snoozed_until, bien,
-      criteres: (m.client_search_id ? criteresParRecherche.get(m.client_search_id) : null) ?? c.search_criteria,
-      acheteur: versAcheteur(c, kycParContact.get(c.id)),
+      criteres: criteresDe(m, c), rechercheId: m.client_search_id,
+      acheteur: versAcheteur(c, kycParContact.get(c.id)), suivi: suiviAProposer(m),
+    })
+  }
+
+  const boucle: FilMatch[] = []
+  for (const m of boucleBrute) {
+    const c = contactParId.get(m.contact_id)
+    const bien = m.property_id ? bienParId.get(m.property_id) : m.market_listing_id ? annonceParId.get(m.market_listing_id) : undefined
+    if (!c || !bien) continue
+    boucle.push({
+      id: m.id, score: m.score, raisons: m.reasons, creeLe: m.created_at, reporteJusquau: null, bien,
+      criteres: criteresDe(m, c), rechercheId: m.client_search_id,
+      acheteur: versAcheteur(c, kycParContact.get(c.id)), suivi: versSuivi(m),
     })
   }
 
@@ -182,7 +299,12 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
       nombre: r.nombre, meilleurScore: r.meilleur_score, vignettes: r.vignettes ?? [],
     })
   }
-  return { matchs, selections, historique: compterHistorique(historique), chargeLe: debut }
+
+  // Une relance sans `match_ids` (un seul bien, ou d'avant le lot B) couvre son seul `match_id`.
+  const relances: RelanceProposition[] = relancesBrutes
+    .filter((r): r is LigneRelance & { contact_id: string } => r.contact_id != null)
+    .map((r) => ({ id: r.id, contactId: r.contact_id, matchIds: r.match_ids ?? (r.match_id ? [r.match_id] : []), echeance: r.trigger_at }))
+  return { matchs, selections, boucle, relances, historique: compterHistorique(boucleBrute), chargeLe: debut }
 }
 
 interface EtatFil {
@@ -197,7 +319,7 @@ interface EtatFil {
   rafraichir: () => Promise<void>
 }
 
-/** Les matchs « À traiter » des biens de l'agence, leur historique de propositions, et l'heure du chargement. */
+/** Les matchs du fil — à proposer, du marché, de la boucle —, les relances en cours, et l'heure du chargement. */
 export function useMatchingFil(): DonneesFil & EtatFil {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null

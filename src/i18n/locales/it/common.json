@@ -532,7 +532,13 @@
       "labs_video_generated": "Video generato nello studio Labs",
       "labs_folder_created": "Cartella Labs creata",
       "labs_folder_renamed": "Cartella Labs rinominata",
-      "labs_folder_deleted": "Cartella Labs eliminata"
+      "labs_folder_deleted": "Cartella Labs eliminata",
+      "match_reaction": "Risposta dell'acquirente registrata",
+      "match_pas_encore": "Ancora nessuna risposta dell'acquirente",
+      "match_retour_prix": "Immobile rifiutato tornato dopo un calo di prezzo",
+      "recherche_ajustee": "Ricerca adattata dopo i rifiuti",
+      "matchs_reevalues": "Match rivalutati",
+      "correction_ignoree": "Correzione della ricerca ignorata"
     },
     "entity": {
       "admin_console": "Console di amministrazione",

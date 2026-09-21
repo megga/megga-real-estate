@@ -586,8 +586,53 @@ const ANNONCES_FIL = [
   annonceFil('ml-fil-4', 'Appartement 6 pièces · Champel', 'Avenue Miremont 30', '1206', 2_450_000, 6, 175, ['Ascenseur', 'Balcon', 'Cave'], PHOTOS_APPART[3]!, '52101'),
 ]
 
+/**
+ * La BOUCLE du fil (lot B, 21.09.2026) — huit ventes du marché, notées par le vrai moteur À LEUR PREMIER PRIX
+ * (`banc-matching-boucle.spec.ts` les confronte à `calculateScoreV2` ; il ne renote pas une paire existante). Julie (c9) en a refusé deux pour le
+ * PRIX (ml-boucle-1 et -2 : « Apprendre » propose d'abaisser son budget à 1'550'000) ; elle n'a pas encore
+ * répondu sur ml-boucle-3, qui a baissé depuis qu'on le lui a proposé ; ml-boucle-4 est la seule de ses
+ * suggestions que la correction écarte (57 → 49). Emma (c7) est intéressée par ml-boucle-5, n'a répondu ni sur
+ * ml-boucle-6 ni sur ml-boucle-8 (proposés ensemble : « Retours de … » à deux biens), et ml-boucle-7, qu'elle
+ * a refusé pour le prix, est revenu par une baisse.
+ *
+ * ⚠ Mêmes colonnes que `annonceFil`, plus l'historique du prix : `price_at_first_seen` au-dessus du prix
+ * courant ⇒ baisse datée, et `price_reduced`, comme le pose `trg_ra_price_status` sur une vente RealAdvisor.
+ */
+const annonceBoucle = (
+  id: string, titre: string, lieu: { rue: string; npa: string; ville: string; canton: string },
+  prix: { actuel: number; premier: number }, pieces: number, surface: number, equipements: string[], photo: string, sourceId: string,
+) => ({
+  ...annonceFil(id, titre, lieu.rue, lieu.npa, prix.actuel, pieces, surface, equipements, photo, sourceId),
+  city: lieu.ville, canton: lieu.canton, price_at_first_seen: prix.premier, first_seen_at: ilYA(24 * 14), removed_at: null,
+  status: prix.premier > prix.actuel ? 'price_reduced' : 'active',
+  price_reduced_at: prix.premier > prix.actuel ? ilYA(24 * 2) : null,
+})
+const GENEVE = (rue: string, npa: string) => ({ rue, npa, ville: 'Genève', canton: 'GE' })
+const ZURICH = (rue: string, npa: string) => ({ rue, npa, ville: 'Zürich', canton: 'ZH' })
+const ANNONCES_BOUCLE = [
+  annonceBoucle('ml-boucle-1', 'Attique 4,5 pièces · Malagnou', GENEVE('Route de Malagnou 28', '1208'), { actuel: 1_580_000, premier: 1_580_000 }, 4.5, 112, ['Balcon', 'Ascenseur', 'Terrasse'], PHOTOS_APPART[4]!, '52210'),
+  annonceBoucle('ml-boucle-2', 'Appartement 5 pièces · Servette', GENEVE('Rue de la Servette 45', '1202'), { actuel: 1_560_000, premier: 1_560_000 }, 5, 118, ['Balcon', 'Ascenseur'], PHOTOS_APPART[5]!, '52211'),
+  annonceBoucle('ml-boucle-3', 'Appartement 4 pièces · Champel', GENEVE('Chemin des Crêts-de-Champel 9', '1206'), { actuel: 1_440_000, premier: 1_490_000 }, 4, 104, ['Balcon', 'Ascenseur'], PHOTOS_APPART[6]!, '52212'),
+  annonceBoucle('ml-boucle-4', 'Appartement 3,5 pièces · Onex', { rue: 'Avenue du Bois-de-la-Chapelle 15', npa: '1213', ville: 'Onex', canton: 'GE' }, { actuel: 1_750_000, premier: 1_750_000 }, 3.5, 92, ['Ascenseur'], PHOTOS_APPART[7]!, '52213'),
+  annonceBoucle('ml-boucle-5', 'Appartement 5,5 pièces · Enge', ZURICH('Seestrasse 120', '8002'), { actuel: 2_200_000, premier: 2_200_000 }, 5.5, 146, ['Balcon', 'Ascenseur'], PHOTOS_APPART[8]!, '52214'),
+  annonceBoucle('ml-boucle-6', 'Attique 4,5 pièces · Oerlikon', ZURICH('Schaffhauserstrasse 340', '8050'), { actuel: 2_650_000, premier: 2_650_000 }, 4.5, 128, ['Terrasse', 'Ascenseur'], PHOTOS_APPART[9]!, '52215'),
+  annonceBoucle('ml-boucle-7', 'Appartement 4,5 pièces · Seefeld', ZURICH('Seefeldstrasse 88', '8008'), { actuel: 2_480_000, premier: 2_590_000 }, 4.5, 121, ['Balcon', 'Ascenseur'], PHOTOS_APPART[10]!, '52216'),
+  annonceBoucle('ml-boucle-8', 'Appartement 4,5 pièces · Wollishofen', ZURICH('Albisstrasse 60', '8038'), { actuel: 1_980_000, premier: 1_980_000 }, 4.5, 118, ['Balcon', 'Cave'], PHOTOS_APPART[11]!, '52217'),
+]
+/** Les jointures `contact` des matchs de la boucle — le banc n'applique pas `select`, la ligne les porte. */
+const JULIE_EMBARQUEE = { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' }
+const EMMA_EMBARQUEE = { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' }
+/** Emma (c7) sur un bien de Zürich : ni pièces ni équipements dans sa recherche, le moteur reporte leur poids. */
+const RAISONS_EMMA_ZURICH = {
+  budget: { match: true, score: 47, detail: 'Dans le budget' },
+  zone: { match: true, score: 35, detail: 'Zürich correspond' },
+  type: { match: true, score: 18, detail: 'apartment' },
+  rooms: { match: false, score: 0, detail: 'Aucun critère' },
+  features: { match: false, score: 0, detail: '—' },
+}
+
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE],
   credit_ledger: [],
   credit_wallets: [],
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
@@ -604,6 +649,11 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   reminders: [
     { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
     { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
+    // La boucle du fil (lot B) : UNE relance par proposition, qui couvre TOUS ses biens (`match_ids`). rb1
+    // reste ouverte — Julie a refusé m14 mais pas encore répondu sur m15 (`fermer_relance_proposition`) ;
+    // rb2, échue, couvre les deux biens proposés ensemble à Emma. Colonnes réelles de `reminders`, telles que `poserRelance` les pose.
+    { id: 'rb1', agency_id: AGENCE_BANC.id, contact_id: 'c9', property_id: null, transaction_id: null, match_id: 'm14', match_ids: ['m14', 'm15'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(-24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Julie Morand sur 2 biens proposés', created_at: ilYA(48) },
+    { id: 'rb2', agency_id: AGENCE_BANC.id, contact_id: 'c7', property_id: null, transaction_id: null, match_id: 'm18', match_ids: ['m18', 'm21'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Emma Schneider sur 2 biens proposés', created_at: ilYA(96) },
   ],
   // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
   // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
@@ -748,9 +798,12 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       property: CHAMPEL_EMBARQUE, market_listing: null,
     },
     {
+      // Refusé par Antoine pour le PRIX à 3'450'000, revenu à proposer quand le mandat est passé à 3'200'000
+      // (lot B, `match_retour_prix_mandat`) : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis ».
       id: 'm5', agency_id: AGENCE_BANC.id, client_search_id: 'cs10', contact_id: 'c10', source: 'internal',
       property_id: 'p2', market_listing_id: null,
-      score: 97, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(12),
+      score: 97, status: 'suggested', sent_via: 'agent', sent_at: ilYA(24 * 20), snoozed_until: null, created_at: ilYA(24 * 25),
+      response_at: ilYA(24 * 18), reaction_motif: 'prix', reaction_note: null, prix_propose: 3_450_000,
       reasons: {
         budget: { match: true, score: 32, detail: 'Dans le budget' },
         zone: { match: true, score: 24, detail: 'Cologny correspond' },
@@ -766,6 +819,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       id: 'm6', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
       property_id: 'pb32', market_listing_id: null,
       score: 100, status: 'interested', sent_via: 'reception', sent_at: ilYA(24 * 6), snoozed_until: null, created_at: ilYA(24 * 6 + 2),
+      response_at: ilYA(24 * 5),
       reasons: {
         budget: { match: true, score: 47, detail: 'Dans le budget' },
         zone: { match: true, score: 35, detail: 'Genève correspond' },
@@ -863,6 +917,94 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
       market_listing: ANNONCES_FIL[3], property: null,
     },
+    // ── La boucle du fil (lot B, 21.09.2026) : m14 à m21, sur ANNONCES_BOUCLE, notés par le vrai moteur
+    // (`banc-matching-boucle.spec.ts`). ⚠ Le banc ne joue AUCUN trigger : ce que la base poserait seule y est
+    // écrit tel qu'elle le laisserait — `prix_propose` au passage à `sent`, `response_at` à la réponse, le
+    // retour à `suggested` d'un refus « prix » quand le prix baisse (m20, et m5 plus haut).
+    {
+      id: 'm14', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-2',
+      score: 97, status: 'rejected', sent_via: 'agent', sent_at: ilYA(48), snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: ilYA(24), reaction_motif: 'prix', reaction_note: null, prix_propose: 1_560_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '5 pièces · 118 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[1], property: null,
+    },
+    {
+      id: 'm15', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-3',
+      score: 97, status: 'sent', sent_via: 'agent', sent_at: ilYA(48), snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_490_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4 pièces · 104 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[2], property: null,
+    },
+    {
+      id: 'm16', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-1',
+      score: 100, status: 'rejected', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 10),
+      response_at: ilYA(24 * 8), reaction_motif: 'prix', reaction_note: 'Au-dessus de ce que sa banque suit.', prix_propose: 1_580_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 112 m²' },
+        features: { match: true, score: 10, detail: '3/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[0], property: null,
+    },
+    {
+      id: 'm17', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-5',
+      score: 100, status: 'interested', sent_via: 'agent', sent_at: ilYA(24 * 5), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: ilYA(24 * 3), reaction_motif: null, reaction_note: null, prix_propose: 2_200_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[4], property: null,
+    },
+    {
+      id: 'm18', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-6',
+      score: 100, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 4), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 2_650_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[5], property: null,
+    },
+    {
+      id: 'm19', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-4',
+      score: 57, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: null, apprentissage_at: null,
+      reasons: {
+        budget: { match: false, score: 12, detail: '9% au-dessus du budget' },
+        zone: { match: true, score: 14, detail: 'Canton GE correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 15, detail: '3,5 pièces · 92 m²' },
+        features: { match: false, score: 3, detail: '1/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[3], property: null,
+    },
+    {
+      id: 'm20', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-7',
+      score: 100, status: 'suggested', sent_via: 'agent', sent_at: ilYA(24 * 12), snoozed_until: null, created_at: ilYA(24 * 14),
+      response_at: ilYA(24 * 10), reaction_motif: 'prix', reaction_note: 'Attend une baisse.', prix_propose: 2_590_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[6], property: null,
+    },
+    {
+      id: 'm21', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-8',
+      score: 100, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 4), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_980_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[7], property: null,
+    },
   ],
   crm_offers: [],
   seller_leads: [],
@@ -898,6 +1040,80 @@ export const CRM_TABLES: Record<string, unknown[]> = {
 }
 
 /**
+ * `matching-engine` du banc — le mode `rescore-search` d'« Apprendre » (lot B) ; les autres modes rendent
+ * `{ ok: true, banc: true }`, comme toute edge sans fixture.
+ *
+ * ⛔ LE BANC NE NOTE PAS : `src/` ne charge pas le barème Deno (CLAUDE.md §4). Il connaît les notes du cas de
+ * démonstration — la recherche de Julie (cs9), budget maximum abaissé à 1'550'000 par ses deux refus « prix » —,
+ * CONFRONTÉES au moteur par `banc-matching-boucle.spec.ts`. Une autre valeur pose la clé et prend les refus en
+ * compte sans rien renoter (0 réévalué, et l'écran le dit) : le banc n'invente pas de note.
+ *
+ * Même contrat que l'edge : la SEULE clé corrigée (`correction: { cle, valeur }`), fusionnée dans les critères
+ * d'aujourd'hui. Mêmes écritures, dans le même ordre : les notes (sous le seuil : `ignored`, motif
+ * `recherche_ajustee`), puis, comme `matching_ajuster_recherche`, la clé dans la recherche et dans la fiche si
+ * elle portait les mêmes critères, les refus pris en compte, une ligne au journal.
+ */
+type RaisonBanc = { match: boolean; score: number; detail: string }
+/** Le seuil du barème (`DEFAULT_SCORING_CONFIG.threshold`, matching-normalize.ts). */
+const SEUIL_MOTEUR = 55
+/** Les notes du moteur pour la recherche de Julie au budget maximum de 1'550'000 : seul l'axe budget change. */
+const NOTES_JULIE_1550: Record<string, { score: number; budget?: RaisonBanc }> = {
+  m3: { score: 97 }, m8: { score: 97 }, m10: { score: 90 },
+  m9: { score: 94, budget: { match: true, score: 26, detail: '3% au-dessus du budget' } },
+  m19: { score: 49, budget: { match: false, score: 4, detail: '13% au-dessus du budget' } },
+}
+
+function renoterBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const recherche = (CRM_TABLES.client_searches as { id: string; contact_id: string; criteria: unknown }[])
+    .find((r) => r.id === a.client_search_id)
+  if (!recherche) return { error: 'search_not_found' }
+  const brute = a.correction && typeof a.correction === 'object' ? a.correction as { cle?: unknown; valeur?: unknown } : null
+  const correction = brute && typeof brute.cle === 'string' ? { cle: brute.cle, valeur: brute.valeur } : null
+  const avant = recherche.criteria
+  const criteres = correction ? { ...(avant as Record<string, unknown> | null), [correction.cle]: correction.valeur } : null
+  const refus = Array.isArray(a.refus_ids) ? a.refus_ids.filter((id): id is string => typeof id === 'string') : []
+  const matchs = CRM_TABLES.matches as {
+    id: string; status: string; client_search_id?: string | null; score: number
+    reasons: Record<string, unknown> | null; reaction_motif?: string | null; apprentissage_at?: string | null
+  }[]
+  const demonstration = recherche.id === 'cs9' && correction?.cle === 'budget_max' && correction.valeur === 1_550_000
+  let reevalues = 0
+  let ecartes = 0
+  for (const m of matchs) {
+    const note = demonstration ? NOTES_JULIE_1550[m.id] : undefined
+    if (!note || m.status !== 'suggested' || m.client_search_id !== recherche.id) continue
+    reevalues++
+    m.score = note.score
+    if (note.budget) m.reasons = { ...m.reasons, budget: note.budget }
+    if (note.score < SEUIL_MOTEUR) {
+      ecartes++
+      m.status = 'ignored'
+      m.reaction_motif = 'recherche_ajustee'
+    }
+  }
+  if (criteres) {
+    recherche.criteria = criteres
+    const fiche = (CRM_TABLES.contacts as { id: string; search_criteria: unknown }[]).find((c) => c.id === recherche.contact_id)
+    if (fiche && JSON.stringify(fiche.search_criteria) === JSON.stringify(avant)) fiche.search_criteria = criteres
+  }
+  const maintenant = new Date().toISOString()
+  for (const m of matchs) {
+    if (refus.includes(m.id) && m.status === 'rejected' && m.client_search_id === recherche.id) m.apprentissage_at = maintenant
+  }
+  const journal = CRM_TABLES.activity_events as Record<string, unknown>[]
+  journal.push({
+    id: crypto.randomUUID(), agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user',
+    action: criteres ? 'recherche_ajustee' : 'matchs_reevalues', entity_type: 'contact', entity_id: recherche.contact_id,
+    category: 'contact', severity: 'info', object_label: null, created_at: maintenant,
+    metadata: {
+      client_search_id: recherche.id, motif: a.motif ?? null, cle: correction?.cle ?? null, avant, apres: criteres ?? avant,
+      refus_ids: refus, reevalues, ecartes,
+    },
+  })
+  return { reevalues, ecartes, mode: 'rescore-search' }
+}
+
+/**
  * Edge functions du banc.
  *
  * `extract-lead` — « Coller un message » de la fiche express. ⛔ PAS DE MODÈLE ICI : une
@@ -906,6 +1122,8 @@ export const CRM_TABLES: Record<string, unknown[]> = {
  * Rien ne sort du navigateur.
  */
 export const CRM_EDGES: Record<string, unknown> = {
+  // « Apprendre » (lot B) : voir `renoterBanc`.
+  'matching-engine': (a: Record<string, unknown>) => (a.mode === 'rescore-search' ? renoterBanc(a) : { ok: true, banc: true }),
   'extract-lead': (a: Record<string, unknown>) => {
     const texte = String(a.text ?? '')
     const bas = texte.toLowerCase()

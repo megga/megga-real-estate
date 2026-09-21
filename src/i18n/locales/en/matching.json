@@ -522,7 +522,6 @@
   },
   "fil": {
     "titre": "Matching",
-    "aTraiter": "To review · {{count}}",
     "chargement": "Loading matches",
     "filtres": {
       "bien": "Filter by property",
@@ -534,7 +533,7 @@
       "inconnu": "Current selection"
     },
     "vosBiens": "Your properties",
-    "listeAria": "Matches to review",
+    "listeAria": "Matches to propose",
     "acheteurs_one": "{{count}} buyer",
     "acheteurs_other": "{{count}} buyers",
     "sansEcart": "No gaps flagged",
@@ -638,7 +637,11 @@
       "titre": "All caught up",
       "texte": "None of your properties is waiting to be proposed.",
       "contacts": "Complete a contact's search",
-      "marche": "View the market"
+      "marche": "View the market",
+      "attenteTitre": "No reply awaited",
+      "attenteTexte": "The properties you propose wait here for the buyer's reply.",
+      "conclureTitre": "No viewing to schedule",
+      "conclureTexte": "Properties a buyer is interested in wait here for their viewing."
     },
     "filtreVide": "Nothing matches these filters.",
     "choisir": "Pick a match from the list.",
@@ -675,6 +678,106 @@
     },
     "propose": "Proposed to {{prenom}} · reminder in 3 days",
     "proposeSelection_one": "{{count}} property proposed to {{prenom}} · reminder in 3 days",
-    "proposeSelection_other": "{{count}} properties proposed to {{prenom}} · reminder in 3 days"
+    "proposeSelection_other": "{{count}} properties proposed to {{prenom}} · reminder in 3 days",
+    "onglets": {
+      "aria": "Loop steps",
+      "aProposer": "To propose",
+      "enAttente": "Awaiting reply",
+      "aConclure": "To close"
+    },
+    "motifs": {
+      "prix": "Price",
+      "quartier": "Neighbourhood",
+      "surface": "Floor area",
+      "pieces": "Rooms",
+      "type": "Property type",
+      "equipements": "Features",
+      "etat": "Condition",
+      "autre": "Other"
+    },
+    "motifsAide": "Why? One click records the decline.",
+    "note": "Note (optional)",
+    "annulerMotif": "Cancel",
+    "retours": {
+      "titre": "Feedback to record for {{nom}}",
+      "sousTitre_one": "{{count}} proposed property awaits a reply",
+      "sousTitre_other": "{{count}} proposed properties await a reply",
+      "proposeLe": "proposed on {{date}}",
+      "interesse": "Interested",
+      "pasInteresse": "Not interested",
+      "pasEncore": "Not yet",
+      "listeAria": "Properties proposed to {{prenom}}"
+    },
+    "attente": {
+      "listeAria": "Buyers awaiting a reply",
+      "ligne_one": "{{count}} property proposed",
+      "ligne_other": "{{count}} properties proposed",
+      "relance": "follow-up on {{date}}",
+      "relanceDue": "follow-up due since {{date}}"
+    },
+    "repondu": {
+      "interesse": "{{prenom}} interested in “{{titre}}”",
+      "refuse": "“{{titre}}”: not interested ({{motif}})",
+      "pasEncore": "Follow-up with {{prenom}} pushed back 3 days",
+      "planifier": "Schedule the viewing"
+    },
+    "conclure": {
+      "listeAria": "Interested buyers",
+      "ligne": "{{titre}} · interested on {{date}}",
+      "titreAria": "Viewing to schedule: {{acheteur}} for {{bien}}",
+      "interesseLe": "Interested on {{date}}",
+      "planifier": "Schedule a viewing",
+      "date": "Date",
+      "heure": "Time",
+      "duree": "Duration",
+      "minutes": "{{n}} min",
+      "confirmer": "Schedule the viewing",
+      "aucuneInvitation": "Nothing is sent to {{prenom}}: the viewing goes into your calendar.",
+      "agenceAnnonce": "Viewing with the listing's agency: it goes into your calendar, nothing is sent to {{prenom}}.",
+      "voirAnnonce": "View the original listing",
+      "dateRequise": "Choose an upcoming date and time.",
+      "planifiee": "Viewing with {{prenom}} scheduled on {{date}}"
+    },
+    "signal": {
+      "baisseRefus": "Declined by {{prenom}} at {{prix}} · down {{montant}} since",
+      "baissePropose": "Price down {{montant}} since you proposed it",
+      "court": "Price down {{montant}}"
+    },
+    "corrections": {
+      "section": "Searches to adjust",
+      "listeAria": "Proposed search corrections",
+      "ligne_one": "{{motif}} · {{count}} decline",
+      "ligne_other": "{{motif}} · {{count}} declines",
+      "titreAria": "Search to adjust for {{nom}}",
+      "sousTitre_one": "Declined {{count}} time for “{{motif}}”",
+      "sousTitre_other": "Declined {{count}} times for “{{motif}}”",
+      "pourquoi": "Declined properties",
+      "refuseLe": "declined on {{date}}",
+      "proposition": "Proposed correction",
+      "budget": "Lower the maximum budget to (CHF)",
+      "surface": "Raise the minimum floor area to (m²)",
+      "pieces": "Raise the minimum number of rooms to",
+      "avant": "currently: {{valeur}}",
+      "sansMax": "currently: no maximum",
+      "sansMin": "currently: no minimum",
+      "zones": "Remove from the areas: {{liste}}",
+      "zonesApres": "New areas: {{liste}}",
+      "type": "Only propose: {{type}}",
+      "typeAvant": "currently: {{type}}",
+      "tousTypes": "currently: all types",
+      "equipements": "Add to the wanted features: {{liste}}",
+      "effet": "The properties to propose will be re-scored; those that no longer match will leave the list.",
+      "valider": "Adjust the search",
+      "ignorer": "Ignore",
+      "valeurInvalide": "Enter a positive number.",
+      "sousMinimum": "Their minimum budget is {{valeur}}: the maximum cannot be lower.",
+      "auDelaMaximum": "Their maximum is {{valeur}}: the minimum cannot be higher.",
+      "fait_one": "{{prenom}}'s search adjusted · {{count}} property removed from the proposals",
+      "fait_other": "{{prenom}}'s search adjusted · {{count}} properties removed from the proposals",
+      "faitAucun": "{{prenom}}'s search adjusted · no property removed",
+      "ignoree": "Correction ignored",
+      "nouvelle": "A correction of {{prenom}}'s search awaits you in “To propose”.",
+      "erreur": "The search couldn't be adjusted. Try again."
+    }
   }
 }

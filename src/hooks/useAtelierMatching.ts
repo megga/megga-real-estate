@@ -21,6 +21,17 @@
 //   dismiss      → matches.status='ignored' (le moteur ne re-propose jamais
 //                  un couple existant — aucun deal) + activity_events 'match_ecarte'
 //   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue)
+//   repondre     → (fil, lot B) Intéressé / Pas intéressé + motif : matches.status, motif, note ; la
+//                  relance de la PROPOSITION se clôt par trigger quand plus aucun de ses biens n'attend
+//   pasEncore    → (fil) la relance de la proposition repoussée de +3 j, si le bien attend encore ; rien
+//                  sur le match
+//   planifierVisite → (fil) match 'visit_planned' + visite interne (mandat) ou événement « visite » de
+//                  l'agenda (annonce du marché) + deal avancé ; aucune invitation
+//   ajusterRecherche / ignorerCorrection → (fil) « Apprendre » : la correction validée (edge
+//                  matching-engine, mode rescore-search, la SEULE clé corrigée) ou ses refus pris en compte
+//
+// ⛔ Une relance qui ne se pose pas FAIT LEVER le geste (`poserRelance`) : sans elle, l'agent n'est jamais
+// rappelé de noter la réponse, et l'échec ne se lisait qu'en console.
 //
 // ⛔ Aucun geste n'écrit à l'acheteur — ni e-mail, ni lien, ni WhatsApp (décision de
 // Julien, 21.09.2026 : le matching reste chez l'agent). L'agent présente les biens par
@@ -33,9 +44,11 @@ import { INTERCOM_EVENTS } from '@/lib/intercom'
 import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
-import type { Json, TablesInsert } from '@/types/database'
+import type { Enums, Json, TablesInsert } from '@/types/database'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
+import type { MotifRefus } from '@/components/matching-fil/filBoucle'
+import type { CorrectionChangement } from '@/components/matching-fil/filApprendre'
 import { composeAiHint } from '@/components/matching-atelier/composeAiHint'
 import { fmtBudgetRange } from '@/components/matching-atelier/format'
 import type {
@@ -589,6 +602,7 @@ export async function execProposer(
   await poserRelance(ctx, {
     contactId: buyer.id,
     matchId: buyer.matchId,
+    matchIds: [buyer.matchId],
     dealId,
     propertyId: listing.kind === 'property' ? listing.id : null,
     message: `Retour de ${buyer.first} ${buyer.last} sur ${listing.ref}`,
@@ -654,6 +668,8 @@ export async function execProposerSelection(
   await poserRelance(ctx, {
     contactId: acheteur.id,
     matchId: meilleur.matchId,
+    // TOUS les biens marqués : le trigger `fermer_relance_proposition` clôt la relance au dernier répondu.
+    matchIds: proposees.map((p) => p.matchId),
     dealId,
     propertyId: null,
     message: `Retour de ${acheteur.first} ${acheteur.last} sur ${biens} proposé${n > 1 ? 's' : ''}`,
@@ -691,8 +707,10 @@ export async function execRelance(
   // 3. Relance interne repoussée de 3 j (celle du match, sinon posée). Seule la relance de
   // PROPOSITION se reprend, la plus récente : un match porte aussi le rappel d'un report
   // (`custom`, « de retour dans la file »), que ce geste ne doit ni dater ni réécrire.
+  // ⛔ Une lecture ou un report refusés font lever, comme la pose (`poserRelance`) : avalés, l'un reposait
+  // une seconde relance, l'autre laissait croire la relance repoussée.
   const message = `Retour de ${buyer.first} ${buyer.last} sur ${listing.ref}, après relance`
-  const { data: pending } = await supabase
+  const { data: pending, error: lErr } = await supabase
     .from('reminders')
     .select('id')
     .eq('match_id', buyer.matchId)
@@ -700,15 +718,18 @@ export async function execRelance(
     .in('status', ['pending', 'triggered'])
     .order('created_at', { ascending: false })
     .limit(1)
+  if (lErr) throw lErr
   if (pending && pending.length > 0) {
-    await supabase
+    const { error: rErr } = await supabase
       .from('reminders')
       .update({ trigger_at: inDays(DELAI_RELANCE_JOURS), status: 'pending', message_template: message })
       .eq('id', (pending[0] as { id: string }).id)
+    if (rErr) throw rErr
   } else {
     await poserRelance(ctx, {
       contactId: buyer.id,
       matchId: buyer.matchId,
+      matchIds: [buyer.matchId],
       dealId: null,
       propertyId: listing.kind === 'property' ? listing.id : null,
       message,
@@ -768,7 +789,9 @@ export async function execDismiss(ctx: GesteContext, buyer: AcheteurGeste): Prom
  *
  *  La réponse est là : la relance de proposition du match (« Retour de … ») n'a plus d'objet et
  *  passe `done`. Sans ça, elle remontait dans « Aujourd'hui » pour un acheteur qui avait répondu.
- *  Un refus est signalé sans faire lever : la réponse, elle, est consignée. */
+ *  Un refus est signalé sans faire lever : la réponse, elle, est consignée.
+ *  ⚠ Atelier et mobile seulement (inchangés au lot B) : le fil consigne par `execRepondre`, sans clore par
+ *  `match_id` — une sélection n'a qu'une relance, que le trigger clôt au dernier bien répondu. */
 export async function execReact(
   buyer: Pick<AtelierBuyer, 'matchId'>,
   reaction: 'interested' | 'rejected',
@@ -803,6 +826,270 @@ export async function execWake(matchId: string): Promise<void> {
     .in('status', ['pending', 'triggered'])
 }
 
+// ═══════════════════ La boucle dans le fil (lot B) ════════════════════════
+// Conception : docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md, §4.4 à §4.6.
+
+/** La réponse de l'acheteur, consignée par l'agent depuis le fil. */
+export type ReponseAcheteur =
+  | { genre: 'interested' }
+  | { genre: 'rejected'; motif: MotifRefus; note: string | null }
+
+/**
+ * « Intéressé » / « Pas intéressé » (+ motif) — la réponse de l'acheteur à un bien proposé, consignée par
+ * l'agent (§4.4).
+ *
+ * Les triggers font le reste, quel que soit l'écrivain : `set_match_response_at` date la réponse,
+ * `log_match_reaction` l'inscrit au journal, motif compris, et `fermer_relance_proposition` clôt la relance de
+ * la proposition quand plus AUCUN de ses biens n'attend. ⛔ Pas de clôture par `match_id` ici, contrairement à
+ * `execReact` : une sélection de trois biens n'a qu'UNE relance, portée par son meilleur bien — la clore sur la
+ * réponse à ce seul bien laissait les deux autres sans suivi.
+ *
+ * Seulement depuis l'étape d'avant : « Intéressé » répond à un bien PROPOSÉ ; « Pas intéressé » aussi, ou
+ * revient sur un intérêt (« À conclure »). Rien de réécrit : `deja` (un collègue a répondu entre-temps).
+ */
+export async function execRepondre(
+  buyer: Pick<AcheteurGeste, 'id' | 'matchId'>,
+  reponse: ReponseAcheteur,
+): Promise<{ deja: boolean }> {
+  const ecriture = reponse.genre === 'interested'
+    ? { status: 'interested', reaction_motif: null, reaction_note: null, apprentissage_at: null }
+    : { status: 'rejected', reaction_motif: reponse.motif, reaction_note: reponse.note?.trim() || null, apprentissage_at: null }
+  const { data, error } = await supabase
+    .from('matches')
+    .update(ecriture)
+    .eq('id', buyer.matchId)
+    .eq('contact_id', buyer.id)
+    .in('status', reponse.genre === 'interested' ? ['sent'] : ['sent', 'interested'])
+    .select('id')
+  if (error) throw error
+  return { deja: !data || data.length === 0 }
+}
+
+/**
+ * Les statuts d'une relance ENCORE OUVERTE : `snoozed` compris, que pose « Repousser » dans « Aujourd'hui »
+ * (`useReminders`). Oubliée, une relance repoussée n'était plus vue : « En attente » perdait son échéance et
+ * « Pas encore » en posait une seconde. Même liste que `fermer_relance_proposition` (migration du lot B).
+ */
+export const STATUTS_RELANCE_OUVERTE = ['pending', 'triggered', 'snoozed']
+
+/**
+ * « Pas encore » — l'acheteur n'a pas décidé : rien sur le match, la relance de SA proposition est repoussée
+ * de trois jours (§4.4). La relance est celle qui COUVRE le bien (`match_ids`, ou `match_id` pour une
+ * proposition d'un seul bien) : dans une sélection, elle est portée par un autre bien. Aucune : une relance
+ * est posée.
+ *
+ * ⛔ Seulement si le bien attend ENCORE sa réponse (`sent`, de cet acheteur) : un collègue qui a répondu
+ * entre-temps a clos la relance, et « Pas encore » en reposait une pour un bien déjà répondu. Rien d'écrit
+ * alors : `deja`, comme les autres gestes de la boucle.
+ */
+export async function execPasEncore(ctx: GesteContext, buyer: AcheteurGeste, listing: BienGeste): Promise<{ deja: boolean }> {
+  const { data: enAttente, error: mErr } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('id', buyer.matchId)
+    .eq('contact_id', buyer.id)
+    .eq('status', 'sent')
+  if (mErr) throw mErr
+  if (!enAttente || enAttente.length === 0) return { deja: true }
+  const { data: enCours, error: lErr } = await supabase
+    .from('reminders')
+    .select('id, match_id, match_ids')
+    .eq('contact_id', buyer.id)
+    .eq('type', 'follow_up_sent_property')
+    .in('status', STATUTS_RELANCE_OUVERTE)
+    .order('created_at', { ascending: false })
+  if (lErr) throw lErr
+  const relance = ((enCours ?? []) as { id: string; match_id: string | null; match_ids: string[] | null }[])
+    .find((r) => (r.match_ids ?? (r.match_id ? [r.match_id] : [])).includes(buyer.matchId))
+  if (relance) {
+    const { error } = await supabase
+      .from('reminders')
+      .update({ trigger_at: inDays(DELAI_RELANCE_JOURS), status: 'pending' })
+      .eq('id', relance.id)
+    if (error) throw error
+  } else {
+    await poserRelance(ctx, {
+      contactId: buyer.id,
+      matchId: buyer.matchId,
+      matchIds: [buyer.matchId],
+      dealId: null,
+      propertyId: listing.kind === 'property' ? listing.id : null,
+      // « Retour de {prénom} » n'élide pas (« de Emma ») : le nom vient après les deux-points.
+      message: `Retour : ${buyer.first} ${buyer.last} sur ${listing.ref}`,
+    })
+  }
+  await logEvent(ctx, {
+    action: 'match_pas_encore',
+    contactId: buyer.id,
+    label: `${buyer.first} ${buyer.last} · ${listing.title}`,
+    metadata: { match_id: buyer.matchId, bien_ref: listing.ref, relance_id: relance?.id ?? null },
+  })
+  return { deja: false }
+}
+
+/** Le créneau d'une visite planifiée depuis le fil. */
+export interface VisiteAPlanifier {
+  /** Début, ISO. */
+  debut: string
+  dureeMinutes: number
+  /** Adresse du bien, pour l'agenda. */
+  lieu: string | null
+}
+
+/** Les étapes d'un deal AVANT la visite : « Planifier une visite » l'y fait avancer, jamais reculer. */
+const ETAPES_AVANT_VISITE: Enums<'transaction_stage'>[] = ['new_lead', 'to_qualify', 'active_search', 'to_recontact']
+
+/**
+ * « Planifier une visite » (§4.5) — depuis « À conclure », EN INTERNE : rien n'est envoyé à l'acheteur, ni
+ * invitation ni lien (comme l'outil `schedule_visit` du copilote).
+ *
+ * Le match passe `visit_planned` D'ABORD, et seulement s'il est encore « intéressé » : un double geste ne pose
+ * pas deux visites. Puis le deal (l'actif, sinon un `new_lead`, `rattacherDeal`), puis la visite : un bien EN
+ * MANDAT reçoit une ligne `visits` (sa fiche, son bon) ; une annonce du MARCHÉ, que l'agence ne détient pas
+ * (`visits.property_id` n'accepte qu'un mandat), un événement `visite` de l'agenda (`calendar_events`, qui se
+ * journalise lui-même). Le deal avance à `visit_planned` s'il était avant. Une visite refusée rend au match son
+ * « intéressé » : il reste dans « À conclure ».
+ *
+ * ⛔ Aucun rappel au client non plus : `visit-reminders-j1` écrit à l'acheteur la veille de toute visite `planned`
+ * dont `reminder_sent` est faux (`send-visit-email`). Posé à la création, il ne part pas — le matching reste chez
+ * l'agent, et aucun envoi au client ne part sans sa validation (CLAUDE.md §5).
+ */
+export async function execPlanifierVisite(
+  ctx: GesteContext,
+  buyer: AcheteurGeste,
+  listing: BienGeste,
+  visite: VisiteAPlanifier,
+): Promise<{ deja: boolean }> {
+  const { data: marques, error: mErr } = await supabase
+    .from('matches')
+    .update({ status: 'visit_planned' })
+    .eq('id', buyer.matchId)
+    .eq('contact_id', buyer.id)
+    .eq('status', 'interested')
+    .select('id')
+  if (mErr) throw mErr
+  if (!marques || marques.length === 0) return { deja: true }
+
+  try {
+    const dealId = await rattacherDeal(ctx, buyer.id, listing)
+    if (listing.kind === 'property') {
+      const { data: v, error: vErr } = await supabase
+        .from('visits')
+        .insert({
+          agency_id: ctx.agencyId,
+          agent_id: ctx.userId,
+          property_id: listing.id,
+          contact_id: buyer.id,
+          transaction_id: dealId,
+          scheduled_at: visite.debut,
+          duration_minutes: visite.dureeMinutes,
+          status: 'planned',
+          visit_type: 'sur_place',
+          buyer_name: `${buyer.first} ${buyer.last}`.trim() || null,
+          // Le rappel J-1 ne part pas : voir la docstring.
+          reminder_sent: true,
+        })
+        .select('id')
+        .single()
+      if (vErr) throw vErr
+      await logEvent(ctx, {
+        action: 'visit_scheduled',
+        contactId: buyer.id,
+        label: `${buyer.first} ${buyer.last} · ${listing.title}`,
+        categorie: 'contact',
+        metadata: { match_id: buyer.matchId, visit_id: (v as { id: string }).id, deal_id: dealId, bien_ref: listing.ref, scheduled_at: visite.debut },
+      })
+    } else {
+      const fin = new Date(Date.parse(visite.debut) + visite.dureeMinutes * 60_000).toISOString()
+      const { error: eErr } = await supabase.from('calendar_events').insert({
+        agency_id: ctx.agencyId,
+        type: 'visite',
+        title: `Visite · ${listing.title}`.slice(0, 200),
+        starts_at: visite.debut,
+        ends_at: fin,
+        contact_id: buyer.id,
+        location: visite.lieu,
+      })
+      if (eErr) throw eErr
+    }
+    const { error: dErr } = await supabase
+      .from('transactions')
+      .update({ stage: 'visit_planned' })
+      .eq('id', dealId)
+      .in('stage', ETAPES_AVANT_VISITE)
+    if (dErr) console.error('[atelier] deal stage advance failed', dErr)
+  } catch (err) {
+    await supabase.from('matches').update({ status: 'interested' }).eq('id', buyer.matchId).eq('status', 'visit_planned')
+    throw err
+  }
+  return { deja: false }
+}
+
+/** Une correction de recherche proposée par « Apprendre », telle que ses deux gestes la lisent. */
+export interface CorrectionGeste {
+  contactId: string
+  /** Prénom et nom de l'acheteur : le sujet de la ligne de journal. */
+  nom: string
+  rechercheId: string
+  motif: string
+  refusIds: readonly string[]
+}
+
+/**
+ * « Ajuster la recherche » (§4.6) — la correction validée par l'agent.
+ *
+ * TOUT se fait côté serveur, en UN appel (`matching-engine`, mode `rescore-search`) : les matchs à proposer
+ * sont renotés par le VRAI barème avec les critères corrigés, puis, d'un bloc, la clé corrigée est posée (et sur
+ * la fiche si elle portait les mêmes critères), les refus pris en compte et UNE ligne `recherche_ajustee` écrite
+ * au journal. ⛔ Critères écrits d'abord par le client, un échec de la renotation effaçait la correction de
+ * l'écran (plus d'écart à proposer) sans rien avoir renoté ; ici, un échec la laisse, et la même validation se
+ * rejoue.
+ *
+ * ⛔ SEULE LA CLÉ CORRIGÉE PART, jamais les critères entiers : ceux que le fil a lus peuvent dater, et les
+ * renvoyer écrasait ce qu'un collègue avait changé entre-temps sur une autre clé.
+ */
+export async function execAjusterRecherche(
+  c: CorrectionGeste,
+  changement: Pick<CorrectionChangement, 'cle' | 'apres'>,
+): Promise<{ reevalues: number; ecartes: number }> {
+  const { data, error } = await supabase.functions.invoke('matching-engine', {
+    body: {
+      mode: 'rescore-search', client_search_id: c.rechercheId, correction: { cle: changement.cle, valeur: changement.apres },
+      motif: c.motif, refus_ids: [...c.refusIds],
+    },
+  })
+  if (error) throw error
+  const r = (data ?? {}) as { reevalues?: unknown; ecartes?: unknown }
+  return {
+    reevalues: typeof r.reevalues === 'number' ? r.reevalues : 0,
+    ecartes: typeof r.ecartes === 'number' ? r.ecartes : 0,
+  }
+}
+
+/**
+ * « Ignorer » une correction : ses refus sont pris en compte sans rien corriger. Deux NOUVEAUX refus pour ce
+ * motif en proposeront une autre.
+ */
+export async function execIgnorerCorrection(ctx: GesteContext, c: CorrectionGeste): Promise<void> {
+  const { error } = await supabase
+    .from('matches')
+    .update({ apprentissage_at: new Date().toISOString() })
+    .in('id', [...c.refusIds])
+    .eq('client_search_id', c.rechercheId)
+    .eq('status', 'rejected')
+  if (error) throw error
+  await logEvent(ctx, {
+    action: 'correction_ignoree',
+    contactId: c.contactId,
+    // Le sujet sous le titre (`detailFor`) : l'acheteur, comme les autres gestes du matching. Le code du
+    // motif (« prix ») s'y lisait tel quel ; il reste dans les métadonnées.
+    label: c.nom,
+    // Famille `contact`, comme `recherche_ajustee` : c'est la recherche de l'acheteur qui est en jeu.
+    categorie: 'contact',
+    metadata: { client_search_id: c.rechercheId, motif: c.motif, match_ids: [...c.refusIds] },
+  })
+}
+
 // ─── privé ──────────────────────────────────────────────────────────────
 const inDays = (d: number): string => new Date(Date.now() + d * 864e5).toISOString()
 
@@ -811,18 +1098,24 @@ const DELAI_RELANCE_JOURS = 3
 
 /**
  * La relance interne d'une proposition : une tâche de l'agent (canal `task`), jamais un message à
- * l'acheteur. Elle remplace la relance J+3 automatique d'`automation-engine`, retirée avec ce lot : elle
- * doublait celle-ci et pouvait écrire au client. Partagée par les trois gestes pour qu'ils ne
- * divergent pas.
+ * l'acheteur. Elle remplace la relance J+3 automatique d'`automation-engine`, retirée au lot A : elle
+ * doublait celle-ci et pouvait écrire au client. Partagée par les gestes pour qu'ils ne divergent pas.
  *
- * Un refus est signalé sans faire lever : le match est déjà proposé et le journal écrit, le geste ne
- * doit pas passer pour échoué — mais il ne doit pas passer inaperçu non plus (même règle que `logEvent`).
+ * `match_ids` ne s'écrit que pour une proposition de PLUSIEURS biens (une sélection n'a qu'une relance) : le
+ * trigger `fermer_relance_proposition` la clôt quand plus aucun n'attend, et lit `match_id` seul là où elle
+ * manque. ⛔ Écrite à chaque relance, la colonne partait aussi de l'atelier, du mobile et d'« Aujourd'hui » —
+ * en production, dont l'écran part AVANT la migration qui la crée (CLAUDE.md §8) : PostgREST refusait
+ * l'insertion (`PGRST204`), et le refus était avalé.
+ *
+ * ⛔ Un refus FAIT LEVER : le geste le dit (le toast de son appelant) au lieu de passer pour réussi sans
+ * relance — l'agent n'aurait jamais été rappelé de noter la réponse. Ce qui est déjà écrit (le match, le deal,
+ * le journal) reste, et la relecture qui suit l'échec le montre.
  */
 async function poserRelance(
   ctx: GesteContext,
-  r: { contactId: string; matchId: string; dealId: string | null; propertyId: string | null; message: string },
+  r: { contactId: string; matchId: string; matchIds: readonly string[]; dealId: string | null; propertyId: string | null; message: string },
 ): Promise<void> {
-  const { error } = await supabase.from('reminders').insert({
+  const relance: TablesInsert<'reminders'> = {
     agency_id: ctx.agencyId,
     contact_id: r.contactId,
     property_id: r.propertyId,
@@ -835,13 +1128,15 @@ async function poserRelance(
     status: 'pending',
     channel: 'task',
     message_template: r.message,
-  })
-  if (error) console.error('[atelier] reminder insert failed', error)
+  }
+  if (r.matchIds.length > 1) relance.match_ids = [...r.matchIds]
+  const { error } = await supabase.from('reminders').insert(relance)
+  if (error) throw error
 }
 
 async function logEvent(
   ctx: GesteContext,
-  e: { action: string; contactId: string; label: string; metadata: Record<string, unknown> },
+  e: { action: string; contactId: string; label: string; metadata: Record<string, unknown>; categorie?: 'deal' | 'contact' },
 ): Promise<void> {
   const { error } = await supabase.from('activity_events').insert({
     agency_id: ctx.agencyId,
@@ -850,7 +1145,9 @@ async function logEvent(
     action: e.action,
     entity_type: 'contact',
     entity_id: e.contactId,
-    category: 'deal',
+    // `visit_scheduled` est de la famille `contact`, comme l'écrit le copilote (whatsapp-actions), et
+    // `correction_ignoree` comme `recherche_ajustee` ; les autres gestes du matching font avancer le deal.
+    category: e.categorie ?? 'deal',
     severity: 'info',
     object_label: e.label,
     metadata: e.metadata as Json,

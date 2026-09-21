@@ -4865,11 +4865,13 @@ export type Database = {
       matches: {
         Row: {
           agency_id: string
+          apprentissage_at: string | null
           client_search_id: string | null
           contact_id: string
           created_at: string | null
           id: string
           market_listing_id: string | null
+          prix_propose: number | null
           property_id: string | null
           reaction_motif: string | null
           reaction_note: string | null
@@ -4885,11 +4887,13 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          apprentissage_at?: string | null
           client_search_id?: string | null
           contact_id: string
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
+          prix_propose?: number | null
           property_id?: string | null
           reaction_motif?: string | null
           reaction_note?: string | null
@@ -4905,11 +4909,13 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          apprentissage_at?: string | null
           client_search_id?: string | null
           contact_id?: string
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
+          prix_propose?: number | null
           property_id?: string | null
           reaction_motif?: string | null
           reaction_note?: string | null
@@ -6252,6 +6258,7 @@ export type Database = {
           id: string
           kind: string | null
           match_id: string | null
+          match_ids: string[] | null
           message_template: string | null
           property_id: string | null
           status: string
@@ -6272,6 +6279,7 @@ export type Database = {
           id?: string
           kind?: string | null
           match_id?: string | null
+          match_ids?: string[] | null
           message_template?: string | null
           property_id?: string | null
           status?: string
@@ -6292,6 +6300,7 @@ export type Database = {
           id?: string
           kind?: string | null
           match_id?: string | null
+          match_ids?: string[] | null
           message_template?: string | null
           property_id?: string | null
           status?: string
@@ -10019,6 +10028,26 @@ export type Database = {
           surface_m2: number
           transaction_type: string
           type: string
+        }[]
+      }
+      matching_ajuster_recherche: {
+        Args: {
+          p_acteur_id: string
+          p_agency_id: string
+          p_bilan: Json
+          p_cle: string
+          p_client_search_id: string
+          p_motif: string
+          p_refus_ids: string[]
+          p_valeur: Json
+        }
+        Returns: Json
+      }
+      matching_appliquer_notes: {
+        Args: { p_agency_id: string; p_client_search_id: string; p_notes: Json }
+        Returns: {
+          id: string
+          status: string
         }[]
       }
       matching_fil_marche: {

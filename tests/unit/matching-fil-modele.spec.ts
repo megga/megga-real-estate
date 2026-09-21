@@ -128,6 +128,15 @@ describe('optionsFiltres', () => {
       { id: 'c2', libelle: 'Élodie Roux' }, { id: 'c3', libelle: 'Marc Favre' }, { id: 'c1', libelle: 'Zoé Aubert' },
     ])
   })
+
+  it('les acheteurs de la boucle (lot B) en sont aussi, sans ajouter de bien', () => {
+    const villa = bien('p1', { titre: 'Villa' })
+    const zoe = acheteur('c1', { prenom: 'Zoé', nom: 'Aubert' })
+    const lea = acheteur('c4', { prenom: 'Léa', nom: 'Martin' })
+    const o = optionsFiltres([match('1', 90, villa, zoe)], [], [lea, zoe])
+    expect(o.biens).toEqual([{ id: 'p1', libelle: 'Villa' }])
+    expect(o.acheteurs).toEqual([{ id: 'c4', libelle: 'Léa Martin' }, { id: 'c1', libelle: 'Zoé Aubert' }])
+  })
 })
 
 describe('lignesCriteres — « Recherché / Ce bien » (§4.4)', () => {

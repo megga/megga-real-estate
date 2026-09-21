@@ -44,6 +44,25 @@ export interface FilBien {
   marche?: { ref: string; sourceUrl: string | null }
 }
 
+/**
+ * Où en est un match dans la boucle chez l'agent (lot B) : proposé, répondu, et ce qui a été consigné.
+ * Absent d'un match jamais proposé.
+ */
+export interface SuiviMatch {
+  statut: 'suggested' | 'sent' | 'interested' | 'rejected' | 'visit_planned'
+  /** `sent_at` : la proposition (ou la dernière relance consignée). */
+  proposeLe: string | null
+  /** `response_at` : la PREMIÈRE réponse consignée (trigger `set_match_response_at`). */
+  reponduLe: string | null
+  /** Le motif d'un refus (`reaction_motif`), un code : `fil.motifs.*` l'écrit. */
+  motif: string | null
+  note: string | null
+  /** Le prix du bien quand il a été proposé (`prix_propose`) : c'est lui qui dit « prix baissé de … ». */
+  prixPropose: number | null
+  /** `apprentissage_at` : ce refus a déjà nourri une correction de recherche, validée ou ignorée. */
+  apprisLe: string | null
+}
+
 export interface FilMatch {
   id: string
   score: number
@@ -52,6 +71,10 @@ export interface FilMatch {
   criteres: SearchCriteria | null
   creeLe: string | null
   reporteJusquau: string | null
+  /** La recherche notée (`client_search_id`) : c'est elle qu'« Apprendre » corrige (lot B). */
+  rechercheId?: string | null
+  /** La boucle (lot B) ; absent d'un match jamais proposé. */
+  suivi?: SuiviMatch
   bien: FilBien
   acheteur: {
     id: string
@@ -101,16 +124,17 @@ const plier = (s: string): string =>
     .normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
 /** Le `slugify` du moteur, à l'identique (`matching-normalize.ts`). */
-const slug = (s: string): string =>
+export const slug = (s: string): string =>
   (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 /** Horodatage d'une date ISO ; une date absente ou illisible vaut 0, pour que le tri reste total. */
-const temps = (iso: string | null): number => {
+export const temps = (iso: string | null): number => {
   const t = iso ? Date.parse(iso) : NaN
   return Number.isFinite(t) ? t : 0
 }
 
-function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
+/** Un match retenu par les filtres du fil : le bien, l'acheteur, et le texte (bien, ville, adresse, acheteur). */
+export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
   if (f.bienId && m.bien.id !== f.bienId) return false
   if (f.acheteurId && m.acheteur.id !== f.acheteurId) return false
   const texte = plier(f.texte.trim())
@@ -148,11 +172,12 @@ export function construireFil(matchs: readonly FilMatch[], filtres: FilFiltres, 
 /**
  * Les choix des filtres Bien et Acheteur : chacun une fois, triés par libellé. Les acheteurs des lignes
  * « Marché » (`selections`) en sont aussi : sans eux, un acheteur qui n'a que des biens du marché ne
- * pouvait pas être filtré. Le filtre Bien ne vise que les biens en mandat : il écarte toutes les lignes
- * « Marché » (`construireSelections`).
+ * pouvait pas être filtré ; de même ceux de la boucle (`autres`, lot B), qui n'ont peut-être plus rien à
+ * proposer. Le filtre Bien ne vise que les biens en mandat : il écarte toutes les lignes « Marché »
+ * (`construireSelections`).
  */
 export function optionsFiltres(
-  matchs: readonly FilMatch[], selections: readonly FilSelectionResume[] = [],
+  matchs: readonly FilMatch[], selections: readonly FilSelectionResume[] = [], autres: readonly FilMatch['acheteur'][] = [],
 ): { biens: OptionFiltre[]; acheteurs: OptionFiltre[] } {
   const biens = new Map<string, string>()
   const acheteurs = new Map<string, string>()
@@ -161,6 +186,7 @@ export function optionsFiltres(
     acheteurs.set(m.acheteur.id, `${m.acheteur.prenom} ${m.acheteur.nom}`)
   }
   for (const s of selections) acheteurs.set(s.acheteur.id, `${s.acheteur.prenom} ${s.acheteur.nom}`)
+  for (const a of autres) acheteurs.set(a.id, `${a.prenom} ${a.nom}`)
   const trier = (e: Map<string, string>): OptionFiltre[] =>
     [...e].map(([id, libelle]) => ({ id, libelle })).sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr') || a.id.localeCompare(b.id))
   return { biens: trier(biens), acheteurs: trier(acheteurs) }
@@ -171,7 +197,9 @@ export function cleEquipement(brut: string): string {
   return slug(brut.replace(/^custom:/i, ''))
 }
 
-const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [])
+/** Les chaînes non vides d'un tableau jsonb — une zone ou un équipement mal saisi n'existe pas. */
+export const chaines = (v: unknown): string[] =>
+  (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [])
 
 /** Détails que le moteur écrit pour un axe INACTIF (aucun critère de son côté) : pas un verdict. */
 const INACTIF = new Set(['—', 'Aucun critère'])
