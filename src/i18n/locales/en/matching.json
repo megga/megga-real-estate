@@ -146,7 +146,9 @@
       "expandMap": "Expand map",
       "portalFallback": "portal",
       "detailError": "Details unavailable right now.",
-      "openFull": "Open full listing"
+      "openFull": "Open full listing",
+      "retiree": "Withdrawn from the market",
+      "retireeLe": "Withdrawn on {{date}}"
     },
     "view": {
       "group": "Results display",
@@ -170,7 +172,79 @@
     "dejaPresents_other": "{{count}} already in their matches",
     "dejaHorsFile_one": "including {{count}} dismissed or postponed, left as is",
     "dejaHorsFile_other": "including {{count}} dismissed or postponed, left as is",
-    "ajoutErreur": "The properties could not be added. Try again."
+    "ajoutErreur": "The properties could not be added. Try again.",
+    "vue": {
+      "group": "What the search shows",
+      "marche": "Whole market",
+      "apparition": "New",
+      "baisse": "Price cuts",
+      "retrait": "Withdrawn",
+      "aria": "Show: {{label}}"
+    },
+    "fenetre": {
+      "group": "Period",
+      "j1": "24 h",
+      "j7": "7 days",
+      "j30": "30 days",
+      "aria": "Period: {{label}}"
+    },
+    "bouge": {
+      "compte_one": "{{count}} change shown",
+      "compte_other": "{{count}} changes shown",
+      "suite": "more to come",
+      "voirPlus": "Show more",
+      "chargement": "Loading changes…",
+      "erreur": "Market changes could not be loaded.",
+      "vide": {
+        "apparition": "No new listings in this period.",
+        "baisse": "No price cuts in this period.",
+        "retrait": "No withdrawn listings in this period."
+      },
+      "videCorps": "Changes are tracked since market monitoring went live; earlier changes are not reconstructed. Widen the period or the filters.",
+      "quandAujourdhui": "today",
+      "quandHier": "yesterday",
+      "quandJours_one": "{{count}} day ago",
+      "quandJours_other": "{{count}} days ago",
+      "deA": "{{avant}} → {{apres}}",
+      "dernierPrix": "last price {{prix}}",
+      "enLigneDepuis_one": "online for {{count}} day",
+      "enLigneDepuis_other": "online for {{count}} days",
+      "apresJours_one": "after {{count}} day on the market",
+      "apresJours_other": "after {{count}} days on the market",
+      "filtreVide_one": "The loaded change doesn't match your filters.",
+      "filtreVide_other": "None of the {{count}} loaded changes match your filters.",
+      "filtreVideCorps": "Text, rooms and area only filter the changes already loaded.",
+      "suiteErreur": "The next changes could not be loaded."
+    },
+    "historique": {
+      "titre": "Price history",
+      "courbe": "Price trend of the listing",
+      "erreur": "History unavailable for now.",
+      "vide": "No price recorded for this listing since tracking began.",
+      "surMarche": "On the market",
+      "jours_one": "{{count}} day",
+      "jours_other": "{{count}} days",
+      "moinsUnJour": "less than a day",
+      "retireeLe": "withdrawn on {{date}}",
+      "changements": "Price changes",
+      "suiviDepuis": "tracked since {{date}}",
+      "ecart": "Change",
+      "depuisDetection": "since first detected",
+      "depuisDate": "since {{date}}",
+      "tronque": "The last {{n}} events are shown.",
+      "genre": {
+        "suivi": "Tracking started",
+        "apparition": "First detected",
+        "baisse": "Price cut",
+        "hausse": "Price rise",
+        "prix": "Price changed",
+        "retrait": "Withdrawn",
+        "retour": "Back on the market",
+        "statut": "Status changed"
+      },
+      "suivi": "Tracking",
+      "avantSuivi": "{{pct}} before tracking began"
+    }
   },
   "runMatching": "Run matching",
   "running": "Analysing...",

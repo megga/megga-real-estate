@@ -143,7 +143,9 @@
       "expandMap": "Ingrandisci la mappa",
       "portalFallback": "portale",
       "detailError": "Dettagli non disponibili al momento.",
-      "openFull": "Apri la scheda completa"
+      "openFull": "Apri la scheda completa",
+      "retiree": "Ritirato dal mercato",
+      "retireeLe": "Ritirato il {{date}}"
     },
     "view": {
       "group": "Visualizzazione dei risultati",
@@ -165,7 +167,79 @@
     "dejaPresents_other": "{{count}} già tra le sue corrispondenze",
     "dejaHorsFile_one": "di cui {{count}} scartato o rinviato, lasciato invariato",
     "dejaHorsFile_other": "di cui {{count}} scartati o rinviati, lasciati invariati",
-    "ajoutErreur": "Non è stato possibile aggiungere gli immobili. Riprovi."
+    "ajoutErreur": "Non è stato possibile aggiungere gli immobili. Riprovi.",
+    "vue": {
+      "group": "Cosa mostra la ricerca",
+      "marche": "Tutto il mercato",
+      "apparition": "Nuovi",
+      "baisse": "In ribasso",
+      "retrait": "Ritirati",
+      "aria": "Vista: {{label}}"
+    },
+    "fenetre": {
+      "group": "Periodo",
+      "j1": "24 h",
+      "j7": "7 giorni",
+      "j30": "30 giorni",
+      "aria": "Periodo: {{label}}"
+    },
+    "bouge": {
+      "compte_one": "{{count}} movimento visualizzato",
+      "compte_other": "{{count}} movimenti visualizzati",
+      "suite": "altri seguono",
+      "voirPlus": "Altri risultati",
+      "chargement": "Caricamento dei movimenti…",
+      "erreur": "Non è stato possibile caricare i movimenti del mercato.",
+      "vide": {
+        "apparition": "Nessun nuovo annuncio in questo periodo.",
+        "baisse": "Nessun ribasso di prezzo in questo periodo.",
+        "retrait": "Nessun annuncio ritirato in questo periodo."
+      },
+      "videCorps": "I movimenti sono seguiti dall'attivazione del monitoraggio del mercato; quelli precedenti non vengono ricostruiti. Allarghi il periodo o i filtri.",
+      "quandAujourdhui": "oggi",
+      "quandHier": "ieri",
+      "quandJours_one": "{{count}} giorno fa",
+      "quandJours_other": "{{count}} giorni fa",
+      "deA": "{{avant}} → {{apres}}",
+      "dernierPrix": "ultimo prezzo {{prix}}",
+      "enLigneDepuis_one": "online da {{count}} giorno",
+      "enLigneDepuis_other": "online da {{count}} giorni",
+      "apresJours_one": "dopo {{count}} giorno sul mercato",
+      "apresJours_other": "dopo {{count}} giorni sul mercato",
+      "filtreVide_one": "Il movimento caricato non corrisponde ai Suoi filtri.",
+      "filtreVide_other": "Nessuno dei {{count}} movimenti caricati corrisponde ai Suoi filtri.",
+      "filtreVideCorps": "Testo, locali e superficie filtrano solo i movimenti già caricati.",
+      "suiteErreur": "Non è stato possibile caricare i movimenti successivi."
+    },
+    "historique": {
+      "titre": "Storico del prezzo",
+      "courbe": "Andamento del prezzo dell'annuncio",
+      "erreur": "Storico non disponibile al momento.",
+      "vide": "Nessun prezzo rilevato per questo annuncio dall'inizio del monitoraggio.",
+      "surMarche": "Sul mercato",
+      "jours_one": "{{count}} giorno",
+      "jours_other": "{{count}} giorni",
+      "moinsUnJour": "meno di un giorno",
+      "retireeLe": "ritirato il {{date}}",
+      "changements": "Variazioni di prezzo",
+      "suiviDepuis": "monitorato dal {{date}}",
+      "ecart": "Scostamento",
+      "depuisDetection": "dalla prima rilevazione",
+      "depuisDate": "dal {{date}}",
+      "tronque": "Sono visualizzati gli ultimi {{n}} eventi.",
+      "genre": {
+        "suivi": "Inizio del monitoraggio",
+        "apparition": "Prima rilevazione",
+        "baisse": "Ribasso",
+        "hausse": "Rialzo",
+        "prix": "Prezzo modificato",
+        "retrait": "Ritirato",
+        "retour": "Di nuovo sul mercato",
+        "statut": "Stato modificato"
+      },
+      "suivi": "Monitoraggio",
+      "avantSuivi": "{{pct}} prima dell'inizio del monitoraggio"
+    }
   },
   "runMatching": "Avvia matching",
   "running": "Analisi in corso...",

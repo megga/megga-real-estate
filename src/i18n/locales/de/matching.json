@@ -143,7 +143,9 @@
       "expandMap": "Karte vergrössern",
       "portalFallback": "Portal",
       "detailError": "Details derzeit nicht verfügbar.",
-      "openFull": "Vollständiges Inserat öffnen"
+      "openFull": "Vollständiges Inserat öffnen",
+      "retiree": "Zurückgezogen",
+      "retireeLe": "Zurückgezogen am {{date}}"
     },
     "view": {
       "group": "Ergebnisdarstellung",
@@ -165,7 +167,79 @@
     "dejaPresents_other": "{{count}} bereits unter den Treffern",
     "dejaHorsFile_one": "davon {{count}} verworfen oder verschoben, unverändert belassen",
     "dejaHorsFile_other": "davon {{count}} verworfen oder verschoben, unverändert belassen",
-    "ajoutErreur": "Die Objekte konnten nicht hinzugefügt werden. Versuchen Sie es erneut."
+    "ajoutErreur": "Die Objekte konnten nicht hinzugefügt werden. Versuchen Sie es erneut.",
+    "vue": {
+      "group": "Was die Suche zeigt",
+      "marche": "Ganzer Markt",
+      "apparition": "Neu",
+      "baisse": "Preis gesenkt",
+      "retrait": "Zurückgezogen",
+      "aria": "Anzeigen: {{label}}"
+    },
+    "fenetre": {
+      "group": "Zeitraum",
+      "j1": "24 Std.",
+      "j7": "7 Tage",
+      "j30": "30 Tage",
+      "aria": "Zeitraum: {{label}}"
+    },
+    "bouge": {
+      "compte_one": "{{count}} Bewegung angezeigt",
+      "compte_other": "{{count}} Bewegungen angezeigt",
+      "suite": "weitere folgen",
+      "voirPlus": "Mehr anzeigen",
+      "chargement": "Bewegungen werden geladen…",
+      "erreur": "Die Marktbewegungen konnten nicht geladen werden.",
+      "vide": {
+        "apparition": "Keine neuen Inserate in diesem Zeitraum.",
+        "baisse": "Keine Preissenkung in diesem Zeitraum.",
+        "retrait": "Keine zurückgezogenen Inserate in diesem Zeitraum."
+      },
+      "videCorps": "Bewegungen werden seit der Inbetriebnahme der Marktbeobachtung erfasst; frühere Änderungen werden nicht rekonstruiert. Erweitern Sie den Zeitraum oder die Filter.",
+      "quandAujourdhui": "heute",
+      "quandHier": "gestern",
+      "quandJours_one": "vor {{count}} Tag",
+      "quandJours_other": "vor {{count}} Tagen",
+      "deA": "{{avant}} → {{apres}}",
+      "dernierPrix": "letzter Preis {{prix}}",
+      "enLigneDepuis_one": "seit {{count}} Tag online",
+      "enLigneDepuis_other": "seit {{count}} Tagen online",
+      "apresJours_one": "nach {{count}} Tag auf dem Markt",
+      "apresJours_other": "nach {{count}} Tagen auf dem Markt",
+      "filtreVide_one": "Die geladene Bewegung passt nicht zu Ihren Filtern.",
+      "filtreVide_other": "Keine der {{count}} geladenen Bewegungen passt zu Ihren Filtern.",
+      "filtreVideCorps": "Text, Zimmer und Fläche filtern nur die bereits geladenen Bewegungen.",
+      "suiteErreur": "Die weiteren Bewegungen konnten nicht geladen werden."
+    },
+    "historique": {
+      "titre": "Preisverlauf",
+      "courbe": "Preisentwicklung des Inserats",
+      "erreur": "Verlauf derzeit nicht verfügbar.",
+      "vide": "Seit Beginn der Beobachtung wurde für dieses Inserat kein Preis erfasst.",
+      "surMarche": "Auf dem Markt",
+      "jours_one": "{{count}} Tag",
+      "jours_other": "{{count}} Tage",
+      "moinsUnJour": "weniger als ein Tag",
+      "retireeLe": "zurückgezogen am {{date}}",
+      "changements": "Preisänderungen",
+      "suiviDepuis": "beobachtet seit dem {{date}}",
+      "ecart": "Abweichung",
+      "depuisDetection": "seit der Ersterfassung",
+      "depuisDate": "seit dem {{date}}",
+      "tronque": "Die letzten {{n}} Ereignisse werden angezeigt.",
+      "genre": {
+        "suivi": "Beginn der Beobachtung",
+        "apparition": "Erstmals erfasst",
+        "baisse": "Senkung",
+        "hausse": "Erhöhung",
+        "prix": "Preis geändert",
+        "retrait": "Zurückgezogen",
+        "retour": "Wieder auf dem Markt",
+        "statut": "Status geändert"
+      },
+      "suivi": "Beobachtung",
+      "avantSuivi": "{{pct}} vor Beginn der Beobachtung"
+    }
   },
   "runMatching": "Matching starten",
   "running": "Analyse läuft...",

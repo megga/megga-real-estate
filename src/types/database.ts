@@ -4612,6 +4612,7 @@ export type Database = {
           quality_flags: Json | null
           quality_score: number | null
           relevance_score: number | null
+          removed_at: string | null
           rent: number | null
           rent_chf: number | null
           rooms: number | null
@@ -4704,6 +4705,7 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          removed_at?: string | null
           rent?: number | null
           rent_chf?: number | null
           rooms?: number | null
@@ -4796,6 +4798,7 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          removed_at?: string | null
           rent?: number | null
           rent_chf?: number | null
           rooms?: number | null
@@ -4829,28 +4832,49 @@ export type Database = {
       }
       market_price_history: {
         Row: {
+          canton: string | null
           change_pct: number | null
+          city: string | null
           detected_at: string
           id: string
+          kind: string
           market_listing_id: string
-          new_price: number
-          old_price: number
+          new_price: number | null
+          new_status: string | null
+          old_price: number | null
+          old_status: string | null
+          transaction_type: string | null
+          type: string | null
         }
         Insert: {
+          canton?: string | null
           change_pct?: number | null
+          city?: string | null
           detected_at?: string
           id?: string
+          kind: string
           market_listing_id: string
-          new_price: number
-          old_price: number
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          transaction_type?: string | null
+          type?: string | null
         }
         Update: {
+          canton?: string | null
           change_pct?: number | null
+          city?: string | null
           detected_at?: string
           id?: string
+          kind?: string
           market_listing_id?: string
-          new_price?: number
-          old_price?: number
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          transaction_type?: string | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -10083,6 +10107,33 @@ export type Database = {
       }
       pg_cron_installe: { Args: never; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
+      pige_mouvements: {
+        Args: {
+          p_before_at?: string
+          p_before_id?: string
+          p_budget_max?: number
+          p_budget_min?: number
+          p_cantons?: string[]
+          p_city?: string
+          p_kind: string
+          p_limit?: number
+          p_margin?: number
+          p_min_quality?: number
+          p_since: string
+          p_tx?: string
+          p_types?: string[]
+        }
+        Returns: {
+          change_pct: number
+          detected_at: string
+          event_id: string
+          first_seen_at: string
+          kind: string
+          market_listing_id: string
+          new_price: number
+          old_price: number
+        }[]
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }

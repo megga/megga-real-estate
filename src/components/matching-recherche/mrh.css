@@ -91,3 +91,9 @@
    plus discret que l'entrée des cartes (sgFadeUp), parce qu'il s'agit ici de
    remplacer une vue entière, pas de faire apparaître des éléments un à un. */
 @keyframes mrhViewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* « Ce qui a bougé » : la ligne survolée prend le filet de l'écran pour fond, rien de plus.
+   ⚠ Le fond AU REPOS vit ici et non en style en ligne : un `background` en ligne l'emporte sur
+   toute règle de feuille, et le survol ne se serait jamais vu. */
+.mrh-flux-ligne { background: transparent; transition: background .15s; }
+.mrh-flux-ligne:hover { background: var(--mrh-line); }

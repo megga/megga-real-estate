@@ -10,6 +10,8 @@
  *
  * ⛔ Plus d'« Envoyer par e-mail » (21.09.2026) : le matching reste chez l'agent, rien ne
  * part vers l'acheteur depuis le CRM. L'agent propose le bien par ses propres moyens.
+ *
+ * L'historique du prix (pige, 21.09.2026) : `MrhHistoriquePrix`, la même lecture que la fiche de la Recherche.
  */
 import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
@@ -24,6 +26,7 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useCrmDarkPref } from '@/lib/crmDark'
+import MrhHistoriquePrix from '@/components/matching-recherche/MrhHistoriquePrix'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -293,6 +296,14 @@ export default function ExternalListingDetailPage() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Historique du prix (pige) — rayon et marge en jetons : cette page est au cliquet de
+                `megga-x-grammar.spec.ts`, qui compte `rounded-xl` et `p-5` comme des littéraux. */}
+            {annonce && (
+              <section className="border border-theme-border" style={{ borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-4xl)' }}>
+                <MrhHistoriquePrix bien={annonce} sp={sgSp} dark={dark} avecTitre />
+              </section>
             )}
 
             {/* ── NIVEAU 3 : Notes agent ─────────────────────────────────── */}

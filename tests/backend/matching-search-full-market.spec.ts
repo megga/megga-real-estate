@@ -134,8 +134,8 @@ describe.skipIf(!HAS_KEYS)('search/count_market_listings — fraîcheur + total 
     // status='price_reduced' : le prédicat est `status IN ('active','price_reduced')`.
     // Un resserrement futur sur `status = 'active'` — la tentation naturelle, et le piège
     // que la migration signale — effacerait les biens à prix baissé (feature #822).
-    // Semis en source_portal='flatfox' : le trigger trg_ra_price_status est BEFORE UPDATE
-    // et scopé realadvisor, donc il ne réécrit pas ce statut posé à l'INSERT.
+    // Statut posé à l'INSERT : le trigger trg_ra_price_status est BEFORE UPDATE seulement
+    // (RealAdvisor, et Flatfox depuis la pige du 21.09.2026), il ne réécrit donc pas ce semis.
     reducedBuy = await seed('reduced', {
       price: 1_000_000, current_price: 950_000, price_at_first_seen: 1_000_000,
       status: 'price_reduced', created_at: T(36),

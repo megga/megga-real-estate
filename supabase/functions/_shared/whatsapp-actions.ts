@@ -776,7 +776,7 @@ function zoneToCantonCode(zone: string): string | null {
   return CANTON_BY_NAME[k] ?? null
 }
 
-/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : eq(status)+eq(transaction_type)
+/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : statut vivant + eq(transaction_type)
  *  sur index, tri quality_score (indexé). Géo INDEXÉE : une zone reconnue comme canton → `canton IN`
  *  (idx_ml_active_tx_canton_type) ; une commune → `city ILIKE` servi par le GIN trigram
  *  idx_ml_city_trgm (sinon scan de ~34k lignes = timeout). Total via count:'estimated' (jamais
@@ -788,7 +788,12 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   let q = ctx.supabase
     .from('market_listings')
     .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url', { count: 'estimated' })
-    .eq('status', 'active')
+    // ⛔ Vivante = `active` OU `price_reduced` : une annonce en baisse reste en vente. `eq('active')`
+    // écartait les ventes RealAdvisor en baisse (depuis le 19.06.2026) et, avec la pige du 21.09.2026,
+    // les locations Flatfox en baisse — les plus intéressantes à proposer. Ce `in` est au mot près le
+    // prédicat partiel de idx_ml_active_tx_canton_type, idx_ml_city_trgm et
+    // idx_market_listings_quality_score (le tri).
+    .in('status', ['active', 'price_reduced'])
     .eq('transaction_type', txType)
 
   const type = canonicalPropertyType(s(a.property_type))

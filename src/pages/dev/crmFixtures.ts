@@ -423,16 +423,38 @@ export const ANNONCE_MARCHE_BANC = {
   price: 2450, current_price: 2450, price_at_first_seen: 2600, price_per_m2: null,
   rooms: 3.5, bedrooms: 2, bathrooms: 1, surface_m2: 78,
   features: [], photos: [], photos_cf: null,
-  status: 'active', source_portal: 'flatfox',
+  status: 'price_reduced', source_portal: 'flatfox',
   source_url: 'https://flatfox.ch/fr/annonce/demo', source_id: '86339127',
   agency_name: 'Régie du Léman', agency_phone: '021 000 00 00',
   agency_logo_url: null, lat: 46.4583, lng: 6.3372,
   year_built: 2019, days_on_market: 12, land_surface: null,
+  // Pige (21.09.2026) : l'âge se lit dans first_seen_at, et removed_at dit un retrait. `price_reduced` :
+  // son historique (`HISTORIQUE_PRIX_BANC`) finit sur une baisse sous son premier loyer, 2600 → 2450, et
+  // `trg_ra_price_status` pose ce statut à tout loyer sous le premier (Flatfox compris depuis la pige).
+  first_seen_at: ilYA(24 * 42), removed_at: null,
   description: "Traversant, balcon plein sud, vue dégagée sur le lac et les Alpes.",
   floor: 3, parking_count: 1, year_renovated: null, usable_surface: 74,
   charges_monthly: 250, is_furnished: false, availability_date: '2026-10-01',
   visit_contact_name: 'Mme Dupont', agency_reference: 'RL-1180-42',
 }
+
+/**
+ * L'historique du prix de `ANNONCE_MARCHE_BANC` (pige, 21.09.2026) — ce que la fiche autonome lit dans
+ * `market_price_history`. Un relevé initial puis une baisse : la courbe, l'écart et la liste ont de quoi se
+ * dessiner. ⚠ Forme de LIGNE : le banc filtre `market_listing_id=eq.…` et trie `detected_at.desc,id.desc`.
+ */
+const HISTORIQUE_PRIX_BANC = [
+  {
+    id: 'mph-banc-1', market_listing_id: ANNONCE_MARCHE_BANC.id, kind: 'suivi', detected_at: ilYA(24 * 30),
+    old_price: null, new_price: 2600, change_pct: null, old_status: null, new_status: 'active',
+    transaction_type: 'rent', canton: 'VD', type: 'apartment', city: 'Rolle',
+  },
+  {
+    id: 'mph-banc-2', market_listing_id: ANNONCE_MARCHE_BANC.id, kind: 'baisse', detected_at: ilYA(24 * 6),
+    old_price: 2600, new_price: 2450, change_pct: -5.77, old_status: 'active', new_status: 'price_reduced',
+    transaction_type: 'rent', canton: 'VD', type: 'apartment', city: 'Rolle',
+  },
+]
 
 /**
  * Le reste du portefeuille de « Mes biens » : 48 biens, pour un total de 50.
@@ -633,6 +655,7 @@ const RAISONS_EMMA_ZURICH = {
 
 export const CRM_TABLES: Record<string, unknown[]> = {
   market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE],
+  market_price_history: HISTORIQUE_PRIX_BANC,
   credit_ledger: [],
   credit_wallets: [],
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],

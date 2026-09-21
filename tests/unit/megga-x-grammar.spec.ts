@@ -1061,7 +1061,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/matching-fil', { hors: 0, total: 0 }],
   // {123,185} -> {112,171} (21.09.2026) : la feuille d'envoi `MrhSendSheet` est retirée, la
   // Recherche ajoute à la sélection de l'acheteur au lieu de lui envoyer un lien.
-  ['src/components/matching-recherche', { hors: 112, total: 171 }],
+  // {112,171} -> {106,165} (21.09.2026) : les groupes de segments de l'en-tête passent aux jetons
+  // (`segments`), et « Ce qui a bougé » (`MrhBouge`) et l'historique du prix (`MrhHistoriquePrix`)
+  // naissent sans littéral.
+  ['src/components/matching-recherche', { hors: 106, total: 165 }],
   ['src/components/onboarding-call', { hors: 0, total: 27 }],
   ['src/components/propertyx', { hors: 2, total: 3 }],
   // {8,12} -> {1,2} (04.09.2026). `CrmPageSkeleton` décalquait un chrome qui

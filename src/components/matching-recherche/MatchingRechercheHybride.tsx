@@ -6,6 +6,9 @@
 //   - texte libre + scoring + tri côté client sur le sous-ensemble borné
 //   - omnibox à jetons (acheteur → score de match), Tout/Vente/Location, ajout multiple
 //     à la sélection de l'acheteur (⛔ rien ne part vers lui depuis le 21.09.2026).
+//   - « Ce qui a bougé » (pige, 21.09.2026) : Nouveaux · En baisse · Retirés sur 24 h, 7 ou 30 jours, sur
+//     les MÊMES filtres durs (`usePigeMouvements`, rendu par `MrhBouge`). Filtres, vue et période se
+//     rangent dans l'onglet (`useTabScopedState`).
 //
 // ⚠️ Incrément B : grille + omnibox + scoring + ajout. La fiche « Voir l'annonce »
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
@@ -30,11 +33,18 @@ import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySu
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import {
-  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL,
-  MRH_DEMO_TOTAL, type MrhDemoEtat,
+  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_MOUVEMENTS,
+  MRH_DEMO_TOTAL, historiqueDuBanc, type MrhDemoEtat,
 } from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { usePigeMouvements, type PigeParams } from '@/hooks/usePige'
+import MrhBouge from './MrhBouge'
+import {
+  biensAjoutables, etatDuFlux, FENETRES_PIGE, VUES_RECHERCHE,
+  type EtatFlux, type FenetrePige, type GenreMouvement, type VueRecherche,
+} from './pige'
 import './mrh.css'
 
 // millions / milliers (jetons budget) : 1'100'000 → « 1,1M » ; 3'000 → « 3k »
@@ -49,6 +59,13 @@ type MrhToken =
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'budgetMin'; value: number }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'surface'; value: number }
   | { id: string; kind: 'crit' | 'filter'; label: string; field: 'text'; value: string }
+
+/**
+ * La valeur initiale des jetons, d'identité STABLE : `useTabScopedState` rend `initial` tant que l'onglet
+ * n'a rien rangé, et un `[]` écrit dans l'appel changerait d'identité à chaque rendu — donc `serverParams`,
+ * puis les paramètres du flux, recalculés à chaque frappe.
+ */
+const SANS_JETON: MrhToken[] = []
 
 // score heuristique (proto `mrhScore`) — contre les critères du contact.
 function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
@@ -111,9 +128,17 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const popBg = dark ? sp.solidBg : surf.card
 
   // ── état ──
-  const [buyer, setBuyer] = useState<MrhContact | null>(null)
-  const [trans, setTrans] = useState<'all' | 'vente' | 'location'>('all')
-  const [tokens, setTokens] = useState<MrhToken[]>([])
+  // ⚠ Les FILTRES se rangent dans l'onglet (`useTabScopedState`) : ce sont ceux de la grille ET de « Ce
+  // qui a bougé ». Deux onglets sur Matching gardent chacun leur segment, et aucun n'est imposé (décision
+  // de Julien, 21.09.2026). L'acheteur y est rangé par l'id de sa recherche, jamais en objet : son NOM ne
+  // va pas dans la pile d'onglets. Ses CRITÈRES, eux, y vont : `applyBuyer` les pose en jetons (`crit` :
+  // canton, type, pièces, budget), figés au moment du choix comme un jeton tapé — seul le score relit sa
+  // recherche. La pile vit dans `crm_open_tabs` et en sessionStorage par compte (`stockageParCompte`).
+  const [acheteurId, setAcheteurId] = useTabScopedState<string | null>('recherche.acheteur', null)
+  const [trans, setTrans] = useTabScopedState<'all' | 'vente' | 'location'>('recherche.trans', 'all')
+  const [tokens, setTokens] = useTabScopedState<MrhToken[]>('recherche.jetons', SANS_JETON)
+  const [vue, setVue] = useTabScopedState<VueRecherche>('recherche.vue', 'marche')
+  const [fenetre, setFenetre] = useTabScopedState<FenetrePige>('recherche.fenetre', 7)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<'pertinence' | 'recent' | 'price-asc' | 'price-desc'>('recent')
   const [sel, setSel] = useState<string[]>([])
@@ -131,6 +156,8 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   // désactivés et aucune requête ne part.
   const { data: liveBuyers = [] } = useMatchingBuyers()
   const buyers = demo ? MRH_DEMO_BUYERS : liveBuyers
+  const buyer = useMemo(() => buyers.find((c) => c.searchId === acheteurId) ?? null, [buyers, acheteurId])
+  const setBuyer = (c: MrhContact | null) => setAcheteurId(c ? c.searchId : null)
 
   // ── params serveur (filtre DUR) dérivés des jetons + transaction + acheteur ──
   const serverParams = useMemo(() => {
@@ -166,15 +193,35 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const isError = demo ? demo === 'erreur' : live.isError
   const isSettled = demo ? demo === 'ok' || demo === 'vide' : live.status === 'success'
 
+  // ── « Ce qui a bougé » : le flux de la pige, sur les MÊMES filtres durs que la grille ──
+  const genreFlux: GenreMouvement | null = vue === 'marche' ? null : vue
+  const pigeParams = useMemo<PigeParams>(() => ({
+    genre: genreFlux ?? 'apparition',
+    fenetre,
+    transaction: serverParams.transaction,
+    cantons: serverParams.cantons,
+    types: serverParams.types,
+    city: serverParams.city,
+    budgetMin: serverParams.budgetMin,
+    budgetMax: serverParams.budgetMax,
+  }), [genreFlux, fenetre, serverParams])
+  const pige = usePigeMouvements(pigeParams, genreFlux != null && !demo)
+  const mouvementsCharges = useMemo(() => (pige.data?.pages ?? []).flatMap((p) => p.mouvements), [pige.data])
+  const mouvements = useMemo(() => (demo
+    ? (demo === 'ok' && genreFlux ? MRH_DEMO_MOUVEMENTS.filter((m) => m.genre === genreFlux) : [])
+    : mouvementsCharges), [demo, genreFlux, mouvementsCharges])
+  const fluxEnVol = !demo && genreFlux != null && pige.status === 'pending' && pige.fetchStatus === 'fetching'
+
   // Chien de garde : au-delà de 15 s, une requête « en cours » n'est plus un
   // chargement, c'est un incident. On le dit plutôt que de faire tourner le
   // spinner à l'infini — c'est exactement ce qui a rendu ce bug indiagnosticable.
+  const enVol = genreFlux ? fluxEnVol : isFetchingFirst
   const [slow, setSlow] = useState(false)
   useEffect(() => {
-    if (!isFetchingFirst) { setSlow(false); return }
+    if (!enVol) { setSlow(false); return }
     const id = setTimeout(() => setSlow(true), 15_000)
     return () => clearTimeout(id)
-  }, [isFetchingFirst])
+  }, [enVol])
   // Total RÉEL du marché filtré — sert à ne jamais présenter la taille de la
   // tranche chargée comme un nombre de marché.
   const { data: liveTotal } = useMatchingSearchTotal(serverParams)
@@ -195,6 +242,15 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
     if (q.trim() && !hay.includes(norm(q))) return false
     return true
   }, [clientTokens, q, bienHay])
+
+  // Les jetons CLIENT (pièces, surface, texte) filtrent aussi les mouvements chargés, avec la même limite
+  // que la grille — que l'écran dit (`clientFilterScope`).
+  const mouvementsVisibles = useMemo(() => mouvements.filter((m) => strictPass(m.bien)), [mouvements, strictPass])
+  // ⚠ Une page SUIVANTE en échec ne vaut pas une erreur du flux (`etatDuFlux`) : la liste reste,
+  // « Réessayer » dessous (`suiteEnEchec`).
+  const etatFlux: EtatFlux = demo
+    ? (demo === 'erreur' ? 'erreur' : demo === 'bloque' ? 'bloque' : 'pret')
+    : etatDuFlux({ enVol: fluxEnVol, lent: slow, isFetchNextPageError: pige.isFetchNextPageError, isError: pige.isError, status: pige.status })
 
   const strict: MrhItem[] = useMemo(() => {
     const list: MrhItem[] = biens.filter(strictPass).map((b) => ({ b, m: buyer ? scoreBien(buyer, b) : null }))
@@ -298,14 +354,14 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
       toast.success(bilan.join(' · '))
       setSel([])
     }
+    // Un bien coché depuis la fiche d'un MOUVEMENT n'est pas dans la grille : on le cherche aussi là. Une
+    // annonce RETIRÉE n'entre jamais dans une sélection (`biensAjoutables`) — ni au banc, ni pour de vrai.
+    const ajoutables = biensAjoutables(sel, [...biens, ...mouvements.map((m) => m.bien)])
+    if (!ajoutables.length) return
     // Banc : le geste se voit (toast, sélection vidée) sans rien écrire, faute d'`agency_id`.
-    if (demo) { confirmer({ ajoutes: sel.length, dejaPresents: 0, horsFile: 0 }); return }
+    if (demo) { confirmer({ ajoutes: ajoutables.length, dejaPresents: 0, horsFile: 0 }); return }
     if (!profile?.agency_id || ajout.isPending) return
-    const items = sel
-      .map((id) => biens.find((b) => b.id === id))
-      .filter((b): b is MrhBien => !!b)
-      .map((b) => { const m = scoreBien(buyer, b); return { marketListingId: b.id, score: m.score, reasons: m.reasons } })
-    if (!items.length) return
+    const items = ajoutables.map((b) => { const m = scoreBien(buyer, b); return { marketListingId: b.id, score: m.score, reasons: m.reasons } })
     ajout.mutate(
       { contactId: buyer.id, agencyId: profile.agency_id, clientSearchId: buyer.searchId, items },
       { onSuccess: confirmer, onError: () => toast.error(t('recherche.ajoutErreur')) },
@@ -451,6 +507,21 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
     )
   }
   const Lab = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft, ...style }}>{children}</div>
+  /**
+   * Un groupe de segments — une pilule par choix, l'actif à l'accent. Vue, transaction, affichage et
+   * période le partagent : quatre groupes côte à côte ne peuvent pas avoir quatre géométries. Espacements
+   * et rayons en jetons : le cliquet de `megga-x-grammar.spec.ts` compte les littéraux du dossier.
+   */
+  const segments = <V extends string | number>({ groupe, options, valeur, onChoix, aria }: {
+    groupe: string; options: { id: V; label: string }[]; valeur: V; onChoix: (v: V) => void; aria: (label: string) => string
+  }) => (
+    <div role="group" aria-label={groupe} style={{ display: 'inline-flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
+      {options.map((o) => (
+        <button key={String(o.id)} onClick={() => onChoix(o.id)} aria-pressed={valeur === o.id} aria-label={aria(o.label)}
+          style={{ height: 30, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', background: valeur === o.id ? ACC : 'transparent', color: valeur === o.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{o.label}</button>
+      ))}
+    </div>
+  )
 
   const rootVars = { '--mrh-line': line, '--mrh-soft': sp.soft, '--mrh-focus': dark ? '#8DA4FF' : '#0041D9' } as CSSProperties
 
@@ -464,34 +535,56 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
           <div>
             <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('recherche.title')}</h1>
             <div style={{ fontSize: 'var(--crm-text-md)', color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">
-              {countText}
-              {truncated && (
-                <span style={{ color: sp.sub }}> · {t('recherche.countTotal', { total: marketTotal })}</span>
+              {genreFlux ? (
+                <>
+                  {t('recherche.bouge.compte', { count: mouvementsVisibles.length })}
+                  {!demo && pige.hasNextPage && <span style={{ color: sp.sub }}> · {t('recherche.bouge.suite')}</span>}
+                </>
+              ) : (
+                <>
+                  {countText}
+                  {truncated && (
+                    <span style={{ color: sp.sub }}> · {t('recherche.countTotal', { total: marketTotal })}</span>
+                  )}
+                </>
               )}
             </div>
-            {truncated && clientFilterActive && (
+            {(genreFlux ? clientFilterActive : truncated && clientFilterActive) && (
               <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <RechIcon name="spark" size={11} stroke={sp.sub} />
-                {t('recherche.clientFilterScope', { count: biens.length })}
+                {t('recherche.clientFilterScope', { count: genreFlux ? mouvements.length : biens.length })}
               </div>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-            <div role="group" aria-label={t('recherche.trans.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
-              {([{ id: 'all', label: t('recherche.trans.all') }, { id: 'vente', label: t('recherche.trans.sale') }, { id: 'location', label: t('recherche.trans.rent') }] as const).map((v) => (
-                <button key={v.id} onClick={() => setTrans(v.id)} aria-pressed={trans === v.id} aria-label={t('recherche.trans.aria', { label: v.label })}
-                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: trans === v.id ? 600 : 600, whiteSpace: 'nowrap', background: trans === v.id ? ACC : 'transparent', color: trans === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
-              ))}
-            </div>
-            <div role="group" aria-label={t('recherche.view.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
-              {([{ id: 'grid', label: t('recherche.view.grid') }, { id: 'map', label: t('recherche.view.map') }] as const).map((v) => (
-                <button key={v.id} onClick={() => setView(v.id)} aria-pressed={view === v.id} aria-label={t('recherche.view.aria', { label: v.label })}
-                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: view === v.id ? 600 : 600, whiteSpace: 'nowrap', background: view === v.id ? ACC : 'transparent', color: view === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
-              ))}
-            </div>
-            <div role="group" aria-label={t('recherche.sort.group')} style={{ display: 'flex', gap: 6 }}>
-              {sortOpts.map((o) => <Chip key={o.id} active={sort === o.id} onClick={() => setSort(o.id)} pressed={sort === o.id} aria={t('recherche.sort.aria', { label: o.l })}>{o.l}</Chip>)}
-            </div>
+            {segments({
+              groupe: t('recherche.vue.group'), valeur: vue, onChoix: setVue, aria: (label) => t('recherche.vue.aria', { label }),
+              options: VUES_RECHERCHE.map((v) => ({ id: v, label: t(`recherche.vue.${v}`) })),
+            })}
+            {segments({
+              groupe: t('recherche.trans.group'), valeur: trans, onChoix: setTrans, aria: (label) => t('recherche.trans.aria', { label }),
+              options: [
+                { id: 'all' as const, label: t('recherche.trans.all') },
+                { id: 'vente' as const, label: t('recherche.trans.sale') },
+                { id: 'location' as const, label: t('recherche.trans.rent') },
+              ],
+            })}
+            {genreFlux ? (
+              segments({
+                groupe: t('recherche.fenetre.group'), valeur: fenetre, onChoix: setFenetre, aria: (label) => t('recherche.fenetre.aria', { label }),
+                options: FENETRES_PIGE.map((j) => ({ id: j, label: t(`recherche.fenetre.j${j}`) })),
+              })
+            ) : (
+              <>
+                {segments({
+                  groupe: t('recherche.view.group'), valeur: view, onChoix: setView, aria: (label) => t('recherche.view.aria', { label }),
+                  options: [{ id: 'grid' as const, label: t('recherche.view.grid') }, { id: 'map' as const, label: t('recherche.view.map') }],
+                })}
+                <div role="group" aria-label={t('recherche.sort.group')} style={{ display: 'flex', gap: 6 }}>
+                  {sortOpts.map((o) => <Chip key={o.id} active={sort === o.id} onClick={() => setSort(o.id)} pressed={sort === o.id} aria={t('recherche.sort.aria', { label: o.l })}>{o.l}</Chip>)}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -569,8 +662,8 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
         </div>
       </div>
 
-      {/* Résultats — grille OU vue carte (split liste ↔ carte à pins) */}
-      {view === 'map' && isSettled && !isError && (strict.length + near.length) > 0 ? (
+      {/* Résultats — « Ce qui a bougé », ou la grille / la vue carte (split liste ↔ carte à pins) */}
+      {!genreFlux && view === 'map' && isSettled && !isError && (strict.length + near.length) > 0 ? (
         <MrhMapView strict={strict} near={near} ctx={ctx} />
       ) : (
         <div className="mrh-scroll"
@@ -578,7 +671,23 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
           // en permanence, et un transform non nul fait de ce conteneur le bloc
           // englobant de tout descendant en `position: fixed`.
           style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) backwards' }}>
-          {isFetchingFirst ? (
+          {genreFlux ? (
+            <MrhBouge
+              genre={genreFlux}
+              mouvements={mouvementsVisibles}
+              charges={mouvements.length}
+              etat={etatFlux}
+              suiteDisponible={!demo && !!pige.hasNextPage}
+              chargeSuite={pige.isFetchingNextPage}
+              suiteEnEchec={!demo && pige.isFetchNextPageError}
+              onSuite={() => { void pige.fetchNextPage() }}
+              // ⚠ Gardé au banc : `refetch()` part MÊME sur une requête désactivée (TanStack v5), et
+              // l'état « Échec » du banc interrogerait la vraie RPC. La grille garde son `refetch` pareil.
+              onReessayer={() => { if (!demo) void pige.refetch() }}
+              onOuvrir={openBien}
+              ctx={ctx}
+            />
+          ) : isFetchingFirst ? (
             <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, gap: 14, color: sp.sub, fontSize: 'var(--crm-text-lg)', fontWeight: 600, textAlign: 'center' }}>
               <span>{slow ? t('recherche.slow') : t('recherche.loading')}</span>
               {slow && (
@@ -641,6 +750,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
           onToggle={() => toggleSel(extBien.id)}
           onClose={() => setExtBien(null)}
           detailDemo={demo ? MRH_DEMO_DETAIL : undefined}
+          historiqueDemo={demo ? historiqueDuBanc(extBien) : undefined}
         />
       )}
     </div>

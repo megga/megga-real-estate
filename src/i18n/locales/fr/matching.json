@@ -146,7 +146,9 @@
       "expandMap": "Agrandir la carte",
       "portalFallback": "portail",
       "detailError": "Détail indisponible pour le moment.",
-      "openFull": "Ouvrir la fiche complète"
+      "openFull": "Ouvrir la fiche complète",
+      "retiree": "Retirée du marché",
+      "retireeLe": "Retirée le {{date}}"
     },
     "view": {
       "group": "Affichage des résultats",
@@ -170,7 +172,79 @@
     "dejaPresents_other": "{{count}} déjà dans ses matchs",
     "dejaHorsFile_one": "dont {{count}} écarté ou reporté, laissé tel quel",
     "dejaHorsFile_other": "dont {{count}} écartés ou reportés, laissés tels quels",
-    "ajoutErreur": "Les biens n'ont pas pu être ajoutés. Réessayez."
+    "ajoutErreur": "Les biens n'ont pas pu être ajoutés. Réessayez.",
+    "vue": {
+      "group": "Ce que montre la recherche",
+      "marche": "Tout le marché",
+      "apparition": "Nouveaux",
+      "baisse": "En baisse",
+      "retrait": "Retirés",
+      "aria": "Afficher : {{label}}"
+    },
+    "fenetre": {
+      "group": "Période",
+      "j1": "24 h",
+      "j7": "7 jours",
+      "j30": "30 jours",
+      "aria": "Période : {{label}}"
+    },
+    "bouge": {
+      "compte_one": "{{count}} mouvement affiché",
+      "compte_other": "{{count}} mouvements affichés",
+      "suite": "d'autres suivent",
+      "voirPlus": "Voir plus",
+      "chargement": "Chargement des mouvements…",
+      "erreur": "Les mouvements du marché n'ont pas pu être chargés.",
+      "vide": {
+        "apparition": "Aucune nouvelle annonce sur cette période.",
+        "baisse": "Aucune baisse de prix sur cette période.",
+        "retrait": "Aucune annonce retirée sur cette période."
+      },
+      "videCorps": "Les mouvements sont suivis depuis la mise en service de la pige ; ce qui a bougé avant n'est pas reconstitué. Élargissez la période ou les filtres.",
+      "quandAujourdhui": "aujourd'hui",
+      "quandHier": "hier",
+      "quandJours_one": "il y a {{count}} jour",
+      "quandJours_other": "il y a {{count}} jours",
+      "deA": "{{avant}} → {{apres}}",
+      "dernierPrix": "dernier prix {{prix}}",
+      "enLigneDepuis_one": "en ligne depuis {{count}} jour",
+      "enLigneDepuis_other": "en ligne depuis {{count}} jours",
+      "apresJours_one": "après {{count}} jour sur le marché",
+      "apresJours_other": "après {{count}} jours sur le marché",
+      "filtreVide_one": "Le mouvement chargé ne passe pas vos filtres.",
+      "filtreVide_other": "Aucun des {{count}} mouvements chargés ne passe vos filtres.",
+      "filtreVideCorps": "Le texte, les pièces et la surface ne filtrent que les mouvements déjà chargés.",
+      "suiteErreur": "La suite n'a pas pu être chargée."
+    },
+    "historique": {
+      "titre": "Historique du prix",
+      "courbe": "Évolution du prix de l'annonce",
+      "erreur": "Historique indisponible pour le moment.",
+      "vide": "Aucun prix relevé pour cette annonce depuis le début du suivi.",
+      "surMarche": "Sur le marché",
+      "jours_one": "{{count}} jour",
+      "jours_other": "{{count}} jours",
+      "moinsUnJour": "moins d'un jour",
+      "retireeLe": "retirée le {{date}}",
+      "changements": "Changements de prix",
+      "suiviDepuis": "suivi depuis le {{date}}",
+      "ecart": "Écart",
+      "depuisDetection": "depuis la première détection",
+      "depuisDate": "depuis le {{date}}",
+      "tronque": "Les {{n}} derniers événements sont affichés.",
+      "genre": {
+        "suivi": "Début du suivi",
+        "apparition": "Première détection",
+        "baisse": "Baisse",
+        "hausse": "Hausse",
+        "prix": "Prix modifié",
+        "retrait": "Retirée",
+        "retour": "De retour sur le marché",
+        "statut": "Statut modifié"
+      },
+      "suivi": "Suivi",
+      "avantSuivi": "{{pct}} avant le début du suivi"
+    }
   },
   "runMatching": "Lancer le matching",
   "running": "Analyse en cours...",
