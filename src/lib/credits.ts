@@ -218,9 +218,3 @@ export function formatChf(chf: number): string {
 export function formatCredits(n: number, lang = 'fr'): string {
   return new Intl.NumberFormat(lang === 'de' ? 'de-CH' : lang === 'it' ? 'it-CH' : lang === 'en' ? 'en-CH' : 'fr-CH', { maximumFractionDigits: 0 }).format(Math.round(n))
 }
-
-/** Combien de productions de ce prix le solde permet encore. */
-export function productionsPossibles(solde: number, coutUnitaire: number): number {
-  if (coutUnitaire <= 0) return 0
-  return Math.max(0, Math.floor(solde / coutUnitaire))
-}

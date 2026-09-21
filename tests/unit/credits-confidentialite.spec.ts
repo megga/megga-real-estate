@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   CREDIT_PACKS, CREDITS_IMAGE, CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF, AUTO_TOPUP_SEUILS,
-  consommationDuMois, creditBalanceFromJson, creditRecuFromJson, creditsPourVideo, formatChf, formatCredits, productionsPossibles, remisePack,
+  consommationDuMois, creditBalanceFromJson, creditRecuFromJson, creditsPourVideo, formatChf, formatCredits, remisePack,
 } from '@/lib/credits'
 import {
   CREDIT_PACKS as EDGE_PACKS, CREDITS_IMAGE as EDGE_IMAGE, CREDITS_VIDEO_PAR_SECONDE as EDGE_VIDEO,
@@ -128,11 +128,8 @@ describe('crédits — les lectures pures de l’écran', () => {
     expect(c).toEqual({ images: 1, videos: 1, credits: 159, rendus: 154 })
   })
 
-  it('formate en milliers et borne les productions possibles', () => {
+  it('formate en milliers', () => {
     expect(formatCredits(1243, 'fr')).toMatch(/1.243/)
-    expect(productionsPossibles(1243, 5)).toBe(248)
-    expect(productionsPossibles(4, 5)).toBe(0)
-    expect(productionsPossibles(100, 0)).toBe(0)
   })
 })
 
