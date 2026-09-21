@@ -3,27 +3,29 @@
  * dotation du mois), le grand livre (RLS agence), l'achat d'un pack (Stripe Checkout
  * via `credits-checkout`) et le réglage de la recharge automatique (RPC).
  *
- * ⚠ Sous un banc (`/dev/labs`, `/dev/crm`), le solde et le livre viennent des fixtures
- * du studio — aucun réseau, et « acheter » ne mène nulle part : le banc le DIT.
+ * ⚠ Sous un banc (`/dev/labs`, `/dev/crm`), le solde, le livre et le REÇU viennent des
+ * fixtures du studio — aucun réseau, et « acheter » ne mène nulle part : le banc le DIT.
  *
  * ⚠ Le solde est rafraîchi après chaque génération (les edges rendent `credits.balance`,
- * `useLabsGenerate` le pose dans le cache) et au retour d'un Checkout (`?success=true`) :
- * le webhook peut arriver quelques secondes après la redirection, d'où un second
- * rafraîchissement différé — un solde qui n'a pas bougé APRÈS avoir payé est ce que
- * l'agent retient d'un produit.
+ * `useLabsGenerate` le pose dans le cache) et au retour d'un Checkout, quand le reçu
+ * rend `paid` — un solde qui n'a pas bougé APRÈS avoir payé est ce que l'agent retient
+ * d'un produit.
  */
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  creditBalanceFromJson, creditLedgerFromRow, type AutoTopupSeuil, type CreditBalance, type CreditLedgerEntry, type CreditPackId,
+  creditBalanceFromJson, creditLedgerFromRow, creditRecuFromJson,
+  type AutoTopupSeuil, type CreditBalance, type CreditLedgerEntry, type CreditPackId, type CreditRecu,
 } from '@/lib/credits'
-import { fxCreditBalance, fxCreditLedger, fxSetAutoTopup, useLabsFixtures } from '@/components/crm/labs/fixtures'
+import { fxCreditBalance, fxCreditLedger, fxCreditRecu, fxSetAutoTopup, useLabsFixtures } from '@/components/crm/labs/fixtures'
 
 export const CREDITS_KEY = ['credits'] as const
 const LIVRE_LIMITE = 200
+/** Combien de fois on redemande un paiement `processing` avant de rendre la main. */
+const RECU_TOURS_MAX = 10
 
 export function useCredits() {
   const { profile } = useAuth()
@@ -115,16 +117,66 @@ export function useCredits() {
 }
 
 /**
- * Au retour d'un Checkout (`?success=true`), rafraîchir tout de suite ET quelques
- * secondes plus tard : le webhook qui crédite peut arriver APRÈS la redirection.
+ * LE REÇU du retour de Stripe : l'état d'une session de Checkout (`?session_id=`), lu
+ * chez Stripe par `credits-checkout-status`, qui crédite au passage si le webhook n'est
+ * pas encore passé.
+ *
+ * ⛔ Le solde ne se déduit PAS du pack acheté : c'est la RPC qui le rend, et lui seul
+ * dit la vérité (une dotation mensuelle a pu tomber entre-temps, un débit aussi).
+ *
+ * ⚠ `processing` est relancé toutes les 2 s, **au plus dix fois** : TWINT met quelques
+ * secondes, et un paiement qui traîne plus de 20 s ne s'obtiendra pas en martelant. Au
+ * bout, l'écran le dit et invite à rouvrir la page — ce qui redémarre le décompte.
+ *
+ * ⚠ Au banc, c'est le `?session_id=` qui décide de l'issue (`fxCreditRecu`) : sans ça la
+ * modale de confirmation n'aurait aucun état regardable, et « c'est câblé » aurait tenu
+ * lieu de preuve.
  */
-export function useCreditsApresCheckout(success: boolean): void {
+export function useCreditRecu(sessionId: string | null): {
+  recu: CreditRecu | null
+  enCours: boolean
+  echec: boolean
+  aAbandonne: boolean
+} {
   const qc = useQueryClient()
+  const fx = useLabsFixtures()
+  const [tours, setTours] = useState(0)
+  const actif = !!sessionId
+
+  const q = useQuery({
+    queryKey: [...CREDITS_KEY, 'recu', fx ? `fx-${fx}` : '', sessionId],
+    enabled: actif,
+    retry: 1,
+    staleTime: Infinity,
+    queryFn: async (): Promise<CreditRecu> => {
+      // Au banc, l'état vient du `?session_id=` : il n'y a rien à lire chez Stripe, et
+      // les quatre issues doivent pourtant pouvoir être REGARDÉES.
+      if (fx) return fxCreditRecu(fx, sessionId ?? '')
+      const { data, error } = await supabase.functions.invoke<unknown>('credits-checkout-status', { body: { sessionId } })
+      if (error) throw error
+      return creditRecuFromJson(data)
+    },
+    refetchInterval: (query) => (query.state.data?.statut === 'processing' && tours < RECU_TOURS_MAX ? 2000 : false),
+  })
+
+  // Le compte des tours vit ici, pas dans `refetchInterval` : la fonction d'intervalle
+  // est appelée à chaque rendu, l'incrémenter dedans emballerait le décompte.
+  const statut = q.data?.statut ?? null
   useEffect(() => {
-    if (!success) return
-    void qc.invalidateQueries({ queryKey: CREDITS_KEY })
-    const t1 = setTimeout(() => { void qc.invalidateQueries({ queryKey: CREDITS_KEY }) }, 4000)
-    const t2 = setTimeout(() => { void qc.invalidateQueries({ queryKey: CREDITS_KEY }) }, 12000)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [success, qc])
+    if (statut !== 'processing') return
+    const t = setTimeout(() => setTours((n) => n + 1), 2000)
+    return () => clearTimeout(t)
+  }, [statut, q.dataUpdatedAt])
+
+  // Crédité : le solde et le livre ont bougé côté serveur, le cache doit suivre.
+  useEffect(() => {
+    if (statut === 'paid') void qc.invalidateQueries({ queryKey: CREDITS_KEY })
+  }, [statut, qc])
+
+  return {
+    recu: q.data ?? null,
+    enCours: actif && (q.isPending || statut === 'processing'),
+    echec: q.isError,
+    aAbandonne: statut === 'processing' && tours >= RECU_TOURS_MAX,
+  }
 }

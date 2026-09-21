@@ -1138,7 +1138,25 @@
         "adjustment": "Adjustment"
       }
     },
-    "success": "Payment received: your credits arrive in a few seconds.",
+    "receipt": {
+      "pendingTitle": "Confirming payment",
+      "pendingBody": "One moment — Stripe is finalising the transaction.",
+      "slowBody": "Stripe is still validating the payment. Your credits will arrive on their own, you can close this window.",
+      "paidTitle": "Payment confirmed",
+      "paidBody": "{{n}} credits were added to your balance.",
+      "unpaidTitle": "Payment not completed",
+      "unpaidBody": "Nothing was charged. You can try again.",
+      "expiredTitle": "Payment link expired",
+      "expiredBody": "This payment session has expired. Start the purchase again to open a new one.",
+      "unknownTitle": "Payment not confirmed",
+      "unknownBody": "We could not read the status of this payment. If it went through, your balance will update on its own.",
+      "newBalance": "New balance",
+      "paidAmount": "Paid",
+      "done": "Done",
+      "retry": "Try again",
+      "close": "Close",
+      "invoice": "View invoice"
+    },
     "canceled": "Payment cancelled, nothing was charged."
   }
 }

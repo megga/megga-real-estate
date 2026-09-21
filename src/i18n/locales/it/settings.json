@@ -1138,7 +1138,25 @@
         "adjustment": "Rettifica"
       }
     },
-    "success": "Pagamento ricevuto: i tuoi crediti arrivano tra pochi secondi.",
+    "receipt": {
+      "pendingTitle": "Conferma del pagamento",
+      "pendingBody": "Un istante — Stripe sta finalizzando la transazione.",
+      "slowBody": "Stripe sta ancora convalidando il pagamento. I crediti arriveranno da soli, puoi chiudere questa finestra.",
+      "paidTitle": "Pagamento confermato",
+      "paidBody": "{{n}} crediti sono stati aggiunti al tuo saldo.",
+      "unpaidTitle": "Pagamento non completato",
+      "unpaidBody": "Non è stato addebitato nulla. Puoi riprovare.",
+      "expiredTitle": "Link di pagamento scaduto",
+      "expiredBody": "Questa sessione di pagamento è scaduta. Riavvia l'acquisto per aprirne una nuova.",
+      "unknownTitle": "Pagamento non confermato",
+      "unknownBody": "Non abbiamo potuto leggere lo stato di questo pagamento. Se è andato a buon fine, il saldo si aggiornerà da solo.",
+      "newBalance": "Nuovo saldo",
+      "paidAmount": "Pagato",
+      "done": "Fatto",
+      "retry": "Riprova",
+      "close": "Chiudi",
+      "invoice": "Vedi la fattura"
+    },
     "canceled": "Pagamento annullato, nulla è stato addebitato."
   }
 }

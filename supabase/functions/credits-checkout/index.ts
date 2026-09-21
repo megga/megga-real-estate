@@ -1,9 +1,11 @@
 // supabase/functions/credits-checkout/index.ts
 //
 // Acheter un pack de crédits : ouvre une session Stripe Checkout en mode PAIEMENT
-// (pas d'abonnement) et rend son URL. Le crédit du solde se fait au webhook
-// (`checkout.session.completed`, `stripe-webhook`), jamais ici — l'agent peut fermer
-// l'onglet Stripe, le paiement n'en aboutit pas moins.
+// (pas d'abonnement) et rend son URL. Le crédit du solde ne se fait JAMAIS ici — l'agent
+// peut fermer l'onglet Stripe, le paiement n'en aboutit pas moins. Deux chemins le
+// portent, tous deux idempotents par PaymentIntent : le webhook
+// (`checkout.session.completed`, `stripe-webhook`) et le retour à l'écran
+// (`credits-checkout-status`, qui doit pouvoir montrer un reçu sans attendre le premier).
 //
 // ⚠ Le prix vient du CATALOGUE SERVEUR (`CREDIT_PACKS`), écrit en ligne dans la session
 // (`price_data`) : aucun `priceId` Stripe n'est reçu du navigateur, donc rien à
@@ -104,7 +106,10 @@ serve(async (req: Request) => {
       invoice_creation: { enabled: true },
       metadata: meta,
       payment_intent_data: { metadata: meta, description: `${pack.credits} crédits MEGGA Labs` },
-      success_url: retour('tab=credits&success=true'),
+      // ⚠ `{CHECKOUT_SESSION_ID}` est substitué PAR STRIPE, il ne doit pas être encodé :
+      // c'est ce jeton qui permet à `credits-checkout-status` de rendre un vrai reçu
+      // (pack, montant, solde après, facture) au lieu d'un « merci » qui ne prouve rien.
+      success_url: retour('tab=credits&success=true&session_id={CHECKOUT_SESSION_ID}'),
       cancel_url: retour('tab=credits&canceled=true'),
       locale: 'fr',
     })

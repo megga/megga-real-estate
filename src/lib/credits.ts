@@ -165,6 +165,53 @@ export function consommationDuMois(entries: CreditLedgerEntry[], now: Date = new
   return out
 }
 
+// ─── Le reçu d'un Checkout (edge `credits-checkout-status`) ──────────────────
+
+/**
+ * Où en est le paiement au retour de Stripe.
+ *
+ * ⚠ `processing` n'est pas une panne : TWINT et quelques cartes aboutissent APRÈS la
+ * redirection. C'est le seul état qu'on interroge à nouveau ; les autres sont finaux.
+ */
+export type CreditRecuStatut = 'paid' | 'processing' | 'unpaid' | 'expired'
+
+export interface CreditRecu {
+  statut: CreditRecuStatut
+  pack: CreditPackId | null
+  credits: number
+  chf: number
+  /** Le solde APRÈS l'achat, tel que la RPC l'a rendu — `null` tant que rien n'est crédité. */
+  balance: number | null
+  invoiceUrl: string | null
+}
+
+export function creditRecuFromJson(j: unknown): CreditRecu {
+  const o = (j ?? {}) as Record<string, unknown>
+  const statut = String(o.status ?? '')
+  return {
+    statut: (['paid', 'processing', 'unpaid', 'expired'].includes(statut) ? statut : 'unpaid') as CreditRecuStatut,
+    pack: packParId(String(o.pack ?? ''))?.id ?? null,
+    credits: Number(o.credits ?? 0) || 0,
+    chf: Number(o.chf ?? 0) || 0,
+    balance: o.balance == null ? null : Number(o.balance) || 0,
+    invoiceUrl: (o.invoiceUrl as string | null) ?? null,
+  }
+}
+
+/**
+ * `CHF 22.00` — un montant ARGENT, aux centimes.
+ *
+ * ⛔ Pas d'`Intl` ici, et pas de variante par langue : `fr-CH` rend « 22,00 », avec une
+ * virgule, là où le grand livre de cet écran écrit « 22.00 » — deux notations du même
+ * franc à deux lignes d'écart. La convention suisse est le POINT décimal et
+ * l'APOSTROPHE des milliers, dans les quatre langues ; c'est la même règle que
+ * `formatCHF` (`lib/utils`), qui arrondit au franc et ne convient donc pas à un reçu.
+ */
+export function formatChf(chf: number): string {
+  const [entier, centimes] = Math.abs(chf).toFixed(2).split('.')
+  return `CHF ${entier.replace(/\B(?=(\d{3})+(?!\d))/g, "'")}.${centimes}`
+}
+
 // ─── Affichage ───────────────────────────────────────────────────────────────
 
 /** `1 240` — l'apostrophe est réservée aux montants en francs, un nombre de crédits prend l'espace. */

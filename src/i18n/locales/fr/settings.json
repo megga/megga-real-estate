@@ -1138,7 +1138,25 @@
         "adjustment": "Ajustement"
       }
     },
-    "success": "Paiement reçu : vos crédits arrivent dans quelques secondes.",
+    "receipt": {
+      "pendingTitle": "Confirmation du paiement",
+      "pendingBody": "Encore un instant — Stripe finalise la transaction.",
+      "slowBody": "Stripe valide encore le paiement. Vos crédits arriveront tout seuls, vous pouvez fermer cette fenêtre.",
+      "paidTitle": "Paiement confirmé",
+      "paidBody": "{{n}} crédits ont été ajoutés à votre solde.",
+      "unpaidTitle": "Paiement non abouti",
+      "unpaidBody": "Rien n'a été débité. Vous pouvez réessayer.",
+      "expiredTitle": "Lien de paiement expiré",
+      "expiredBody": "Cette session de paiement a expiré. Relancez l'achat pour en ouvrir une nouvelle.",
+      "unknownTitle": "Paiement non confirmé",
+      "unknownBody": "Nous n'avons pas pu lire l'état de ce paiement. S'il a abouti, votre solde se mettra à jour tout seul.",
+      "newBalance": "Nouveau solde",
+      "paidAmount": "Payé",
+      "done": "Terminé",
+      "retry": "Réessayer",
+      "close": "Fermer",
+      "invoice": "Voir la facture"
+    },
     "canceled": "Paiement annulé, rien n'a été débité."
   }
 }

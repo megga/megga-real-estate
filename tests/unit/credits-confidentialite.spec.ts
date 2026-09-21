@@ -22,7 +22,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import {
   CREDIT_PACKS, CREDITS_IMAGE, CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF, AUTO_TOPUP_SEUILS,
-  consommationDuMois, creditBalanceFromJson, creditsPourVideo, formatCredits, productionsPossibles, remisePack,
+  consommationDuMois, creditBalanceFromJson, creditRecuFromJson, creditsPourVideo, formatChf, formatCredits, productionsPossibles, remisePack,
 } from '@/lib/credits'
 import {
   CREDIT_PACKS as EDGE_PACKS, CREDITS_IMAGE as EDGE_IMAGE, CREDITS_VIDEO_PAR_SECONDE as EDGE_VIDEO,
@@ -152,7 +152,17 @@ describe('crédits — la section existe, dans les quatre langues', () => {
     'credits.auto.title', 'credits.auto.body', 'credits.auto.enabled', 'credits.auto.disabled', 'credits.auto.threshold', 'credits.auto.pack', 'credits.auto.card', 'credits.auto.noCard', 'credits.auto.lastError', 'credits.auto.saved', 'credits.auto.saveError',
     'credits.ledger.title', 'credits.ledger.empty', 'credits.ledger.balanceAfter',
     'credits.ledger.kinds.grant_monthly', 'credits.ledger.kinds.purchase', 'credits.ledger.kinds.auto_topup', 'credits.ledger.kinds.debit_image', 'credits.ledger.kinds.debit_video', 'credits.ledger.kinds.debit_video_vo', 'credits.ledger.kinds.refund', 'credits.ledger.kinds.adjustment',
-    'credits.success', 'credits.canceled',
+    'credits.canceled',
+    // Le REÇU du retour de Stripe (`CreditsRecuModal`) — chaque état a sa phrase, et
+    // une phrase manquante rendrait la clé brute dans une modale de confirmation
+    // d'achat, c'est-à-dire au pire endroit possible.
+    'credits.receipt.pendingTitle', 'credits.receipt.pendingBody', 'credits.receipt.slowBody',
+    'credits.receipt.paidTitle', 'credits.receipt.paidBody',
+    'credits.receipt.unpaidTitle', 'credits.receipt.unpaidBody',
+    'credits.receipt.expiredTitle', 'credits.receipt.expiredBody',
+    'credits.receipt.unknownTitle', 'credits.receipt.unknownBody',
+    'credits.receipt.newBalance', 'credits.receipt.paidAmount',
+    'credits.receipt.done', 'credits.receipt.retry', 'credits.receipt.close', 'credits.receipt.invoice',
   ]
   const CLES_LABS = [
     'credits.amount_one', 'credits.amount_other', 'menu.creditsHint',
@@ -185,5 +195,70 @@ describe('crédits — la section existe, dans les quatre langues', () => {
       expect(chemin(l, 'menu.quotaImages')).toBeUndefined()
       expect(chemin(l, 'errors.quota_exceeded')).toBeUndefined()
     }
+  })
+})
+
+/**
+ * ── LE REÇU DU RETOUR DE STRIPE ──────────────────────────────────────────────
+ *
+ * ⛔ `credits-checkout-status` CRÉDITE. C'est la seule edge où un identifiant venu du
+ * navigateur (`?session_id=`) décide d'un mouvement d'argent, et son unique rempart est
+ * la confrontation de `session.metadata.agency_id` avec l'agence du JETON. Sans elle,
+ * qui devine l'identifiant d'une session d'une autre agence crédite la SIENNE avec le
+ * paiement d'un tiers — et la porte `edge-guard-order` ne le verrait pas : le garde
+ * d'authentification, lui, est bien à sa place.
+ */
+describe('crédits — le reçu est cloisonné par agence', () => {
+  const SOURCE = readFileSync('supabase/functions/credits-checkout-status/index.ts', 'utf8')
+
+  it('confronte l’agence de la session à celle du jeton, et rend `not_found`', () => {
+    expect(SOURCE).toMatch(/session\.metadata\?\.agency_id\s*!==\s*profile\.agency_id/)
+    // `not_found` et non `forbidden` : distinguer « pas à vous » de « n'existe pas »
+    // confirmerait à un curieux qu'un identifiant deviné est réel.
+    expect(SOURCE).not.toMatch(/'forbidden'/)
+  })
+
+  it('ne crédite QUE l’agence du jeton, jamais celle de la session', () => {
+    const achat = SOURCE.slice(SOURCE.indexOf('credits_purchase'))
+    expect(achat).toMatch(/p_agency:\s*profile\.agency_id/)
+    expect(achat).not.toMatch(/p_agency:\s*(session|body|pack)/)
+  })
+
+  it('ne crédite que sur un paiement RÉELLEMENT abouti', () => {
+    // ⚠ On vise l'APPEL (`admin.rpc('credits_purchase'`), pas le nom : l'en-tête du
+    // fichier explique le crédit idempotent et le cite bien avant tout garde.
+    const garde = SOURCE.indexOf("payment_status !== 'paid'")
+    const credit = SOURCE.indexOf("admin.rpc('credits_purchase'")
+    expect(garde).toBeGreaterThan(-1)
+    expect(credit).toBeGreaterThan(-1)
+    expect(garde).toBeLessThan(credit)
+  })
+
+  it('la session vient de Stripe, pas du corps de la requête', () => {
+    // L'appelant n'envoie qu'un identifiant de forme connue ; le pack, le montant et
+    // l'état sont relus chez Stripe. Un pack pris dans le corps serait un tarif choisi
+    // par l'acheteur.
+    expect(SOURCE).toMatch(/checkout\.sessions\.retrieve\(sessionId/)
+    expect(SOURCE).toMatch(/packParId\(session\.metadata\?\.pack\)/)
+  })
+})
+
+describe('crédits — les lectures du reçu', () => {
+  it('formatChf : point décimal et apostrophe suisse, quelle que soit la langue', () => {
+    expect(formatChf(22)).toBe('CHF 22.00')
+    expect(formatChf(109)).toBe('CHF 109.00')
+    expect(formatChf(1090.5)).toBe("CHF 1'090.50")
+  })
+
+  it('creditRecuFromJson : un statut inconnu échoue FERMÉ (`unpaid`), jamais en `paid`', () => {
+    expect(creditRecuFromJson({ status: 'paid', pack: '500', credits: 500, chf: 22, balance: 1743 }).statut).toBe('paid')
+    expect(creditRecuFromJson({ status: 'processing' }).statut).toBe('processing')
+    expect(creditRecuFromJson({ status: 'n’importe quoi' }).statut).toBe('unpaid')
+    expect(creditRecuFromJson({}).statut).toBe('unpaid')
+    expect(creditRecuFromJson(null).balance).toBeNull()
+  })
+
+  it('creditRecuFromJson : un pack inconnu ne devient pas un pack', () => {
+    expect(creditRecuFromJson({ status: 'paid', pack: '99999' }).pack).toBeNull()
   })
 })

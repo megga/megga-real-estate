@@ -10,7 +10,7 @@
 import { createContext, useContext } from 'react'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { labsVideoDurationS, labsVoiceoverSeconds } from '@/lib/labs'
-import { creditsPourImage, creditsPourVideo, type AutoTopupSeuil, type CreditBalance, type CreditLedgerEntry, type CreditPackId } from '@/lib/credits'
+import { CREDIT_PACKS, creditsPourImage, creditsPourVideo, type AutoTopupSeuil, type CreditBalance, type CreditLedgerEntry, type CreditPackId, type CreditRecu } from '@/lib/credits'
 import type { LabsAsset, LabsFolder } from '@/types/labs'
 
 export type LabsFixtureState = 'full' | 'empty' | 'error'
@@ -197,6 +197,32 @@ export function fxCreditBalance(state: LabsFixtureState): CreditBalance {
 export function fxCreditLedger(state: LabsFixtureState): CreditLedgerEntry[] {
   if (state === 'error') throw new Error('fixture:error')
   return state === 'empty' ? [] : [...fxLivre]
+}
+
+/**
+ * Le REÇU d'un retour de Stripe, au banc. Le paramètre `?session_id=` choisit l'état,
+ * faute de quoi la modale de confirmation n'aurait aucune façon d'être regardée : le
+ * banc ne paie rien, et l'état d'un paiement ne s'invente pas depuis l'écran.
+ *
+ *   `cs_banc_paye` (ou n'importe quel autre) → payé · `cs_banc_attente` → en validation
+ *   `cs_banc_refuse` → non abouti · `cs_banc_expire` → session expirée
+ *   état « Échec » du banc → la lecture elle-même échoue
+ */
+export function fxCreditRecu(state: LabsFixtureState, sessionId: string): CreditRecu {
+  if (state === 'error') throw new Error('fixture:error')
+  const statut: CreditRecu['statut'] = sessionId.includes('attente') ? 'processing'
+    : sessionId.includes('refuse') ? 'unpaid'
+    : sessionId.includes('expire') ? 'expired'
+    : 'paid'
+  const pack = CREDIT_PACKS[1]
+  return {
+    statut,
+    pack: pack.id,
+    credits: pack.credits,
+    chf: pack.chf,
+    balance: statut === 'paid' ? fxSolde.total + pack.credits : null,
+    invoiceUrl: statut === 'paid' ? 'https://invoice.stripe.com/i/banc' : null,
+  }
 }
 
 export function fxSetAutoTopup(p: { enabled: boolean; threshold: AutoTopupSeuil; pack: CreditPackId }): void {

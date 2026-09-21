@@ -454,6 +454,11 @@ verify_jwt = false
 [functions.credits-auto-topup]
 verify_jwt = false
 
+# Le reçu du retour de Stripe : s'authentifie en interne (requireAgentAuth), puis
+# confronte l'agence de la session à celle du jeton.
+[functions.credits-checkout-status]
+verify_jwt = false
+
 [functions.learn-agent-style]
 verify_jwt = false
 

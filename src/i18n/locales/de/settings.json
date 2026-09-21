@@ -1138,7 +1138,25 @@
         "adjustment": "Korrektur"
       }
     },
-    "success": "Zahlung erhalten: Ihre Credits kommen in wenigen Sekunden.",
+    "receipt": {
+      "pendingTitle": "Zahlung wird bestätigt",
+      "pendingBody": "Einen Moment — Stripe schliesst die Transaktion ab.",
+      "slowBody": "Stripe prüft die Zahlung noch. Ihre Credits werden automatisch gutgeschrieben, Sie können dieses Fenster schliessen.",
+      "paidTitle": "Zahlung bestätigt",
+      "paidBody": "{{n}} Credits wurden Ihrem Guthaben hinzugefügt.",
+      "unpaidTitle": "Zahlung nicht abgeschlossen",
+      "unpaidBody": "Es wurde nichts belastet. Sie können es erneut versuchen.",
+      "expiredTitle": "Zahlungslink abgelaufen",
+      "expiredBody": "Diese Zahlungssitzung ist abgelaufen. Starten Sie den Kauf neu, um eine neue zu öffnen.",
+      "unknownTitle": "Zahlung nicht bestätigt",
+      "unknownBody": "Wir konnten den Status dieser Zahlung nicht lesen. Falls sie erfolgreich war, wird Ihr Guthaben automatisch aktualisiert.",
+      "newBalance": "Neues Guthaben",
+      "paidAmount": "Bezahlt",
+      "done": "Fertig",
+      "retry": "Erneut versuchen",
+      "close": "Schliessen",
+      "invoice": "Rechnung ansehen"
+    },
     "canceled": "Zahlung abgebrochen, nichts wurde belastet."
   }
 }

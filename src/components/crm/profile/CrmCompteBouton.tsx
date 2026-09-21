@@ -89,10 +89,19 @@ export default function CrmCompteBouton({ sp, dark, setDark, bandeRef, diametre,
   const avatarUrl = profile?.avatar_url?.trim() || ''
 
   const enBanc = location.pathname.startsWith('/dev/')
-  const versReglages = () => {
+  /**
+   * Vers les Réglages, éventuellement sur une section précise (`?tab=`).
+   *
+   * ⚠ `tab` ne vient JAMAIS du dehors : les deux seuls appelants sont ci-dessous, avec
+   * une constante. La cible reste donc une route de la table statique de la barre —
+   * c'est ce que le registre de `redirection-ouverte.spec.ts` atteste.
+   */
+  const versReglages = (tab?: string) => {
     if (enBanc) return
-    const route = crmSidebarRouteOf('settings')
-    if (route) navigate(route)
+    const base = crmSidebarRouteOf('settings')
+    if (!base) return
+    const route = tab ? `${base}?tab=${tab}` : base
+    navigate(route)
   }
 
   return (
@@ -138,7 +147,8 @@ export default function CrmCompteBouton({ sp, dark, setDark, bandeRef, diametre,
             setDark={setDark}
             coin={coin}
             onClose={() => setOuvert(false)}
-            onSettings={versReglages}
+            onSettings={() => versReglages()}
+            onCredits={() => versReglages('credits')}
             onHelp={() => openHelpFor(helpKey ?? active ?? crmSidebarActiveFor(location.pathname) ?? undefined)}
             onLogout={async () => { await signOut(); navigate('/login') }}
           />

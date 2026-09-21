@@ -29,14 +29,15 @@ import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
-import { useCredits, useCreditsApresCheckout } from '@/hooks/useCredits'
+import { useCredits, useCreditRecu } from '@/hooks/useCredits'
 import {
   AUTO_TOPUP_SEUILS, CREDIT_PACKS, CREDITS_IMAGE, CREDITS_VIDEO_PAR_SECONDE, CREDITS_VOIX_OFF,
-  chfParCredit, consommationDuMois, creditsPourVideo, formatCredits, remisePack,
+  chfParCredit, consommationDuMois, creditsPourVideo, formatChf, formatCredits, remisePack,
   type AutoTopupSeuil, type CreditLedgerEntry, type CreditPack, type CreditPackId,
 } from '@/lib/credits'
 import { labsOuvertAuPlan } from '@/lib/labs'
 import { pfColors, type FocusSectionProps, type PfColors } from './focus/pfKitCore'
+import { CreditsRecuModal } from './CreditsRecuModal'
 
 const NUM = { fontVariantNumeric: 'tabular-nums' as const }
 
@@ -46,19 +47,33 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
   const c: PfColors = pfColors(sp, surf, dark)
   const toast = useToast()
   const credits = useCredits()
-  const [params] = useSearchParams()
-  const success = params.get('success') === 'true'
+  const [params, setParams] = useSearchParams()
   const canceled = params.get('canceled') === 'true'
-  useCreditsApresCheckout(success)
 
-  // Le retour de Stripe se DIT, une fois : l'agent revient d'un autre site, il doit
-  // savoir si son geste a abouti sans chercher le solde du regard.
+  // ─── Le retour de Stripe ───────────────────────────────────────────────────
+  // ⛔ L'identifiant de session est CAPTURÉ AU MONTAGE et gardé : fermer la modale
+  // nettoie l'URL, et une modale qui lirait `params` disparaîtrait au milieu de sa
+  // propre animation de sortie — ou, pire, se remonterait à chaque rendu.
+  const [sessionId] = useState(() => params.get('session_id'))
+  const [recuFerme, setRecuFerme] = useState(false)
+  const recu = useCreditRecu(sessionId)
+
+  // L'abandon se DIT en passant, pas en modale : l'agent n'a rien payé, il n'y a rien
+  // à confirmer — seulement à ne pas laisser croire que le geste a abouti.
   useEffect(() => {
-    if (success) toast.success(t('credits.success'))
-    else if (canceled) toast.info(t('credits.canceled'))
+    if (canceled) toast.info(t('credits.canceled'))
     // Au montage seulement : le paramètre ne change plus ensuite.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  /** Referme le reçu ET retire ses paramètres, pour qu'un rechargement ne le rejoue pas. */
+  const fermerRecu = () => {
+    setRecuFerme(true)
+    const p = new URLSearchParams(params)
+    p.delete('session_id')
+    p.delete('success')
+    setParams(p, { replace: true })
+  }
 
   const b = credits.balance
   const mois = useMemo(() => consommationDuMois(credits.ledger), [credits.ledger])
@@ -233,6 +248,23 @@ export function CreditsSection({ sp, surf, dark, onGoToSection }: FocusSectionPr
         <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: c.soft }}>{t('credits.tariff.example', { n: formatCredits(creditsPourVideo('720p', 8, true), lang) })}</p>
       </Carte>
 
+      {/* Le reçu, par-dessus tout le reste — porté dans `<body>`. */}
+      {sessionId && !recuFerme && (
+        <CreditsRecuModal
+          c={c}
+          sp={sp}
+          recu={recu.recu}
+          enCours={recu.enCours}
+          echec={recu.echec}
+          aAbandonne={recu.aAbandonne}
+          onClose={fermerRecu}
+          onRetry={() => {
+            fermerRecu()
+            document.getElementById('credits-packs')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+        />
+      )}
+
       {/* 6 — l'historique */}
       <Carte c={c} kicker={t('credits.ledger.title')}>
         {credits.ledger.length === 0 ? (
@@ -391,7 +423,7 @@ function Ligne(p: { c: PfColors; e: CreditLedgerEntry; lang: string; libelle: st
       <span style={{ ...NUM, fontSize: 'var(--crm-text-sm)', color: p.c.soft, width: 96, flexShrink: 0 }}>{date}</span>
       <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', color: p.c.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {p.libelle}
-        {p.e.amountChf != null && <span style={{ color: p.c.soft }}>{` · CHF ${p.e.amountChf.toFixed(2)}`}</span>}
+        {p.e.amountChf != null && <span style={{ color: p.c.soft }}>{` · ${formatChf(p.e.amountChf)}`}</span>}
       </span>
       <span style={{ ...NUM, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: positif ? p.c.green : p.c.ink, whiteSpace: 'nowrap' }}>
         {positif ? '+' : '−'}{formatCredits(Math.abs(p.e.amount), p.lang)}

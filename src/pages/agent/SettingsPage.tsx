@@ -85,6 +85,22 @@ export default function SettingsPage() {
     ALLOWED.includes(tabParam) ? tabParam : 'profile',
   )
 
+  // ⛔ ET LE `?tab=` DOIT POUVOIR ARRIVER APRÈS LE MONTAGE. L'écran est gardé vivant
+  // (`EcransVivants`) : une cible `…/settings?tab=credits` posée sur un onglet Réglages
+  // DÉJÀ ouvert ne remonte rien, et la valeur de départ ci-dessus ne serait jamais
+  // relue — le raccourci « Crédits » du menu de compte, et le retour de Stripe,
+  // tombaient sur la section mémorisée. Le paramètre ne change que sur un lien
+  // profond : le réappliquer à chaque changement n'écrase donc pas un choix fait à la
+  // main dans la colonne (il ne touche pas à l'URL).
+  useEffect(() => {
+    if (ALLOWED.includes(tabParam)) setActive(tabParam)
+    // ⚠ `setActive` n'est PAS stable — `useTabScopedState` le reconstruit dès que la
+    // valeur change (il lit la courante dans sa closure, cf. son commentaire). L'inscrire
+    // ici rejouerait l'effet juste après l'avoir appliqué, et reposerait `tabParam` sur
+    // chaque choix fait dans la colonne. Le paramètre est la SEULE dépendance qui compte.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabParam])
+
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [active])
 
