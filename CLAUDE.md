@@ -844,7 +844,15 @@ fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 7
 40/s en 1080p, voix off +10. Packs en `price_data` Stripe (200 · 500 · 1 200 · 3 000
 crédits, CHF 10 · 22 · 49 · 109 — aucun produit ni secret à poser) ; recharge
 automatique sous un seuil, hors session, sur la carte du premier achat. Écran :
-Réglages › **Consommation** (`?tab=credits`). ⛔ **Le coût fournisseur et la marge ne
+Réglages › **Consommation** (`?tab=credits`). ⛔ **Le retour de Stripe rend un REÇU, pas
+un « merci »** (20.09.2026) : `credits-checkout-status` relit la session chez Stripe
+— pack, montant, solde APRÈS, lien de facture — et **crédite lui aussi**, idempotent par
+PaymentIntent, parce qu'un écran qui attend le webhook affiche « paiement en cours » sur
+un paiement abouti dès que l'événement traîne. Son seul rempart est la confrontation de
+`session.metadata.agency_id` avec l'agence du jeton (`not_found` sinon), gardée par
+`credits-confidentialite.spec.ts`. Le solde et un raccourci d'achat vivent aussi dans le
+**menu de compte** (`CrmProfileCredits`), packs dépliés avec leur prix — jamais un clic
+qui débite sans annoncer le montant. ⛔ **Le coût fournisseur et la marge ne
 sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
 interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
 de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
