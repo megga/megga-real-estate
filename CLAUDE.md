@@ -1052,6 +1052,23 @@ VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (✅ posé le 16.08
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
 
+> ⛔ **L'ABONNEMENT PRO N'EST PAS ACHETABLE EN PRODUCTION — aucun identifiant de prix Stripe
+> n'atteint le build** (relevé le 21.09.2026). « Passer à Pro » envoie à `stripe-checkout` l'id
+> d'un objet Price lu dans `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` (`src/lib/constants.ts`) ;
+> or `deploy-app.yml` ne passe au build que `VITE_SUPABASE_*`, `VITE_MAPBOX_TOKEN` et
+> `VITE_INTERCOM_APP_ID`, et aucun secret ni variable GitHub ne porte ces noms. Le bouton répond
+> donc « Configuration Stripe manquante, contactez le support » (`billing.stripeMissing`).
+>
+> ⚠ Le **montant** n'est pas dans le code : c'est celui de l'objet Price. `BillingSection` ne fait
+> que l'AFFICHER (Pro : CHF 89 depuis le 21.09.2026, CHF 74 le mois en annuel, « deux mois
+> offerts »). Pour que l'écran dise vrai il faut, hors dépôt : (1) créer dans Stripe les deux Price
+> du produit Pro, CHF 89 par mois et CHF 890 par an (les « deux mois offerts » que l'écran annonce) ; (2) poser leurs ids en secrets GitHub
+> `VITE_STRIPE_PRICE_PRO_MONTHLY` / `_YEARLY` ET les ajouter à l'`env` du build de
+> `deploy-app.yml` ; (3) poser les mêmes ids en secrets Supabase `STRIPE_PRICE_PRO_MONTHLY` /
+> `_YEARLY` — `_shared/stripe-prices.ts` refuse tout id absent de cette table (`price_not_allowed`,
+> ou `stripe_prices_not_configured` si elle est vide). Aucun abonné à migrer : les 13 agences de
+> production sont en `starter`.
+
 > ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
 > les **263 chunks** réellement servis par `app.getmegga.com` : le jeton (`pk.eyJ…`) est dans
 > `ListingFormPage-*.js` et `WizardShell-*.js` (ce dernier retiré le 16.09.2026 ; « Nouveau bien » ne

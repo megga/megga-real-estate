@@ -48,13 +48,17 @@ interface PlanDef {
   popular?: boolean
 }
 
+// ⚠ `monthly` est un AFFICHAGE : le montant encaissé est celui de l'objet Price de
+// Stripe désigné par `VITE_STRIPE_PRICE_PRO_*` (constants.ts). Les deux doivent dire
+// la même chose — Pro vaut CHF 89 depuis le 21.09.2026 (Julien), le prix sur lequel la
+// dotation Labs a été calculée (`PRIX_PLAN_CHF`, `_shared/credits.ts`).
 const PLANS: PlanDef[] = [
   {
     id: 'free', nameKey: 'billing.plans.free.name', taglineKey: 'billing.plans.free.tagline', monthly: 0,
     featureKeys: ['billing.plans.free.features.properties', 'billing.plans.free.features.crm', 'billing.plans.free.features.aiSearch', 'billing.plans.free.features.emailSupport'],
   },
   {
-    id: 'pro', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 49, popular: true,
+    id: 'pro', nameKey: 'billing.plans.pro.name', taglineKey: 'billing.plans.pro.tagline', monthly: 89, popular: true,
     featureKeys: ['billing.plans.pro.features.unlimitedProperties', 'billing.plans.pro.features.fullCrm', 'billing.plans.pro.features.pipeline', 'billing.plans.pro.features.compliance', 'billing.plans.pro.features.docGeneration', 'billing.plans.pro.features.multichannel', 'billing.plans.pro.features.copilot', 'billing.plans.pro.features.prioritySupport'],
   },
   {
