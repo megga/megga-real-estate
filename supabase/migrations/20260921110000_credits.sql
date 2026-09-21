@@ -28,7 +28,7 @@ create table if not exists public.credit_plan_allowances (
 
 -- `do nothing` : un réglage fait à la main en base survit au rejeu de la migration.
 insert into public.credit_plan_allowances (plan, monthly_credits) values
-  ('starter', 0), ('pro', 1500), ('entreprise', 5000), ('agency', 5000)
+  ('starter', 0), ('pro', 1500), ('entreprise', 4800), ('agency', 4800)
 on conflict (plan) do nothing;
 
 alter table public.credit_plan_allowances enable row level security;

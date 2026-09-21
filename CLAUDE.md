@@ -838,7 +838,7 @@ compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou 
 
 **Labs — studio de génération (20.09.2026, sur branche, NON mergé).** `/dashboard/labs`, section « Clients & biens » : dossiers (créer, renommer, supprimer), galerie, barre de prompt, visionneuse ; images Nano Banana 2 (le modèle de `virtual-staging`), vidéos **Seedance 2.5** sur fal.ai — ⚠ « Seedance 4.5 » n'existe pas au 20.09.2026 — et voix off Gemini TTS multiplexée à l'arrivée. Tables `labs_folders` / `labs_assets`, bucket `labs`, edges `labs-image` / `labs-video` / `labs-video-status`. ⛔ Rien n'est éprouvé contre Gemini ni fal.ai, et **`FAL_KEY` est un secret NEUF à poser**. ⛔ **Les quotas par genre sont REMPLACÉS par des CRÉDITS depuis le 20.09.2026**
 (migration `20260921110000`, modèle Higgsfield) : un solde par agence — dotation
-mensuelle du plan (Pro 1 500, Entreprise 5 000, jamais reportée) + crédits achetés
+mensuelle du plan (Pro 1 500, Entreprise 4 800, jamais reportée) + crédits achetés
 (ne périment pas) — débité production par production **AVANT** d'appeler le
 fournisseur, remboursé s'il échoue. Tarif : image 5 crédits, vidéo 18/s en 720p et
 40/s en 1080p, voix off +10. Packs en `price_data` Stripe (200 · 500 · 1 200 · 3 000

@@ -93,8 +93,11 @@ export function packLeMoinsCher(): CreditPack {
 export const CREDITS_DOTATION_MENSUELLE: Record<string, number> = {
   starter: 0,
   pro: 1500,
-  entreprise: 5000,
-  agency: 5000,
+  // ⚠ 4 800 et non 5 000 (Julien, 21.09.2026) : 5 000 × CHF 0,05 = 250 dépassait le prix
+  // du plan (249) — la dotation valait plus que ce qu'on la vend. `agency` suit : même
+  // prix, et la base ne l'admet plus (`agencies_plan_check` : starter | pro | entreprise).
+  entreprise: 4800,
+  agency: 4800,
 }
 
 export function dotationMensuelle(plan: string | null | undefined): number {
