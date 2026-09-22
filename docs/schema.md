@@ -177,14 +177,19 @@ properties (
   availability_date, created_by, created_at, published_at, updated_at
 )
   -- type: 'apartment' | 'house' | 'villa' | 'commercial' | 'land'
-  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'off_market' | 'archived'
+  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'archived'
+  --   (⚠ 'off_market' n'a jamais été un statut de l'enum : c'est la colonne `off_market`, lot C.)
   -- condition: 'new' | 'renovated' | 'good' | 'to_renovate'
+  -- off_market: boolean, défaut false (lot C, 22.09.2026) — proposé aux seuls acheteurs de l'agence, jamais
+  --   diffusé ; posé par l'agent (fiche du bien, « Nouveau bien ») ; noté par le moteur pour une recherche
+  --   `off_market_only` ; le basculer renote le mandat (trigger `trg_property_off_market`).
 
 -- Recherches clients (sauvegardes)
 client_searches (
   id, agency_id, contact_id,
   label,            -- "Recherche 4p Eaux-Vives"
-  criteria,         -- jsonb : type, budget_min, budget_max, rooms_min, rooms_max, surface_min, zones[], features[]
+  criteria,         -- jsonb : type, budget_min, budget_max, rooms_min, rooms_max, surface_min, zones[], features[],
+                    --   + bedrooms_min, condition_min ('good'|'renovated'|'new'), off_market_only (lot C)
   is_active,        -- true = surveillance continue activée
   last_matched_at,  -- Dernière fois que le matching a trouvé des résultats
   created_at, updated_at

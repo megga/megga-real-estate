@@ -268,3 +268,23 @@ Plan : [2026-09-21-matching-lot-b-boucle.md](../plans/2026-09-21-matching-lot-b-
   rappel au client la veille (`reminder_sent` posé à la création : `visit-reminders-j1` lui écrirait).
 - **À conclure** garde « Pas intéressé » (avec motif). **Pas encore** écrit tout de suite, sans fenêtre
   d'annulation.
+
+## 13. Précisions du plan du lot C (22.09.2026)
+
+Plan : [2026-09-22-matching-lot-c-explique-inverse.md](../plans/2026-09-22-matching-lot-c-explique-inverse.md).
+
+- **Trois axes, pas une 6ᵉ clé `reasons`.** Chambres (poids 10), état (8), off-market (10) entrent dans la
+  redistribution du moteur ; l'échelle reste ancrée sur le barème des six axes historiques, si bien qu'une
+  recherche sans ces critères garde exactement sa note. Un critère que le bien ne renseigne pas sort du
+  dénominateur. Le fil les explique sur les faits, aux mêmes règles que le moteur.
+- **Critères de l'acheteur** : `bedrooms_min`, `condition_min` (`good` < `renovated` < `new`), `off_market_only`,
+  posés sur la fiche contact.
+- **État** : saisi sur un mandat ; sinon neuf (construit il y a 5 ans au plus) ou rénové (il y a 10 ans au plus) ;
+  jamais « bon état » ni « à rénover » déduit d'une date.
+- **Off-market** : un interrupteur de l'agent sur le mandat (`properties.off_market`, décision de Julien du
+  22.09.2026). « Réseau Off-market » met le bien en service au lieu d'en faire un brouillon, que le moteur ne note
+  jamais.
+- **Signaux** : baisse (14 jours), nouveau (3 jours), nouveau mandat (7 jours) ; à score égal, ils passent devant.
+- **Anciens prospects** (§10 n° 6, proposition appliquée) : recherche close depuis plus de 90 jours, ou deal perdu
+  dans les 24 derniers mois ; notés à la demande, 20 au plus ; « Réactiver » rouvre la recherche et crée le match.
+- **Accès** : l'en-tête d'un groupe « Vos biens » du fil. La fiche du bien et celle d'une annonce : lot D.

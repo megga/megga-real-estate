@@ -1,0 +1,63 @@
+# Feuille de route — VERROUILLÉE
+
+> **Verrouillée le 21.09.2026 par Julien** : « verrouiller la feuille de route et suivre strictement
+> notre plan, sans faire d'encombre ».
+>
+> **Règle.** On exécute les étapes dans l'ordre ci-dessous, chacune dans son périmètre écrit. Rien
+> d'autre n'est construit. Une idée nouvelle, un défaut repéré hors périmètre, une demande en cours
+> de route : **elle va dans « En attente » (en bas), elle n'est pas faite**, sauf accord explicite de
+> Julien, qui la place alors dans une étape. Changer l'ordre ou le contenu d'une étape se fait ICI,
+> par Julien, et nulle part ailleurs.
+>
+> Sources : [boucle chez l'agent](specs/2026-09-21-matching-boucle-agent-design.md) (lots B à E),
+> [fil de matchs](specs/2026-09-17-matching-fil-design.md), le cahier des charges de Gregory
+> (https://claude.ai/artifact/7VViBuAfsJmWe3N6uentXM, priorités P0/P1/P2).
+
+**Fusion : à la fin** (Julien, 22.09.2026 : « on va merger à la fin »). Les étapes s'empilent sur
+des branches non fusionnées ; la #1339 reste ouverte. Le jour de la fusion, toutes les migrations
+sont redatées à ce jour (date-guard), la #1339 part en premier, puis la dépublication.
+
+## État
+
+| # | Étape | Périmètre | État |
+|---|---|---|---|
+| 0 | **Fermer ce qui est fait** | « committe » des lots 1 et 2 du fil puis du lot A ; fusion ; dépublication des 4 fonctions retirées (accord de Julien) ; renommer les migrations `20260921…` si la fusion a lieu après le 21.09.2026 | **PR #1339 ouverte le 21.09.2026** (branche poussée, `main` intégrée, correction automatique de la CI active) ; **migrations redatées au 22.09.2026** (`20260922121000`, `20260922130000`, `d7ca538b`, poussé) ; restent la fusion, **reportée à la fin** (les migrations se redatent ce jour-là), puis la dépublication des 4 fonctions, sur accord. ⚠ Dépublication pressée : le 410 de `send-property-email` a été écrasé par le déploiement de `main` du 21.09 à 15:29 UTC (v105 : l'ancienne version, qui envoie, était de nouveau en ligne ; 0 appel mesuré jusqu'au 22.09 14:00 UTC) ; **410 reposé le 22.09.2026** (v106, vérifié par un appel), accord de Julien — il tient jusqu'au prochain push sur `main` |
+| 1a | **Matching · lot B, la boucle** | Onglets « En attente » et « À conclure » ; feuille « Retours de … » (Intéressé, Pas intéressé + motif, Pas encore) ; `prix_propose` ; « Planifier une visite » (`visit_planned`) ; Apprendre (correction de recherche au 2ᵉ refus pour un même motif, réévaluation des matchs à proposer, retour d'un bien refusé pour le prix quand son prix baisse) ; la relance d'une sélection close quand plus aucun bien n'attend. Sur le banc. | **commité le 21.09.2026** sur `megga/matching-boucle-et-pige` (`3ff435ba`, docs `3286dd52`, `e294266c` ; branche partie de celle de la PR #1339, non poussée) ; restent push et PR au signal de Julien, après la fusion de la #1339 |
+| 1b | **Pige lisible et historique des prix** (P0 Gregory) | Historique des prix écrit à chaque changement (`market_price_history`), `removed_at`, baisses détectées aussi sur Flatfox ; **balayage Flatfox réparé** (en panne muette depuis le 05.09.2026 ; rattrapage à la fusion des ~12 500 annonces fantômes, accord de Julien du 21.09.2026) ; vue « Ce qui a bougé » (nouveaux, en baisse, retirés) filtrable ; historique du prix sur la fiche d'une annonce. En parallèle de 1a (fichiers séparés). | **commité le 21.09.2026** sur `megga/matching-boucle-et-pige` (`b6c43779` balayage Flatfox, `0dfabd09` pige, docs `3286dd52`, `e294266c` ; non poussé) ; restent push et PR au signal de Julien, la procédure de fusion (décision 5), puis la tâche 16 |
+| 2 | **Matching · lot C, expliqué et inversé** | Critères chambres, état, off-market (là où la donnée existe, sinon « non évalué ») ; signaux « pourquoi maintenant » ; « Qui pour ce bien ? » (acquéreurs, anciens prospects). | **fait sur le banc le 22.09.2026** ([plan](plans/2026-09-22-matching-lot-c-explique-inverse.md), 15 tâches, deux revues et leurs corrections) sur la branche `megga/matching-lot-c` (partie de `megga/matching-boucle-et-pige`) ; **non commité** (attend « committe ») ; suite unitaire, portes et build verts ; à relire par Julien : les deux textes de « Nouveau bien » (décision 6 du plan) |
+| 3 | **Rôles multiples des contacts** (P0 Gregory) | Plusieurs rôles par contact (acquéreur, vendeur, investisseur, family office, prescripteur, private banker, avocat, trustee, courtier, architecte) ; filtres par rôle ; migration sans perte du type actuel. | à venir |
+| 4 | **Matching · lot D, les surfaces de l'agent** | Point du matin WhatsApp allumé et enrichi (matching et marché) ; `record_match_outcome` ; `get_buyers_for_property` ; `schedule_visit` → `visit_planned` ; Aujourd'hui ; fiche contact « Sa boucle » ; fiche du bien « Qui pour ce bien ? ». | à venir |
+| 5 | **Matching · lot E, la bascule** | Le fil remplace l'atelier ; mobile ; retrait de l'atelier. | à venir |
+| 6 | **P1 du cahier des charges** | Identité unique des biens ; relations et organisations ; score relationnel ; e-mails et WhatsApp dans la fiche ; automatisations sur événements ; ⌘K vers le copilote. Ordre à fixer par Julien à l'ouverture de l'étape. | à venir |
+| 7 | **P2 du cahier des charges** | Diffusion par connecteur (selon la décision Apimo) ; réseau privé entre agences ; recherche plein texte. | à venir |
+
+**Démarches de Julien, en parallèle (hors code)** : accès aux données de Homegate et ImmoScout24 (SMG) ; accès FTP d'immobilier.ch ; rendez-vous Apimo ; suppression du modèle `megga_new_listings` chez Meta.
+
+## Décisions attendues de Julien
+
+1. Catégorie des invitations d'opt-in WhatsApp : `marketing` → `utility` (proposé) ; aucune décision d'envoi n'en dépend, seule l'étiquette de preuve change.
+2. Écart ancien : le modèle `followup` est déclaré MARKETING chez Meta, envoyé comme `utility` par le code.
+3. Lot B : la liste des motifs de refus (proposée : prix, quartier, surface, pièces, type, équipements, état, autre), le délai de relance (3 jours), la correction « prix » (pré-remplie, modifiable).
+4. Pige : le segment par défaut de « Ce qui a bougé » (proposé : aucun filtre imposé, filtres retenus par onglet).
+
+5. **Fusion de la pige (1b)** : l'écran part AVANT les migrations (`deploy-app.yml` n'attend pas `deploy.yml`) et la Recherche lit `removed_at` : sans précaution, elle est en panne ~1 min (plus si une migration échoue). Proposé : appliquer `20260921145000` PUIS `20260921150000` en production juste avant de fusionner (geste de production, sur accord de Julien ; jamais dans l'autre ordre, sinon le rattrapage des fantômes Flatfox se tait). Effet attendu le lendemain : la purge de 04:50 retire les matchs à proposer qui visaient les ~12 500 annonces fantômes. **Même précaution pour le lot C** : « Nouveau bien » écrit désormais `off_market` à chaque enregistrement ; tant que la migration `…_matching_explique.sql` n'est pas appliquée, toute création de bien échoue. L'appliquer AVANT la fusion (sur accord), comme celles de la pige.
+
+**Tranché le 22.09.2026** : l'off-market d'un mandat est un **interrupteur posé par l'agent** sur le bien (fiche et « Nouveau bien ») ; l'acheteur peut demander « Off-market seulement », le moteur le note (lot C). Aucune donnée actuelle ne le disait : tout mandat actif porte une date de publication, et la diffusion vers les portails n'est pas en service.
+
+**Tranché le 21.09.2026** : une visite planifiée depuis le fil ne déclenche PAS le rappel J-1 au client (`reminder_sent` posé à la création) — choix du plan du lot B, confirmé par Julien. Balayage Flatfox inclus dans la 1b (accord du même jour).
+
+## En attente (hors feuille de route — rien n'est fait sans accord)
+
+- **Relevé par le lot C (22.09.2026)** : l'onglet « Off-market » de Mes biens (`BpTopGallery`) regroupe les biens en pause et vendus — un autre sens du même mot, à trancher (renommer l'onglet, ou le filtrer sur `off_market`) ; le pré-cochage de la sélection du marché s'éteint pour un acheteur qui pose chambres ou état (presque aucune annonce ne les renseigne, et un pré-cochage ne se fonde que sur des faits) ; la création d'un contact et l'extraction WhatsApp ne posent pas les trois critères du lot C ; l'atelier (production jusqu'au lot E) ne les explique pas ; pièces et surface inconnues comptent 0 au moteur, quand chambres et état inconnus sortent du dénominateur ; `app_config.matching_scoring_v2.version` à relever ; un mandat off-market n'est pas protégé de la diffusion (`publish_to_portals`) ; rouvrir une recherche ne relance pas le moteur (scan de la nuit) ; la date d'un deal perdu est `transactions.updated_at` ; au banc, le deal perdu de Nathalie n'a pas de ligne `transactions`. Détail : « En attente » du plan du lot C.
+- **Banc de la Recherche** : une seule description sert à toutes les annonces de démonstration (la villa de Vandœuvres est décrite comme un appartement à Carouge).
+- **Relevé par les corrections du lot B (21.09.2026)** : l'atelier (`execRelance`, `execReact`) ignore les relances replanifiées (`snoozed`) ; le banc ne peut pas éprouver le pré-filtre dur de la réévaluation (annonces sans `quality_score`, mandats en `sale`).
+- **Relevé par la relecture du lot B (21.09.2026)** : ⚠ une visite du fil marquée faite déclenche une relance `post_visit_feedback` en canal e-mail, envoyée à l'acheteur si l'agence a activé `auto_send` sur `visit_completed` (même famille que le rappel J-1) ; « Sa boucle » de la fiche contact affiche le code brut du motif et perd les biens revenus (lot D) ; « À conclure » ignore les visites planifiées ailleurs ; `execRelance` de l'atelier double la relance d'une sélection ; un match écarté « recherche ajustée » ne revient pas si la recherche s'élargit ; titre « Visite · … » en français dans les données.
+- **Relevé à l'exécution du lot B (21.09.2026)** : un bien refusé puis revenu par une baisse de prix ne compte pas dans « Déjà proposé » (le panneau d'Antoine lit « aucun bien ») ; au banc, une réponse n'est pas datée (limite du banc, sans trigger).
+- **Relevé par le plan du lot B (21.09.2026)** : 15 points (le rappel J-1 écrit au client pour les AUTRES visites ; l'interrupteur `emailVisitor` jamais lu ; le pont des recherches qui désactive les recherches des fiches sans critères ; une recherche modifiée ailleurs n'est pas renotée ; `execReact` de l'atelier et du mobile clôt la relance d'une sélection trop tôt ; l'élision « de {{prenom}} » ; la garde i18n ne lit pas le fil ; incohérences du banc ; `docs/schema.md` ; `max_rows` au-delà de 1 000 réponses ; consigner la réponse sans passer par « Proposé »…). Détail : section « En attente » de `plans/2026-09-21-matching-lot-b-boucle.md`.
+- **Relevé par le plan de la pige (21.09.2026)** : `days_on_market` vaut 0 sur toutes les ventes RealAdvisor (atelier, catalogue d'« Aujourd'hui ») ; flux « Hausses » et « De retour » ; « Ce qui a bougé » sur mobile ; rétention de l'historique des prix (~2 M lignes par an) ; double comptage de `flatfox_sync_runs` ; 27 annonces `megga-demo` visibles dans le marché. (Faits dans la 1b : les lecteurs `status = 'active'`, le comptage de sécurité du balayage, la carte système §4.) Détail : section « En attente » de `plans/2026-09-21-pige-lisible.md`.
+- **Porte de dérive sur `main` (21.09.2026, 15:27 UTC)** : 6 prétentions de CLAUDE.md hors tolérance, hors pige : volume de `market_listings` (296k contre 253k, 4 endroits), RealAdvisor (153k contre 123k), `google_calendar_tokens` (1 ligne contre 0 : un agenda a été connecté).
+- Libellés restants qui disent « envoi » hors matching (repérés au lot A, sans effet sur le client).
+- `docs/system-map.md` §6bis décrit une carte WhatsApp de la fiche contact qui n'existe plus au bureau (relevé du 21.09.2026) — relève de l'étape 6 (« e-mails et WhatsApp dans la fiche »).
+- `speech-to-text` (Deepgram) sans appelant ; `search-alert` citée dans la carte système sans exister.
+- Import d'une annonce par son URL (`extract-property-url`) : écran inaccessible.
+- Le brouillon de message que l'agent enverrait lui-même (point 12 de Gregory) : non pour l'instant.
