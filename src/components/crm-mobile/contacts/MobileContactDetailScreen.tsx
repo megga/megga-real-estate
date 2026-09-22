@@ -44,7 +44,7 @@ type TabId = 'overview' | 'activity' | 'matching' | 'docs'
 // ─── Démo (harnais /dev/mobile) — gated, n'atteint jamais Supabase ────────
 const DEMO_CONTACT: Contact = {
   id: 'demo-c1', agency_id: 'demo', first_name: 'Marie', last_name: 'Bertrand',
-  email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', type: 'buyer',
+  email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', type: 'buyer', roles: ['buyer'],
   source: 'website', score: 'hot', tags: ['Famille'], notes: null,
   created_at: '2026-04-02T09:00:00.000Z', whatsapp_phone: null, language: 'fr',
   birth_date: null, nationality: 'CH', residence_country: 'CH', home_address: null,

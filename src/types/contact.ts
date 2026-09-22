@@ -26,6 +26,11 @@ export interface Contact {
   email: string | null
   phone: string | null
   type: ContactType
+  /**
+   * Étape 3 : les rôles multiples. Source de vérité ; `type` en dérive par déclencheur.
+   * Vide = un lead. Vocabulaire et dérivations : `src/lib/contactRoles.ts`.
+   */
+  roles: string[]
   source: string | null
   score: ContactScore | null
   tags: string[]

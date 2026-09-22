@@ -2275,6 +2275,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           residence_country: string | null
+          roles: string[]
           score: string | null
           search_criteria: Json | null
           source: string
@@ -2307,6 +2308,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           residence_country?: string | null
+          roles?: string[]
           score?: string | null
           search_criteria?: Json | null
           source?: string
@@ -2339,6 +2341,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           residence_country?: string | null
+          roles?: string[]
           score?: string | null
           search_criteria?: Json | null
           source?: string
