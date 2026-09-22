@@ -5,7 +5,7 @@
  * navigateur (17.09.2026). Servis par `idx_matches_agency_focus (agency_id, contact_id, score desc)
  * where status = 'suggested'`. On lit `limite + 1` lignes : la dernière ne sert qu'à dire s'il en reste.
  *
- * ⚠ Mêmes règles que le résumé serveur (`matching_fil_marche`) : non reporté, annonce non `removed`.
+ * ⚠ Mêmes règles que le résumé serveur (`matching_fil_marche_resume`) : non reporté, annonce non `removed`.
  * Appliquées ici côté client aussi — le banc ne connaît ni `not`, ni `or`.
  *
  * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) porte son suivi (`suiviAProposer`) : la
@@ -45,7 +45,7 @@ async function chargerSelection(agencyId: string, contactId: string, limite: num
       .eq('contact_id', contactId)
       .eq('status', 'suggested')
       .not('market_listing_id', 'is', null)
-      // Le départage de `matching_fil_marche` : les vignettes de la ligne sont les premiers biens ouverts.
+      // Le départage de `matching_fil_marche_resume` : les vignettes de la ligne sont les premiers biens ouverts.
       .order('score', { ascending: false })
       .order('created_at', { ascending: false, nullsFirst: false })
       .order('id')

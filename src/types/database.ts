@@ -5627,6 +5627,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_status: string | null
           neighborhood_variant: string
+          off_market: boolean
           partner_agency: string | null
           photo_tags: Json | null
           photos: string[] | null
@@ -5690,6 +5691,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string | null
           neighborhood_variant?: string
+          off_market?: boolean
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
@@ -5753,6 +5755,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string | null
           neighborhood_variant?: string
+          off_market?: boolean
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
@@ -10042,6 +10045,7 @@ export type Database = {
           p_types?: string[]
         }
         Returns: {
+          bedrooms: number
           canton: string
           city: string
           current_price: number
@@ -10056,6 +10060,8 @@ export type Database = {
           surface_m2: number
           transaction_type: string
           type: string
+          year_built: number
+          year_renovated: number
         }[]
       }
       matching_ajuster_recherche: {
@@ -10078,14 +10084,30 @@ export type Database = {
           status: string
         }[]
       }
-      matching_fil_marche: {
+      matching_fil_marche_resume: {
         Args: never
         Returns: {
+          baisses: number
           contact_id: string
           meilleur_score: number
           nombre: number
+          nouveaux: number
           vignettes: string[]
         }[]
+      }
+      matching_reactiver_prospect: {
+        Args: {
+          p_acteur_id: string
+          p_agency_id: string
+          p_client_search_id: string
+          p_market_listing_id: string
+          p_origine: string
+          p_property_id: string
+          p_reasons: Json
+          p_score: number
+          p_score_version: number
+        }
+        Returns: string
       }
       megga_agency_slug: { Args: { p_name: string }; Returns: string }
       ml_extract_rooms: {

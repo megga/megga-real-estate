@@ -16,6 +16,9 @@ import {
   estUuid, fusionnerCorrection, lireCorrection, lireRefus, renoter, REFUS_MAX, tranches, type MatchARenoter,
 } from '../_shared/matching-renotation.ts'
 import {
+  candidatsProspects, debutFenetreDeal, noterProspects, type OrigineProspect, type RechercheClose,
+} from '../_shared/matching-prospects.ts'
+import {
   buildRentStatsIndex,
   rentPosition,
   type RentStatsIndex,
@@ -29,11 +32,15 @@ const corsHeaders = {
 }
 
 interface RequestBody {
-  mode: 'match-property' | 'match-contact' | 'scan-all' | 'rescore-search'
+  mode: 'match-property' | 'match-contact' | 'scan-all' | 'rescore-search' | 'prospects' | 'reactiver-prospect'
   property_id?: string
+  /** prospects, reactiver-prospect : une annonce du marché au lieu d'un mandat (lot C ; lot D pour l'écran). */
+  market_listing_id?: string
+  /** reactiver-prospect : pourquoi il était un ancien prospect (journal). */
+  origine?: string
   contact_id?: string
   include_market?: boolean // Aussi matcher contre market_listings (veille marché)
-  /** rescore-search : la recherche dont les matchs à proposer sont renotés (lot B, « Apprendre »). */
+  /** rescore-search : la recherche dont les matchs à proposer sont renotés ; reactiver-prospect : celle qu'on rouvre. */
   client_search_id?: string
   /**
    * rescore-search : la SEULE clé corrigée et sa valeur (`{ cle, valeur }`), fusionnée dans les critères
@@ -65,18 +72,45 @@ const numOrNull = (v: unknown): number | null => {
 }
 
 // colonnes lues par le scoring (jamais description/photos — règles perf §7)
-const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features'
+// Lot C : chambres, état (saisi, ou déduit de l'année de construction) et l'interrupteur off-market.
+const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features, bedrooms, condition, year_built, off_market'
 /**
  * Ce que le barème lit d'une annonce du marché — ce que rend `match_candidate_listings` —, et ce que son
  * pré-filtre dur trie (`quality_score`) : la renotation le rejoue (`renoter`).
  */
-const COLS_ANNONCE_NOTE = 'id, price, current_price, type, canton, city, rooms, surface_m2, features, status, price_at_first_seen, transaction_type, quality_score'
+const COLS_ANNONCE_NOTE = 'id, price, current_price, type, canton, city, rooms, surface_m2, features, status, price_at_first_seen, transaction_type, quality_score, bedrooms, year_built, year_renovated'
 /** Les motifs qu'« Apprendre » chiffre (le CHECK `matches_reaction_motif_check` en porte d'autres). */
 const MOTIFS_CORRECTION = new Set(['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements'])
 /** `max_rows` de PostgREST : au-delà, une lecture tronque EN SILENCE. */
 const PAGE_MATCHS = 1000
 const LOT_IDS = 100
 const LOT_NOTES = 500
+
+/**
+ * Une lecture ENTIÈRE, page par page (`max_rows` de PostgREST tronque EN SILENCE au-delà de {@link PAGE_MATCHS}).
+ * `page(depuis, jusqua)` pose ses filtres, un ordre stable (`.order('id')`, sans quoi deux pages se recouvrent) et
+ * `.range(depuis, jusqua)`.
+ */
+async function toutesLesPages<T>(
+  page: (depuis: number, jusqua: number) => PromiseLike<{ data: unknown[] | null; error: unknown }>,
+): Promise<T[]> {
+  const lignes: T[] = []
+  for (let depuis = 0; ; depuis += PAGE_MATCHS) {
+    const { data, error } = await page(depuis, depuis + PAGE_MATCHS - 1)
+    if (error) throw error
+    const lot = (data ?? []) as T[]
+    lignes.push(...lot)
+    if (lot.length < PAGE_MATCHS) return lignes
+  }
+}
+
+/** La position loyer d'une annonce du marché (bonus du barème) : la même pour la renotation et les prospects. */
+const refLoyer = (rentIndex: RentStatsIndex) => (a: Record<string, unknown>) => rentPosition({
+  canton: (a.canton as string | null) ?? null,
+  type: (a.type as string | null) ?? null,
+  surface_m2: numOrNull(a.surface_m2),
+  loyer: numOrNull(a.current_price) ?? numOrNull(a.price),
+}, rentIndex)
 
 /**
  * `rescore-search` — la réévaluation des matchs à proposer d'une recherche ajustée (lot B, « Apprendre »).
@@ -155,12 +189,7 @@ async function renoterRecherche(
   }
 
   // 1-2. Le VRAI barème, sur les critères corrigés — AVANT de les poser.
-  const notes = renoter(matchs, biens, criteres, cfg, (a) => rentPosition({
-    canton: (a.canton as string | null) ?? null,
-    type: (a.type as string | null) ?? null,
-    surface_m2: numOrNull(a.surface_m2),
-    loyer: numOrNull(a.current_price) ?? numOrNull(a.price),
-  }, rentIndex))
+  const notes = renoter(matchs, biens, criteres, cfg, refLoyer(rentIndex))
   const ecartes: string[] = []
   let reevalues = 0
   for (const lot of tranches(notes, LOT_NOTES)) {
@@ -192,6 +221,186 @@ async function renoterRecherche(
   if (ajuste == null) return { statut: 404, corps: { error: 'search_not_found' } }
 
   return { statut: 200, corps: { reevalues, ecartes: ecartes.length, mode: 'rescore-search', scoreVersion: cfg.version } }
+}
+
+/** Le bien visé par `prospects` et `reactiver-prospect` : un mandat OU une annonce du marché, jamais les deux. */
+type CibleBien = { genre: 'mandat' | 'annonce'; id: string }
+
+function lireCible(body: RequestBody): CibleBien | null {
+  const mandat = estUuid(body.property_id)
+  const annonce = estUuid(body.market_listing_id)
+  if (mandat === annonce) return null
+  return mandat ? { genre: 'mandat', id: body.property_id as string } : { genre: 'annonce', id: body.market_listing_id as string }
+}
+
+/**
+ * Le bien, colonnes du barème et du pré-filtre. Un mandat d'une autre agence est introuvable, et un mandat qui n'est
+ * pas en service (brouillon, vendu, archivé) aussi : le moteur ne note que les mandats actifs, et réactiver sur lui
+ * créerait un match que le moteur n'aurait jamais fait. Une annonce retirée passe ici, mais `annonceRetenue` l'écarte.
+ */
+async function lireBien(supabase: SupabaseClient, agencyId: string, cible: CibleBien): Promise<Record<string, unknown> | null> {
+  const { data, error } = cible.genre === 'mandat'
+    ? await supabase.from('properties').select(PROP_COLS).eq('id', cible.id).eq('agency_id', agencyId).eq('status', 'active').maybeSingle()
+    : await supabase.from('market_listings').select(COLS_ANNONCE_NOTE).eq('id', cible.id).maybeSingle()
+  if (error) throw error
+  return (data ?? null) as Record<string, unknown> | null
+}
+
+const colonneDe = (cible: CibleBien): 'property_id' | 'market_listing_id' =>
+  (cible.genre === 'mandat' ? 'property_id' : 'market_listing_id')
+
+/**
+ * `prospects` — les ANCIENS PROSPECTS d'un bien, notés À LA DEMANDE (lot C, « Qui pour ce bien ? »). Lecture
+ * seule : rien n'est écrit, ni match, ni journal. Règles : `_shared/matching-prospects.ts`.
+ */
+async function prospectsDuBien(
+  supabase: SupabaseClient, agencyId: string, body: RequestBody, cfg: ScoringConfig, rentIndex: RentStatsIndex,
+): Promise<{ statut: number; corps: Record<string, unknown> }> {
+  const cible = lireCible(body)
+  if (!cible) return { statut: 400, corps: { error: 'invalid_body' } }
+  const bien = await lireBien(supabase, agencyId, cible)
+  if (!bien) return { statut: 404, corps: { error: 'bien_not_found' } }
+  const maintenant = Date.now()
+  const colonne = colonneDe(cible)
+
+  // Les recherches closes de l'agence.
+  const recherches = await toutesLesPages<RechercheClose>((depuis, jusqua) => supabase
+    .from('client_searches')
+    .select('id, contact_id, criteria, updated_at')
+    .eq('agency_id', agencyId)
+    .eq('is_active', false)
+    .order('id')
+    .range(depuis, jusqua))
+  if (recherches.length === 0) return { statut: 200, corps: { prospects: [] } }
+
+  const deals = await toutesLesPages<{ contact_buyer_id: string; updated_at: string }>((depuis, jusqua) => supabase
+    .from('transactions')
+    .select('contact_buyer_id, updated_at')
+    .eq('agency_id', agencyId)
+    .eq('stage', 'lost')
+    .gte('updated_at', new Date(debutFenetreDeal(maintenant)).toISOString())
+    .not('contact_buyer_id', 'is', null)
+    .order('id')
+    .range(depuis, jusqua))
+  // Tout acheteur qui a déjà un match sur ce bien, quel qu'en soit l'état : l'agent en a déjà jugé.
+  const dejaMatch = await toutesLesPages<{ contact_id: string }>((depuis, jusqua) => supabase
+    .from('matches')
+    .select('contact_id')
+    .eq('agency_id', agencyId)
+    .eq(colonne, cible.id)
+    .order('id')
+    .range(depuis, jusqua))
+  // Et tout acheteur qui a un deal SUR CE BIEN, quel qu'en soit le stade : perdu, c'est ce bien-là qui n'a pas
+  // convenu ; en cours, l'agent le suit déjà.
+  const dejaDeal = await toutesLesPages<{ contact_buyer_id: string }>((depuis, jusqua) => supabase
+    .from('transactions')
+    .select('contact_buyer_id')
+    .eq('agency_id', agencyId)
+    .eq(colonne, cible.id)
+    .not('contact_buyer_id', 'is', null)
+    .order('id')
+    .range(depuis, jusqua))
+
+  const candidats = candidatsProspects(
+    recherches,
+    deals.map((d) => ({ contact_id: d.contact_buyer_id, le: d.updated_at })),
+    new Set([...dejaMatch.map((m) => m.contact_id), ...dejaDeal.map((d) => d.contact_buyer_id)]),
+    maintenant,
+  )
+  const notes = noterProspects(candidats, bien, cible.genre === 'annonce', cfg, refLoyer(rentIndex), maintenant)
+  if (notes.length === 0) return { statut: 200, corps: { prospects: [] } }
+
+  const { data: contacts, error: cErr } = await supabase
+    .from('contacts')
+    .select('id, first_name, last_name')
+    .eq('agency_id', agencyId)
+    .in('id', notes.map((n) => n.contact_id))
+  if (cErr) throw cErr
+  const parId = new Map(((contacts ?? []) as { id: string; first_name: string | null; last_name: string | null }[]).map((c) => [c.id, c]))
+  const prospects = notes.flatMap((n) => {
+    const c = parId.get(n.contact_id)
+    // Un contact que la lecture ne rend pas (supprimé entre-temps) : on n'invente pas la ligne.
+    return c ? [{
+      contact_id: n.contact_id, prenom: c.first_name ?? '', nom: c.last_name ?? '', client_search_id: n.client_search_id,
+      score: n.score, origine: n.origine, depuis: n.depuis,
+    }] : []
+  })
+  return { statut: 200, corps: { prospects } }
+}
+
+/**
+ * `reactiver-prospect` — un clic de l'agent (lot C). Les refus se décident d'abord, en lecture (403, 400, 404, 409,
+ * dont la note sous le seuil) ; puis, d'UN BLOC, `matching_reactiver_prospect` : le match naît `suggested` avec la
+ * note du moteur, la recherche ROUVRE, UNE ligne au journal (CLAUDE.md §5) — écrits un à un, une panne au milieu
+ * laissait un match sans journal, ou né d'une recherche restée close. Rien n'est écrit à l'acheteur.
+ * ⚠ Rouvrir une recherche ne relance pas le moteur (`on_search_criteria_updated` ne part que sur un changement de
+ * critères) : ses autres biens viennent au scan de la nuit.
+ */
+async function reactiverProspect(
+  supabase: SupabaseClient, agencyId: string, acteurId: string | null, body: RequestBody, cfg: ScoringConfig,
+  rentIndex: RentStatsIndex,
+): Promise<{ statut: number; corps: Record<string, unknown> }> {
+  // Un geste d'agent, jamais d'un appel de service : le journal le nomme.
+  if (!acteurId) return { statut: 403, corps: { error: 'agent_only' } }
+  const cible = lireCible(body)
+  if (!cible || !estUuid(body.client_search_id)) return { statut: 400, corps: { error: 'invalid_body' } }
+  const origine: OrigineProspect | null = body.origine === 'deal_perdu' || body.origine === 'recherche_close' ? body.origine : null
+
+  const { data: recherche, error: rErr } = await supabase
+    .from('client_searches')
+    .select('id, contact_id, criteria, updated_at')
+    .eq('id', body.client_search_id)
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+  if (rErr) throw rErr
+  if (!recherche) return { statut: 404, corps: { error: 'search_not_found' } }
+  // Défense en profondeur : la RLS de `client_searches` ne lit que son `agency_id`, une recherche de l'agence peut
+  // donc désigner le contact d'une autre. La RPC le refuse aussi ; ici, le refus a son code.
+  const { data: contact, error: cErr } = await supabase
+    .from('contacts')
+    .select('id')
+    .eq('id', recherche.contact_id)
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+  if (cErr) throw cErr
+  if (!contact) return { statut: 404, corps: { error: 'search_not_found' } }
+  const bien = await lireBien(supabase, agencyId, cible)
+  if (!bien) return { statut: 404, corps: { error: 'bien_not_found' } }
+
+  const colonne = colonneDe(cible)
+  const { data: deja, error: dErr } = await supabase
+    .from('matches')
+    .select('id')
+    .eq('agency_id', agencyId)
+    .eq('contact_id', recherche.contact_id)
+    .eq(colonne, cible.id)
+    .limit(1)
+  if (dErr) throw dErr
+  if ((deja ?? []).length > 0) return { statut: 409, corps: { error: 'deja_sur_ce_bien' } }
+
+  const [note] = noterProspects(
+    [{ ...(recherche as RechercheClose), origine: origine ?? 'recherche_close', depuis: null }],
+    bien, cible.genre === 'annonce', cfg, refLoyer(rentIndex), Date.now(),
+  )
+  if (!note) return { statut: 409, corps: { error: 'sous_le_seuil' } }
+
+  const { data: matchId, error: iErr } = await supabase.rpc('matching_reactiver_prospect', {
+    p_agency_id: agencyId,
+    p_acteur_id: acteurId,
+    p_client_search_id: recherche.id,
+    p_property_id: cible.genre === 'mandat' ? cible.id : null,
+    p_market_listing_id: cible.genre === 'annonce' ? cible.id : null,
+    p_score: note.score,
+    p_reasons: note.reasons,
+    p_score_version: cfg.version,
+    p_origine: origine,
+  })
+  if (iErr) throw iErr
+  // NULL : un match est né entre la lecture et l'écriture (`ON CONFLICT DO NOTHING`), ou la recherche a quitté
+  // l'agence entre-temps. La RPC n'a rien écrit, ni réouverture ni journal.
+  if (matchId == null) return { statut: 409, corps: { error: 'deja_sur_ce_bien' } }
+
+  return { statut: 200, corps: { match_id: matchId, score: note.score } }
 }
 
 serve(async (req) => {
@@ -469,8 +678,10 @@ serve(async (req) => {
       newMatches += await flush(rows, 'insert_internal_matches', 'internal')
 
       await matchSearchesAgainstMarket(searches || [], (s) => s.contact_id as string)
-    } else if (mode === 'rescore-search') {
-      const r = await renoterRecherche(supabase, agency_id, acteurId, body, cfg, rentIndex)
+    } else if (mode === 'rescore-search' || mode === 'prospects' || mode === 'reactiver-prospect') {
+      const r = mode === 'rescore-search' ? await renoterRecherche(supabase, agency_id, acteurId, body, cfg, rentIndex)
+        : mode === 'prospects' ? await prospectsDuBien(supabase, agency_id, body, cfg, rentIndex)
+          : await reactiverProspect(supabase, agency_id, acteurId, body, cfg, rentIndex)
       return new Response(JSON.stringify(r.corps), {
         status: r.statut, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

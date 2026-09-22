@@ -1,6 +1,6 @@
 /**
  * Données du fil de matchs : « À proposer » sur les biens de l'agence (lot 1), une ligne « Marché » par
- * acheteur, résumée côté serveur par `matching_fil_marche()` (lot 2), et la BOUCLE (lot B) — les matchs
+ * acheteur, résumée côté serveur par `matching_fil_marche_resume()` (lot 2), et la BOUCLE (lot B) — les matchs
  * proposés, répondus ou en visite, et les relances de proposition en cours.
  *
  * Conceptions : `docs/superpowers/specs/2026-09-17-matching-fil-design.md` §8 ;
@@ -202,11 +202,11 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     // passager doit faire échouer la lecture ENTIÈRE : TanStack garde alors les données déjà chargées et
     // le fil le dit (« rafraîchissement impossible »). Avalé, il rendait un fil sans ses lignes « Marché »,
     // cohérent en apparence et faux en substance.
-    lire<{ contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] | null }>(supabase.rpc('matching_fil_marche'))
+    lire<{ contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] | null }>(supabase.rpc('matching_fil_marche_resume'))
       .catch((e: unknown) => {
         const code = (e as { code?: unknown } | null)?.code
         if (code !== 'PGRST202' && code !== '42883') throw e
-        console.error('[matching-fil] matching_fil_marche absente : migration pas encore appliquée', e)
+        console.error('[matching-fil] matching_fil_marche_resume absente : migration pas encore appliquée', e)
         return []
       }),
     lire<LigneBoucle>(

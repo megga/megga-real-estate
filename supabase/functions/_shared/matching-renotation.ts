@@ -68,7 +68,7 @@ const STATUTS_VIVANTS = new Set(['active', 'price_reduced'])
  * ⚠ La marge en POURCENTS ENTIERS, pas `max * 1.15` : SQL calcule en `numeric`, exact, et 1'550'000 × 1,15 y
  * vaut 1'782'500 ; en flottant, 1'782'499,999… — un bien pile à la borne sortait ici et restait là-bas.
  */
-function annonceRetenue(a: Record<string, unknown>, criteres: Record<string, unknown>, tx: 'buy' | 'rent'): boolean {
+export function annonceRetenue(a: Record<string, unknown>, criteres: Record<string, unknown>, tx: 'buy' | 'rent'): boolean {
   const prix = nombre(a.current_price) ?? nombre(a.price)
   const min = nombre(criteres.budget_min)
   const max = nombre(criteres.budget_max)
