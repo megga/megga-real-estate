@@ -31,14 +31,19 @@
   "next": "Next",
   "filter_type": "Type",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Buyer",
     "seller": "Seller",
-    "both": "Buyer/Seller",
-    "lead": "Lead",
-    "investor": "Investor",
     "tenant": "Tenant",
-    "landlord": "Landlord"
+    "landlord": "Landlord",
+    "investor": "Investor",
+    "family_office": "Family office",
+    "referrer": "Referrer",
+    "private_banker": "Private banker",
+    "lawyer": "Lawyer",
+    "trustee": "Trustee",
+    "broker": "Broker",
+    "architect": "Architect"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +276,6 @@
       "empty": "No document attached to this contact.",
       "addedOn": "Added on {{date}}"
     },
-    "type": {
-      "buyer": "Buyer",
-      "seller": "Seller",
-      "lead": "Lead"
-    },
     "new": "New",
     "via": "Via {{source}}",
     "unknownSource": "Unknown source",
@@ -347,7 +347,10 @@
     "tenant": "Tenants",
     "hot": "Hot leads",
     "kyc": "KYC to complete",
-    "stale": "Inactive 14d+"
+    "stale": "Inactive 14d+",
+    "role": "Role",
+    "roleAll": "All roles",
+    "roleOverlap": "A contact can hold several roles: the segments add up to more than the total."
   },
   "nextAction": {
     "planifier_visite": "Schedule a visit",
@@ -777,7 +780,7 @@
   "health": {
     "title": "Portfolio health",
     "intro": "Where your contacts come from, where the blind spots are. Click a segment to filter the list.",
-    "byAudience": "By audience",
+    "byRole": "By role",
     "kycCoverage": "KYC coverage",
     "sources": "Acquisition sources",
     "kpi": {
@@ -964,7 +967,8 @@
       "address": "Address",
       "addressPlaceholder": "Street…, ZIP City",
       "countryNone": "Not specified",
-      "saveError": "The identity could not be saved. Please try again."
+      "saveError": "The identity could not be saved. Please try again.",
+      "roles": "Roles"
     },
     "coord": {
       "identity": "Identity",

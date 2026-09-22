@@ -31,14 +31,19 @@
   "next": "Successivo",
   "filter_type": "Tipo",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Acquirente",
     "seller": "Venditore",
-    "both": "Acquirente/Venditore",
-    "lead": "Lead",
-    "investor": "Investitore",
     "tenant": "Inquilino",
-    "landlord": "Locatore"
+    "landlord": "Locatore",
+    "investor": "Investitore",
+    "family_office": "Family office",
+    "referrer": "Segnalatore",
+    "private_banker": "Private banker",
+    "lawyer": "Avvocato",
+    "trustee": "Trustee",
+    "broker": "Intermediario",
+    "architect": "Architetto"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +276,6 @@
       "empty": "Nessun documento allegato per questo contatto.",
       "addedOn": "Aggiunto il {{date}}"
     },
-    "type": {
-      "buyer": "Acquirente",
-      "seller": "Venditore",
-      "lead": "Lead"
-    },
     "new": "Nuovo",
     "via": "Via {{source}}",
     "unknownSource": "Fonte sconosciuta",
@@ -347,7 +347,10 @@
     "tenant": "Inquilini",
     "hot": "Lead caldi",
     "kyc": "KYC da completare",
-    "stale": "Senza attività 14 g+"
+    "stale": "Senza attività 14 g+",
+    "role": "Ruolo",
+    "roleAll": "Tutti i ruoli",
+    "roleOverlap": "Un contatto può avere più ruoli: la somma dei segmenti supera il totale."
   },
   "nextAction": {
     "planifier_visite": "Pianifica una visita",
@@ -777,7 +780,7 @@
   "health": {
     "title": "Stato del portafoglio",
     "intro": "Da dove arrivano i tuoi contatti, dove sono i punti ciechi. Clicca su un segmento per filtrare l'elenco.",
-    "byAudience": "Per pubblico",
+    "byRole": "Per ruolo",
     "kycCoverage": "Copertura KYC",
     "sources": "Fonti di acquisizione",
     "kpi": {
@@ -964,7 +967,8 @@
       "address": "Indirizzo",
       "addressPlaceholder": "Via…, NPA Città",
       "countryNone": "Non indicato",
-      "saveError": "Impossibile salvare l'identità. Riprova."
+      "saveError": "Impossibile salvare l'identità. Riprova.",
+      "roles": "Ruoli"
     },
     "coord": {
       "identity": "Identità",

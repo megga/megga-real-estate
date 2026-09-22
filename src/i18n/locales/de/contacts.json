@@ -31,14 +31,19 @@
   "next": "Weiter",
   "filter_type": "Typ",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Käufer",
     "seller": "Verkäufer",
-    "both": "Käufer/Verkäufer",
-    "lead": "Lead",
-    "investor": "Investor",
     "tenant": "Mieter",
-    "landlord": "Vermieter"
+    "landlord": "Vermieter",
+    "investor": "Investor",
+    "family_office": "Family Office",
+    "referrer": "Empfehlungsgeber",
+    "private_banker": "Private Banker",
+    "lawyer": "Anwalt",
+    "trustee": "Trustee",
+    "broker": "Makler",
+    "architect": "Architekt"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +276,6 @@
       "empty": "Keine Dokumente für diesen Kontakt angehängt.",
       "addedOn": "Hinzugefügt am {{date}}"
     },
-    "type": {
-      "buyer": "Käufer",
-      "seller": "Verkäufer",
-      "lead": "Lead"
-    },
     "new": "Neu",
     "via": "Via {{source}}",
     "unknownSource": "Unbekannte Quelle",
@@ -347,7 +347,10 @@
     "tenant": "Mieter",
     "hot": "Heisse Leads",
     "kyc": "KYC zu vervollständigen",
-    "stale": "Ohne Aktivität 14 T.+"
+    "stale": "Ohne Aktivität 14 T.+",
+    "role": "Rolle",
+    "roleAll": "Alle Rollen",
+    "roleOverlap": "Ein Kontakt kann mehrere Rollen haben: Die Summe der Segmente übersteigt das Total."
   },
   "nextAction": {
     "planifier_visite": "Besichtigung planen",
@@ -777,7 +780,7 @@
   "health": {
     "title": "Zustand des Portfolios",
     "intro": "Woher Ihre Kontakte kommen, wo die blinden Flecken liegen. Klicken Sie auf ein Segment, um die Liste zu filtern.",
-    "byAudience": "Nach Zielgruppe",
+    "byRole": "Nach Rolle",
     "kycCoverage": "KYC-Abdeckung",
     "sources": "Akquisequellen",
     "kpi": {
@@ -964,7 +967,8 @@
       "address": "Adresse",
       "addressPlaceholder": "Strasse…, PLZ Ort",
       "countryNone": "Nicht angegeben",
-      "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen."
+      "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "roles": "Rollen"
     },
     "coord": {
       "identity": "Identität",

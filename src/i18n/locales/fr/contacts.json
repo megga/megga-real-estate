@@ -31,14 +31,19 @@
   "next": "Suivant",
   "filter_type": "Type",
   "filter_score": "Score",
-  "type": {
-    "buyer": "Acheteur",
+  "roles": {
+    "buyer": "Acquéreur",
     "seller": "Vendeur",
-    "both": "Acheteur/Vendeur",
-    "lead": "Lead",
-    "investor": "Investisseur",
     "tenant": "Locataire",
-    "landlord": "Bailleur"
+    "landlord": "Bailleur",
+    "investor": "Investisseur",
+    "family_office": "Family office",
+    "referrer": "Prescripteur",
+    "private_banker": "Private banker",
+    "lawyer": "Avocat",
+    "trustee": "Trustee",
+    "broker": "Courtier",
+    "architect": "Architecte"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +276,6 @@
       "empty": "Aucun document joint pour ce contact.",
       "addedOn": "Ajouté le {{date}}"
     },
-    "type": {
-      "buyer": "Acheteur",
-      "seller": "Vendeur",
-      "lead": "Lead"
-    },
     "new": "Nouveau",
     "via": "Via {{source}}",
     "unknownSource": "Source inconnue",
@@ -347,7 +347,10 @@
     "tenant": "Locataires",
     "hot": "Leads chauds",
     "kyc": "KYC à compléter",
-    "stale": "Sans activité 14j+"
+    "stale": "Sans activité 14j+",
+    "role": "Rôle",
+    "roleAll": "Tous les rôles",
+    "roleOverlap": "Un contact peut porter plusieurs rôles : la somme des segments dépasse le total."
   },
   "pager": {
     "title": "Contacts",
@@ -405,7 +408,7 @@
   "health": {
     "title": "Santé du portefeuille",
     "intro": "D'où viennent vos contacts, où sont les angles morts. Cliquez un segment pour filtrer la liste.",
-    "byAudience": "Par audience",
+    "byRole": "Par rôle",
     "kycCoverage": "Couverture KYC",
     "sources": "Sources d'acquisition",
     "kpi": {
@@ -964,7 +967,8 @@
       "address": "Adresse",
       "addressPlaceholder": "Rue…, NPA Ville",
       "countryNone": "Non renseigné",
-      "saveError": "L'identité n'a pas pu être enregistrée. Réessayez."
+      "saveError": "L'identité n'a pas pu être enregistrée. Réessayez.",
+      "roles": "Rôles"
     },
     "coord": {
       "identity": "Identité",
