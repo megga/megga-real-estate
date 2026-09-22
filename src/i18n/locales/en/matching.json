@@ -756,7 +756,11 @@
       "proposer_other": "I proposed {{count}} properties to {{prenom}}",
       "proposerAucun": "I proposed them to {{prenom}}",
       "chambresAuMoins_one": "{{valeur}} bedroom or more",
-      "chambresAuMoins_other": "{{valeur}} bedrooms or more"
+      "chambresAuMoins_other": "{{valeur}} bedrooms or more",
+      "nouveaux_one": "{{count}} new",
+      "nouveaux_other": "{{count}} new",
+      "baisses_one": "{{count}} price cut",
+      "baisses_other": "{{count}} price cuts"
     },
     "propose": "Proposed to {{prenom}} · reminder in 3 days",
     "proposeSelection_one": "{{count}} property proposed to {{prenom}} · reminder in 3 days",
@@ -823,7 +827,12 @@
     "signal": {
       "baisseRefus": "Declined by {{prenom}} at {{prix}} · down {{montant}} since",
       "baissePropose": "Price down {{montant}} since you proposed it",
-      "court": "Price down {{montant}}"
+      "court": "Price down {{montant}}",
+      "baisseMarche": "Price down {{montant}} · last cut on {{date}}",
+      "nouveauCourt": "New on the market",
+      "nouveau": "New on the market since {{date}}",
+      "mandatCourt": "New mandate",
+      "mandat": "New mandate from {{date}}"
     },
     "corrections": {
       "section": "Searches to adjust",

@@ -1,7 +1,7 @@
 /**
  * Affichage du fil de matchs, hors composants : les teintes qui ENCODENT (le palier d'un score, un critère
  * tenu, un écart), l'encre d'une action en texte, l'écriture d'un montant et d'une date, le style d'une
- * ligne, et le signal « prix baissé » (lot B).
+ * ligne, le signal « prix baissé » (lot B) et les signaux « pourquoi maintenant » (lot C).
  *
  * ⚠ Jamais d'aplat teinté sous du texte : la couleur est portée par une pastille ou une icône, le
  * chiffre et les libellés restent à l'encre. Les couleurs de système de la vitrine sont PÂLES,
@@ -17,6 +17,7 @@ import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { formatCHF } from '@/lib/utils'
 import type { FilBien, FilMatch, PalierScore } from './filModele'
 import { signalPrix } from './filBoucle'
+import { signalBien, type SignalBien } from './filSignaux'
 
 /** Pastille du palier : vert, bleu de marque, ou la sourdine. */
 export function teinteScore(palier: PalierScore, sp: CrmPalette): string {
@@ -68,6 +69,31 @@ export function texteSignal(m: FilMatch, t: TFunction, court = false): string | 
   return s.depuis === 'refus'
     ? t('fil.signal.baisseRefus', { prenom: m.acheteur.prenom, prix: montant(m.bien.location, propose, t), montant: baisse })
     : t('fil.signal.baissePropose', { montant: baisse })
+}
+
+/**
+ * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne (« Nouveau sur le marché »),
+ * daté dans un panneau (« Prix baissé de CHF 250'000 le 18.09 »).
+ */
+export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, court = false): string {
+  switch (s.genre) {
+    case 'baisse': {
+      const baisse = montant(bien.location, s.montant, t)
+      return court ? t('fil.signal.court', { montant: baisse }) : t('fil.signal.baisseMarche', { montant: baisse, date: dateCourte(s.le) })
+    }
+    case 'nouveau':
+      return court ? t('fil.signal.nouveauCourt') : t('fil.signal.nouveau', { date: dateCourte(s.le) })
+    case 'mandat':
+      return court ? t('fil.signal.mandatCourt') : t('fil.signal.mandat', { date: dateCourte(s.le) })
+  }
+}
+
+/** Le signal d'un match, écrit : le sien d'abord (lot B — il parle de CET acheteur), sinon celui de son bien. */
+export function texteSignalMatch(m: FilMatch, t: TFunction, maintenant: number, court = false): string | null {
+  const propre = texteSignal(m, t, court)
+  if (propre) return propre
+  const s = signalBien(m.bien, maintenant)
+  return s ? texteSignalBien(s, m.bien, t, court) : null
 }
 
 /**

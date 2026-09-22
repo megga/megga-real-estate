@@ -152,7 +152,13 @@ function LigneSelection({ sp, s, active, onChoisir }: { sp: CrmPalette; s: FilSe
         <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {s.acheteur.prenom} {s.acheteur.nom}
         </span>
-        <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{t('fil.selection.ligne', { count: s.nombre })}</span>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
+          {[
+            t('fil.selection.ligne', { count: s.nombre }),
+            s.baisses ? t('fil.selection.baisses', { count: s.baisses }) : null,
+            s.nouveaux ? t('fil.selection.nouveaux', { count: s.nouveaux }) : null,
+          ].filter(Boolean).join(' · ')}
+        </span>
       </span>
       <FilScore sp={sp} score={s.meilleurScore} palier={palierScore(s.meilleurScore)} />
     </button>

@@ -756,7 +756,11 @@
       "proposer_other": "Ho proposto {{count}} immobili a {{prenom}}",
       "proposerAucun": "Li ho proposti a {{prenom}}",
       "chambresAuMoins_one": "{{valeur}} camera o più",
-      "chambresAuMoins_other": "{{valeur}} camere o più"
+      "chambresAuMoins_other": "{{valeur}} camere o più",
+      "nouveaux_one": "{{count}} nuovo",
+      "nouveaux_other": "{{count}} nuovi",
+      "baisses_one": "{{count}} ribasso",
+      "baisses_other": "{{count}} ribassi"
     },
     "propose": "Proposto a {{prenom}} · promemoria tra 3 giorni",
     "proposeSelection_one": "{{count}} immobile proposto a {{prenom}} · promemoria tra 3 giorni",
@@ -823,7 +827,12 @@
     "signal": {
       "baisseRefus": "Rifiutato da {{prenom}} a {{prix}} · ribassato di {{montant}} da allora",
       "baissePropose": "Prezzo ridotto di {{montant}} da quando l'ha proposto",
-      "court": "Prezzo ridotto di {{montant}}"
+      "court": "Prezzo ridotto di {{montant}}",
+      "baisseMarche": "Prezzo ribassato di {{montant}} · ultimo ribasso il {{date}}",
+      "nouveauCourt": "Nuovo sul mercato",
+      "nouveau": "Nuovo sul mercato dal {{date}}",
+      "mandatCourt": "Nuovo mandato",
+      "mandat": "Nuovo mandato del {{date}}"
     },
     "corrections": {
       "section": "Ricerche da adattare",

@@ -38,6 +38,9 @@
  * porte plusieurs. Un « Écarter » dans la sélection ne déplace pas la sélection du fil : le focus passe à la
  * case du bien voisin.
  *
+ * ⚠ Lot C : à score égal, ce qui porte un signal « pourquoi maintenant » passe devant (`aUnSignal`, mesuré à
+ * l'heure de la lecture).
+ *
  * ⚠ Les cases cochées d'office sont FIGÉES par acheteur (`coches`), et le focus perdu sous un élément
  * démonté revient à la ligne courante (`reprendreFocus`) : voir les deux blocs plus bas.
  */
@@ -63,6 +66,7 @@ import {
 } from './filModele'
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
 import { construireCorrections, filtrerCorrections, type Correction, type CorrectionChangement } from './filApprendre'
+import { aUnSignal } from './filSignaux'
 import { FilStyleLignes } from './filAtomes'
 import FilAnnulation from './FilAnnulation'
 import FilConclure from './FilConclure'
@@ -209,7 +213,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
     bienId: typeof filtres.bienId === 'string' ? filtres.bienId : null,
     acheteurId: typeof filtres.acheteurId === 'string' ? filtres.acheteurId : null,
   }), [filtres])
-  const vue = useMemo(() => construireFil(visibles, filtresValides, chargeLe), [visibles, filtresValides, chargeLe])
+  // À score égal, ce qui porte un signal passe devant (lot C) ; mesuré à l'heure de la lecture, stable d'un rendu à l'autre.
+  const vue = useMemo(
+    () => construireFil(visibles, filtresValides, chargeLe, (m) => aUnSignal(m, chargeLe)),
+    [visibles, filtresValides, chargeLe],
+  )
   const selectionsVues = useMemo(() => construireSelections(selections, filtresValides), [selections, filtresValides])
   const toutesCorrections = useMemo(() => construireCorrections(visiblesBoucle), [visiblesBoucle])
   const corrections = useMemo(() => filtrerCorrections(toutesCorrections, filtresValides), [toutesCorrections, filtresValides])
@@ -246,7 +254,10 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   const matchsSelection = useMemo(
     // ⛔ En défense : jamais le bien d'un autre acheteur sous le nom de celui-ci (`useSelectionMarche`
     // ne garde déjà ses données provisoires que pour le même acheteur).
-    () => selection.matchs.filter((m) => m.acheteur.id === contactSelection && visibleSelon(masques, m.id, selection.chargeLe)),
+    () => selection.matchs
+      .filter((m) => m.acheteur.id === contactSelection && visibleSelon(masques, m.id, selection.chargeLe))
+      // À score égal, un bien à signal passe devant (lot C) ; le tri est stable : l'ordre de la base départage le reste.
+      .sort((a, b) => b.score - a.score || Number(aUnSignal(b, selection.chargeLe)) - Number(aUnSignal(a, selection.chargeLe))),
     [selection.matchs, selection.chargeLe, masques, contactSelection],
   )
   // ⚠ LES CASES COCHÉES D'OFFICE SONT FIGÉES : calculées UNE fois par acheteur, sur sa première lecture
@@ -718,7 +729,7 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
       onAjuster={(changement) => ajuster(correction, changement)} onIgnorer={() => ignorer(correction)}
       onVoirContact={() => navigate(`/dashboard/contacts/${correction.acheteur.id}`)} />
   ) : contactSelection && resumeSelection ? (
-    <FilSelection sp={sp} resume={resumeSelection} matchs={matchsSelection} coches={cochesSelection}
+    <FilSelection sp={sp} resume={resumeSelection} matchs={matchsSelection} coches={cochesSelection} maintenant={selection.chargeLe}
       aPlus={selection.aPlus} isLoading={selection.isLoading} isError={selection.isError}
       aDesDonnees={selection.aDesDonnees} isFetching={selection.isFetching}
       onCocher={cocher} onEcarter={ecarterDeSelection} onProposer={proposerSelection}
@@ -726,7 +737,7 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
       onReessayer={() => { void selection.refetch() }}
       onVoirContact={() => navigate(`/dashboard/contacts/${contactSelection}`)} />
   ) : match ? (
-    <FilPanneau sp={sp} m={match} historique={historique.get(match.acheteur.id)}
+    <FilPanneau sp={sp} m={match} historique={historique.get(match.acheteur.id)} maintenant={chargeLe}
       onProposer={() => proposer(match)}
       onPlusTard={() => plusTard(match)} onEcarter={() => ecarter(match)}
       onVoirBien={() => navigate(`/dashboard/listings/${match.bien.id}`)}

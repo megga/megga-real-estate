@@ -54,6 +54,12 @@ export interface FilBien {
   anneeRenovation?: number | null
   /** Lot C. L'interrupteur de l'agent ; une annonce du marché est publique. */
   offMarket?: boolean
+  /** Lot C, signaux : première apparition sur le marché, premier prix, date de la dernière baisse. */
+  vuLe?: string | null
+  prixInitial?: number | null
+  baisseLe?: string | null
+  /** Lot C, signal : la signature du mandat ou sa mise en service, la plus récente des deux. */
+  mandatLe?: string | null
 }
 
 /**
@@ -157,13 +163,17 @@ export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
   return plier([m.bien.titre, m.bien.ville ?? '', m.bien.adresse ?? '', m.acheteur.prenom, m.acheteur.nom].join(' ')).includes(texte)
 }
 
-/** Score décroissant, puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. */
-function avant(a: FilMatch, b: FilMatch): number {
-  return b.score - a.score || temps(b.creeLe) - temps(a.creeLe) || a.id.localeCompare(b.id)
-}
-
-/** Le fil « À traiter » : groupes par bien, reportés à part, compte et ordre de lecture. */
-export function construireFil(matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number): FilVue {
+/**
+ * Le fil « À traiter » : groupes par bien, reportés à part, compte et ordre de lecture. L'ordre : score
+ * décroissant, puis — à score égal — ce qui porte un signal (`signal`, lot C : `aUnSignal` de filSignaux.ts ;
+ * absent, aucun), puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. Un groupe se
+ * range par son premier match. ⚠ Le comparateur est PASSÉ, pas importé : filSignaux lit ce module.
+ */
+export function construireFil(
+  matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number, signal: (m: FilMatch) => boolean = () => false,
+): FilVue {
+  const avant = (a: FilMatch, b: FilMatch): number =>
+    b.score - a.score || Number(signal(b)) - Number(signal(a)) || temps(b.creeLe) - temps(a.creeLe) || a.id.localeCompare(b.id)
   const reportes: FilMatch[] = []
   const parBien = new Map<string, { bien: FilBien; matchs: FilMatch[] }>()
   for (const m of matchs) {
@@ -350,6 +360,9 @@ export interface FilSelectionResume {
   meilleurScore: number
   /** Jusqu'à trois vignettes, du meilleur bien au moins bon. */
   vignettes: string[]
+  /** Lot C : ses annonces nouvelles (3 jours) et en baisse (14 jours), comptées par la base. */
+  nouveaux?: number
+  baisses?: number
 }
 
 const PREFIXE_SELECTION = 'marche:'
@@ -361,9 +374,13 @@ export const cleSelection = (contactId: string): string => `${PREFIXE_SELECTION}
 export const contactDeSelection = (cle: string): string | null =>
   (cle.startsWith(PREFIXE_SELECTION) ? cle.slice(PREFIXE_SELECTION.length) : null)
 
+/** Une ligne « Marché » porte un signal (lot C) : une annonce nouvelle ou en baisse. */
+const aDesSignaux = (s: FilSelectionResume): boolean => (s.nouveaux ?? 0) + (s.baisses ?? 0) > 0
+
 /**
- * Les lignes « Marché » retenues par les filtres, par meilleur score (§3.2). Un filtre sur un BIEN les
- * écarte toutes : un bien en mandat n'est dans aucune sélection du marché.
+ * Les lignes « Marché » retenues par les filtres, par meilleur score, puis, à score égal, celles qui portent
+ * un signal (lot C). Un filtre sur un BIEN les écarte toutes : un bien en mandat n'est dans aucune sélection
+ * du marché.
  */
 export function construireSelections(resumes: readonly FilSelectionResume[], filtres: FilFiltres): FilSelectionResume[] {
   if (filtres.bienId) return []
@@ -374,7 +391,7 @@ export function construireSelections(resumes: readonly FilSelectionResume[], fil
     .filter((s) => !filtres.acheteurId || s.acheteur.id === filtres.acheteurId)
     .filter((s) => !texte || plier(nom(s)).includes(texte))
     .sort((a, b) =>
-      b.meilleurScore - a.meilleurScore || b.nombre - a.nombre
+      b.meilleurScore - a.meilleurScore || Number(aDesSignaux(b)) - Number(aDesSignaux(a)) || b.nombre - a.nombre
       || nom(a).localeCompare(nom(b), 'fr') || a.acheteur.id.localeCompare(b.acheteur.id))
 }
 

@@ -756,7 +756,11 @@
       "proposer_other": "Ich habe {{prenom}} {{count}} Objekte vorgeschlagen",
       "proposerAucun": "Ich habe sie {{prenom}} vorgeschlagen",
       "chambresAuMoins_one": "{{valeur}} Schlafzimmer oder mehr",
-      "chambresAuMoins_other": "{{valeur}} Schlafzimmer oder mehr"
+      "chambresAuMoins_other": "{{valeur}} Schlafzimmer oder mehr",
+      "nouveaux_one": "{{count}} neu",
+      "nouveaux_other": "{{count}} neu",
+      "baisses_one": "{{count}} Preissenkung",
+      "baisses_other": "{{count}} Preissenkungen"
     },
     "propose": "{{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
     "proposeSelection_one": "{{count}} Objekt {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
@@ -823,7 +827,12 @@
     "signal": {
       "baisseRefus": "Von {{prenom}} bei {{prix}} abgelehnt · seither um {{montant}} gesenkt",
       "baissePropose": "Preis um {{montant}} gesenkt, seit Sie es vorgeschlagen haben",
-      "court": "Preis um {{montant}} gesenkt"
+      "court": "Preis um {{montant}} gesenkt",
+      "baisseMarche": "Preis um {{montant}} gesenkt · letzte Senkung am {{date}}",
+      "nouveauCourt": "Neu auf dem Markt",
+      "nouveau": "Neu auf dem Markt seit {{date}}",
+      "mandatCourt": "Neues Mandat",
+      "mandat": "Neues Mandat vom {{date}}"
     },
     "corrections": {
       "section": "Anzupassende Suchen",

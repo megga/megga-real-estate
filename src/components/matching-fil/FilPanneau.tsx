@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { initiales, lignesCriteres, palierScore, type FilMatch, type Historique, type LigneCritere } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, teinteEcart, teinteTenu, texteSignal } from './filAffichage'
+import { encreAccent, MARGE_POINTS, prixBien, teinteEcart, teinteTenu, texteSignalMatch } from './filAffichage'
 import { FilAvatar, FilBouton, FilScore } from './filAtomes'
 import { valeursCritere } from './filValeurs'
 
@@ -28,13 +28,14 @@ interface Props {
   onEcarter: () => void
   onVoirBien: () => void
   onVoirContact: () => void
+  maintenant: number
 }
 
-export default function FilPanneau({ sp, m, historique, onProposer, onPlusTard, onEcarter, onVoirBien, onVoirContact }: Props) {
+export default function FilPanneau({ sp, m, historique, onProposer, onPlusTard, onEcarter, onVoirBien, onVoirContact, maintenant }: Props) {
   const { t, i18n } = useTranslation('matching')
   const { bien, acheteur } = m
   const lignes = lignesCriteres(m)
-  const signal = texteSignal(m, t)
+  const signal = texteSignalMatch(m, t, maintenant)
   const nombre = (n: number): string => n.toLocaleString(i18n.language)
   const lien: CSSProperties = {
     border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',

@@ -77,7 +77,7 @@ interface LigneBien {
   address: string | null; city: string | null; canton: string | null; features: unknown; photos: string[] | null
   /** Lot C. */
   bedrooms: number | string | null; condition: string | null; year_built: number | string | null
-  off_market: boolean | null
+  off_market: boolean | null; mandate_signed_at: string | null; published_at: string | null
 }
 /** Une annonce du marché, colonnes légères (§7 de CLAUDE.md) : la sélection (lot 2) et la boucle (lot B) la lisent pareil. */
 export interface LigneAnnonce {
@@ -86,8 +86,9 @@ export interface LigneAnnonce {
   surface_m2: number | string | null; address: string | null; city: string | null; canton: string | null
   features: unknown; photos: string[] | null; photos_cf: unknown; status: string | null
   source_portal: string | null; source_id: string | null; source_url: string | null
-  /** Lot C : chambres et années (l'état). */
+  /** Lot C : chambres et années (état) ; première apparition, premier prix, dernière baisse (signaux). */
   bedrooms: number | string | null; year_built: number | string | null; year_renovated: number | string | null
+  first_seen_at: string | null; price_at_first_seen: number | string | null; price_reduced_at: string | null
 }
 interface LigneRelance {
   id: string; contact_id: string | null; match_id: string | null; match_ids: string[] | null; trigger_at: string | null
@@ -106,7 +107,7 @@ interface DonneesFil {
 /** Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes. */
 export const CLE_FIL = 'matching-fil'
 /** Les colonnes d'une annonce du marché que le fil lit. */
-export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url, bedrooms, year_built, year_renovated'
+export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url, bedrooms, year_built, year_renovated, first_seen_at, price_at_first_seen, price_reduced_at'
 /** Les statuts de la boucle — ceux que compte aussi « Déjà proposé » (`compterHistorique`), et l'index `idx_matches_boucle`. */
 const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
 const VIDE: DonneesFil = { matchs: [], selections: [], boucle: [], relances: [], historique: new Map(), chargeLe: 0 }
@@ -132,6 +133,12 @@ function listeEquipements(brut: unknown): string[] {
   return []
 }
 
+/** La plus récente de deux dates ISO ; l'une absente, l'autre. */
+function plusRecente(a: string | null, b: string | null): string | null {
+  if (!a || !b) return a ?? b
+  return Date.parse(a) >= Date.parse(b) ? a : b
+}
+
 function versBien(b: LigneBien): FilBien {
   return {
     id: b.id, titre: b.title ?? '', prix: nombreOuNull(b.price), location: b.transaction_type === 'rent',
@@ -139,6 +146,9 @@ function versBien(b: LigneBien): FilBien {
     adresse: b.address, equipements: listeEquipements(b.features), photo: b.photos?.[0] ?? null,
     chambres: nombreOuNull(b.bedrooms), etatSaisi: b.condition, anneeConstruction: nombreOuNull(b.year_built),
     offMarket: b.off_market === true,
+    // `mandate_signed_at` n'est posé que par « Nouveau bien » (0 mandat sur 6 en production le 22.09.2026) :
+    // la mise en service (`published_at`) date aussi un nouveau mandat.
+    mandatLe: plusRecente(b.mandate_signed_at, b.published_at),
   }
 }
 
@@ -168,6 +178,7 @@ export function versBienMarche(a: LigneAnnonce): FilBien {
     chambres: nombreOuNull(a.bedrooms), anneeConstruction: nombreOuNull(a.year_built), anneeRenovation: nombreOuNull(a.year_renovated),
     // Une annonce du marché est publique par définition.
     offMarket: false,
+    vuLe: a.first_seen_at, prixInitial: nombreOuNull(a.price_at_first_seen), baisseLe: a.price_reduced_at,
   }
 }
 
@@ -212,7 +223,10 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     // passager doit faire échouer la lecture ENTIÈRE : TanStack garde alors les données déjà chargées et
     // le fil le dit (« rafraîchissement impossible »). Avalé, il rendait un fil sans ses lignes « Marché »,
     // cohérent en apparence et faux en substance.
-    lire<{ contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] | null }>(supabase.rpc('matching_fil_marche_resume'))
+    lire<{
+      contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] | null
+      nouveaux: number | null; baisses: number | null
+    }>(supabase.rpc('matching_fil_marche_resume'))
       .catch((e: unknown) => {
         const code = (e as { code?: unknown } | null)?.code
         if (code !== 'PGRST202' && code !== '42883') throw e
@@ -253,7 +267,7 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     bienIds.length > 0
       ? lire<LigneBien>(
         supabase.from('properties')
-          .select('id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos, bedrooms, condition, year_built, off_market')
+          .select('id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos, bedrooms, condition, year_built, off_market, mandate_signed_at, published_at')
           .in('id', bienIds),
       )
       : Promise.resolve([]),
@@ -307,6 +321,7 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     selections.push({
       acheteur: versAcheteur(c, kycParContact.get(c.id)),
       nombre: r.nombre, meilleurScore: r.meilleur_score, vignettes: r.vignettes ?? [],
+      nouveaux: r.nouveaux ?? 0, baisses: r.baisses ?? 0,
     })
   }
 

@@ -10,7 +10,8 @@
  * ⚠ Seul ce qui reste À VÉRIFIER s'affiche, pas la grille complète : sur vingt biens, c'est ce qui les
  * distingue. Même règle que le pré-cochage (`criteresNonTenus`) : un bien laissé décoché dit pourquoi.
  *
- * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) le dit sous ses détails (`texteSignal`).
+ * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) le dit sous ses détails (`texteSignal`). Un
+ * bien nouveau sur le marché ou en baisse le dit aussi, daté (lot C), et passe devant à score égal.
  *
  * ⚠ Chaque case porte `data-bien` : `MatchingFil` y rend le focus après un « Écarter » ou son annulation.
  */
@@ -19,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { criteresNonTenus, initiales, lignesCriteres, palierScore, type FilMatch, type FilSelectionResume } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, teinteTenu, texteSignal, unSeulClic } from './filAffichage'
+import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, teinteTenu, texteSignalMatch, unSeulClic } from './filAffichage'
 import { FilAvatar, FilScore, FilVignette } from './filAtomes'
 import { resumeRecherche } from './filValeurs'
 
@@ -42,11 +43,13 @@ interface Props {
   onReessayer: () => void
   onProposer: () => void
   onVoirContact: () => void
+  /** L'heure de la lecture : les signaux « pourquoi maintenant » s'y mesurent (lot C). */
+  maintenant: number
 }
 
 export default function FilSelection({
   sp, resume, matchs, coches, aPlus, isLoading, isError, aDesDonnees, isFetching,
-  onCocher, onEcarter, onVoirPlus, onReessayer, onProposer, onVoirContact,
+  onCocher, onEcarter, onVoirPlus, onReessayer, onProposer, onVoirContact, maintenant,
 }: Props) {
   const { t, i18n } = useTranslation('matching')
   const nombre = (n: number): string => n.toLocaleString(i18n.language)
@@ -146,7 +149,7 @@ export default function FilSelection({
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
             {matchs.map((m) => (
-              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} nombre={nombre} onCocher={onCocher} onEcarter={onEcarter} />
+              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} nombre={nombre} maintenant={maintenant} onCocher={onCocher} onEcarter={onEcarter} />
             ))}
           </ul>
         )}
@@ -186,15 +189,16 @@ export default function FilSelection({
   )
 }
 
-function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
-  sp: CrmPalette; m: FilMatch; coche: boolean; nombre: (n: number) => string
+function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
+  sp: CrmPalette; m: FilMatch; coche: boolean; nombre: (n: number) => string; maintenant: number
   onCocher: (id: string, coche: boolean) => void; onEcarter: (m: FilMatch) => void
 }) {
   const { t } = useTranslation('matching')
   const lignes = lignesCriteres(m)
   const aVerifier = criteresNonTenus(lignes)
-  // Un bien refusé pour le PRIX et revenu par une baisse (lot B) : c'est ce qui le ramène, on le dit.
-  const signal = texteSignal(m, t)
+  // Le signal du match (lot B : revenu par une baisse depuis la proposition), sinon celui du bien (lot C :
+  // nouveau sur le marché, prix baissé), daté.
+  const signal = texteSignalMatch(m, t, maintenant)
   // Aucun verdict du tout : le dire tel quel plutôt que lister chaque critère « à vérifier ».
   const nonEvalues = lignes.length > 0 && lignes.every((l) => l.ok === null)
   const details = [

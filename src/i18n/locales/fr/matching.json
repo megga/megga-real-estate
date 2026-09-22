@@ -756,7 +756,11 @@
       "proposer_other": "J'ai proposé {{count}} biens à {{prenom}}",
       "proposerAucun": "Je les ai proposés à {{prenom}}",
       "chambresAuMoins_one": "{{valeur}} chambre et plus",
-      "chambresAuMoins_other": "{{valeur}} chambres et plus"
+      "chambresAuMoins_other": "{{valeur}} chambres et plus",
+      "nouveaux_one": "{{count}} nouveau",
+      "nouveaux_other": "{{count}} nouveaux",
+      "baisses_one": "{{count}} en baisse",
+      "baisses_other": "{{count}} en baisse"
     },
     "propose": "Proposé à {{prenom}} · rappel dans 3 jours",
     "proposeSelection_one": "{{count}} bien proposé à {{prenom}} · rappel dans 3 jours",
@@ -823,7 +827,12 @@
     "signal": {
       "baisseRefus": "Refusé par {{prenom}} à {{prix}} · baissé de {{montant}} depuis",
       "baissePropose": "Prix baissé de {{montant}} depuis que vous l'avez proposé",
-      "court": "Prix baissé de {{montant}}"
+      "court": "Prix baissé de {{montant}}",
+      "baisseMarche": "Prix baissé de {{montant}} · dernière baisse le {{date}}",
+      "nouveauCourt": "Nouveau sur le marché",
+      "nouveau": "Nouveau sur le marché depuis le {{date}}",
+      "mandatCourt": "Nouveau mandat",
+      "mandat": "Nouveau mandat du {{date}}"
     },
     "corrections": {
       "section": "Recherches à ajuster",
