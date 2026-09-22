@@ -172,7 +172,11 @@ describe('L’encre suit l’aplat — le code l’applique', () => {
   it('les sources sont bien lues', () => {
     expect(liste.length).toBeGreaterThan(1000)
     expect(fiche.length).toBeGreaterThan(1000)
-    for (const nom of ['CtpAvatar', 'CtpTypePill']) expect(liste).toContain(nom)
+    // ⚠ `CtpTypePill` jusqu'au 22.09.2026 : la liste rangeait par AUDIENCE, une
+    // seule par contact. Elle range par RÔLE, un contact en porte plusieurs, et
+    // l'atome s'appelle `CtpRolePill`. Le nom seul ne suffit pas — ce qu'il doit
+    // faire a changé aussi, voir les deux cas plus bas.
+    for (const nom of ['CtpAvatar', 'CtpRolePill']) expect(liste).toContain(nom)
     expect(fiche).toContain('CdStatePill')
   })
 
@@ -242,30 +246,100 @@ describe('L’encre suit l’aplat — le code l’applique', () => {
    * passer au VERT sans que l'encre soit corrigée : plus de motif, donc plus de
    * mesure. Une garde qu'on désarme en écrivant le correctif ne garde rien.
    *
-   * `aplat` nomme ce que chaque atome doit avoir : un fond qui vient de la
-   * donnée. Sans lui l'atome n'a plus rien à surveiller, et la garde le dit au
-   * lieu de se taire.
+   * On cherche donc la FORME et non l'expression : un fond qui vient d'une
+   * variable, c'est-à-dire de la donnée. Sans lui l'atome n'a plus rien à
+   * surveiller, et la garde le dit au lieu de se taire.
    */
   const ATOMES = [
-    { quoi: 'avatar', fn: 'CtpAvatar', aplat: /background:\s*\w+/ },
-    { quoi: 'pilule de type', fn: 'CtpTypePill', aplat: /background:\s*\w+/ },
+    { quoi: 'avatar', fn: 'CtpAvatar' },
+    // ⚠ `CtpTypePill` jusqu'au 22.09.2026, et le renommage n'est pas ce qui
+    // compte : l'atome a désormais DEUX cas, et un seul porte un aplat. Le test
+    // ci-dessous éprouve le cas PEINT ; celui d'après éprouve le SOURD, qui
+    // passerait sinon au vert par vacuité — il n'a pas d'aplat, donc rien de ce
+    // qui suit ne le viserait.
+    { quoi: 'pilule de rôle', fn: 'CtpRolePill' },
   ]
 
-  it.each(ATOMES)('l’encre de $quoi est dérivée de son aplat', ({ quoi, fn, aplat }) => {
+  it.each(ATOMES)('l’encre de $quoi est dérivée de son aplat', ({ quoi, fn }) => {
     const corps = corpsDeFonction(liste, fn)
     expect(corps, `${quoi} : ${fn} introuvable — la garde ne mesure plus rien`).not.toBeNull()
 
-    // L'atome pose bien un aplat…
-    expect(aplat.test(corps!), `${quoi} : plus d'aplat dans ${fn}`).toBe(true)
+    // L'atome pose bien un aplat, et il vient d'une VARIABLE — donc de la donnée.
+    const pose = corps!.match(/background:\s*(\w+)/)
+    expect(pose, `${quoi} : plus d'aplat dans ${fn}`).not.toBeNull()
 
-    // …son encre vient de la règle…
+    // …son encre vient de la règle, appliquée À CET APLAT-LÀ…
+    //
+    // ⚠ PLUS STRICT QU'AVANT, et c'est le renommage qui l'a rendu nécessaire.
+    // L'ancienne clause se contentait de `color: encreSur(` en tête de valeur :
+    // elle ne disait pas de QUOI l'encre dérive, et elle ne survivait pas au
+    // ternaire qu'il a fallu écrire pour le cas sourd. On lie donc l'identifiant
+    // du fond à celui que `encreSur` reçoit — `encreSur(autreChose)` ne passe
+    // plus, et la valeur peut porter une condition devant.
+    const encre = corps!.match(/color:\s*[^,\n]*encreSur\((\w+)\)/)
+    expect(encre, `${quoi} : l'encre ne passe pas par encreSur() —\n${corps}`).not.toBeNull()
     expect(
-      /color:\s*encreSur\(/.test(corps!),
-      `${quoi} : l'encre ne passe pas par encreSur() —\n${corps}`,
-    ).toBe(true)
+      encre![1],
+      `${quoi} : l'encre dérive de \`${encre![1]}\` alors que l'aplat est \`${pose![1]}\``,
+    ).toBe(pose![1])
 
     // …et aucune encre écrite à la main ne subsiste dans l'atome.
     const enDur = corps!.match(/color:\s*(?:'#[0-9a-f]{3,8}'|"#[0-9a-f]{3,8}"|\w+\.accentInk)/gi) ?? []
     expect(enDur, `${quoi} : encre écrite à la main —\n  ${enDur.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LE SECOND CAS DE LA PILULE N'A PAS D'APLAT DU TOUT, ET C'EST UNE RÈGLE DE
+   * DIRECTION — pas un reste de chantier (22.09.2026).
+   *
+   * `CTP_FN` ne porte que TROIS teintes de rôle — acquéreur, vendeur, locataire —
+   * et elles ont été MESURÉES pour porter le blanc (cf. son docstring : `seller` et
+   * `tenant` foncés le 16.09.2026 exprès pour ça). Les neuf autres rôles — bailleur,
+   * investisseur, les sept de réseau — n'ont pas de teinte, et ne doivent pas en
+   * recevoir : ce serait neuf décisions de direction que personne n'a prises, et
+   * neuf teintes que personne n'a mesurées.
+   *
+   * ⚠ C'EST DONC LA VACUITÉ QUI MENACE ICI, pas le contraste. Le test du dessus
+   * ne regarde que ce qui est PEINT ; il serait vert sur une pilule sourde qui
+   * poserait un aplat pâle sous une encre blanche, puisqu'il ne la lit pas. Ce
+   * qu'on éprouve est donc l'INVERSE : que la branche sans teinte n'ait aucun
+   * fond, et que son encre soit la sourde du thème.
+   *
+   * ⚠ Aucun rapport de contraste n'est mesuré sur ce cas, et c'est la raison
+   * même : sans aplat, l'encre est posée sur la surface de carte, et
+   * `megga-x-crm-tokens.spec.ts` garde déjà `sub` sur `cardBg` à l'AA dans les
+   * deux thèmes. Le mesurer ici recopierait une garde au lieu de la lier — et
+   * une copie dérive.
+   */
+  it('le cas sourd de la pilule de rôle n’a pas d’aplat, et prend l’encre sourde', () => {
+    const corps = corpsDeFonction(liste, 'CtpRolePill')
+    expect(corps, 'CtpRolePill introuvable — la garde ne mesure plus rien').not.toBeNull()
+
+    // Le fond retombe sur `transparent` — AUCUN aplat, pas un aplat pâle.
+    const fond = corps!.match(/background:\s*(\w+)\s*\?\?\s*'transparent'/)
+    expect(
+      fond,
+      `pilule de rôle : le rôle sans teinte doit retomber sur \`'transparent'\` —\n${corps}`,
+    ).not.toBeNull()
+
+    // Et c'est la MÊME condition qui donne l'encre sourde : « pas d'aplat » et
+    // « encre sourde » sont un seul et même cas, sinon l'un peut bouger sans
+    // l'autre et on retombe sur du blanc posé sur rien.
+    const encre = corps!.match(/color:\s*(\w+)\s*\?[^,\n]*:\s*\w+\.sub\b/)
+    expect(
+      encre,
+      `pilule de rôle : la branche sans teinte doit prendre \`sub\` —\n${corps}`,
+    ).not.toBeNull()
+    expect(
+      encre![1],
+      `pilule de rôle : le fond dépend de \`${fond![1]}\` et l'encre de \`${encre![1]}\` — deux cas au lieu d'un`,
+    ).toBe(fond![1])
+
+    // Sans aplat, c'est le FILET qui dessine la pilule. Le perdre ne ferait pas
+    // rougir les deux clauses ci-dessus, et laisserait un libellé flottant.
+    expect(
+      /border:\s*\w+\s*\?[^,\n]*cardBorder/.test(corps!),
+      `pilule de rôle : la branche sans teinte doit porter le filet \`cardBorder\` —\n${corps}`,
+    ).toBe(true)
   })
 })

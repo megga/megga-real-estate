@@ -34,25 +34,33 @@ export const DEMO_LISTING: Property = {
  * faute de `health` dans ses données : un harnais qui cache précisément
  * l'élément défectueux coûte plus cher qu'il ne rapporte. Ici les deux éléments
  * à mesurer sont l'AVATAR (huit teintes de `pickAvatarBg`, dont cinq échouent
- * l'AA sous encre blanche) et la PILULE de type (`CTP_FN`, quatre valeurs).
+ * l'AA sous encre blanche) et la PASTILLE de rôle — `CTP_FN` n'en peint que
+ * TROIS, sa quatrième valeur (`ok`) étant le vert du KYC.
  *
  * `CRM_CONTACTS` seul en montre l'essentiel mais pas tout — mesuré, pas supposé :
  * sept teintes d'avatar sur huit (#EC4899 manque), et trois KYC sur quatre
- * (`stale` manque). Les TROIS pilules sortent en revanche déjà, ce qui n'allait
- * pas de soi : `type` n'y vaut que `buyer` ou `seller`, et c'est
- * `criteria.transaction === 'location'` qui fait basculer un acheteur sur la
- * pilule `tenant` (cf. `audienceOf`). Compter les `type` aurait conclu à tort
- * qu'il manquait une audience.
+ * (`stale` manque). Côté appartenance, c'est le RÔLE qui range depuis l'étape 3
+ * (22.09.2026) : un contact paraît sous CHACUN des siens, et les comptes se
+ * chevauchent. ⛔ `audienceOf` n'existe plus — elle rangeait chaque contact dans
+ * UNE audience et tirait la pilule `tenant` de `criteria.transaction ===
+ * 'location'`, si bien qu'un acheteur cherchant en location comptait pour un
+ * locataire sans porter ce rôle. Mesuré sur ces huit contacts : `buyer` ×4,
+ * `seller` ×2, `tenant` ×1 (c-005, déclarée `buyer` alors que ses critères
+ * disaient location — accordée à ses rôles), et c-008 SANS rôle, le seul à
+ * exercer ce chemin. `investor` n'est porté que par c-002, à côté de `buyer` :
+ * c'est le SEUL contact à DEUX rôles, donc le seul qui rende le « +1 » et le
+ * chevauchement des comptes. ⚠ Les sept rôles de réseau, eux, ne sont portés
+ * par aucun de ces contacts : ce banc-ci ne les montre pas.
  *
  * Les deux contacts ajoutés ferment ce qui reste : la huitième teinte, le KYC
- * `stale`, et le type `landlord` — qui ne crée pas de quatrième pilule (il
- * retombe sur `seller`) mais donne son `audience: 'Bailleur'` à la fiche.
+ * `stale`, et le rôle `landlord` — qui ne retombe PLUS sur `seller` : le bailleur
+ * porte son propre rôle, et la liste range par RÔLE, non plus par audience.
  */
 const DEMO_CONTACTS_COMPLEMENT: CrmContact[] = [
-  // Locataire par le `type` (et non par ses critères, comme les autres) — plus
-  // la huitième teinte d'avatar (#EC4899) et le KYC `stale`.
+  // Locataire — elle porte le rôle `tenant`, comme c-005 ; elle vient pour les deux
+  // manques de `CRM_CONTACTS` : la huitième teinte d'avatar (#EC4899) et le KYC `stale`.
   {
-    id: 'c-d01', type: 'tenant', firstName: 'Sofia', lastName: 'Marchetti',
+    id: 'c-d01', type: 'tenant', roles: ['tenant'], firstName: 'Sofia', lastName: 'Marchetti',
     email: 's.marchetti@bluewin.ch', phone: '+41 76 318 40 55', lang: 'it',
     status: 'qualified', score: 66, source: 'website', assignedTo: 'agt-1',
     createdAt: '2026-05-04T10:15:00', lastActivityAt: '2026-06-02T16:40:00',
@@ -61,11 +69,12 @@ const DEMO_CONTACTS_COMPLEMENT: CrmContact[] = [
     tags: ['mobilité pro'], notes: 'Arrive de Milan pour un poste à l’EPFL. Bail souhaité au 1er septembre.',
     avatarBg: '#EC4899',
   },
-  // Bailleur — l'audience `Bailleur` de la fiche, qui retombe sur la pilule
-  // `seller`. La teinte reprend #F59E0B À DESSEIN : c'est la pire du jeu sous
-  // encre blanche (2,15:1), autant qu'elle soit visible deux fois.
+  // Bailleur — il porte son rôle `landlord`, et la liste rangeant par rôle, il a
+  // son entrée à lui au lieu de retomber sur `seller`. La teinte reprend #F59E0B
+  // À DESSEIN : c'est la pire du jeu sous encre blanche (2,15:1), autant
+  // qu'elle soit visible deux fois.
   {
-    id: 'c-d02', type: 'landlord', firstName: 'Bernard', lastName: 'Held',
+    id: 'c-d02', type: 'landlord', roles: ['landlord'], firstName: 'Bernard', lastName: 'Held',
     email: 'b.held@swissonline.ch', phone: '+41 79 604 27 18', lang: 'de',
     status: 'active', score: 78, source: 'referral', assignedTo: 'agt-1',
     createdAt: '2026-02-11T08:30:00', lastActivityAt: '2026-06-05T09:05:00',
