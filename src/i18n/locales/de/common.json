@@ -538,7 +538,9 @@
       "match_retour_prix": "Abgelehntes Objekt nach Preissenkung zurück",
       "recherche_ajustee": "Suche nach Absagen angepasst",
       "matchs_reevalues": "Matches neu bewertet",
-      "correction_ignoree": "Suchkorrektur ignoriert"
+      "correction_ignoree": "Suchkorrektur ignoriert",
+      "bien_off_market": "Objekt auf Off-market gestellt",
+      "bien_rendu_public": "Objekt öffentlich gemacht"
     },
     "entity": {
       "admin_console": "Admin-Konsole",

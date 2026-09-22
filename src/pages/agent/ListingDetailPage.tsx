@@ -34,6 +34,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { useNavigate, useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileAssombrissant, type CrmPalette } from '@/components/crm/tokens'
+import { useToast } from '@/components/ui/Toast'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -310,7 +311,11 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   useTabLabel(bien ? (bien.title || bien.address || null) : null)
   const { stats } = usePropertyStats(id)
   const { mutate: updateProperty } = useUpdateProperty()
+  // L'interrupteur Off-market a SA mutation : un `mutate` d'un autre geste (l'édition) pendant la bascule
+  // remplacerait ses rappels : ni journal, ni verrou relâché (`basculeEnCours`).
+  const { mutate: poserOffMarket } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
+  const alerte = useToast()
   const { data: transactions } = useTransactions()
   const dealsForBien = useMemo(
     () => (transactions ?? []).filter(tx => tx.property_id === id),
@@ -378,6 +383,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
 
   // ── État UI ──
   const colsRef = useRef<HTMLDivElement>(null)
+  const basculeEnCours = useRef(false)
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
   const [visiteOpen, setVisiteOpen] = useState(false)
@@ -424,8 +430,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const daysToExp = mandatExp ? Math.round((mandatExp.getTime() - maintenant) / 86_400_000) : null
   const mandatUrgent = daysToExp != null && daysToExp <= 30
   const features = bien.features ?? []
-  // Off-market = non publié (proxy réel de la « visibilité privée »).
-  const offMarket = !bien.published_at
+  // Off-market = l'interrupteur de l'agent (`off_market`, lot C, 22.09.2026). « Non publié » désignait un
+  // BROUILLON, que le moteur ne note jamais : un bien « off-market » n'était proposé à aucun acheteur.
+  const offMarket = bien.off_market === true
   // État de syndication immobilier.ch (queued/published/withdrawn/error ou absent).
   const idxStatus = syndications.find(x => x.portal === 'immobilier_ch')?.status ?? null
   const idxOnline = idxStatus === 'published' || idxStatus === 'queued'
@@ -487,6 +494,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
     ...bienMatches.map(m => ({ contactId: m.contactId, nom: m.contactName, score: m.score })),
   ].filter((l, i, tous) => tous.findIndex(x => x.contactId === l.contactId) === i)
 
+  // Un brouillon « Réseau Off-market » mis en service ne publie aucune annonce : le toast ne dit pas « publiée ».
+  const titreMiseEnService = offMarket ? tr('nouveauBien.fini.offMarket') : tr('detail.toast.publishedTitle')
+
   // Édition réelle (update + transition draft→active + audit nLPD) — 4 champs.
   const saveEdit = (d: EditDraft) => {
     const wasDraft = bien.status === 'draft'
@@ -518,7 +528,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         })
         setEditOpen(false)
         flash(
-          wasDraft ? tr('detail.toast.publishedTitle') : tr('detail.toast.updatedTitle'),
+          wasDraft ? titreMiseEnService : tr('detail.toast.updatedTitle'),
           [wasDraft ? tr('detail.toast.statusActive') : null, tr('detail.toast.auditAdded')].filter((x): x is string => !!x),
         )
       },
@@ -543,8 +553,32 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
           objectLabel: bien.title,
           metadata: { transition: 'draft → active' },
         })
-        flash(tr('detail.toast.publishedTitle'), [tr('detail.toast.statusActive'), tr('detail.toast.auditAdded')])
+        flash(titreMiseEnService, [tr('detail.toast.statusActive'), tr('detail.toast.auditAdded')])
       },
+    })
+  }
+
+  // L'interrupteur Off-market : le moteur renote le bien (trigger `trg_property_off_market`, lot C). Le verrou
+  // tient jusqu'au retour du serveur : un double clic écrivait deux fois la même bascule, et deux lignes au journal.
+  const basculerOffMarket = (valeur: boolean) => {
+    if (demoData) return // aperçu : aucune écriture
+    if (basculeEnCours.current) return
+    basculeEnCours.current = true
+    poserOffMarket({ id: bien.id, off_market: valeur }, {
+      onSuccess: () => {
+        logAudit({
+          category: 'bien',
+          severity: 'info',
+          action: valeur ? 'bien_off_market' : 'bien_rendu_public',
+          entityType: 'property',
+          entityId: bien.id,
+          objectLabel: bien.title,
+          metadata: { off_market: valeur },
+        })
+        flash(valeur ? tr('detail.toast.offMarketTitle') : tr('detail.toast.publicTitle'), [tr('detail.toast.renote'), tr('detail.toast.auditAdded')])
+      },
+      onError: () => { alerte.error(tr('detail.toast.offMarketErreur')) },
+      onSettled: () => { basculeEnCours.current = false },
     })
   }
 
@@ -782,20 +816,38 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                     <span style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', background: vx.card, display: 'grid', placeItems: 'center', color: vx.inkSoft, flexShrink: 0 }}>
                       <MEIcon name="globe" size={16} />
                     </span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{PORTAIL_DIFFUSION}</span>
-                    {offMarket
-                      ? <BfCta small vx={vx} onClick={publishBien}>{tr('fiche.diffusion.publish')}</BfCta>
-                      : (
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{PORTAIL_DIFFUSION}</span>
+                      {/* Le « pourquoi » de l'off-market SOUS le portail : à droite, il écrasait son nom (lot C). */}
+                      {bien.status !== 'draft' && offMarket && (
+                        <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: vx.muted }}>{tr('fiche.diffusion.offMarketLigne')}</span>
+                      )}
+                    </span>
+                    {bien.status === 'draft'
+                      ? <BfCta small vx={vx} onClick={publishBien}>{offMarket ? tr('nouveauBien.proposerOffMarket') : tr('fiche.diffusion.publish')}</BfCta>
+                      : offMarket ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: vx.inkSoft, whiteSpace: 'nowrap' }}>
+                          <MEIcon name="lock" size={12} />{tr('fiche.offMarket')}
+                        </span>
+                      ) : (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: idxOnline ? vx.ok : vx.muted, whiteSpace: 'nowrap' }}>
                           <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: idxOnline ? vx.ok : vx.ghost }} />
                           {idxLabel}
                         </span>
                       )}
                   </BfLigne>
-                  <div>
-                    <BfCta small ghost vx={vx} icon="external" onClick={() => flash(tr('fiche.diffusion.previewToastTitle'), [idxOnline ? tr('fiche.diffusion.previewOnlineLine') : tr('fiche.diffusion.previewOfflineLine')])}>
-                      {tr('fiche.diffusion.publicPreview')}
-                    </BfCta>
+                  <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>
+                    {!offMarket && (
+                      <BfCta small ghost vx={vx} icon="external" onClick={() => flash(tr('fiche.diffusion.previewToastTitle'), [idxOnline ? tr('fiche.diffusion.previewOnlineLine') : tr('fiche.diffusion.previewOfflineLine')])}>
+                        {tr('fiche.diffusion.publicPreview')}
+                      </BfCta>
+                    )}
+                    {/* Un bien EN SERVICE seulement : le trigger de renotation ignore réservé, vendu, en pause et archivé. */}
+                    {bien.status === 'active' && (
+                      <BfCta small ghost vx={vx} icon={offMarket ? 'globe' : 'lock'} onClick={() => basculerOffMarket(!offMarket)}>
+                        {offMarket ? tr('fiche.diffusion.rendrePublic') : tr('fiche.diffusion.passerOffMarket')}
+                      </BfCta>
+                    )}
                   </div>
                 </div>
 

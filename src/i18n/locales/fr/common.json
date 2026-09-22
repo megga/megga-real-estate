@@ -548,7 +548,9 @@
       "match_retour_prix": "Bien refusé revenu après une baisse de prix",
       "recherche_ajustee": "Recherche ajustée d'après les refus",
       "matchs_reevalues": "Matchs réévalués",
-      "correction_ignoree": "Correction de recherche ignorée"
+      "correction_ignoree": "Correction de recherche ignorée",
+      "bien_off_market": "Bien passé en Off-market",
+      "bien_rendu_public": "Bien rendu public"
     },
     "entity": {
       "admin_console": "Console admin",

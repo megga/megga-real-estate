@@ -795,7 +795,11 @@
       "publishedTitle": "Annonce publiée",
       "updatedTitle": "Annonce mise à jour",
       "statusActive": "Statut passé en actif",
-      "auditAdded": "Entrée ajoutée au journal d'audit nLPD"
+      "auditAdded": "Entrée ajoutée au journal d'audit nLPD",
+      "offMarketTitle": "Bien passé en Off-market",
+      "publicTitle": "Bien rendu public",
+      "renote": "Les matchs de ce bien sont recalculés",
+      "offMarketErreur": "La diffusion n'a pas pu être changée. Réessayez."
     },
     "c2paAlert": {
       "title": "Photos sans certification d'authenticité",
@@ -1769,7 +1773,10 @@
       "publicPreview": "Voir l'annonce publique",
       "previewToastTitle": "Aperçu public",
       "previewOnlineLine": "L'annonce est diffusée sur immobilier.ch.",
-      "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement."
+      "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement.",
+      "offMarketLigne": "Proposé à vos seuls acheteurs, jamais diffusé",
+      "passerOffMarket": "Passer en Off-market",
+      "rendrePublic": "Rendre public"
     },
     "back": "Retour à Mes biens",
     "cta": {
@@ -1876,7 +1883,7 @@
     "modifier": "Modifier",
     "continuer": "Continuer",
     "retour": "Retour",
-    "garder": "Enregistrer sans publier",
+    "garder": "Enregistrer le brouillon",
     "publier": "Publier l’annonce",
     "enCours": "Enregistrement…",
     "adresseAvant": "Ajoutez d’abord une adresse.",
@@ -2003,12 +2010,15 @@
     },
     "fini": {
       "publie": "Annonce publiée",
-      "garde": "Bien enregistré",
+      "garde": "Brouillon enregistré",
       "publieAide": "« {{titre}} » est en ligne dans Mes biens.",
-      "gardeAide": "« {{titre}} » est enregistré Off-market. Publiez-le depuis sa fiche quand il est prêt.",
+      "gardeAide": "« {{titre}} » est enregistré en brouillon. Publiez-le depuis sa fiche quand il est prêt.",
       "ouvrir": "Ouvrir la fiche",
       "autre": "Créer un autre bien",
-      "retour": "Retour à Mes biens"
-    }
+      "retour": "Retour à Mes biens",
+      "offMarket": "Bien en Off-market",
+      "offMarketAide": "« {{titre}} » est en service : il est proposé à vos acheteurs, jamais diffusé."
+    },
+    "proposerOffMarket": "Proposer en Off-market"
   }
 }

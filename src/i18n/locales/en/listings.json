@@ -795,7 +795,11 @@
       "publishedTitle": "Listing published",
       "updatedTitle": "Listing updated",
       "statusActive": "Status set to active",
-      "auditAdded": "Entry added to the nFADP audit log"
+      "auditAdded": "Entry added to the nFADP audit log",
+      "offMarketTitle": "Property taken off-market",
+      "publicTitle": "Property made public",
+      "renote": "The matches for this property are recalculated",
+      "offMarketErreur": "The listing visibility could not be changed. Try again."
     },
     "c2paAlert": {
       "title": "Photos without authenticity certification",
@@ -1769,7 +1773,10 @@
       "publicPreview": "View public listing",
       "previewToastTitle": "Public preview",
       "previewOnlineLine": "The listing is live on immobilier.ch.",
-      "previewOfflineLine": "The listing is not published publicly yet."
+      "previewOfflineLine": "The listing is not published publicly yet.",
+      "offMarketLigne": "Offered to your buyers only, never advertised",
+      "passerOffMarket": "Take off-market",
+      "rendrePublic": "Make public"
     },
     "back": "Back to My properties",
     "cta": {
@@ -1876,7 +1883,7 @@
     "modifier": "Edit",
     "continuer": "Continue",
     "retour": "Back",
-    "garder": "Save without publishing",
+    "garder": "Save as draft",
     "publier": "Publish the listing",
     "enCours": "Saving…",
     "adresseAvant": "Add an address first.",
@@ -2003,12 +2010,15 @@
     },
     "fini": {
       "publie": "Listing published",
-      "garde": "Property saved",
+      "garde": "Draft saved",
       "publieAide": "“{{titre}}” is live in My properties.",
-      "gardeAide": "“{{titre}}” is saved Off-market. Publish it from its page when it is ready.",
+      "gardeAide": "“{{titre}}” is saved as a draft. Publish it from its page when it is ready.",
       "ouvrir": "Open the property page",
       "autre": "Create another property",
-      "retour": "Back to My properties"
-    }
+      "retour": "Back to My properties",
+      "offMarket": "Property off-market",
+      "offMarketAide": "“{{titre}}” is live: it is offered to your buyers and never advertised."
+    },
+    "proposerOffMarket": "Offer off-market"
   }
 }

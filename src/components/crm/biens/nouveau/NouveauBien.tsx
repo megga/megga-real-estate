@@ -130,6 +130,7 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
   const pourcentage = pourcentageCompletude(points)
   const manques = manquesPublication(points)
   const peutEnregistrer = adresseRemplie(data)
+  const offMarket = data.visibility === 'network'
 
   const suivant = () => setEtape((e) => Math.min(ETAPES.length - 1, e + 1))
   const precedent = () => setEtape((e) => Math.max(0, e - 1))
@@ -241,10 +242,10 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
               <MEIcon name="check" size={28} />
             </span>
             <h2 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 500, letterSpacing: -0.8 }}>
-              {fini.publie ? t('nouveauBien.fini.publie') : t('nouveauBien.fini.garde')}
+              {!fini.publie ? t('nouveauBien.fini.garde') : offMarket ? t('nouveauBien.fini.offMarket') : t('nouveauBien.fini.publie')}
             </h2>
             <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: sp.sub, lineHeight: 1.5 }}>
-              {fini.publie ? t('nouveauBien.fini.publieAide', { titre: data.title?.trim() || titreSuggere }) : t('nouveauBien.fini.gardeAide', { titre: data.title?.trim() || titreSuggere })}
+              {t(!fini.publie ? 'nouveauBien.fini.gardeAide' : offMarket ? 'nouveauBien.fini.offMarketAide' : 'nouveauBien.fini.publieAide', { titre: data.title?.trim() || titreSuggere })}
             </p>
             <div style={{ width: 320, maxWidth: '100%', textAlign: 'left' }}>
               <GalCard apercu bien={{ ...apercuBien(data, data.title?.trim() || titreSuggere), status: fini.publie ? 'active' : 'draft' }} onOpen={() => {}} sp={sp} surf={surf} dark={dark} />
@@ -315,12 +316,13 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
               <>
                 <button type="button" className="nb-puce" disabled={!peutEnregistrer || enCours} onClick={() => void terminer(false)}
                   title={peutEnregistrer ? undefined : t('nouveauBien.adresseAvant')} style={{ ...bouton(sp, false), opacity: !peutEnregistrer || enCours ? 0.5 : 1 }}>
-                  <MEIcon name="lock" size={14} />{t('nouveauBien.garder')}
+                  <MEIcon name="edit" size={14} />{t('nouveauBien.garder')}
                 </button>
                 <button type="button" disabled={manques.length > 0 || enCours} onClick={() => void terminer(true)}
                   title={manques.length ? t('nouveauBien.manque', { liste: manques.map(libellePoint).join(', ') }) : undefined}
                   style={{ ...bouton(sp, true), opacity: manques.length > 0 || enCours ? 0.5 : 1 }}>
-                  <MEIcon name="globe" size={14} />{enCours ? t('nouveauBien.enCours') : t('nouveauBien.publier')}
+                  <MEIcon name={offMarket ? 'lock' : 'globe'} size={14} />
+                  {enCours ? t('nouveauBien.enCours') : offMarket ? t('nouveauBien.proposerOffMarket') : t('nouveauBien.publier')}
                 </button>
               </>
             )}

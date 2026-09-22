@@ -795,7 +795,11 @@
       "publishedTitle": "Annuncio pubblicato",
       "updatedTitle": "Annuncio aggiornato",
       "statusActive": "Stato impostato su attivo",
-      "auditAdded": "Voce aggiunta al registro di audit nLPD"
+      "auditAdded": "Voce aggiunta al registro di audit nLPD",
+      "offMarketTitle": "Immobile passato a off-market",
+      "publicTitle": "Immobile reso pubblico",
+      "renote": "I match di questo immobile vengono ricalcolati",
+      "offMarketErreur": "Non è stato possibile cambiare la visibilità. Riprovi."
     },
     "c2paAlert": {
       "title": "Foto senza certificazione di autenticità",
@@ -1769,7 +1773,10 @@
       "publicPreview": "Vedi l'annuncio pubblico",
       "previewToastTitle": "Anteprima pubblica",
       "previewOnlineLine": "L'annuncio è pubblicato su immobilier.ch.",
-      "previewOfflineLine": "L'annuncio non è ancora stato pubblicato."
+      "previewOfflineLine": "L'annuncio non è ancora stato pubblicato.",
+      "offMarketLigne": "Proposto solo ai Suoi acquirenti, mai pubblicizzato",
+      "passerOffMarket": "Passa a off-market",
+      "rendrePublic": "Rendi pubblico"
     },
     "back": "Torna a I miei immobili",
     "cta": {
@@ -1876,7 +1883,7 @@
     "modifier": "Modifica",
     "continuer": "Continua",
     "retour": "Indietro",
-    "garder": "Salva senza pubblicare",
+    "garder": "Salva come bozza",
     "publier": "Pubblica l’annuncio",
     "enCours": "Salvataggio…",
     "adresseAvant": "Aggiunga prima un indirizzo.",
@@ -2003,12 +2010,15 @@
     },
     "fini": {
       "publie": "Annuncio pubblicato",
-      "garde": "Immobile salvato",
+      "garde": "Bozza salvata",
       "publieAide": "«{{titre}}» è online in I miei immobili.",
-      "gardeAide": "«{{titre}}» è salvato Off-market. Lo pubblichi dalla sua scheda quando è pronto.",
+      "gardeAide": "«{{titre}}» è salvato come bozza. Lo pubblichi dalla sua scheda quando è pronto.",
       "ouvrir": "Apri la scheda",
       "autre": "Crea un altro immobile",
-      "retour": "Torna a I miei immobili"
-    }
+      "retour": "Torna a I miei immobili",
+      "offMarket": "Immobile off-market",
+      "offMarketAide": "«{{titre}}» è attivo: è proposto ai Suoi acquirenti, mai pubblicizzato."
+    },
+    "proposerOffMarket": "Proponi off-market"
   }
 }

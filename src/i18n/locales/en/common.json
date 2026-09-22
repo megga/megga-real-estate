@@ -548,7 +548,9 @@
       "match_retour_prix": "Declined property back after a price drop",
       "recherche_ajustee": "Search adjusted after declines",
       "matchs_reevalues": "Matches re-scored",
-      "correction_ignoree": "Search correction ignored"
+      "correction_ignoree": "Search correction ignored",
+      "bien_off_market": "Property taken off-market",
+      "bien_rendu_public": "Property made public"
     },
     "entity": {
       "admin_console": "Admin console",

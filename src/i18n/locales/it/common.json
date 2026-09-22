@@ -538,7 +538,9 @@
       "match_retour_prix": "Immobile rifiutato tornato dopo un calo di prezzo",
       "recherche_ajustee": "Ricerca adattata dopo i rifiuti",
       "matchs_reevalues": "Match rivalutati",
-      "correction_ignoree": "Correzione della ricerca ignorata"
+      "correction_ignoree": "Correzione della ricerca ignorata",
+      "bien_off_market": "Immobile passato a off-market",
+      "bien_rendu_public": "Immobile reso pubblico"
     },
     "entity": {
       "admin_console": "Console di amministrazione",
