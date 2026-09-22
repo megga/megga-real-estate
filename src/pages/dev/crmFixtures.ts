@@ -36,6 +36,7 @@ import { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { PHOTO } from '@/components/crm/today/data'
 import type { KycDossierStatus } from '@/types/kyc'
+import { JOURS_BAISSE, JOURS_NOUVEAU } from '@/components/matching-fil/filSignaux'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
 
@@ -125,6 +126,24 @@ const CONTACTS = [
     email: 'a.lefevre@example.ch', canton: 'GE', type: 'buyer', score: 'warm', source: 'website', language: 'en',
     search_criteria: { transaction_type: 'buy', type: 'house', zones: ['Cologny', 'Vandœuvres', 'GE'], budget_min: 2_800_000, budget_max: 3_500_000, rooms_min: 6, surface_min: 240, features: ['piscine', 'jardin', 'cave'] },
     last_interaction_at: ilYA(90), created_at: ilYA(500),
+  }),
+  // Lot C (22.09.2026). Anastasia pose les TROIS critères du lot : 4 chambres, rénovée au moins, off-market.
+  // Philippe et Nathalie sont d'anciens prospects : leur fiche n'a plus de critères (le pont a fermé leur recherche).
+  contact('c11', 'Anastasia', 'Volkova', {
+    email: 'a.volkova@example.ch', phone: '+41 79 214 60 88', canton: 'GE', type: 'buyer', score: 'hot', source: 'referral', language: 'en',
+    search_criteria: {
+      transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Florissant', 'GE'], budget_min: 2_000_000, budget_max: 2_600_000,
+      rooms_min: 5, bedrooms_min: 4, condition_min: 'renovated', off_market_only: true, features: ['terrasse', 'vue lac'],
+    },
+    last_interaction_at: ilYA(20), created_at: ilYA(24 * 30),
+  }),
+  contact('c12', 'Philippe', 'Rey', {
+    email: 'philippe.rey@example.ch', phone: '+41 78 331 07 52', canton: 'GE', type: 'buyer', score: 'cold', source: 'website',
+    last_interaction_at: ilYA(24 * 130), created_at: ilYA(24 * 400),
+  }),
+  contact('c13', 'Nathalie', 'Gerber', {
+    email: 'n.gerber@example.ch', phone: '+41 76 540 93 17', canton: 'GE', type: 'buyer', score: 'warm', source: 'referral',
+    last_interaction_at: ilYA(24 * 25), created_at: ilYA(24 * 500),
   }),
 ]
 
@@ -641,6 +660,32 @@ const ANNONCES_BOUCLE = [
   annonceBoucle('ml-boucle-7', 'Appartement 4,5 pièces · Seefeld', ZURICH('Seefeldstrasse 88', '8008'), { actuel: 2_480_000, premier: 2_590_000 }, 4.5, 121, ['Balcon', 'Ascenseur'], PHOTOS_APPART[10]!, '52216'),
   annonceBoucle('ml-boucle-8', 'Appartement 4,5 pièces · Wollishofen', ZURICH('Albisstrasse 60', '8038'), { actuel: 1_980_000, premier: 1_980_000 }, 4.5, 118, ['Balcon', 'Cave'], PHOTOS_APPART[11]!, '52217'),
 ]
+/**
+ * Lot C (22.09.2026) — deux ventes du marché pour Anastasia, chacune avec son signal « pourquoi maintenant » :
+ * ml-signal-1 vue il y a un jour (« Nouveau sur le marché », construite l'an dernier : neuve), ml-signal-2 baissée
+ * il y a cinq jours de CHF 250'000 (rénovée il y a trois ans ; ses chambres ne sont pas renseignées : « non
+ * évalué »). L'année suit l'horloge, comme le moteur (`maintenant`).
+ */
+const ANNEE_BANC = new Date().getUTCFullYear()
+const ANNONCES_SIGNAL = [
+  {
+    ...annonceFil('ml-signal-1', 'Appartement 6 pièces · Malagnou', 'Route de Malagnou 40', '1208', 2_480_000, 6, 172, ['Terrasse', 'Ascenseur'], PHOTOS_APPART[12]!, '52301'),
+    year_built: ANNEE_BANC - 1, first_seen_at: ilYA(24), price_reduced_at: null, removed_at: null,
+  },
+  {
+    ...annonceFil('ml-signal-2', 'Attique 5 pièces · Eaux-Vives', 'Quai Gustave-Ador 30', '1207', 2_450_000, 5, 150, ['Terrasse', 'Vue lac', 'Ascenseur'], PHOTOS_APPART[13]!, '52302'),
+    price_at_first_seen: 2_700_000, status: 'price_reduced', price_reduced_at: ilYA(24 * 5), first_seen_at: ilYA(24 * 40),
+    bedrooms: null, year_built: 1965, year_renovated: ANNEE_BANC - 3, removed_at: null,
+  },
+]
+/** Les jointures `contact` et `property` des matchs du lot C — le banc n'applique pas `select`. */
+const ANASTASIA_EMBARQUEE = { first_name: 'Anastasia', last_name: 'Volkova', email: 'a.volkova@example.ch', phone: '+41 79 214 60 88' }
+const FLORISSANT_EMBARQUE = {
+  title: 'Attique 5,5 pièces · Florissant', price: 2_350_000, address: 'Route de Florissant 58',
+  city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 5.5, bedrooms: 4, surface_m2: 168,
+  photos: [unsplash(PHOTOS_APPART[9]!)], type: 'apartment', description: 'Attique traversant, terrasse de 60 m² et vue sur le lac.',
+  features: ['Terrasse', 'Ascenseur', 'Vue lac'], floor: 7, year_built: 1972, charges_monthly: 690,
+}
 /** Les jointures `contact` des matchs de la boucle — le banc n'applique pas `select`, la ligne les porte. */
 const JULIE_EMBARQUEE = { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' }
 const EMMA_EMBARQUEE = { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' }
@@ -654,7 +699,7 @@ const RAISONS_EMMA_ZURICH = {
 }
 
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE, ...ANNONCES_SIGNAL],
   market_price_history: HISTORIQUE_PRIX_BANC,
   credit_ledger: [],
   credit_wallets: [],
@@ -725,7 +770,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       features: ['Balcon', 'Ascenseur', 'Cave', 'Parking'],
       mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 120), mandate_expires_at: ilYA(-24 * 180),
       views_count: 214, favorites_count: 12,
-      status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 120), condition: 'good', off_market: false, created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null,
     },
     {
       id: 'p2', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Villa individuelle · Cologny', type: 'house',
@@ -736,18 +781,46 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'],
       mandate_type: 'simple', mandate_commission_pct: 2.5, mandate_signed_at: ilYA(24 * 340), mandate_expires_at: ilYA(-24 * 20),
       views_count: 486, favorites_count: 31,
-      status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 300), off_market: false, created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null,
+    },
+    // Lot C (22.09.2026) : un mandat NEUF et OFF-MARKET — « Nouveau mandat » en tête de « Vos biens », et
+    // « Qui pour ce bien ? » sur son en-tête, avec deux anciens prospects.
+    {
+      id: 'p3', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Attique 5,5 pièces · Florissant', type: 'apartment',
+      address: 'Route de Florissant 58', postal_code: '1206', city: 'Genève', canton: 'GE',
+      price: 2_350_000, charges_monthly: 690, rooms: 5.5, bedrooms: 4, bathrooms: 2, surface_m2: 168,
+      year_built: 1972, energy_class: 'C', floor: 7, condition: 'renovated', off_market: true,
+      description: 'Attique traversant, terrasse de 60 m² et vue sur le lac. Entièrement rénové.',
+      features: ['Terrasse', 'Ascenseur', 'Vue lac'],
+      mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 3), mandate_expires_at: ilYA(-24 * 180),
+      views_count: 0, favorites_count: 0,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 2), created_at: ilYA(24 * 3),
+      photos: [unsplash(PHOTOS_APPART[9]!)], photos_cf: null,
     },
     ...BIENS_CATALOGUE,
   ],
   // Les recherches que le moteur a notées (`matches.client_search_id`) — ce que le fil de matchs
   // compare au bien. Recopiées de la fiche : en production, la fiche est souvent vide et la
   // recherche pleine ; le banc, lui, garde les deux égales pour ne tromper aucune des deux surfaces.
-  client_searches: ['c1', 'c7', 'c9', 'c10'].map((id) => ({
-    id: `cs${id.slice(1)}`, agency_id: AGENCE_BANC.id, contact_id: id, label: null, is_active: true,
-    criteria: CONTACTS.find((c) => c.id === id)?.search_criteria ?? null,
-    last_matched_at: null, created_at: ilYA(300), updated_at: ilYA(300),
-  })),
+  client_searches: [
+    ...['c1', 'c7', 'c9', 'c10', 'c11'].map((id) => ({
+      id: `cs${id.slice(1)}`, agency_id: AGENCE_BANC.id, contact_id: id, label: null, is_active: true,
+      criteria: CONTACTS.find((c) => c.id === id)?.search_criteria ?? null,
+      last_matched_at: null, created_at: ilYA(300), updated_at: ilYA(300),
+    })),
+    // Deux recherches CLOSES (lot C) : `updated_at` date leur clôture (le pont la pose). Philippe : il y a 120 jours ;
+    // Nathalie : il y a 20 jours, mais un deal perdu il y a 150 jours en fait une ancienne prospecte.
+    {
+      id: 'cs12', agency_id: AGENCE_BANC.id, contact_id: 'c12', label: null, is_active: false, last_matched_at: null,
+      criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Champel', 'GE'], budget_max: 2_500_000, rooms_min: 5, features: ['terrasse'] },
+      created_at: ilYA(24 * 400), updated_at: ilYA(24 * 120),
+    },
+    {
+      id: 'cs13', agency_id: AGENCE_BANC.id, contact_id: 'c13', label: null, is_active: false, last_matched_at: null,
+      criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'GE'], budget_min: 1_800_000, budget_max: 2_400_000, rooms_min: 5, surface_min: 180 },
+      created_at: ilYA(24 * 500), updated_at: ilYA(24 * 20),
+    },
+  ],
   transactions: [],
   // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
   // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
@@ -1028,6 +1101,59 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_980_000, apprentissage_at: null,
       reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[7], property: null,
     },
+    // ── Lot C (22.09.2026) : Florissant, off-market, et les deux annonces à signal d'Anastasia. ──
+    {
+      id: 'm22', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'internal',
+      property_id: 'p3', market_listing_id: null, score_version: 4,
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(40),
+      reasons: {
+        budget: { match: true, score: 27, detail: 'Dans le budget' },
+        zone: { match: true, score: 20, detail: 'Genève correspond' },
+        type: { match: true, score: 10, detail: 'apartment' },
+        rooms: { match: true, score: 10, detail: '5,5 pièces' },
+        features: { match: true, score: 8, detail: '2/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: FLORISSANT_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm23', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
+      property_id: 'p3', market_listing_id: null, score_version: 4,
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(40),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: EMMA_EMBARQUEE, property: FLORISSANT_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm24', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'market',
+      property_id: null, market_listing_id: 'ml-signal-1', score_version: 4,
+      score: 87, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(20),
+      reasons: {
+        budget: { match: true, score: 27, detail: 'Dans le budget' },
+        zone: { match: true, score: 20, detail: 'Genève correspond' },
+        type: { match: true, score: 10, detail: 'apartment' },
+        rooms: { match: true, score: 10, detail: '6 pièces' },
+        features: { match: true, score: 4, detail: '1/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: null, market_listing: ANNONCES_SIGNAL[0],
+    },
+    {
+      id: 'm25', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'market',
+      property_id: null, market_listing_id: 'ml-signal-2', score_version: 4,
+      score: 95, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(24 * 2),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Dans le budget · Prix baissé de 9%' },
+        zone: { match: true, score: 22, detail: 'Genève correspond' },
+        type: { match: true, score: 11, detail: 'apartment' },
+        rooms: { match: true, score: 11, detail: '5 pièces' },
+        features: { match: true, score: 9, detail: '2/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: null, market_listing: ANNONCES_SIGNAL[1],
+    },
   ],
   crm_offers: [],
   seller_leads: [],
@@ -1137,6 +1263,83 @@ function renoterBanc(a: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
+ * « Qui pour ce bien ? » (lot C) — les anciens prospects de Florissant, NOTÉS par le vrai moteur (calculés le
+ * 22.09.2026, confrontés par `banc-matching-explique.spec.ts`). Le banc ne note pas : il rejoue seulement les
+ * deux règles d'état du moteur — ni un acheteur qui a déjà un match sur le bien, ni une recherche rouverte.
+ */
+const PROSPECTS_BANC: Record<string, {
+  contact_id: string; prenom: string; nom: string; client_search_id: string; score: number
+  origine: 'recherche_close' | 'deal_perdu'; depuis: string; reasons: Record<string, RaisonBanc>
+}[]> = {
+  p3: [
+    {
+      contact_id: 'c12', prenom: 'Philippe', nom: 'Rey', client_search_id: 'cs12', score: 100, origine: 'recherche_close', depuis: ilYA(24 * 120),
+      reasons: {
+        budget: { match: true, score: 36, detail: 'Dans le budget' },
+        zone: { match: true, score: 27, detail: 'Genève correspond' },
+        type: { match: true, score: 13, detail: 'apartment' },
+        rooms: { match: true, score: 13, detail: '5,5 pièces' },
+        features: { match: true, score: 11, detail: '1/1 critères' },
+      },
+    },
+    {
+      contact_id: 'c13', prenom: 'Nathalie', nom: 'Gerber', client_search_id: 'cs13', score: 96, origine: 'deal_perdu', depuis: ilYA(24 * 150),
+      reasons: {
+        budget: { match: true, score: 36, detail: 'Dans le budget' },
+        zone: { match: true, score: 27, detail: 'Genève correspond' },
+        type: { match: true, score: 13, detail: 'apartment' },
+        rooms: { match: true, score: 21, detail: '5,5 pièces · 168 m²' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+    },
+  ],
+}
+
+function prospectsDuBanc(bienId: string | null) {
+  const matchs = CRM_TABLES.matches as { contact_id: string; property_id: string | null }[]
+  const recherches = CRM_TABLES.client_searches as { id: string; is_active: boolean | null }[]
+  return (bienId ? PROSPECTS_BANC[bienId] ?? [] : [])
+    .filter((p) => !matchs.some((m) => m.contact_id === p.contact_id && m.property_id === bienId))
+    .filter((p) => recherches.find((r) => r.id === p.client_search_id)?.is_active === false)
+}
+
+function prospectsBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const bienId = typeof a.property_id === 'string' ? a.property_id : null
+  return {
+    prospects: prospectsDuBanc(bienId).map((p) => ({
+      contact_id: p.contact_id, prenom: p.prenom, nom: p.nom, client_search_id: p.client_search_id,
+      score: p.score, origine: p.origine, depuis: p.depuis,
+    })),
+  }
+}
+
+function reactiverBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const bienId = typeof a.property_id === 'string' ? a.property_id : null
+  const p = prospectsDuBanc(bienId).find((x) => x.client_search_id === a.client_search_id)
+  if (!p || !bienId) return { error: 'deja_sur_ce_bien' }
+  const maintenant = new Date().toISOString()
+  const recherche = (CRM_TABLES.client_searches as { id: string; is_active: boolean | null; updated_at: string }[])
+    .find((r) => r.id === p.client_search_id)
+  if (recherche) {
+    recherche.is_active = true
+    recherche.updated_at = maintenant
+  }
+  const id = `m-prospect-${p.contact_id}`
+  ;(CRM_TABLES.matches as Record<string, unknown>[]).push({
+    id, agency_id: AGENCE_BANC.id, client_search_id: p.client_search_id, contact_id: p.contact_id, source: 'internal',
+    property_id: bienId, market_listing_id: null, score: p.score, reasons: p.reasons, score_version: 4,
+    status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: maintenant,
+    contact: { first_name: p.prenom, last_name: p.nom, email: null, phone: null }, property: FLORISSANT_EMBARQUE, market_listing: null,
+  })
+  ;(CRM_TABLES.activity_events as Record<string, unknown>[]).push({
+    id: crypto.randomUUID(), agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'prospect_reactive',
+    entity_type: 'contact', entity_id: p.contact_id, category: 'contact', severity: 'info', object_label: null, created_at: maintenant,
+    metadata: { client_search_id: p.client_search_id, property_id: bienId, match_id: id, score: p.score, origine: a.origine ?? null },
+  })
+  return { match_id: id, score: p.score }
+}
+
+/**
  * Edge functions du banc.
  *
  * `extract-lead` — « Coller un message » de la fiche express. ⛔ PAS DE MODÈLE ICI : une
@@ -1145,8 +1348,11 @@ function renoterBanc(a: Record<string, unknown>): Record<string, unknown> {
  * Rien ne sort du navigateur.
  */
 export const CRM_EDGES: Record<string, unknown> = {
-  // « Apprendre » (lot B) : voir `renoterBanc`.
-  'matching-engine': (a: Record<string, unknown>) => (a.mode === 'rescore-search' ? renoterBanc(a) : { ok: true, banc: true }),
+  // « Apprendre » (lot B) : voir `renoterBanc`. « Qui pour ce bien ? » (lot C) : `prospectsBanc`, `reactiverBanc`.
+  'matching-engine': (a: Record<string, unknown>) => (a.mode === 'rescore-search' ? renoterBanc(a)
+    : a.mode === 'prospects' ? prospectsBanc(a)
+      : a.mode === 'reactiver-prospect' ? reactiverBanc(a)
+        : { ok: true, banc: true }),
   'extract-lead': (a: Record<string, unknown>) => {
     const texte = String(a.text ?? '')
     const bas = texte.toLowerCase()
@@ -1261,7 +1467,7 @@ const CHANGELOG = [
 ]
 
 /**
- * `matching_fil_marche` — le résumé « Marché » du fil, CALCULÉ sur les tables du banc à chaque appel, avec
+ * `matching_fil_marche_resume` — le résumé « Marché » du fil, CALCULÉ sur les tables du banc à chaque appel, avec
  * les règles de la RPC : `suggested`, non reporté, annonce non retirée ; trois vignettes. Une valeur figée
  * ne bougerait pas quand un envoi ou un « Écarter » vide la sélection.
  *
@@ -1283,8 +1489,13 @@ function resumeMarcheBanc() {
   const maintenant = Date.now()
   const annonces = new Map((CRM_TABLES.market_listings as {
     id: string; status?: string | null; photos?: string[] | null; photos_cf?: unknown
+    price?: number | null; current_price?: number | null; price_at_first_seen?: number | null
+    price_reduced_at?: string | null; first_seen_at?: string | null
   }[]).map((a) => [a.id, a]))
-  const parContact = new Map<string, { id: string; score: number; creeLe: string | null; vignette: string | null }[]>()
+  const parContact = new Map<string, {
+    id: string; score: number; creeLe: string | null; vignette: string | null; nouveau: boolean; enBaisse: boolean
+  }[]>()
+  const jour = 86_400_000
   for (const m of CRM_TABLES.matches as {
     id: string; contact_id: string; market_listing_id: string | null; status: string; score: number
     created_at: string | null; snoozed_until?: string | null
@@ -1294,7 +1505,14 @@ function resumeMarcheBanc() {
     const a = annonces.get(m.market_listing_id)
     if (!a || a.status === 'removed') continue
     const liste = parContact.get(m.contact_id) ?? []
-    liste.push({ id: m.id, score: m.score, creeLe: m.created_at, vignette: vignetteMarcheBanc(a.photos_cf, a.photos) })
+    // Les seuils de la RPC (`matching_fil_marche_resume`) : ceux de `filSignaux`, date future écartée comprise.
+    const prix = Number(a.current_price ?? a.price ?? 0)
+    const enBaisse = a.price_reduced_at != null && Date.parse(a.price_reduced_at) > maintenant - JOURS_BAISSE * jour
+      && Date.parse(a.price_reduced_at) <= maintenant
+      && Number(a.price_at_first_seen ?? 0) > prix && prix > 0
+    const nouveau = a.first_seen_at != null && Date.parse(a.first_seen_at) > maintenant - JOURS_NOUVEAU * jour
+      && Date.parse(a.first_seen_at) <= maintenant
+    liste.push({ id: m.id, score: m.score, creeLe: m.created_at, vignette: vignetteMarcheBanc(a.photos_cf, a.photos), nouveau, enBaisse })
     parContact.set(m.contact_id, liste)
   }
   // `created_at desc nulls last` : l'absent après toute date, sans jamais comparer une date absente.
@@ -1306,6 +1524,8 @@ function resumeMarcheBanc() {
       return {
         contact_id, nombre: l.length, meilleur_score: tries[0]!.score,
         vignettes: tries.map((x) => x.vignette).filter((v): v is string => v != null).slice(0, 3),
+        nouveaux: l.filter((x) => x.nouveau && !x.enBaisse).length,
+        baisses: l.filter((x) => x.enBaisse).length,
       }
     })
     .sort((x, y) => y.meilleur_score - x.meilleur_score || y.nombre - x.nombre)
@@ -1348,7 +1568,7 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
-  matching_fil_marche: () => resumeMarcheBanc(),
+  matching_fil_marche_resume: () => resumeMarcheBanc(),
   // Les crédits du studio Labs. ⚠ Sous `/dev/crm`, `useCredits` passe par les fixtures du
   // studio (`LabsFixturesContext`) et n'atteint pas ces deux entrées ; elles répondent
   // aux surfaces qui liraient la RPC HORS de ce contexte — le solde d'une agence Pro
