@@ -884,6 +884,38 @@
         "renovated": "Ristrutturato o nuovo",
         "new": "Nuovo"
       }
+    },
+    "quiPour": {
+      "titre": "Per chi è questo immobile?",
+      "titreAria": "Per chi è «{{titre}}»?",
+      "ligneAria_one": "Per chi è «{{titre}}»? {{count}} acquirente da proporre",
+      "ligneAria_other": "Per chi è «{{titre}}»? {{count}} acquirenti da proporre",
+      "compatibles_one": "{{count}} acquirente compatibile",
+      "compatibles_other": "{{count}} acquirenti compatibili",
+      "aucunCompatible": "Ancora nessun acquirente compatibile.",
+      "ouvrir": "Apri",
+      "anciens": "Ex potenziali acquirenti",
+      "anciensAide": "Ricerca chiusa da più di 90 giorni, o trattativa persa negli ultimi due anni. Valutati su richiesta, alla stessa soglia del motore.",
+      "chargement": "Valutazione degli ex potenziali acquirenti…",
+      "erreur": "Non è stato possibile valutare gli ex potenziali acquirenti.",
+      "aucunAncien": "Nessun ex potenziale acquirente corrisponde a questo immobile.",
+      "rechercheClose": "Ricerca chiusa il {{date}}",
+      "rechercheCloseSansDate": "Ricerca chiusa",
+      "dealPerdu": "Trattativa persa il {{date}}",
+      "dealPerduSansDate": "Trattativa persa",
+      "reactiver": "Riattiva",
+      "reactive": "{{prenom}} è di nuovo in «Da proporre»",
+      "erreurReactiver": "La riattivazione non è riuscita. Riprovi.",
+      "etat": {
+        "aProposer": "Da proporre",
+        "reporte": "Rinviato fino al {{date}}",
+        "propose": "Proposto il {{date}}",
+        "proposeSansDate": "Proposto",
+        "interesse": "Interessato",
+        "visite": "Visita pianificata",
+        "refuse": "Non interessato · {{motif}}",
+        "refuseSansMotif": "Non interessato"
+      }
     }
   }
 }

@@ -38,8 +38,9 @@
  * porte plusieurs. Un « Écarter » dans la sélection ne déplace pas la sélection du fil : le focus passe à la
  * case du bien voisin.
  *
- * ⚠ Lot C : à score égal, ce qui porte un signal « pourquoi maintenant » passe devant (`aUnSignal`, mesuré à
- * l'heure de la lecture).
+ * ⚠ Lot C : l'en-tête de chaque bien en mandat est une ligne (`cleBien`) ; choisi, il montre « Qui pour ce
+ * bien ? » (`FilQuiPourCeBien`). Il n'est jamais choisi D'OFFICE : on arrive sur le premier match. À score égal,
+ * ce qui porte un signal « pourquoi maintenant » passe devant (`aUnSignal`, mesuré à l'heure de la lecture).
  *
  * ⚠ Les cases cochées d'office sont FIGÉES par acheteur (`coches`), et le focus perdu sous un élément
  * démonté revient à la ligne courante (`reprendreFocus`) : voir les deux blocs plus bas.
@@ -61,7 +62,7 @@ import { useMatchingFil, versGeste } from '@/hooks/useMatchingFil'
 import { PAS_SELECTION, useSelectionMarche } from '@/hooks/useSelectionMarche'
 import { PendingRegistry, UNDO_WINDOW_MS } from '@/components/matching-atelier/pendingTriage'
 import {
-  cleSelection, construireFil, construireSelections, contactDeSelection, optionsFiltres, precoches,
+  bienDeCle, cleSelection, construireFil, construireSelections, contactDeSelection, optionsFiltres, precoches,
   type FilFiltres, type FilMatch,
 } from './filModele'
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
@@ -76,6 +77,7 @@ import FilListe from './FilListe'
 import FilListeBoucle from './FilListeBoucle'
 import FilOnglets from './FilOnglets'
 import FilPanneau from './FilPanneau'
+import FilQuiPourCeBien from './FilQuiPourCeBien'
 import FilRetours from './FilRetours'
 import FilSelection from './FilSelection'
 
@@ -238,16 +240,26 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
         : [...corrections.map((c) => c.cle), ...vue.ordre, ...selectionsVues.map((s) => cleSelection(s.acheteur.id))]
   ), [onglet, attentes, conclure, corrections, vue.ordre, selectionsVues])
   const filtreActif = Boolean(filtresValides.bienId || filtresValides.acheteurId || filtresValides.texte)
-  // Sélection DÉRIVÉE : une ligne qui sort du fil (geste, filtre, onglet) cède la place à la première restante.
-  const courant = choix && ordre.includes(choix) ? choix : (ordre[0] ?? null)
+  // Sélection DÉRIVÉE : une ligne qui sort du fil (geste, filtre, onglet) cède la place à la première restante —
+  // la première LIGNE À TRAITER, pas l'en-tête d'un bien (« Qui pour ce bien ? », lot C) : on arrive sur un match.
+  const parDefaut = ordre.find((k) => bienDeCle(k) == null) ?? ordre[0] ?? null
+  const courant = choix && ordre.includes(choix) ? choix : parDefaut
   // Le panneau de la ligne courante : une seule de ces valeurs est posée.
   const correction = onglet === 'aProposer' && courant ? corrections.find((c) => c.cle === courant) ?? null : null
   const contactSelection = onglet === 'aProposer' && courant ? contactDeSelection(courant) : null
-  const match = onglet === 'aProposer' && courant && !contactSelection && !correction
+  // « Qui pour ce bien ? » : l'en-tête d'un bien, choisi.
+  const bienQuiPour = onglet === 'aProposer' && courant ? bienDeCle(courant) : null
+  const groupeQuiPour = bienQuiPour ? vue.groupes.find((g) => g.bien.id === bienQuiPour) ?? null : null
+  const match = onglet === 'aProposer' && courant && !contactSelection && !correction && !bienQuiPour
     ? visibles.find((m) => m.id === courant) ?? null : null
   const resumeSelection = contactSelection ? selectionsVues.find((s) => s.acheteur.id === contactSelection) ?? null : null
   const attente = onglet === 'enAttente' && courant ? attentes.find((a) => cleAttente(a.acheteur.id) === courant) ?? null : null
   const aConclure = onglet === 'aConclure' && courant ? conclure.find((m) => m.id === courant) ?? null : null
+  // Ses acquéreurs compatibles : ses matchs que le fil connaît, à proposer (reportés compris) et de la boucle.
+  const compatibles = useMemo(
+    () => (bienQuiPour ? [...visibles, ...visiblesBoucle].filter((m) => m.bien.id === bienQuiPour && !m.bien.marche) : []),
+    [bienQuiPour, visibles, visiblesBoucle],
+  )
 
   const limite = contactSelection ? (limites[contactSelection] ?? PAS_SELECTION) : PAS_SELECTION
   const selection = useSelectionMarche(contactSelection, limite)
@@ -336,10 +348,13 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   }, [])
 
   /** Une ligne sort du fil : la sélection passe à la suivante, ou à la précédente si c'était la dernière. */
+  // Après un geste, la ligne suivante À TRAITER — jamais l'en-tête d'un bien (« Qui pour ce bien ? », lot C) : on
+  // enchaîne les matchs sans s'arrêter sur un panneau qu'on n'a pas demandé. Sans suivante, la précédente.
   const ceder = useCallback((id: string): string | null => {
     const liste = ordreRef.current
     const i = liste.indexOf(id)
-    const suivant = liste[i + 1] ?? liste[i - 1] ?? null
+    const aTraiter = (k: string): boolean => bienDeCle(k) == null
+    const suivant = liste.slice(i + 1).find(aTraiter) ?? liste.slice(0, Math.max(i, 0)).reverse().find(aTraiter) ?? null
     setChoix(suivant)
     return suivant
   }, [])
@@ -736,6 +751,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
       onVoirPlus={() => setLimites((l) => ({ ...l, [contactSelection]: limite + PAS_SELECTION }))}
       onReessayer={() => { void selection.refetch() }}
       onVoirContact={() => navigate(`/dashboard/contacts/${contactSelection}`)} />
+  ) : groupeQuiPour ? (
+    <FilQuiPourCeBien sp={sp} bien={groupeQuiPour.bien} compatibles={compatibles} maintenant={chargeLe}
+      peutOuvrir={(id) => ordre.includes(id)} onChoisir={(id) => { setChoix(id); focaliser(id) }}
+      onVoirBien={() => navigate(`/dashboard/listings/${groupeQuiPour.bien.id}`)}
+      onVoirContact={(id) => navigate(`/dashboard/contacts/${id}`)} />
   ) : match ? (
     <FilPanneau sp={sp} m={match} historique={historique.get(match.acheteur.id)} maintenant={chargeLe}
       onProposer={() => proposer(match)}
@@ -776,7 +796,7 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
                   <div style={{ minHeight: 0, overflowY: 'auto', borderRight: `1px solid ${sp.cardBorder}`, paddingBottom: 'calc(var(--crm-space-7xl) * 3)' }}>
                     {onglet === 'aProposer' ? (
                       <FilListe sp={sp} vue={vue} selections={selectionsVues} corrections={corrections} courant={courant}
-                        onChoisir={setChoix} onReactiver={reactiver} />
+                        onChoisir={setChoix} onReactiver={reactiver} maintenant={chargeLe} />
                     ) : (
                       <FilListeBoucle sp={sp} onglet={onglet} attentes={attentes} conclure={conclure} courant={courant} onChoisir={setChoix} />
                     )}

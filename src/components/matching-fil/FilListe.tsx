@@ -7,8 +7,9 @@
  * de tabulation, et ↑/↓ déplacent la sélection — c'est `MatchingFil` qui porte le clavier du fil.
  * La liste entière n'est donc qu'un arrêt de Tab.
  *
- * ⚠ L'en-tête d'un bien est MASQUÉ aux lecteurs d'écran : un `listbox` ne contient que des options et
- * des groupes, et le groupe porte déjà le titre du bien en libellé.
+ * ⚠ L'en-tête d'un bien est une LIGNE depuis le lot C (`cleBien`) : choisie, elle ouvre « Qui pour ce bien ? ».
+ * Une `option` dans le groupe du bien — un `listbox` ne contient que des options et des groupes. Il porte le
+ * signal « nouveau mandat ».
  *
  * ⚠ Un bien refusé pour le PRIX et revenu par une baisse porte, à la place de ses écarts, « Prix baissé de
  * … » : c'est ce qui le ramène, donc ce qui le fait proposer (le panneau dit le reste). Le survol des lignes
@@ -19,11 +20,12 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import {
-  cleSelection, initiales, lignesCriteres, palierScore, premierEcart,
+  cleBien, cleSelection, initiales, lignesCriteres, palierScore, premierEcart,
   type FilBien, type FilMatch, type FilSelectionResume, type FilVue,
 } from './filModele'
 import type { Correction } from './filApprendre'
-import { dateCourte, encreAccent, prixBien, styleLigne, teinteEcart, texteSignal, unSeulClic } from './filAffichage'
+import { dateCourte, encreAccent, prixBien, styleLigne, teinteEcart, texteSignal, texteSignalBien, unSeulClic } from './filAffichage'
+import { signalBien } from './filSignaux'
 import { FilAvatar, FilScore, FilVignette } from './filAtomes'
 
 interface Props {
@@ -34,9 +36,11 @@ interface Props {
   courant: string | null
   onChoisir: (id: string) => void
   onReactiver: (id: string) => void
+  /** L'heure de la lecture : le signal « nouveau mandat » s'y mesure (lot C). */
+  maintenant: number
 }
 
-export default function FilListe({ sp, vue, selections, corrections, courant, onChoisir, onReactiver }: Props) {
+export default function FilListe({ sp, vue, selections, corrections, courant, onChoisir, onReactiver, maintenant }: Props) {
   const { t } = useTranslation('matching')
   const [reportesOuverts, setReportesOuverts] = useState(false)
   const prochainRetour = vue.reportes[0]?.reporteJusquau ?? null
@@ -59,7 +63,8 @@ export default function FilListe({ sp, vue, selections, corrections, courant, on
           <div role="listbox" aria-label={t('fil.listeAria')}>
             {vue.groupes.map((g) => (
               <div key={g.bien.id} role="group" aria-label={g.bien.titre} style={{ marginBottom: 'var(--crm-space-md)' }}>
-                <EnTeteBien sp={sp} bien={g.bien} nombre={g.matchs.length} />
+                <EnTeteBien sp={sp} bien={g.bien} nombre={g.matchs.length} maintenant={maintenant}
+                  active={cleBien(g.bien.id) === courant} onChoisir={onChoisir} />
                 {g.matchs.map((m) => <Ligne key={m.id} sp={sp} m={m} active={m.id === courant} onChoisir={onChoisir} />)}
               </div>
             ))}
@@ -165,20 +170,33 @@ function LigneSelection({ sp, s, active, onChoisir }: { sp: CrmPalette; s: FilSe
   )
 }
 
-function EnTeteBien({ sp, bien, nombre }: { sp: CrmPalette; bien: FilBien; nombre: number }) {
+/** L'en-tête d'un bien : une ligne du fil qui ouvre « Qui pour ce bien ? » (lot C), avec son signal « nouveau mandat ». */
+function EnTeteBien({ sp, bien, nombre, maintenant, active, onChoisir }: {
+  sp: CrmPalette; bien: FilBien; nombre: number; maintenant: number; active: boolean; onChoisir: (id: string) => void
+}) {
   const { t } = useTranslation('matching')
+  const cle = cleBien(bien.id)
+  const signal = signalBien(bien, maintenant)
   return (
-    <div aria-hidden style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-lg)' }}>
+    <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={cle}
+      aria-label={t('fil.quiPour.ligneAria', { titre: bien.titre, count: nombre })}
+      className="fil-ligne" onClick={unSeulClic(() => onChoisir(cle))} onFocus={() => onChoisir(cle)} style={styleLigne(sp, active)}>
       <FilVignette sp={sp} photo={bien.photo} largeur={40} hauteur={30} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {bien.titre}
-        </div>
-        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-          {prixBien(bien, t)} · {t('fil.acheteurs', { count: nombre })}
-        </div>
-      </div>
-    </div>
+        </span>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {/* La forme COURTE sur la ligne (« Nouveau mandat ») ; la date est dans le panneau. */}
+          {[prixBien(bien, t), t('fil.acheteurs', { count: nombre }), signal ? texteSignalBien(signal, bien, t, true) : null].filter(Boolean).join(' · ')}
+        </span>
+      </span>
+      {/* ⚠ L'invite ne s'écrit que sur l'en-tête CHOISI : écrite sur chacun, elle coupait le sous-titre, et avec lui le
+          signal « Nouveau mandat » — le « pourquoi maintenant » qu'on veut lire. Ailleurs, la flèche seule. */}
+      <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: encreAccent(sp) }}>
+        {active && t('fil.quiPour.titre')}<MEIcon name="arrow-right" size={12} color={active ? encreAccent(sp) : sp.sub} />
+      </span>
+    </button>
   )
 }
 

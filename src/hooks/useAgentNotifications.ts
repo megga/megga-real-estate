@@ -95,6 +95,8 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // une baisse de prix, et « Apprendre » (recherche ajustée, correction ignorée).
   match_reaction: 'matching', match_pas_encore: 'matching', match_retour_prix: 'matching',
   recherche_ajustee: 'matching', matchs_reevalues: 'matching', correction_ignoree: 'matching',
+  // « Qui pour ce bien ? » (lot C, 22.09.2026) : un ancien prospect réactivé par l'agent.
+  prospect_reactive: 'matching',
   // Agenda
   visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
   onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',
@@ -112,6 +114,8 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   bien_soft_deleted: 'bien', bien_hard_deleted: 'bien', property_created: 'bien', property_updated: 'bien',
   property_photo_added: 'bien', property_published_to_portal: 'bien', property_withdrawn_from_portal: 'bien',
   idx_feed_pushed: 'bien', extract_property_pdf: 'bien', extract_property_url: 'bien',
+  // L'interrupteur Off-market d'un mandat (lot C, 22.09.2026).
+  bien_off_market: 'bien', bien_rendu_public: 'bien',
   // Conformité : KYC des clients, KYB de l'agence
   kyc_case_opened: 'kyc', kyc_document_attached: 'kyc', kyc_link_sent: 'kyc', kyc_report_import: 'kyc',
   kyc_report_sent: 'kyc', kyc_screening: 'kyc', kyc_screening_match: 'kyc',

@@ -8,8 +8,8 @@
 import { describe, expect, it } from 'vitest'
 import { axesComplementaires, calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
 import {
-  cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection, criteresNonTenus,
-  initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
+  bienDeCle, cleBien, cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection,
+  criteresNonTenus, initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
   type FilBien, type FilFiltres, type FilMatch, type FilSelectionResume,
 } from '@/components/matching-fil/filModele'
 
@@ -48,7 +48,7 @@ describe('construireFil', () => {
     ], SANS_FILTRE, MAINTENANT)
     expect(vue.groupes.map((g) => g.bien.id)).toEqual(['p2', 'p1'])
     expect(vue.groupes[1]!.matchs.map((m) => m.id)).toEqual(['m2', 'm3'])
-    expect(vue.ordre).toEqual(['m5', 'm2', 'm3'])
+    expect(vue.ordre).toEqual(['bien:p2', 'm5', 'bien:p1', 'm2', 'm3'])
     expect(vue.compte).toBe(3)
   })
 
@@ -59,7 +59,7 @@ describe('construireFil', () => {
       match('a', 80, champel, antoine, { creeLe: '2026-09-01T00:00:00.000Z' }),
       match('d', 80, champel, antoine, { creeLe: null }),
     ], SANS_FILTRE, MAINTENANT)
-    expect(vue.ordre).toEqual(['c', 'a', 'b', 'd'])
+    expect(vue.ordre).toEqual(['bien:p1', 'c', 'a', 'b', 'd'])
   })
 
   it('un reporté quitte les lignes et le compte ; un report échu revient', () => {
@@ -68,7 +68,7 @@ describe('construireFil', () => {
       match('m9', 70, champel, antoine, { reporteJusquau: '2026-09-19T00:00:00.000Z' }),
       match('m3', 90, champel, julie, { reporteJusquau: '2026-09-16T00:00:00.000Z' }),
     ], SANS_FILTRE, MAINTENANT)
-    expect(vue.ordre).toEqual(['m3'])
+    expect(vue.ordre).toEqual(['bien:p1', 'm3'])
     expect(vue.compte).toBe(1)
     expect(vue.reportes.map((m) => m.id)).toEqual(['m9', 'm4'])
   })
@@ -96,11 +96,19 @@ describe('construireFil', () => {
       match('m2', 91, champel, emma), match('m3', 90, champel, julie),
       match('m5', 93, cologny, antoine), match('m6', 70, vandoeuvres, julie),
     ]
-    expect(construireFil(tous, { ...SANS_FILTRE, bienId: 'p1' }, MAINTENANT).ordre).toEqual(['m2', 'm3'])
-    expect(construireFil(tous, { ...SANS_FILTRE, acheteurId: 'c7' }, MAINTENANT).ordre).toEqual(['m2'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'lefevre' }, MAINTENANT).ordre).toEqual(['m5'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: '  COLOGNY ' }, MAINTENANT).ordre).toEqual(['m5'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'vandoeuvres' }, MAINTENANT).ordre).toEqual(['m6'])
+    expect(construireFil(tous, { ...SANS_FILTRE, bienId: 'p1' }, MAINTENANT).ordre).toEqual(['bien:p1', 'm2', 'm3'])
+    expect(construireFil(tous, { ...SANS_FILTRE, acheteurId: 'c7' }, MAINTENANT).ordre).toEqual(['bien:p1', 'm2'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'lefevre' }, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: '  COLOGNY ' }, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'vandoeuvres' }, MAINTENANT).ordre).toEqual(['bien:p3', 'm6'])
+  })
+
+  it('l’en-tête d’un bien est une ligne de l’ordre, pas du compte', () => {
+    const vue = construireFil([match('m2', 91, champel, emma)], SANS_FILTRE, MAINTENANT)
+    expect(vue.ordre[0]).toBe(cleBien('p1'))
+    expect(bienDeCle(vue.ordre[0]!)).toBe('p1')
+    expect(bienDeCle('m2')).toBeNull()
+    expect(vue.compte).toBe(1)
   })
 })
 

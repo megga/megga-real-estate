@@ -112,7 +112,7 @@ export interface FilVue {
   reportes: FilMatch[]
   /** Lignes d'« À traiter » : un acheteur sous un bien vaut une ligne (§3.1). */
   compte: number
-  /** Ordre de lecture des lignes, celui de ↑/↓. */
+  /** Ordre de lecture des lignes, celui de ↑/↓ : chaque groupe s'ouvre sur l'en-tête de son bien (`cleBien`). */
   ordre: string[]
 }
 
@@ -190,8 +190,9 @@ export function construireFil(
   const groupes = [...parBien.values()]
     .map((g) => ({ bien: g.bien, matchs: [...g.matchs].sort(avant) }))
     .sort((a, b) => avant(a.matchs[0]!, b.matchs[0]!))
-  const ordre = groupes.flatMap((g) => g.matchs.map((m) => m.id))
-  return { groupes, reportes, compte: ordre.length, ordre }
+  // L'en-tête de chaque bien ouvre son groupe (« Qui pour ce bien ? », lot C) : une ligne de l'ordre, pas du compte.
+  const ordre = groupes.flatMap((g) => [cleBien(g.bien.id), ...g.matchs.map((m) => m.id)])
+  return { groupes, reportes, compte: groupes.reduce((n, g) => n + g.matchs.length, 0), ordre }
 }
 
 /**
@@ -364,6 +365,14 @@ export interface FilSelectionResume {
   nouveaux?: number
   baisses?: number
 }
+
+const PREFIXE_BIEN = 'bien:'
+
+/** La ligne « Qui pour ce bien ? » d'un bien en mandat (lot C) : son en-tête, dans l'ordre du fil. */
+export const cleBien = (bienId: string): string => `${PREFIXE_BIEN}${bienId}`
+
+/** Le bien d'un en-tête, ou `null` pour toute autre ligne. */
+export const bienDeCle = (cle: string): string | null => (cle.startsWith(PREFIXE_BIEN) ? cle.slice(PREFIXE_BIEN.length) : null)
 
 const PREFIXE_SELECTION = 'marche:'
 

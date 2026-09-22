@@ -884,6 +884,38 @@
         "renovated": "Renovated or new",
         "new": "New"
       }
+    },
+    "quiPour": {
+      "titre": "Who is this property for?",
+      "titreAria": "Who is “{{titre}}” for?",
+      "ligneAria_one": "Who is “{{titre}}” for? {{count}} buyer to propose",
+      "ligneAria_other": "Who is “{{titre}}” for? {{count}} buyers to propose",
+      "compatibles_one": "{{count}} matching buyer",
+      "compatibles_other": "{{count}} matching buyers",
+      "aucunCompatible": "No matching buyer yet.",
+      "ouvrir": "Open",
+      "anciens": "Former prospects",
+      "anciensAide": "Search closed for more than 90 days, or deal lost within the last two years. Scored on demand, at the same threshold as the engine.",
+      "chargement": "Scoring former prospects…",
+      "erreur": "Former prospects could not be scored.",
+      "aucunAncien": "No former prospect matches this property.",
+      "rechercheClose": "Search closed on {{date}}",
+      "rechercheCloseSansDate": "Search closed",
+      "dealPerdu": "Deal lost on {{date}}",
+      "dealPerduSansDate": "Deal lost",
+      "reactiver": "Reactivate",
+      "reactive": "{{prenom}} is back in “To propose”",
+      "erreurReactiver": "The reactivation did not go through. Try again.",
+      "etat": {
+        "aProposer": "To propose",
+        "reporte": "Postponed until {{date}}",
+        "propose": "Proposed on {{date}}",
+        "proposeSansDate": "Proposed",
+        "interesse": "Interested",
+        "visite": "Viewing planned",
+        "refuse": "Not interested · {{motif}}",
+        "refuseSansMotif": "Not interested"
+      }
     }
   }
 }

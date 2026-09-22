@@ -884,6 +884,38 @@
         "renovated": "Rénové ou neuf",
         "new": "Neuf"
       }
+    },
+    "quiPour": {
+      "titre": "Qui pour ce bien ?",
+      "titreAria": "Qui pour « {{titre}} » ?",
+      "ligneAria_one": "Qui pour « {{titre}} » ? {{count}} acheteur à proposer",
+      "ligneAria_other": "Qui pour « {{titre}} » ? {{count}} acheteurs à proposer",
+      "compatibles_one": "{{count}} acquéreur compatible",
+      "compatibles_other": "{{count}} acquéreurs compatibles",
+      "aucunCompatible": "Aucun acquéreur compatible pour l'instant.",
+      "ouvrir": "Ouvrir",
+      "anciens": "Anciens prospects",
+      "anciensAide": "Recherche close depuis plus de 90 jours, ou deal perdu depuis moins de deux ans. Notés à la demande, au même seuil que le moteur.",
+      "chargement": "Notation des anciens prospects…",
+      "erreur": "Les anciens prospects n'ont pas pu être notés.",
+      "aucunAncien": "Aucun ancien prospect ne correspond à ce bien.",
+      "rechercheClose": "Recherche close le {{date}}",
+      "rechercheCloseSansDate": "Recherche close",
+      "dealPerdu": "Deal perdu le {{date}}",
+      "dealPerduSansDate": "Deal perdu",
+      "reactiver": "Réactiver",
+      "reactive": "{{prenom}} est de retour dans « À proposer »",
+      "erreurReactiver": "La réactivation n'a pas abouti. Réessayez.",
+      "etat": {
+        "aProposer": "À proposer",
+        "reporte": "Reporté jusqu'au {{date}}",
+        "propose": "Proposé le {{date}}",
+        "proposeSansDate": "Proposé",
+        "interesse": "Intéressé·e",
+        "visite": "Visite planifiée",
+        "refuse": "Pas intéressé·e · {{motif}}",
+        "refuseSansMotif": "Pas intéressé·e"
+      }
     }
   }
 }

@@ -51,6 +51,9 @@ export function prixBien(bien: FilBien, t: TFunction): string {
 /** « 21.09 » : une date du fil — proposition, réponse, relance, retour. */
 export const dateCourte = (iso: string): string => format(new Date(iso), 'dd.MM')
 
+/** « 21.09.2025 » : une date qui peut remonter à une autre année (un deal perdu, jusqu'à 24 mois). */
+export const dateLongue = (iso: string): string => format(new Date(iso), 'dd.MM.yyyy')
+
 /**
  * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), ou `null` sans baisse mesurée sur
  * `prix_propose`. Long dans un panneau — « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000

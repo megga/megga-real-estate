@@ -884,6 +884,38 @@
         "renovated": "Renoviert oder neu",
         "new": "Neubau"
       }
+    },
+    "quiPour": {
+      "titre": "Für wen ist dieses Objekt?",
+      "titreAria": "Für wen ist «{{titre}}»?",
+      "ligneAria_one": "Für wen ist «{{titre}}»? {{count}} Käufer vorzuschlagen",
+      "ligneAria_other": "Für wen ist «{{titre}}»? {{count}} Käufer vorzuschlagen",
+      "compatibles_one": "{{count}} passender Käufer",
+      "compatibles_other": "{{count}} passende Käufer",
+      "aucunCompatible": "Noch kein passender Käufer.",
+      "ouvrir": "Öffnen",
+      "anciens": "Frühere Interessenten",
+      "anciensAide": "Suche seit mehr als 90 Tagen geschlossen, oder Deal in den letzten zwei Jahren verloren. Auf Abruf bewertet, mit derselben Schwelle wie die Engine.",
+      "chargement": "Frühere Interessenten werden bewertet…",
+      "erreur": "Die früheren Interessenten konnten nicht bewertet werden.",
+      "aucunAncien": "Kein früherer Interessent passt zu diesem Objekt.",
+      "rechercheClose": "Suche geschlossen am {{date}}",
+      "rechercheCloseSansDate": "Suche geschlossen",
+      "dealPerdu": "Deal verloren am {{date}}",
+      "dealPerduSansDate": "Deal verloren",
+      "reactiver": "Reaktivieren",
+      "reactive": "{{prenom}} ist zurück in «Vorzuschlagen»",
+      "erreurReactiver": "Die Reaktivierung ist fehlgeschlagen. Versuchen Sie es erneut.",
+      "etat": {
+        "aProposer": "Vorzuschlagen",
+        "reporte": "Verschoben bis {{date}}",
+        "propose": "Vorgeschlagen am {{date}}",
+        "proposeSansDate": "Vorgeschlagen",
+        "interesse": "Interessiert",
+        "visite": "Besichtigung geplant",
+        "refuse": "Kein Interesse · {{motif}}",
+        "refuseSansMotif": "Kein Interesse"
+      }
     }
   }
 }

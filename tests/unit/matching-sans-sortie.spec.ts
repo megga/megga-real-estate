@@ -31,6 +31,7 @@ const MATCHING = [
   'src/hooks/useMatchingRecherche.ts',
   'src/hooks/useSelectionMarche.ts',
   'src/hooks/useAjouterSelection.ts',
+  'src/hooks/useAnciensProspects.ts',
   'src/hooks/useContactSentMatches.ts',
   'src/pages/agent/MatchingPage.tsx',
   'src/pages/agent/MatchingAtelierPage.tsx',
