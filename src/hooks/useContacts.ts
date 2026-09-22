@@ -43,7 +43,18 @@ interface CreateContactInput {
   /** NULL quand le contact n'a qu'un téléphone (la fiche express n'exige plus l'e-mail). */
   email: string | null
   phone?: string
-  type: ContactType
+  /**
+   * Étape 3 : les rôles. `type` est dérivé par le déclencheur, on ne l'écrit plus ici.
+   * Absent ou vide = un lead.
+   */
+  roles?: RoleContact[]
+  /**
+   * ⚠ L'ANCIENNE voie, gardée pour les appelants qui ne connaissent qu'un type — le
+   * pipeline, la visite, le wizard de publication, le mobile : le déclencheur AJOUTE le
+   * rôle correspondant sans effacer les autres. Ne jamais passer les deux à la fois :
+   * `roles` l'emporterait en silence.
+   */
+  type?: ContactType
 }
 
 interface ContactFilters {
@@ -202,7 +213,10 @@ export function useCreateContact() {
           last_name: input.lastName,
           email: input.email?.trim() || null,
           phone: input.phone ?? null,
-          type: input.type,
+          // L'un OU l'autre — jamais les deux : `roles` fait foi, `type` se dérive. Une clé
+          // absente laisse le déclencheur remplir l'autre sens (cf. `CreateContactInput`).
+          ...(input.roles ? { roles: input.roles } : {}),
+          ...(input.type ? { type: input.type } : {}),
           source: input.source ?? 'manual',
           score: input.score ?? 'cold',
           tags: input.tags ?? [],

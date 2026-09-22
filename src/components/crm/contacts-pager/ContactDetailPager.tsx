@@ -28,6 +28,7 @@ import { Trans, useTranslation } from 'react-i18next'
 import { ETATS_MINIMUM, type CriteriaInput, type EtatMinimum } from '@/lib/contactCriteria'
 import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
+import { roleDominant, rolesOrdonnes, ROLES_RESEAU, ROLES_TRANSACTION, type RoleContact } from '@/lib/contactRoles'
 import { crmInitials, type CrmPalette } from '@/components/crm/tokens'
 import { pickAvatarBg } from '@/lib/crmAdapters'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -56,6 +57,24 @@ export interface FicheContact {
   civ: string                    // '' | 'mrs' | 'mr'
   canal: string                  // '' | 'whatsapp' | 'sms' | 'call' | 'email'
   audience: 'Acheteur' | 'Vendeur' | 'Locataire' | 'Bailleur'
+  /**
+   * Les rôles du contact (étape 3, 22.09.2026) — l'en-tête les montre TOUS, et la modale
+   * d'identité les édite. `audience` lui survit et reste dérivée du `type` : elle oriente le
+   * CTA et le budget d'en-tête, deux choses qui n'ont qu'un côté de marché.
+   */
+  roles: RoleContact[]
+  /**
+   * Le contact est-il côté DEMANDE ? Une dérivation à part, et non `audience` : elle décide
+   * où ses critères s'écrivent, d'où ils se lisent, et lequel des deux blocs `CdCrit` montre
+   * — « ce qu'elle cherche » ou « ce qu'il propose ».
+   *
+   * ⚠ Calculée par le conteneur (`ContactDetailPage`) et PAS ici, parce que la conception
+   * (§6) en fait une disjonction dont le second terme — « il a déjà des critères
+   * enregistrés » — ne se lit pas sur `fiche.crit` : pour un contact côté offre, `crit` porte
+   * son BIEN, pas ses critères. Un `porteDemande(fiche.roles)` recalculé ici serait la moitié
+   * de la règle, et masquerait les critères d'un contact repassé à `{seller}`.
+   */
+  coteDemande: boolean
   isTenant: boolean
   avatarBg: string
   /** Identité LBA art. 3 — date au format suisse JJ.MM.AAAA, pays en ISO alpha-2. */
@@ -87,6 +106,14 @@ export interface FicheLoopItem {
   motif: string | null
 }
 
+/**
+ * Ce que la modale « Modifier l'identité » enregistre : les 6 champs LBA, PLUS les rôles.
+ *
+ * Les rôles voyagent avec l'identité parce qu'ils s'éditent au même endroit — mais ils n'en
+ * FONT pas partie : eux seuls n'invalident pas un KYC vérifié (cf. `requestSaveId`).
+ */
+export type FicheIdentite = ContactIdentity & { roles: RoleContact[] }
+
 export interface ContactDetailPagerProps {
   fiche: FicheContact
   /** `transmitted` : biens proposés ; `dismissed` : ceux dont la réponse consignée est « Pas intéressé ». */
@@ -94,8 +121,8 @@ export interface ContactDetailPagerProps {
   sp: CrmPalette
   dark: boolean
   onBack: () => void
-  /** Persiste les 6 champs d'identité LBA (nom + naissance/nationalité/résidence/adresse). */
-  onSaveIdentity: (v: ContactIdentity) => Promise<void>
+  /** Persiste les 6 champs d'identité LBA (nom + naissance/nationalité/résidence/adresse) et les rôles. */
+  onSaveIdentity: (v: FicheIdentite) => Promise<void>
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
@@ -607,10 +634,10 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
   )
 }
 
-/** Brouillon d'identité = les 6 champs LBA comparés par `hasIdentityChanged`. */
-type NmDraft = ContactIdentity
+/** Brouillon d'identité = les 6 champs LBA comparés par `hasIdentityChanged`, plus les rôles. */
+type NmDraft = FicheIdentite
 
-/** Modale « Modifier l'identité » — 6 champs LBA. Les pays sont des SELECTS sur
+/** Modale « Modifier l'identité » — 6 champs LBA + les rôles. Les pays sont des SELECTS sur
  *  COUNTRIES (la base attend un code ISO alpha-2, pas un libellé libre). */
 function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, onSave }: {
   P: FichePal; dark: boolean; draft: NmDraft; setDraft: (fn: (s: NmDraft) => NmDraft) => void; verified: boolean; error: string | null; onCancel: () => void; onSave: () => void
@@ -679,6 +706,29 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
               listLabel={t('onboarding:wizard.agence.address.listLabel')}
             />
           </div>
+        </div>
+        {/* Les rôles, deux groupes : ce qu'on FAIT avec cette personne, puis qui elle EST.
+            Deux rangées et pas de sur-titre par groupe : l'ordre du vocabulaire suffit à les
+            séparer, et un second niveau de libellé alourdirait une modale déjà dense.
+            ⛔ Aucun rôle n'est obligatoire — un contact sans rôle est un lead, et « lead »
+            n'est pas un rôle : décocher tout est un état légitime, pas une saisie incomplète. */}
+        <div style={{ marginTop: 'var(--crm-space-4xl)' }}>
+          <div style={cdLbl(P)}>{t('fiche.identity.roles')}</div>
+          {([ROLES_TRANSACTION, ROLES_RESEAU] as const).map((liste, i) => (
+            <div key={i} style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', marginTop: i === 0 ? 8 : 10 }}>
+              {liste.map((r) => (
+                <CdPickChip key={r} on={draft.roles.includes(r)} P={P}
+                  onClick={() => setDraft((s) => ({
+                    ...s,
+                    // Réordonné à chaque ajout : la liste enregistrée suit l'ordre du
+                    // vocabulaire, celui dont dérivent le type et la pastille dominante.
+                    roles: s.roles.includes(r) ? s.roles.filter((x) => x !== r) : rolesOrdonnes([...s.roles, r]),
+                  }))}>
+                  {t(`roles.${r}`)}
+                </CdPickChip>
+              ))}
+            </div>
+          ))}
         </div>
         {verified && (
           <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
@@ -855,7 +905,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
 }) {
   const { t } = useTranslation('contacts')
   const isTenant = fiche.isTenant
-  const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
+  // ⛔ PLUS l'audience (étape 3, 22.09.2026) : le bloc suit le côté DEMANDE, pas le côté
+  // marché. Sur l'audience, un contact `{seller, tenant}` (type dérivé `seller`) voyait le
+  // formulaire « ce qu'il propose » pendant que sa saisie partait dans `search_criteria` —
+  // un libellé qui ment, et qui ne se remarque pas, contrairement à un aller-retour cassé.
+  const montreDemande = fiche.coteDemande
   const cr = fiche.crit
   const seed: CritForm = {
     budgetMin: cr.budgetMin != null ? String(cr.budgetMin) : '',
@@ -891,11 +945,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       roomsMin: d.roomsMin === '' ? null : Number(d.roomsMin),
       areaMin: d.areaMin === '' ? null : Number(d.areaMin),
       mustHave: d.mustHave,
-      ...(isSeller ? {} : {
+      ...(montreDemande ? {
         bedroomsMin: d.bedroomsMin === '' ? null : Number(d.bedroomsMin),
         conditionMin: d.conditionMin || null,
         offMarketOnly: d.offMarketOnly,
-      }),
+      } : {}),
     }
     void onSave(out).then(flashSaved)
   }
@@ -908,7 +962,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
-        <CdGrp P={P}>{isSeller ? t('fiche.crit.offers') : t('fiche.crit.wants')}</CdGrp>
+        <CdGrp P={P}>{montreDemande ? t('fiche.crit.wants') : t('fiche.crit.offers')}</CdGrp>
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
@@ -944,7 +998,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <div><div style={cdLbl(P)}>{t('fiche.crit.roomsMin')}</div><CdTextInput type="number" value={d.roomsMin} onChange={setF('roomsMin')} placeholder="4" mono P={P} /></div>
             <div><div style={cdLbl(P)}>{t('fiche.crit.areaMinEdit')}</div><CdTextInput type="number" value={d.areaMin} onChange={setF('areaMin')} placeholder="90" mono P={P} /></div>
           </div>
-          {!isSeller && (
+          {montreDemande && (
             <>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
                 <div><div style={cdLbl(P)}>{t('fiche.crit.bedroomsMin')}</div><CdTextInput type="number" value={d.bedroomsMin} onChange={setF('bedroomsMin')} placeholder="3" mono P={P} /></div>
@@ -994,7 +1048,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <CdReadRow label={t('fiche.crit.roomsMin')} value={v.roomsMin} empty={!v.roomsMin} mono P={P} />
             <CdReadRow label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : ''} empty={!v.areaMin} mono P={P} />
           </div>
-          {!isSeller && (
+          {montreDemande && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
               <CdReadRow label={t('fiche.crit.bedroomsMin')} value={v.bedroomsMin} empty={!v.bedroomsMin} mono P={P} />
               <CdReadRow label={t('fiche.crit.condition')} value={v.conditionMin ? t(`fiche.crit.conditions.${v.conditionMin}`) : ''} empty={!v.conditionMin} P={P} />
@@ -1480,10 +1534,17 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
   onDelete: ContactDetailPagerProps['onDelete']
 }) {
   const { t } = useTranslation('contacts')
-  const ficheIdentity = useCallback((): ContactIdentity => ({
+  // ⚠ Les rôles entrent dans les deps par une CLÉ, pas par le tableau : le parent en
+  // reconstruit un à chaque rendu, et deux tableaux de mêmes rôles ne sont pas le même objet.
+  // En dépendre directement rejouerait la re-synchronisation ci-dessous à chaque rendu du
+  // parent — donc `setIdEdit(false)`, la modale se refermant sous les doigts de l'agent.
+  // `rolesOrdonnes` refiltrant les inconnus, la chaîne vide redonne bien `[]`.
+  const rolesCle = rolesOrdonnes(fiche.roles).join()
+  const ficheIdentity = useCallback((): NmDraft => ({
     firstName: fiche.firstName, lastName: fiche.lastName, birth: fiche.birth,
     nationality: fiche.nationality, residence: fiche.residence, homeAddress: fiche.homeAddress,
-  }), [fiche.firstName, fiche.lastName, fiche.birth, fiche.nationality, fiche.residence, fiche.homeAddress])
+    roles: rolesOrdonnes(rolesCle.split(',')),
+  }), [fiche.firstName, fiche.lastName, fiche.birth, fiche.nationality, fiche.residence, fiche.homeAddress, rolesCle])
   const [nm, setNm] = useState<NmDraft>(ficheIdentity)
   const [nmDraft, setNmDraft] = useState<NmDraft>(ficheIdentity)
   const [verified, setVerified] = useState(fiche.verified)
@@ -1539,10 +1600,11 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 
   const applyId = async (invalidate: boolean) => {
     setIdErr(null)
-    const next: ContactIdentity = {
+    const next: NmDraft = {
       firstName: nmDraft.firstName.trim(), lastName: nmDraft.lastName.trim(),
       birth: nmDraft.birth.trim(), nationality: nmDraft.nationality.trim(),
       residence: nmDraft.residence.trim(), homeAddress: nmDraft.homeAddress.trim(),
+      roles: rolesOrdonnes(nmDraft.roles),
     }
     // Invalider AVANT d'écrire. Les deux appels sont deux requêtes réseau distinctes,
     // sans transaction : si l'écriture passait d'abord et que l'invalidation échouait,
@@ -1557,8 +1619,15 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
   // Les 6 champs LBA déclenchent l'avertissement, pas seulement prénom/nom : changer
   // la nationalité ou la date de naissance change l'identité vérifiée (cf. contactIdentity).
   const requestSaveId = () => {
-    if (!hasIdentityChanged(nm, nmDraft)) { setIdEdit(false); return }
-    if (verified) setKycWarn(true)
+    const identiteChangee = hasIdentityChanged(nm, nmDraft)
+    // ⚠ Les rôles s'éditent dans cette modale, mais ils ne sont PAS l'identité LBA. Deux
+    // conséquences, et elles tirent en sens inverse : (1) un changement de rôles SEUL doit
+    // quand même s'enregistrer — sans ce second test, décocher « Vendeur » refermait la
+    // modale sans rien écrire ; (2) il ne déclenche PAS l'avertissement KYC, qui rouvre un
+    // dossier vérifié : ce que le screening a contrôlé, ce sont les six champs.
+    // Les deux listes sortent de `rolesOrdonnes`, donc leur concaténation se compare.
+    if (!identiteChangee && nm.roles.join() === nmDraft.roles.join()) { setIdEdit(false); return }
+    if (identiteChangee && verified) setKycWarn(true)
     else runApplyId(false)
   }
 
@@ -1578,7 +1647,10 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 
   // CTA principal orienté par le côté marché du contact (pas d'invention de route).
   const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
-  const audienceKey = isSeller ? 'seller' : fiche.audience === 'Locataire' ? 'tenant' : 'buyer'
+  // Étape 3 : l'en-tête montre TOUS les rôles, donc `audienceKey` — la clé de la pastille
+  // unique — n'a plus de lecteur. `audience` reste, elle, pour le CTA et le budget.
+  const rolesEntete = rolesOrdonnes(fiche.roles)
+  const roleFort = roleDominant(rolesEntete)
   // Le bouton ouvre le WhatsApp de L'AGENT, depuis son téléphone : aucun consentement
   // plateforme ne le gouverne (Julien, 16.09.2026). Éteint seulement sans numéro.
   const waOff = !fiche.phone
@@ -1665,8 +1737,26 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
                 ⛔ La « Prochaine action » (NBA) qui les suivait a été RETIRÉE de la fiche
                 (Julien, 16.09.2026) ; le calcul reste en base (`get_contact_next_action`). */}
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-2xl)', rowGap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
-            {/* Même pastille que la liste : le type se reconnaît d'un écran à l'autre. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: CTP_FN[audienceKey], color: encreSur(CTP_FN[audienceKey]), fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{t(`contactType.${audienceKey}`)}</span>
+            {/* Mêmes pastilles que la liste : les rôles se reconnaissent d'un écran à l'autre.
+                Le dominant est PEINT, les autres sourds — filet et encre `P.muted`. Un rôle
+                sans teinte (`CTP_FN` n'en porte que trois : acquéreur, vendeur, locataire)
+                reste sourd même dominant — on n'en invente pas une quatrième pour l'occasion.
+                ⛔ Un contact SANS rôle n'affiche aucune pastille — « lead » n'est pas un
+                rôle, et inventer `roles.lead` ferait entrer un stade dans le vocabulaire. */}
+            {rolesEntete.map((r) => {
+              const teinte: string | undefined = (CTP_FN as Record<string, string>)[r]
+              const peint = r === roleFort && !!teinte
+              return (
+                <span key={r} style={{
+                  display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
+                  borderRadius: 'var(--crm-radius-pill)',
+                  background: peint ? teinte : 'transparent',
+                  color: peint && teinte ? encreSur(teinte) : P.muted,
+                  border: peint ? '0' : `1px solid ${P.sp.cardBorder}`,
+                  fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+                }}>{t(`roles.${r}`)}</span>
+              )
+            })}
             {budgetEntete && (
               <CdEssentiel P={P} icone="wallet" couleur={P.ink}>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{budgetEntete.montant}</span>

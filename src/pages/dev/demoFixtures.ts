@@ -99,7 +99,11 @@ export const DEMO_FICHE: FicheContact = {
   id: 'c-001', firstName: 'Marie', lastName: 'Bertrand', verified: true,
   email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02',
   lang: 'fr', civ: 'mrs', canal: 'whatsapp',
-  audience: 'Acheteur', isTenant: false, avatarBg: '#0041D9',
+  // Étape 3 (22.09.2026) : un seul rôle, celui qu'elle a déjà — ses critères sont ceux d'une
+  // acquéreuse, et `coteDemande` s'accorde avec eux (le banc n'a pas de conteneur pour le
+  // dériver). Sans rôle, la fiche du banc ne montrerait AUCUNE pastille et on lirait un
+  // défaut d'affichage là où il n'y a qu'une fixture muette.
+  audience: 'Acheteur', roles: ['buyer'], coteDemande: true, isTenant: false, avatarBg: '#0041D9',
   birth: '14.03.1986', nationality: 'CH', residence: 'CH',
   homeAddress: 'Rue du Rhône 42, 1204 Genève',
   photo: null,

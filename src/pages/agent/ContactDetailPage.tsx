@@ -25,6 +25,7 @@ import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useK
 import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import { formatSwissDate, identityToColumns } from '@/lib/contactIdentity'
+import { porteDemande, rolesOrdonnes } from '@/lib/contactRoles'
 import { mapKycStatus, pickAvatarBg } from '@/lib/crmAdapters'
 import type { KycDossierStatus } from '@/types/kyc'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
@@ -106,6 +107,37 @@ export default function ContactDetailPage() {
 
   // ── Normalisation Contact → FicheContact ─────────────────────────────
   const fd = (contact.form_data ?? {}) as Record<string, unknown>
+  // Étape 3 : les rôles font foi. `type` en dérive (déclencheur `contacts_roles_sync`) et
+  // continue d'orienter ce qui n'a qu'un côté de marché — l'audience, donc le CTA du héro.
+  const roles = rolesOrdonnes(contact.roles)
+  const critEnregistres = parseSearchCriteria(contact.search_criteria)
+  /**
+   * « Il a DÉJÀ des critères » — au moins un champ substantiel d'enregistré.
+   * ⚠ `transaction` en est exclue À DESSEIN : `parseSearchCriteria` la rend toujours
+   * ('vente' par défaut, même sur un `null`), donc la compter ferait passer TOUT contact
+   * côté demande et la disjonction ci-dessous n'aurait plus de second terme.
+   */
+  const aDesCriteres =
+    [critEnregistres.budgetMin, critEnregistres.budgetMax, critEnregistres.roomsMin,
+      critEnregistres.areaMin, critEnregistres.bedroomsMin, critEnregistres.conditionMin].some((x) => x != null)
+    || [critEnregistres.types, critEnregistres.cantons, critEnregistres.cities, critEnregistres.mustHave].some((l) => (l?.length ?? 0) > 0)
+    || critEnregistres.offMarketOnly === true
+  /**
+   * Côté DEMANDE : la SEULE dérivation qui décide où les critères s'ÉCRIVENT, d'où ils se
+   * LISENT, et quel bloc la fiche AFFICHE. Elle remplace deux règles qui divergeaient (la
+   * création regardait `buyer|tenant`, la fiche « tout sauf seller|landlord ») — un vendeur
+   * qui achète a désormais les deux : ses critères dans `search_criteria`, son bien dans
+   * `form_data.offer`.
+   *
+   * ⚠ C'est une DISJONCTION, et le second terme n'est pas un confort (conception §6, repris
+   * dans le docstring de `porteDemande`) : `porteDemande` SEUL masquerait les critères d'un
+   * contact repassé à `{seller}`, qui les a pourtant — et masquer une donnée saisie est pire
+   * qu'un formulaire de trop.
+   *
+   * ⛔ À NE PAS confondre avec `audience`, juste dessous : « que cherche cette personne » et
+   * « que fait-on avec elle » sont deux questions. L'audience garde le CTA et le budget.
+   */
+  const coteDemande = porteDemande(roles) || aDesCriteres
   const isTenant = contact.type === 'tenant' || contact.search_criteria?.transaction_type === 'rent'
   const audience: FicheContact['audience'] =
     contact.type === 'seller' ? 'Vendeur'
@@ -125,6 +157,7 @@ export default function ContactDetailPage() {
     civ: typeof fd.civility === 'string' ? fd.civility : '',
     canal: typeof fd.canal === 'string' ? fd.canal : '',
     audience,
+    roles,
     isTenant,
     avatarBg: pickAvatarBg(contact.id),
     // Identité LBA : vraies colonnes (migration 20260718160000), pas form_data.
@@ -134,12 +167,14 @@ export default function ContactDetailPage() {
     residence: contact.residence_country ?? '',
     homeAddress: contact.home_address ?? '',
     photo: typeof fd.photo === 'string' ? fd.photo : null,
-    // Acheteur/Locataire : critères depuis search_criteria (matching). Vendeur/
-    // Bailleur : le « bien proposé » est écrit dans form_data.offer (pas de
-    // matching) → symétrie lecture/écriture, sinon l'édition ne se ré-affiche pas.
-    crit: (contact.type === 'seller' || contact.type === 'landlord') && fd.offer
-      ? (fd.offer as CriteriaInput)
-      : parseSearchCriteria(contact.search_criteria),
+    // Côté demande : critères depuis search_criteria (matching). Sinon, le « bien proposé »
+    // est lu dans form_data.offer (pas de matching) → symétrie lecture/écriture/affichage,
+    // sinon l'édition ne se ré-affiche pas. ⚠ La lecture est passée à `coteDemande` EN MÊME
+    // TEMPS que l'écriture, et pas seulement par souci de symétrie : laissée sur `type`, un
+    // contact `{landlord, investor}` (type dérivé `landlord`) aurait vu ses critères écrits
+    // dans `search_criteria` et relus dans `form_data.offer`.
+    crit: !coteDemande && fd.offer ? (fd.offer as CriteriaInput) : critEnregistres,
+    coteDemande,
     notes: contact.notes ?? '',
     kycStatus: mapKycStatus((kyc?.dossier_status ?? undefined) as KycDossierStatus | undefined),
     lastContactAt: contact.last_interaction_at ?? null,
@@ -166,7 +201,9 @@ export default function ContactDetailPage() {
       onBack={() => navigate('/dashboard/contacts')}
       onSaveIdentity={async (v) => {
         const cols = identityToColumns(v)
-        await update.mutateAsync({ id, first_name: v.firstName, last_name: v.lastName, ...cols })
+        // `roles` fait foi ; `type` n'est PAS écrit ici — le déclencheur `contacts_roles_sync`
+        // le pose d'après eux. L'écrire à la main ferait deux écrivains pour une colonne.
+        await update.mutateAsync({ id, first_name: v.firstName, last_name: v.lastName, roles: v.roles, ...cols })
         // `kyc_cases.contact_nationality` est une COPIE dénormalisée qui alimente le
         // scoring de risque pays : la laisser périmée est un défaut de conformité.
         // Les triggers kyc_cases ne bloquent que les DELETE et le passage manuel à
@@ -204,12 +241,13 @@ export default function ContactDetailPage() {
         refreshList()
       }}
       onSaveCriteria={async (c) => {
-        // Seuls les critères d'un ACHETEUR/LOCATAIRE (côté demande) partent dans
-        // search_criteria — ce qui déclenche l'auto-matching via le pont DB.
-        // Pour un Vendeur/Bailleur, ce sont les caractéristiques du bien qu'il
-        // PROPOSE : les écrire dans search_criteria le ferait matcher comme
-        // acheteur. On les range donc dans form_data.offer (aucun matching).
-        if (contact.type === 'seller' || contact.type === 'landlord') {
+        // Seuls les critères d'un contact côté DEMANDE (acquéreur, locataire, investisseur)
+        // partent dans search_criteria — ce qui déclenche l'auto-matching via le pont DB.
+        // Sans rôle de demande, ce sont les caractéristiques du bien qu'il PROPOSE : les
+        // écrire dans search_criteria le ferait matcher comme acquéreur. On les range donc
+        // dans form_data.offer (aucun matching). Même test que la lecture de `fiche.crit`
+        // et que le bloc affiché — une dérivation, trois usages.
+        if (!coteDemande) {
           await update.mutateAsync({ id, form_data: { ...fd, offer: c } })
         } else {
           await update.mutateAsync({ id, search_criteria: buildSearchCriteria(c) })
