@@ -16,6 +16,10 @@
  * ⛔ LES ÉQUIPEMENTS SE COMPARENT AVEC LA RÈGLE DU MOTEUR (`slugify` puis inclusion,
  * `matching-normalize.ts`). Une règle à nous afficherait « 0 sur 1 » à côté d'un ✓ du moteur, ou
  * l'inverse ; `matching-fil-modele.spec.ts` la confronte à `calculateScoreV2`.
+ *
+ * ⛔ CHAMBRES, ÉTAT, OFF-MARKET (lot C) SONT DES FAITS, comme pièces et surface : le moteur les note sans les
+ * écrire dans `reasons` (contrat de cinq clés). Même règle que lui — un critère que le bien ne renseigne pas n'a
+ * pas de verdict —, confrontée à `axesComplementaires` par `matching-fil-modele.spec.ts`.
  */
 import type { SearchCriteria } from '@/types/contact'
 import { splitZones } from '@/lib/contactCriteria'
@@ -42,6 +46,14 @@ export interface FilBien {
   photo: string | null
   /** Annonce du MARCHÉ (lot 2) : sa référence et son lien d'origine. Absent pour un bien en mandat. */
   marche?: { ref: string; sourceUrl: string | null }
+  /** Lot C. Chambres ; 0 ou absent : inconnues (le wizard écrit 0 pour « non renseigné »). */
+  chambres?: number | null
+  /** Lot C. L'état saisi sur un mandat (`condition`) ; une annonce du marché n'en porte pas. */
+  etatSaisi?: string | null
+  anneeConstruction?: number | null
+  anneeRenovation?: number | null
+  /** Lot C. L'interrupteur de l'agent ; une annonce du marché est publique. */
+  offMarket?: boolean
 }
 
 /**
@@ -110,6 +122,9 @@ export type LigneCritere =
   | ({ cle: 'pieces'; min: number | null; max: number | null; pieces: number | null } & Verdict)
   | ({ cle: 'surface'; min: number; surface: number | null } & Verdict)
   | ({ cle: 'equipements'; voulus: string[]; presents: string[] } & Verdict)
+  | ({ cle: 'chambres'; min: number; chambres: number | null } & Verdict)
+  | ({ cle: 'etat'; voulu: EtatBien; etat: EtatConnu | null } & Verdict)
+  | ({ cle: 'offMarket'; offMarket: boolean } & Verdict)
 
 /** Trois paliers, bureau et mobile (§3.5). Le seuil du moteur (55) borne le bas. */
 export function palierScore(score: number): PalierScore {
@@ -204,8 +219,37 @@ export const chaines = (v: unknown): string[] =>
 /** Détails que le moteur écrit pour un axe INACTIF (aucun critère de son côté) : pas un verdict. */
 const INACTIF = new Set(['—', 'Aucun critère'])
 
+/**
+ * L'état d'un bien, du moins bon au meilleur, et ses seuils : ceux du moteur (`ETATS_BIEN`, `ANS_NEUF`,
+ * `ANS_RENOVE`, `etatDuBien` dans matching-normalize.ts), à l'identique — `matching-fil-modele.spec.ts` les
+ * confronte. Neuf : construit il y a 5 ans au plus, ou en chantier ; rénové : il y a 10 ans au plus.
+ */
+const ETATS = ['to_renovate', 'good', 'renovated', 'new'] as const
+type EtatBien = (typeof ETATS)[number]
+type EtatConnu = { etat: EtatBien; source: 'saisi' | 'construction' | 'renovation'; annee: number | null }
+const ANS_NEUF = 5
+const ANS_RENOVE = 10
+const ANS_CHANTIER = 5
+const estEtat = (v: unknown): v is EtatBien => typeof v === 'string' && (ETATS as readonly string[]).includes(v)
+/** L'état MINIMUM qu'une recherche peut poser : « à rénover » n'en est pas un, tout bien le tient (règle du moteur). */
+const MINIMUMS: ReadonlySet<EtatBien> = new Set(['good', 'renovated', 'new'])
+
+/** L'état d'un bien, ou `null` : ⛔ jamais « bon état » ni « à rénover » déduit d'une date. */
+function etatDuBien(b: FilBien, annee: number): EtatConnu | null {
+  if (estEtat(b.etatSaisi)) return { etat: b.etatSaisi, source: 'saisi', annee: null }
+  const construit = b.anneeConstruction
+  if (construit != null && construit > 0 && construit >= annee - ANS_NEUF && construit <= annee + ANS_CHANTIER) {
+    return { etat: 'new', source: 'construction', annee: construit }
+  }
+  const renove = b.anneeRenovation
+  if (renove != null && renove > 0 && renove >= annee - ANS_RENOVE && renove <= annee) {
+    return { etat: 'renovated', source: 'renovation', annee: renove }
+  }
+  return null
+}
+
 /** Les lignes « Recherché / Ce bien » : une par critère que la recherche a posé (§4.4). */
-export function lignesCriteres(m: FilMatch): LigneCritere[] {
+export function lignesCriteres(m: FilMatch, maintenant: number = Date.now()): LigneCritere[] {
   const c = m.criteres
   if (!c) return []
   const raisons = m.raisons ?? {}
@@ -238,9 +282,20 @@ export function lignesCriteres(m: FilMatch): LigneCritere[] {
       ok: p == null ? null : (c.rooms_min == null || p >= c.rooms_min) && (c.rooms_max == null || p <= c.rooms_max),
     })
   }
+  // Lot C. ⛔ UN FAIT, comme les pièces, à la règle du MOTEUR : 0 chambre n'est pas une valeur, et un critère
+  // que le bien ne renseigne pas n'a pas de verdict — il n'a pas compté dans la note.
+  if (typeof c.bedrooms_min === 'number' && c.bedrooms_min > 0) {
+    const n = m.bien.chambres != null && m.bien.chambres > 0 ? m.bien.chambres : null
+    lignes.push({ cle: 'chambres', min: c.bedrooms_min, chambres: n, ecart: null, ok: n == null ? null : n >= c.bedrooms_min })
+  }
   if (c.surface_min != null) {
     const s = m.bien.surface
     lignes.push({ cle: 'surface', min: c.surface_min, surface: s, ok: s == null ? null : s >= c.surface_min, ecart: null })
+  }
+  if (estEtat(c.condition_min) && MINIMUMS.has(c.condition_min)) {
+    const voulu = c.condition_min
+    const e = etatDuBien(m.bien, new Date(maintenant).getUTCFullYear())
+    lignes.push({ cle: 'etat', voulu, etat: e, ecart: null, ok: e == null ? null : ETATS.indexOf(e.etat) >= ETATS.indexOf(voulu) })
   }
   // Un équipement dont le slug est vide (« — ») n'existe pas pour le moteur : il n'existe pas ici.
   const voulus = chaines(c.features).filter((v) => slug(v) !== '')
@@ -251,6 +306,11 @@ export function lignesCriteres(m: FilMatch): LigneCritere[] {
       return offerts.some((h) => h === w || h.includes(w) || w.includes(h))
     })
     lignes.push({ cle: 'equipements', voulus, presents, ...verdict('features', true) })
+  }
+  // Off-market : toujours évalué — un mandat porte son interrupteur, une annonce du marché est publique.
+  if (c.off_market_only === true) {
+    const off = m.bien.offMarket === true
+    lignes.push({ cle: 'offMarket', offMarket: off, ecart: null, ok: off })
   }
   return lignes
 }

@@ -75,6 +75,9 @@ interface LigneBien {
   id: string; title: string | null; type: string | null; transaction_type: string | null
   price: number | string | null; rooms: number | string | null; surface_m2: number | string | null
   address: string | null; city: string | null; canton: string | null; features: unknown; photos: string[] | null
+  /** Lot C. */
+  bedrooms: number | string | null; condition: string | null; year_built: number | string | null
+  off_market: boolean | null
 }
 /** Une annonce du marché, colonnes légères (§7 de CLAUDE.md) : la sélection (lot 2) et la boucle (lot B) la lisent pareil. */
 export interface LigneAnnonce {
@@ -83,6 +86,8 @@ export interface LigneAnnonce {
   surface_m2: number | string | null; address: string | null; city: string | null; canton: string | null
   features: unknown; photos: string[] | null; photos_cf: unknown; status: string | null
   source_portal: string | null; source_id: string | null; source_url: string | null
+  /** Lot C : chambres et années (l'état). */
+  bedrooms: number | string | null; year_built: number | string | null; year_renovated: number | string | null
 }
 interface LigneRelance {
   id: string; contact_id: string | null; match_id: string | null; match_ids: string[] | null; trigger_at: string | null
@@ -101,7 +106,7 @@ interface DonneesFil {
 /** Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes. */
 export const CLE_FIL = 'matching-fil'
 /** Les colonnes d'une annonce du marché que le fil lit. */
-export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url'
+export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url, bedrooms, year_built, year_renovated'
 /** Les statuts de la boucle — ceux que compte aussi « Déjà proposé » (`compterHistorique`), et l'index `idx_matches_boucle`. */
 const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
 const VIDE: DonneesFil = { matchs: [], selections: [], boucle: [], relances: [], historique: new Map(), chargeLe: 0 }
@@ -132,6 +137,8 @@ function versBien(b: LigneBien): FilBien {
     id: b.id, titre: b.title ?? '', prix: nombreOuNull(b.price), location: b.transaction_type === 'rent',
     type: b.type, pieces: nombreOuNull(b.rooms), surface: nombreOuNull(b.surface_m2), ville: b.city, canton: b.canton,
     adresse: b.address, equipements: listeEquipements(b.features), photo: b.photos?.[0] ?? null,
+    chambres: nombreOuNull(b.bedrooms), etatSaisi: b.condition, anneeConstruction: nombreOuNull(b.year_built),
+    offMarket: b.off_market === true,
   }
 }
 
@@ -158,6 +165,9 @@ export function versBienMarche(a: LigneAnnonce): FilBien {
     ville: a.city, canton: a.canton, adresse: a.address, equipements: listeEquipements(a.features),
     photo: photoAnnonce(a.photos_cf, a.photos),
     marche: { ref, sourceUrl: a.source_url },
+    chambres: nombreOuNull(a.bedrooms), anneeConstruction: nombreOuNull(a.year_built), anneeRenovation: nombreOuNull(a.year_renovated),
+    // Une annonce du marché est publique par définition.
+    offMarket: false,
   }
 }
 
@@ -243,7 +253,7 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     bienIds.length > 0
       ? lire<LigneBien>(
         supabase.from('properties')
-          .select('id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos')
+          .select('id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos, bedrooms, condition, year_built, off_market')
           .in('id', bienIds),
       )
       : Promise.resolve([]),

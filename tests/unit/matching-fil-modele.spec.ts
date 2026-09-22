@@ -6,7 +6,7 @@
  * une fixture qui invente sa formulation éprouve un écran que la production ne rend jamais.
  */
 import { describe, expect, it } from 'vitest'
-import { calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
+import { axesComplementaires, calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
 import {
   cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection, criteresNonTenus,
   initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
@@ -439,5 +439,57 @@ describe('criteresNonTenus — ce qui reste à vérifier, même règle que le pr
       },
     })
     expect(criteresNonTenus(lignesCriteres(m))).toEqual(['budget', 'zone', 'type'])
+  })
+})
+
+describe('lot C : chambres, état, off-market — des faits, à la règle du moteur', () => {
+  const T = Date.parse('2026-09-22T12:00:00.000Z')
+  const recherche = { bedrooms_min: 3, condition_min: 'renovated', off_market_only: true } as const
+  const ligne = (b: Partial<FilBien>, cle: string) =>
+    lignesCriteres(match('m', 90, bien('p', b), acheteur('c'), { criteres: recherche }), T).find((l) => l.cle === cle)
+
+  it('chambres : un fait ; 0 et absent ne sont pas évalués', () => {
+    expect(ligne({ chambres: 3 }, 'chambres')).toMatchObject({ ok: true, chambres: 3, min: 3 })
+    expect(ligne({ chambres: 2 }, 'chambres')).toMatchObject({ ok: false })
+    expect(ligne({ chambres: 0 }, 'chambres')).toMatchObject({ ok: null, chambres: null })
+    expect(ligne({}, 'chambres')).toMatchObject({ ok: null })
+  })
+  it('état : saisi, ou déduit des années qui disent quelque chose', () => {
+    expect(ligne({ etatSaisi: 'good' }, 'etat')).toMatchObject({ ok: false, etat: { etat: 'good', source: 'saisi' } })
+    expect(ligne({ anneeConstruction: 2024 }, 'etat')).toMatchObject({ ok: true, etat: { etat: 'new', source: 'construction', annee: 2024 } })
+    expect(ligne({ anneeRenovation: 2019 }, 'etat')).toMatchObject({ ok: true, etat: { etat: 'renovated', annee: 2019 } })
+    expect(ligne({ anneeConstruction: 1968 }, 'etat')).toMatchObject({ ok: null, etat: null })
+  })
+  it('off-market : un mandat off-market tient ; un bien public ou une annonce du marché, non', () => {
+    expect(ligne({ offMarket: true }, 'offMarket')).toMatchObject({ ok: true })
+    expect(ligne({}, 'offMarket')).toMatchObject({ ok: false })
+    expect(ligne({ marche: { ref: 'MG-FL-1', sourceUrl: null } }, 'offMarket')).toMatchObject({ ok: false })
+  })
+  it('« à rénover » n’est pas un état minimum : aucune ligne, comme le moteur n’en fait pas un axe', () => {
+    const l = lignesCriteres(match('m', 90, bien('p', { etatSaisi: 'good' }), acheteur('c'), { criteres: { condition_min: 'to_renovate' as never } }), T)
+    expect(l.find((x) => x.cle === 'etat')).toBeUndefined()
+  })
+  it('aucune ligne pour un critère que la recherche ne pose pas', () => {
+    const l = lignesCriteres(match('m', 90, bien('p', { chambres: 3, offMarket: true }), acheteur('c'), { criteres: { type: 'apartment' } }), T)
+    expect(l.map((x) => x.cle)).toEqual(['type'])
+  })
+  it('même verdict que le moteur : ✓ = tenu en entier, sans verdict = axe inactif', () => {
+    const cas: Partial<FilBien>[] = [
+      { chambres: 3 }, { chambres: 2 }, { chambres: 1 }, { chambres: 0 }, {},
+      { etatSaisi: 'new' }, { etatSaisi: 'good' }, { etatSaisi: 'to_renovate' },
+      { anneeConstruction: 2023 }, { anneeRenovation: 2017 }, { anneeConstruction: 1970 },
+      { offMarket: true }, { offMarket: false },
+    ]
+    const verdict = (a: { active: boolean; frac: number }) => (a.active ? a.frac === 1 : null)
+    for (const b of cas) {
+      const lignes = lignesCriteres(match('m', 90, bien('p', b), acheteur('c'), { criteres: recherche }), T)
+      const axes = axesComplementaires({
+        bedrooms: b.chambres ?? null, condition: b.etatSaisi ?? null, year_built: b.anneeConstruction ?? null,
+        year_renovated: b.anneeRenovation ?? null, off_market: b.offMarket === true,
+      }, recherche, T)
+      expect(lignes.find((l) => l.cle === 'chambres')?.ok, JSON.stringify(b)).toBe(verdict(axes.chambres))
+      expect(lignes.find((l) => l.cle === 'etat')?.ok, JSON.stringify(b)).toBe(verdict(axes.etat))
+      expect(lignes.find((l) => l.cle === 'offMarket')?.ok, JSON.stringify(b)).toBe(verdict(axes.offMarket))
+    }
   })
 })

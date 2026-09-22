@@ -648,7 +648,10 @@
       "type": "Type",
       "pieces": "Rooms",
       "surface": "Surface",
-      "equipements": "Features"
+      "equipements": "Features",
+      "chambres": "Bedrooms",
+      "etat": "Condition",
+      "offMarket": "Off-market"
     },
     "correspond": "Matches",
     "ecart": "Differs",
@@ -661,7 +664,10 @@
       "m2": "{{valeur}} m²",
       "parMois": "{{valeur}} / month",
       "presents": "{{n}} of {{total}}",
-      "inconnu": "Not specified"
+      "inconnu": "Not specified",
+      "offMarketSeul": "Off-market only",
+      "offMarket": "Off-market",
+      "public": "Public"
     },
     "types": {
       "apartment": "Apartment",
@@ -748,7 +754,9 @@
       "erreur": "The selection couldn't be loaded.",
       "proposer_one": "I proposed {{count}} property to {{prenom}}",
       "proposer_other": "I proposed {{count}} properties to {{prenom}}",
-      "proposerAucun": "I proposed them to {{prenom}}"
+      "proposerAucun": "I proposed them to {{prenom}}",
+      "chambresAuMoins_one": "{{valeur}} bedroom or more",
+      "chambresAuMoins_other": "{{valeur}} bedrooms or more"
     },
     "propose": "Proposed to {{prenom}} · reminder in 3 days",
     "proposeSelection_one": "{{count}} property proposed to {{prenom}} · reminder in 3 days",
@@ -852,6 +860,21 @@
       "ignoree": "Correction ignored",
       "nouvelle": "A correction of {{prenom}}'s search awaits you in “To propose”.",
       "erreur": "The search couldn't be adjusted. Try again."
+    },
+    "etats": {
+      "to_renovate": "To renovate",
+      "good": "Good condition",
+      "renovated": "Renovated",
+      "new": "New",
+      "neufEn": "New · built in {{annee}}",
+      "neufLivre": "New · completion in {{annee}}",
+      "renoveEn": "Renovated in {{annee}}",
+      "min": {
+        "to_renovate": "Any condition",
+        "good": "Good condition or better",
+        "renovated": "Renovated or new",
+        "new": "New"
+      }
     }
   }
 }

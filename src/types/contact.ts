@@ -76,4 +76,10 @@ export interface SearchCriteria {
   surface_min?: number
   surface_max?: number
   features?: string[]
+  /** Lot C : chambres au minimum. */
+  bedrooms_min?: number
+  /** Lot C : l'état minimum — bon état < rénové < neuf (`matching-normalize.ts`, `ETATS_BIEN`). */
+  condition_min?: 'good' | 'renovated' | 'new'
+  /** Lot C : l'acheteur ne veut que de l'off-market. Le moteur le NOTE, ce n'est pas un filtre. */
+  off_market_only?: boolean
 }

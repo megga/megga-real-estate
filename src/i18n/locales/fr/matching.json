@@ -648,7 +648,10 @@
       "type": "Type",
       "pieces": "Pièces",
       "surface": "Surface",
-      "equipements": "Équipements"
+      "equipements": "Équipements",
+      "chambres": "Chambres",
+      "etat": "État",
+      "offMarket": "Off-market"
     },
     "correspond": "Correspond",
     "ecart": "Écart",
@@ -661,7 +664,10 @@
       "m2": "{{valeur}} m²",
       "parMois": "{{valeur}} / mois",
       "presents": "{{n}} sur {{total}}",
-      "inconnu": "Non renseigné"
+      "inconnu": "Non renseigné",
+      "offMarketSeul": "Off-market seulement",
+      "offMarket": "Off-market",
+      "public": "Public"
     },
     "types": {
       "apartment": "Appartement",
@@ -748,7 +754,9 @@
       "erreur": "La sélection n'a pas pu être chargée.",
       "proposer_one": "J'ai proposé {{count}} bien à {{prenom}}",
       "proposer_other": "J'ai proposé {{count}} biens à {{prenom}}",
-      "proposerAucun": "Je les ai proposés à {{prenom}}"
+      "proposerAucun": "Je les ai proposés à {{prenom}}",
+      "chambresAuMoins_one": "{{valeur}} chambre et plus",
+      "chambresAuMoins_other": "{{valeur}} chambres et plus"
     },
     "propose": "Proposé à {{prenom}} · rappel dans 3 jours",
     "proposeSelection_one": "{{count}} bien proposé à {{prenom}} · rappel dans 3 jours",
@@ -852,6 +860,21 @@
       "ignoree": "Correction ignorée",
       "nouvelle": "Une recherche à ajuster pour {{prenom}} vous attend dans « À proposer ».",
       "erreur": "La recherche n'a pas pu être ajustée. Réessayez."
+    },
+    "etats": {
+      "to_renovate": "À rénover",
+      "good": "Bon état",
+      "renovated": "Rénové",
+      "new": "Neuf",
+      "neufEn": "Neuf · construit en {{annee}}",
+      "neufLivre": "Neuf · livraison en {{annee}}",
+      "renoveEn": "Rénové en {{annee}}",
+      "min": {
+        "to_renovate": "Tout état",
+        "good": "Bon état ou mieux",
+        "renovated": "Rénové ou neuf",
+        "new": "Neuf"
+      }
     }
   }
 }

@@ -25,7 +25,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import type { CriteriaInput } from '@/lib/contactCriteria'
+import { ETATS_MINIMUM, type CriteriaInput, type EtatMinimum } from '@/lib/contactCriteria'
 import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
 import { crmInitials, type CrmPalette } from '@/components/crm/tokens'
@@ -846,6 +846,8 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave, onEditIdentity }: {
 interface CritForm {
   budgetMin: string; budgetMax: string; types: string[]; cantons: string[]
   cities: string; roomsMin: string; areaMin: string; mustHave: string[]
+  /** Lot C — côté DEMANDE seulement : l'offre d'un vendeur ne porte ni l'un ni l'autre. */
+  bedroomsMin: string; conditionMin: EtatMinimum | ''; offMarketOnly: boolean
 }
 
 function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
@@ -863,6 +865,9 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
     roomsMin: cr.roomsMin != null ? String(cr.roomsMin) : '',
     areaMin: cr.areaMin != null ? String(cr.areaMin) : '',
     mustHave: [...(cr.mustHave || [])],
+    bedroomsMin: cr.bedroomsMin != null ? String(cr.bedroomsMin) : '',
+    conditionMin: cr.conditionMin ?? '',
+    offMarketOnly: cr.offMarketOnly === true,
   }
   const [v, setV] = useState<CritForm>(seed)
   const [d, setD] = useState<CritForm>(seed)
@@ -886,6 +891,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       roomsMin: d.roomsMin === '' ? null : Number(d.roomsMin),
       areaMin: d.areaMin === '' ? null : Number(d.areaMin),
       mustHave: d.mustHave,
+      ...(isSeller ? {} : {
+        bedroomsMin: d.bedroomsMin === '' ? null : Number(d.bedroomsMin),
+        conditionMin: d.conditionMin || null,
+        offMarketOnly: d.offMarketOnly,
+      }),
     }
     void onSave(out).then(flashSaved)
   }
@@ -934,6 +944,26 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <div><div style={cdLbl(P)}>{t('fiche.crit.roomsMin')}</div><CdTextInput type="number" value={d.roomsMin} onChange={setF('roomsMin')} placeholder="4" mono P={P} /></div>
             <div><div style={cdLbl(P)}>{t('fiche.crit.areaMinEdit')}</div><CdTextInput type="number" value={d.areaMin} onChange={setF('areaMin')} placeholder="90" mono P={P} /></div>
           </div>
+          {!isSeller && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
+                <div><div style={cdLbl(P)}>{t('fiche.crit.bedroomsMin')}</div><CdTextInput type="number" value={d.bedroomsMin} onChange={setF('bedroomsMin')} placeholder="3" mono P={P} /></div>
+              </div>
+              <div>
+                <div style={cdLbl(P)}>{t('fiche.crit.condition')}</div>
+                <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+                  <CdPickChip on={d.conditionMin === ''} onClick={() => setD((s) => ({ ...s, conditionMin: '' }))} P={P}>{t('fiche.crit.conditionAny')}</CdPickChip>
+                  {ETATS_MINIMUM.map((e) => (
+                    <CdPickChip key={e} on={d.conditionMin === e} onClick={() => setD((s) => ({ ...s, conditionMin: e }))} P={P}>{t(`fiche.crit.conditions.${e}`)}</CdPickChip>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={cdLbl(P)}>{t('fiche.crit.offMarket')}</div>
+                <CdPickChip on={d.offMarketOnly} onClick={() => setD((s) => ({ ...s, offMarketOnly: !s.offMarketOnly }))} P={P}>{t('fiche.crit.offMarketOnly')}</CdPickChip>
+              </div>
+            </>
+          )}
           <div>
             <div style={cdLbl(P)}>{t('fiche.crit.mustHave')}</div>
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
@@ -964,6 +994,13 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <CdReadRow label={t('fiche.crit.roomsMin')} value={v.roomsMin} empty={!v.roomsMin} mono P={P} />
             <CdReadRow label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : ''} empty={!v.areaMin} mono P={P} />
           </div>
+          {!isSeller && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+              <CdReadRow label={t('fiche.crit.bedroomsMin')} value={v.bedroomsMin} empty={!v.bedroomsMin} mono P={P} />
+              <CdReadRow label={t('fiche.crit.condition')} value={v.conditionMin ? t(`fiche.crit.conditions.${v.conditionMin}`) : ''} empty={!v.conditionMin} P={P} />
+              <CdReadRow label={t('fiche.crit.offMarket')} value={t('fiche.crit.offMarketOnly')} empty={!v.offMarketOnly} P={P} />
+            </div>
+          )}
           {/* En lecture, seuls les types RETENUS : les quatre pastilles, trois éteintes,
               faisaient lire une liste d'options au lieu d'un critère. */}
           <div>

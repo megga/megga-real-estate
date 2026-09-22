@@ -6,6 +6,20 @@ import type { TFunction } from 'i18next'
 import { formatCHF } from '@/lib/utils'
 import { cleEquipement, lignesCriteres, type FilMatch, type LigneCritere } from './filModele'
 
+type LigneEtat = Extract<LigneCritere, { cle: 'etat' }>
+/**
+ * L'état d'un bien, écrit : saisi (« Rénové »), ou avec l'année d'où il vient (« Rénové en 2019 »). Un chantier
+ * (neuf jusqu'à 5 ans dans le futur, `etatDuBien`) n'est pas « construit » : il se livre.
+ */
+function texteEtat(e: NonNullable<LigneEtat['etat']>, t: TFunction): string {
+  if (e.source === 'construction') {
+    const aVenir = e.annee != null && e.annee > new Date().getUTCFullYear()
+    return t(aVenir ? 'fil.etats.neufLivre' : 'fil.etats.neufEn', { annee: e.annee })
+  }
+  if (e.source === 'renovation') return t('fil.etats.renoveEn', { annee: e.annee })
+  return t(`fil.etats.${e.etat}`)
+}
+
 /** Les deux cellules d'une ligne de critère : ce que l'acheteur cherche, ce que le bien offre. */
 export function valeursCritere(l: LigneCritere, t: TFunction, nombre: (n: number) => string): [string, string] {
   const inconnu = t('fil.valeurs.inconnu')
@@ -41,6 +55,12 @@ export function valeursCritere(l: LigneCritere, t: TFunction, nombre: (n: number
         l.voulus.map((f) => t(`fil.equipementsNoms.${cleEquipement(f)}`, { defaultValue: f.replace(/^custom:/i, '') })).join(', '),
         t('fil.valeurs.presents', { n: l.presents.length, total: l.voulus.length }),
       ]
+    case 'chambres':
+      return [t('fil.valeurs.auMoins', { valeur: nombre(l.min) }), l.chambres == null ? inconnu : nombre(l.chambres)]
+    case 'etat':
+      return [t(`fil.etats.min.${l.voulu}`), l.etat == null ? inconnu : texteEtat(l.etat, t)]
+    case 'offMarket':
+      return [t('fil.valeurs.offMarketSeul'), t(l.offMarket ? 'fil.valeurs.offMarket' : 'fil.valeurs.public')]
   }
 }
 
@@ -62,6 +82,9 @@ function piecesVoulues(l: Extract<LigneCritere, { cle: 'pieces' }>, t: TFunction
 /** La recherche d'un acheteur en une ligne (§5) : les valeurs « Recherché » de ses critères, dans l'ordre. */
 export function resumeRecherche(m: FilMatch, t: TFunction, nombre: (n: number) => string): string {
   return lignesCriteres(m)
-    .map((l) => (l.cle === 'pieces' ? piecesVoulues(l, t, nombre) : valeursCritere(l, t, nombre)[0]))
+    .map((l) => (l.cle === 'pieces' ? piecesVoulues(l, t, nombre)
+      // « 3 et plus » ne dit pas de quoi dans une phrase : l'unité, comme pour les pièces.
+      : l.cle === 'chambres' ? t('fil.selection.chambresAuMoins', { count: l.min, valeur: nombre(l.min) })
+        : valeursCritere(l, t, nombre)[0]))
     .join(' · ')
 }

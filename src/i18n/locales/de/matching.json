@@ -648,7 +648,10 @@
       "type": "Typ",
       "pieces": "Zimmer",
       "surface": "Fläche",
-      "equipements": "Ausstattung"
+      "equipements": "Ausstattung",
+      "chambres": "Schlafzimmer",
+      "etat": "Zustand",
+      "offMarket": "Off-market"
     },
     "correspond": "Erfüllt",
     "ecart": "Abweichung",
@@ -661,7 +664,10 @@
       "m2": "{{valeur}} m²",
       "parMois": "{{valeur}} / Monat",
       "presents": "{{n}} von {{total}}",
-      "inconnu": "Nicht angegeben"
+      "inconnu": "Nicht angegeben",
+      "offMarketSeul": "Nur Off-market",
+      "offMarket": "Off-market",
+      "public": "Öffentlich"
     },
     "types": {
       "apartment": "Wohnung",
@@ -748,7 +754,9 @@
       "erreur": "Die Auswahl konnte nicht geladen werden.",
       "proposer_one": "Ich habe {{prenom}} {{count}} Objekt vorgeschlagen",
       "proposer_other": "Ich habe {{prenom}} {{count}} Objekte vorgeschlagen",
-      "proposerAucun": "Ich habe sie {{prenom}} vorgeschlagen"
+      "proposerAucun": "Ich habe sie {{prenom}} vorgeschlagen",
+      "chambresAuMoins_one": "{{valeur}} Schlafzimmer oder mehr",
+      "chambresAuMoins_other": "{{valeur}} Schlafzimmer oder mehr"
     },
     "propose": "{{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
     "proposeSelection_one": "{{count}} Objekt {{prenom}} vorgeschlagen · Erinnerung in 3 Tagen",
@@ -852,6 +860,21 @@
       "ignoree": "Korrektur ignoriert",
       "nouvelle": "Eine Korrektur der Suche von {{prenom}} wartet unter „Vorzuschlagen“.",
       "erreur": "Die Suche konnte nicht angepasst werden. Versuchen Sie es erneut."
+    },
+    "etats": {
+      "to_renovate": "Renovationsbedürftig",
+      "good": "Guter Zustand",
+      "renovated": "Renoviert",
+      "new": "Neubau",
+      "neufEn": "Neubau · erbaut {{annee}}",
+      "neufLivre": "Neubau · Fertigstellung {{annee}}",
+      "renoveEn": "Renoviert {{annee}}",
+      "min": {
+        "to_renovate": "Jeder Zustand",
+        "good": "Guter Zustand oder besser",
+        "renovated": "Renoviert oder neu",
+        "new": "Neubau"
+      }
     }
   }
 }

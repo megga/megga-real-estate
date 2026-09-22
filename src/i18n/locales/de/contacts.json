@@ -1008,7 +1008,17 @@
       "areaMinEdit": "Min. Fläche (m²)",
       "mustHave": "Muss-Kriterien",
       "minPlaceholder": "Min",
-      "maxPlaceholder": "Max"
+      "maxPlaceholder": "Max",
+      "bedroomsMin": "Min. Schlafzimmer",
+      "condition": "Mindestzustand",
+      "conditionAny": "Egal",
+      "conditions": {
+        "good": "Guter Zustand",
+        "renovated": "Renoviert",
+        "new": "Neubau"
+      },
+      "offMarket": "Off-market",
+      "offMarketOnly": "Nur Off-market"
     },
     "propType": {
       "appartement": "Wohnung",

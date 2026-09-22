@@ -648,7 +648,10 @@
       "type": "Tipo",
       "pieces": "Locali",
       "surface": "Superficie",
-      "equipements": "Dotazioni"
+      "equipements": "Dotazioni",
+      "chambres": "Camere",
+      "etat": "Stato",
+      "offMarket": "Off-market"
     },
     "correspond": "Corrisponde",
     "ecart": "Differenza",
@@ -661,7 +664,10 @@
       "m2": "{{valeur}} m²",
       "parMois": "{{valeur}} / mese",
       "presents": "{{n}} su {{total}}",
-      "inconnu": "Non indicato"
+      "inconnu": "Non indicato",
+      "offMarketSeul": "Solo off-market",
+      "offMarket": "Off-market",
+      "public": "Pubblico"
     },
     "types": {
       "apartment": "Appartamento",
@@ -748,7 +754,9 @@
       "erreur": "Non è stato possibile caricare la selezione.",
       "proposer_one": "Ho proposto {{count}} immobile a {{prenom}}",
       "proposer_other": "Ho proposto {{count}} immobili a {{prenom}}",
-      "proposerAucun": "Li ho proposti a {{prenom}}"
+      "proposerAucun": "Li ho proposti a {{prenom}}",
+      "chambresAuMoins_one": "{{valeur}} camera o più",
+      "chambresAuMoins_other": "{{valeur}} camere o più"
     },
     "propose": "Proposto a {{prenom}} · promemoria tra 3 giorni",
     "proposeSelection_one": "{{count}} immobile proposto a {{prenom}} · promemoria tra 3 giorni",
@@ -852,6 +860,21 @@
       "ignoree": "Correzione ignorata",
       "nouvelle": "Una correzione della ricerca di {{prenom}} La attende in «Da proporre».",
       "erreur": "Non è stato possibile adattare la ricerca. Riprovi."
+    },
+    "etats": {
+      "to_renovate": "Da ristrutturare",
+      "good": "Buono stato",
+      "renovated": "Ristrutturato",
+      "new": "Nuovo",
+      "neufEn": "Nuovo · costruito nel {{annee}}",
+      "neufLivre": "Nuovo · consegna nel {{annee}}",
+      "renoveEn": "Ristrutturato nel {{annee}}",
+      "min": {
+        "to_renovate": "Qualsiasi stato",
+        "good": "Buono stato o migliore",
+        "renovated": "Ristrutturato o nuovo",
+        "new": "Nuovo"
+      }
     }
   }
 }
