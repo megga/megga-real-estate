@@ -85,7 +85,7 @@ const INTERNES_HORS_PREFIXE = [
  * empêche la récidive, qui viendrait sinon en silence des droits par défaut
  * reposés à la prochaine recréation de table.
  *
- * `buyer_reception_links` a quitté la liste avec sa table (20260921130000) : le matching
+ * `buyer_reception_links` a quitté la liste avec sa table (20260922130000) : le matching
  * reste chez l'agent, plus aucun lien ne part vers l'acheteur.
  */
 const TABLES_A_CAPACITE = [

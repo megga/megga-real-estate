@@ -319,8 +319,8 @@ sinon un `new_lead` sur le meilleur bien), UNE relance à +5 j et UNE ligne `dos
 les `match_ids` (`execEnvoyerSelection`). Le lien « Chercher plus loin dans Recherche » est reporté au
 lot 3 : Recherche ne sait pas s'ouvrir sur un acheteur, et on n'y touche pas. Sur une ligne « Marché »,
 `E` envoie les biens cochés ; `P` et `X` n'y font rien. Un filtre « Bien » masque les lignes « Marché ».
-La RPC de résumé est `matching_fil_marche()` (migration `20260921121000`, à renommer au jour de la
-fusion si elle a lieu après le 21.09.2026 : date-guard de `deploy.yml`).
+La RPC de résumé est `matching_fil_marche()` (migration `20260922121000` : écrite le 21.09.2026, renommée au 22.09.2026, jour de la
+fusion, pour le date-guard de `deploy.yml`).
 
 ---
 

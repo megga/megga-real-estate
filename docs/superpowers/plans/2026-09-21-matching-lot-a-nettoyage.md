@@ -40,7 +40,7 @@
 
 | Zone | Fichiers |
 |---|---|
-| Données | `supabase/migrations/20260921130000_matching_sans_sortie.sql` (créé), `src/types/database.ts`, `scripts/check-privilege-drift.mjs` |
+| Données | `supabase/migrations/20260922130000_matching_sans_sortie.sql` (créé), `src/types/database.ts`, `scripts/check-privilege-drift.mjs` |
 | Exécuteurs | `src/hooks/useAtelierMatching.ts`, `src/hooks/useMatching.ts`, `tests/unit/matching-fil-gestes.spec.ts` |
 | Atelier | `src/pages/agent/MatchingAtelierPage.tsx`, `src/components/matching-atelier/{AtelierStage,AtlAcheteurMode,AtlConfirm,AtlWhy,pendingTriage}.tsx/ts`, `AtlSendSheet.tsx` (supprimé) |
 | Recherche | `src/components/matching-recherche/{MatchingRechercheHybride,mrhDemo}.tsx/ts`, `MrhSendSheet.tsx` (supprimé), `src/hooks/useSendReceptionSelection.ts` (supprimé), `src/hooks/useAjouterSelection.ts` (créé), `src/pages/agent/ExternalListingDetailPage.tsx`, `src/hooks/useSendEmail.ts` (supprimé) |
@@ -59,7 +59,7 @@
 ### Task 0 : La migration
 
 **Files :**
-- Create : `supabase/migrations/20260921130000_matching_sans_sortie.sql`
+- Create : `supabase/migrations/20260922130000_matching_sans_sortie.sql`
 - Modify : `src/types/database.ts`, `scripts/check-privilege-drift.mjs`
 
 - [ ] **Step 1 : Vérifier qu'aucun objet SQL vivant ne lit `buyer_reception_links`**

@@ -8,7 +8,7 @@
 //      NOT NULL violé silencieusement, 0 match marché créé depuis l'origine)
 //   2. CHECK matches_target_check       → refuse un match sans aucune cible
 //   3. index uniques (contact, bien)    → dédup dure du moteur
-//   4. Je l'ai proposé : match→sent (sent_via 'agent', 20260921130000) + deal
+//   4. Je l'ai proposé : match→sent (sent_via 'agent', 20260922130000) + deal
 //      new_lead + activity_events 'match_propose' (la policy INSERT agence est
 //      NOUVELLE — avant, consignation silencieusement perdue) + reminder
 //      follow_up_sent_property à +3 j. Rien ne part vers l'acheteur.
@@ -213,7 +213,7 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
   // consigne ce que l'agent a présenté par ses propres moyens ; aucun e-mail.
   it("Je l'ai proposé : match→sent 'agent' + deal new_lead + timeline + reminder +3 j (agent, RLS)", async () => {
     // a. match → proposé par l'agent (writes execProposer §1). 'agent' n'est
-    //    accepté par matches_sent_via_check que depuis 20260921130000. Le marquage ne vise
+    //    accepté par matches_sent_via_check que depuis 20260922130000. Le marquage ne vise
     //    qu'un match ENCORE `suggested` de CET acheteur, et relit la ligne réécrite
     //    (`select('id')`) : c'est elle qui décide de la suite — sans elle, rien d'autre ne
     //    s'écrit. Sous la RLS réelle, un UPDATE … RETURNING exige aussi la lecture.

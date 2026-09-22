@@ -1024,7 +1024,7 @@ const CHANGELOG = [
  * les règles de la RPC : `suggested`, non reporté, annonce non retirée ; trois vignettes. Une valeur figée
  * ne bougerait pas quand un envoi ou un « Écarter » vide la sélection.
  *
- * ⚠ Mêmes vignettes et même ordre que `20260921121000_matching_fil_marche.sql`, sans quoi le banc montre
+ * ⚠ Mêmes vignettes et même ordre que `20260922121000_matching_fil_marche.sql`, sans quoi le banc montre
  * une ligne que la production ne rend pas : `photos_cf[0]` (chaîne, ou son `.thumb`) puis `photos[0]`, une
  * chaîne vide ne comptant pas ; rang par score décroissant, puis `created_at` décroissant avec l'absent
  * EN DERNIER, puis l'id ; les trois premières vignettes NON vides dans ce rang.

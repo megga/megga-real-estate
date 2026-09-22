@@ -1,4 +1,4 @@
-// Le fil de matchs, lot 2 : la RPC `matching_fil_marche()` (migration 20260921121000), une ligne
+// Le fil de matchs, lot 2 : la RPC `matching_fil_marche()` (migration 20260922121000), une ligne
 // « Marché » par acheteur. Cloisonnement par agence, ce qu'une ligne compte (report futur exclu, échu
 // inclus, annonce `removed` exclue), les trois vignettes et leur ordre, le refus d'`anon`.
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés.
