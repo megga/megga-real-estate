@@ -144,14 +144,6 @@ const STR = {
     fr: '✅ Message envoyé au client.',
     en: '✅ Message sent to the client.',
   },
-  selectionIncomplete: {
-    fr: 'La sélection était incomplète, rien envoyé.',
-    en: 'The selection was incomplete — nothing sent.',
-  },
-  listingsSent: {
-    fr: '✅ Sélection envoyée au client.',
-    en: '✅ Selection sent to the client.',
-  },
   // Deux lecteurs : stashPending, qui refuse AVANT toute question un outil que le registre ne
   // déclare pas (un nom inventé par le modèle) ; executePending, filet pour une action en attente
   // dont le webhook ne connaît pas l'outil. Rien n'est fait dans les deux cas — le dire, et dire

@@ -59,7 +59,7 @@ describe('buildBriefSnapshot — invariant PII', () => {
       pseudo,
     })
     expect(snapshot).toContain('RAPPELS DU JOUR')
-    expect(snapshot).toContain('relance après un bien envoyé')
+    expect(snapshot).toContain('retour à obtenir sur un bien proposé')
     expect(snapshot).toContain('feedback de visite à récupérer')
     expect(snapshot).not.toContain('Nofocus') // aucun nom libre ne peut fuiter
   })

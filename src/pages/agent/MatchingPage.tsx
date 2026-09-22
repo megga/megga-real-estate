@@ -155,7 +155,16 @@ export interface MatchingPagerBanc {
   Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
-export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
+export default function MatchingPage(
+  { banc, atterrissage = 'recherche' }: {
+    banc?: MatchingPagerBanc
+    /**
+     * Page d'arrivée sans pivot. « recherche » en production tant que l'atelier tient la page 0 ;
+     * le banc du fil de matchs arrive sur « score » (lot 1). La bascule par défaut est au lot 3.
+     */
+    atterrissage?: 'score' | 'recherche'
+  } = {},
+) {
   // ─── Thème: dark/light, calé sur la barre latérale (comme Today) ────────
   const [dark, setDark] = useCrmDarkPref()
 
@@ -168,7 +177,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
   // au lieu de la page Recherche (le param était ignoré et l'atelier hors écran).
   const [searchParams] = useSearchParams()
   const [initialPage] = useState(() =>
-    searchParams.has('contact') || searchParams.has('annonce')
+    searchParams.has('contact') || searchParams.has('annonce') || atterrissage === 'score'
       ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
       : LANDING_PAGE,
   )
@@ -378,12 +387,19 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
             boxShadow: sp.shadow,
           }}>
             <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
-              <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
+              {/* ⛔ LA PAGE CACHÉE EST INERTE. Mesuré sur le banc du fil : Tab depuis le dernier bouton de la
+                  page 0 entrait dans la page 1, et le navigateur faisait défiler le viewport clippé de 470 px
+                  pour la montrer — mise en page cassée. Et les raccourcis du fil (P, X, E), posés sur l'`onKeyDown`
+                  de sa RACINE, triaient encore des matchs sur une page qu'on ne voyait plus. `inert` sort la page
+                  du clavier, de Tab et de l'arbre d'accessibilité ; React 19 rend l'attribut (React 18 l'ignorait).
+                  ⚠ Il ne couvre que les gestionnaires liés au FOCUS : un écouteur posé sur `window` (comme celui
+                  de l'atelier) continue de recevoir toutes les touches, page inerte ou pas. */}
+              <div inert={page !== 0} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc
                   ? <banc.Page0 dark={dark} onOpenRecherche={openRecherche} />
                   : <MatchingAtelierPage embedded dark={dark} onOpenRecherche={openRecherche} />}
               </div>
-              <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
+              <div inert={page !== 1} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc ? <banc.Page1 dark={dark} /> : <MatchingRechercheHybride dark={dark} />}
               </div>
             </div>

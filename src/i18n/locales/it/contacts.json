@@ -1,24 +1,17 @@
 {
   "loop": {
     "inboxTitle": "Da gestire",
-    "likedTitle": "Ha apprezzato {{title}}",
+    "likedTitle": "Interessato a {{title}}",
     "likedSub": "{{when}} · {{price}}{{score}}",
     "matchPct": " · match {{score}}%",
     "proposeVisit": "Proponi la visita",
     "later": "Più tardi",
     "handled": "Visita in preparazione · registrata nella sua scheda",
-    "filEyebrow": "Ricezione",
-    "filTitle": "Fascicoli inviati",
-    "filMeta": "{{sent}} inviati · {{opened}} aperti",
     "openAtelier": "Apri l'atelier",
-    "empty": "Nessun fascicolo inviato per il momento.",
-    "pillLiked": "Apprezzato",
-    "pillSeen": "Visto",
-    "pillSent": "Inviato",
-    "pillDismissed": "Scartato",
-    "metaLiked": "Inviato {{sent}} · aperto · apprezzato {{when}}",
-    "metaSeen": "Inviato {{sent}} · aperto · nessuna reazione",
-    "metaSent": "Inviato {{sent}} · non ancora aperto",
+    "empty": "Nessun immobile proposto per il momento.",
+    "pillLiked": "Interessato",
+    "pillSent": "Proposto",
+    "pillDismissed": "Non interessato",
     "metaDismissed": "Motivo registrato · ricalibra il matching",
     "motif": "«{{motif}}»"
   },
@@ -69,7 +62,7 @@
     "nextAction": {
       "call": "Chiamata di qualifica",
       "visit": "Pianifica una visita",
-      "match": "Invia 3 immobili dal portafoglio",
+      "match": "Proporre immobili",
       "kyc": "Avvia il KYC"
     },
     "lead": {
@@ -226,7 +219,6 @@
     "followUp": "Ricontattare",
     "noInteractionDays": "Nessuna interazione da {{days}} giorni.",
     "call": "Chiama",
-    "sendSelection": "Invia selezione immobili",
     "sendSelectionDesc": "Suggerire immobili corrispondenti ai criteri di ricerca.",
     "seeMatches": "Vedi match",
     "sellerUpdate": "Aggiornamento venditore",
@@ -359,7 +351,7 @@
   },
   "nextAction": {
     "planifier_visite": "Pianifica una visita",
-    "envoyer_biens": "Invia immobili",
+    "envoyer_biens": "Proporre immobili",
     "relancer": "Ricontatta",
     "qualifier_lead": "Qualifica il lead",
     "repondre": "Rispondi",
@@ -715,7 +707,7 @@
         "rooms": "{{n}} loc.",
         "status": {
           "suggested": "Suggerito",
-          "sent": "Inviato",
+          "sent": "Proposto",
           "visit_planned": "Visita prevista",
           "interested": "Interessato",
           "rejected": "Rifiutato",
@@ -936,7 +928,7 @@
     },
     "kycDossier": "Fascicolo KYC",
     "cta": {
-      "transmit": "Invia immobili",
+      "transmit": "Proponi immobili",
       "viewMandate": "Vedi il mandato"
     },
     "menu": {
@@ -1068,50 +1060,16 @@
     },
     "page": {
       "infos": "Informazioni sul contatto",
-      "loop": "Ciclo di match"
+      "loop": "Il suo percorso"
     },
     "loop": {
-      "opened": "Aperti",
       "toHandleCount": "Da gestire ({{count}})",
-      "transmittedCount": "Immobili inviati ({{count}})",
+      "transmittedCount": "Immobili proposti ({{count}})",
       "openInMatching": "Apri nel Matching",
       "ignore": "Ignora",
       "nothingToHandle": "Tutto aggiornato, nulla da gestire al momento.",
-      "emptyTitle": "Nessun immobile inviato",
-      "emptyBody": "Invia una selezione di immobili a {{name}}.<1/>I suoi riscontri appariranno qui."
-    },
-    "links": {
-      "title": "Link inviati ({{count}})",
-      "loading": "Caricamento dei link…",
-      "failed": "Impossibile caricare i link.",
-      "empty": "Nessun link inviato per ora.",
-      "selection_one": "Selezione di {{count}} immobile",
-      "selection_other": "Selezione di {{count}} immobili",
-      "sentOn": "Inviato il {{date}}",
-      "expiresOn": "scadenza {{date}}",
-      "revokedOn": "revocato il {{date}}",
-      "revoke": "Revoca il link",
-      "channel": {
-        "whatsapp": "WhatsApp",
-        "link": "Link copiato"
-      },
-      "status": {
-        "pending": "Non aperto",
-        "viewed": "Aperto",
-        "reacted": "Risposta ricevuta",
-        "expired": "Scaduto",
-        "revoked": "Revocato",
-        "unknown": "Stato sconosciuto"
-      },
-      "confirm": {
-        "title": "Revocare questo link?",
-        "body_one": "L'acquirente perderà l'accesso all'immobile che ha ricevuto. La revoca è definitiva: per ridargli accesso occorre inviare un nuovo link.",
-        "body_other": "L'acquirente perderà l'accesso ai {{count}} immobili che ha ricevuto. La revoca è definitiva: per ridargli accesso occorre inviare un nuovo link.",
-        "cta": "Revoca il link",
-        "busy": "Revoca in corso…",
-        "refused": "Questo link non era più attivo. L'elenco è stato appena aggiornato.",
-        "failed": "La revoca non è andata a buon fine. Riprovare."
-      }
+      "emptyTitle": "Nessun immobile proposto",
+      "emptyBody": "Proponga immobili a {{name}}, poi registri le risposte.<1/>Appariranno qui."
     },
     "saved": {
       "coord": "Recapiti salvati",

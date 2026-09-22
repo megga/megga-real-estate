@@ -30,11 +30,11 @@ export const SHARED_READ_TOOLS = [
 ] as const
 
 // Descriptions à ajuster pour le web : on retire les références aux outils
-// WhatsApp absents du catalogue web (ex. send_listings) pour ne pas inviter le
-// modèle à appeler un outil qui n'existe pas ici.
+// WhatsApp absents du catalogue web pour ne pas inviter le modèle à appeler un outil
+// qui n'existe pas ici. ⚠ `search_listings` n'y figure plus : sa surcharge ne retirait
+// que le renvoi à `send_listings`, et la description WhatsApp l'a perdu avec l'outil
+// (21.09.2026) — la garder aurait fait deux copies d'un même texte, prêtes à diverger.
 const WEB_DESCRIPTION_OVERRIDES: Record<string, string> = {
-  search_listings:
-    "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) ; annonce ce total à l'agent. N'invente jamais de bien.",
   // Réécrits pour le web. Les photos se joignent DANS LE CHAT (attach_property_photos,
   // comme WhatsApp) : le frontend les stage, l'outil les attache au bien résolu.
   attach_property_photos:

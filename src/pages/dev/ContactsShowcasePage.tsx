@@ -39,7 +39,7 @@ import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
 import WhatsAppConnectModal from '@/components/crm/contacts-pager/WhatsAppConnectModal'
 import ContactDetailPager from '@/components/crm/contacts-pager/ContactDetailPager'
 import {
-  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_NOTES,
+  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LOOP, DEMO_NOTES,
 } from './demoFixtures'
 import { readCrmDark } from '@/lib/crmDark'
 
@@ -159,7 +159,6 @@ export default function ContactsShowcasePage() {
           <ContactDetailPager
             fiche={DEMO_FICHE}
             loop={surface === 'fiche-vide' ? { ...DEMO_FICHE_LOOP, items: [], pendingLikes: [] } : DEMO_FICHE_LOOP}
-            links={surface === 'fiche-vide' ? { ...DEMO_FICHE_LINKS, items: [] } : DEMO_FICHE_LINKS}
             sp={sp}
             dark={dark}
             onBack={() => setSurface('liste')}
@@ -176,7 +175,6 @@ export default function ContactsShowcasePage() {
             onOpenMatching={NOOP}
             onOpenListings={NOOP}
             onProposeVisit={NOOP}
-            onRevokeLink={async () => 'ok'}
           />
         ) : (
           <ContactsPager

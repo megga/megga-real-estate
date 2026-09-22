@@ -24,6 +24,7 @@ import { sendOutboundGuarded, type PublicReason, type OutboundPayload } from '..
 import { planConfirmation, resolveButtonDecision, parseConfirmReplyId, deliverConfirmation } from '../_shared/whatsapp-confirm-buttons.ts'
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 import { urlFonction } from '../_shared/function-url.ts'
+import { bienDansMessage, refusBienDansMessage } from '../_shared/message-sans-bien.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1073,9 +1074,9 @@ async function recordPricing(
 // Après un échec de livraison : audit TOUJOURS, puis alerte WhatsApp à l'agent vérifié
 // de l'agence si le sortant visait un CLIENT (contact_id). Best-effort, PII-safe
 // (aucun numéro ni contenu en logs). L'UPDATE monotone ne fait transiter chaque MESSAGE
-// vers failed qu'une fois → pas de double alerte PAR message ; mais un send_listings =
-// jusqu'à 6 messages (texte + 5 photos) qui, hors fenêtre 24h, échouent tous → sans
-// garde, 6 alertes quasi identiques. THROTTLE : on n'envoie qu'UNE alerte WhatsApp par
+// vers failed qu'une fois → pas de double alerte PAR message ; mais un envoi groupé
+// (l'ancien send_listings, retiré le 21.09.2026 : texte + 5 photos) échouait en entier hors
+// fenêtre 24h → sans garde, 6 alertes quasi identiques. THROTTLE : on n'envoie qu'UNE alerte WhatsApp par
 // contact sur une courte fenêtre (l'audit, lui, reste exhaustif). Le libellé distingue
 // photo vs message (un échec photo isolé ≠ « ton message n'a pas été délivré », sinon
 // l'agent croit toute la sélection perdue et la renvoie → doublons chez le client).
@@ -1094,7 +1095,7 @@ async function notifyDeliveryFailure(
 
   // Une alerte WhatsApp a-t-elle DÉJÀ RÉELLEMENT été émise pour ce contact récemment ?
   // (marqueur alert_sent=true posé plus bas UNIQUEMENT après un envoi réussi). Throttle
-  // cross-invocation : un send_listings hors fenêtre = jusqu'à 6 échecs → 1 seule alerte.
+  // cross-invocation : un envoi groupé hors fenêtre = plusieurs échecs → 1 seule alerte.
   let alreadyAlerted = false
   if (row.contact_id) {
     const since = new Date(Date.now() - 2 * 60 * 1000).toISOString()
@@ -1349,7 +1350,9 @@ async function offerTemplateFallback(
 }
 
 // Exécute une action confirmée (send_client_message, send_template, update_pipeline,
-// record_offer, send_listings). Garde agence AU SQL ou via l'exécuteur partagé.
+// record_offer…). Garde agence AU SQL ou via l'exécuteur partagé. L'envoi d'une sélection de
+// biens au client (send_listings) est retiré le 21.09.2026 : le matching reste chez l'agent.
+// Une action de ce type encore en attente tombe sur le filet unknownAction, sans rien envoyer.
 async function executePending(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
@@ -1372,11 +1375,13 @@ async function executePending(
     // porte CI de L6 pour rien.
     if (!tmsg) return t(lang, 'sendFail24h')
     // SITE 1 — le seul envoi HORS fenêtre 24 h, donc le plus sensible du dépôt.
-    // `new_listings` est du MARKETING : sans opt-in de base `consent`, la garde le refuse,
-    // et c'est voulu — un template approuvé par Meta n'est pas un consentement de la personne.
+    // ⚠ Plus de branche MARKETING : le seul template marketing de ce site, `new_listings`
+    // (« N nouveaux biens correspondant à votre recherche »), est retiré le 21.09.2026 — le
+    // matching reste chez l'agent. Un futur template marketing devra rouvrir cette finalité,
+    // avec l'opt-in de base `consent` qu'elle exige.
     const sent = await sendOutboundGuarded({
       admin, provider, to: phone,
-      purpose: key === 'new_listings' ? 'marketing' : 'utility',
+      purpose: 'utility',
       // `templateKey` : c'est la clé interne, pas le nom Meta, que l'historique du CRM porte.
       payload: { type: 'template', message: tmsg, templateKey: key },
       contactId, agencyId: agentLink.agency_id,
@@ -1399,6 +1404,10 @@ async function executePending(
     const contactId = String(pending.args.contact_id ?? '')
     const text = String(pending.args.body ?? '')
     if (!contactId || !text) return t(lang, 'actionIncompleteSend')
+    // ⛔ Aucun bien dans un message au client, même validé par l'agent (21.09.2026, le matching
+    // reste chez lui). `prepareSendClientMessage` le refuse déjà avant le « oui » ; revérifié ICI,
+    // à l'envoi, parce que c'est le texte stocké qui part, pas celui qu'on a préparé.
+    if (bienDansMessage(text)) return refusBienDansMessage(lang)
     // Garde agence au niveau SQL : pas de match (ou agency_id NULL) => introuvable.
     const { data: contact } = await admin
       .from('contacts').select('id, phone')
@@ -1470,100 +1479,6 @@ async function executePending(
   if (pending.tool === 'record_offer') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeRecordOffer(ctx, pending.args)
-  }
-  if (pending.tool === 'send_listings') {
-    if (!agentLink.agency_id) return t(lang, 'noAgencySend')
-    const text = String(pending.args.text ?? '')
-    // ⚠ CORRECTION À LA SOURCE. Le numéro était FIGÉ au stash et le contact TOLÉRÉ NUL
-    // (`String(...) || null`). Deux conséquences : une fiche corrigée entre la proposition
-    // et le « oui » faisait partir le message à l'ANCIEN numéro, et sans contact la garde
-    // devait dériver le sujet à l'aveugle — pour refuser, mais en visant peut-être une
-    // autre fiche. Le contact devient obligatoire (prepareSendListings l'exigeait déjà) et
-    // le numéro est RELU, scopé à l'agence par le SQL.
-    const contactId = String(pending.args.contact_id ?? '')
-    if (!contactId || !text) return t(lang, 'selectionIncomplete')
-    const { data: lContact } = await admin.from('contacts')
-      .select('id, phone').eq('id', contactId).eq('agency_id', agentLink.agency_id).maybeSingle()
-    const phone = String((lContact as { phone?: string | null } | null)?.phone ?? '').replace(/\D/g, '')
-    if (!phone) return t(lang, 'contactNotFoundSend')
-    // SITE 3 — le texte. Il porte le verdict du GESTE : s'il est refusé, la boucle photos
-    // ci-dessous ne tourne pas, et l'agent reçoit un motif au lieu de six.
-    const sent = await sendOutboundGuarded({
-      admin, provider, to: phone,
-      purpose: 'service',
-      payload: { type: 'text', body: text },
-      contactId, agencyId: agentLink.agency_id,
-      sentByProfileId: agentLink.profile_id,
-      isAutomated: true, // « Bonjour X, voici une sélection… » = boilerplate, hors corpus de voix
-    })
-    if (!sent.ok) return sent.blocked ? refusalMessage(sent.publicReason, lang) : t(lang, 'sendFail24h')
-    // Photos : la 1re de chaque bien, en messages image après le texte. Best-effort au
-    // sens où le texte est déjà parti — mais PAS muet : on compte les tentatives réelles
-    // (imagesAttempted) vs les succès (photosSent) et on le dit à l'agent si l'écart
-    // existe (WYSIWYG : le prompt annonçait « +N photos »). Re-garde https à l'exécution
-    // (défense en profondeur) : jamais d'URL non-https relayée à Meta.
-    let photosSent = 0
-    let imagesAttempted = 0
-    const images = Array.isArray(pending.args.images) ? (pending.args.images as Array<Record<string, unknown>>).slice(0, 5) : []
-    for (let i = 0; i < images.length; i++) {
-      const img = images[i]
-      const url = typeof img.url === 'string' && img.url.startsWith('https://') ? img.url : null
-      if (!url) continue
-      imagesAttempted++
-      const caption = typeof img.caption === 'string' ? img.caption.slice(0, 300) : undefined
-      // SITE 4 — chaque photo repasse par la garde, et c'est plus sûr que de la court-circuiter
-      // au prétexte que le texte est déjà parti : un STOP qui arrive entre deux photos DOIT
-      // arrêter les suivantes. Le coût redouté — six déclenchements pour un seul « oui » —
-      // n'existe pas : la garde ne journalise QUE les refus, et un refus du texte a déjà
-      // renvoyé l'agent plus haut.
-      const ires = await sendOutboundGuarded({
-        admin, provider, to: phone,
-        purpose: 'service',
-        payload: { type: 'image', url, caption },
-        contactId, agencyId: agentLink.agency_id,
-        sentByProfileId: agentLink.profile_id,
-        isAutomated: true, // légende de photo send_listings = boilerplate, hors corpus de voix
-      })
-      if (!ires.ok) { console.error('send_listings photo failed:', url.slice(0, 120)); continue }
-      photosSent++
-    }
-    try {
-      await admin.from('activity_events').insert({
-        agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
-        action: 'whatsapp_ai_send_listings', entity_type: 'contact',
-        entity_id: contactId, category: 'contact',
-        severity: 'info', metadata: { via: 'whatsapp', profile_id: agentLink.profile_id, photos_sent: photosSent, photos_attempted: imagesAttempted },
-      })
-    } catch { /* non bloquant */ }
-    // Capture sent_at : un vrai dossier vient de partir → marquer les matches
-    // correspondants 'sent' (réactivité aval ; les matches marché portent
-    // market_listing_id, les internes property_id → on couvre les deux).
-    try {
-      // Garde UUID (défense en profondeur) : les ids sont interpolés dans le filtre
-      // PostgREST .or() → on n'accepte que des UUID, jamais une valeur qui pourrait
-      // corrompre l'expression (virgule/parenthèse), quelle que soit la provenance.
-      const sentIds = Array.isArray(pending.args.listing_ids)
-        ? (pending.args.listing_ids as unknown[]).filter((x): x is string => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x))
-        : []
-      const sentContactId = String(pending.args.contact_id ?? '')
-      if (sentIds.length && sentContactId) {
-        const inList = `(${sentIds.join(',')})`
-        await admin.from('matches')
-          .update({ status: 'sent', sent_via: 'whatsapp', sent_at: new Date().toISOString() })
-          .eq('agency_id', agentLink.agency_id).eq('contact_id', sentContactId).eq('status', 'suggested')
-          .or(`property_id.in.${inList},market_listing_id.in.${inList}`)
-      }
-    } catch { /* non bloquant */ }
-    // Retour honnête à l'agent : si des photos annoncées n'ont pas pu partir (Meta a
-    // rejeté le lien, réseau, ou provider sans image), on le DIT — jamais « tout envoyé »
-    // en silence (invariant « aucun échec d'envoi muet », ici au niveau requête).
-    if (imagesAttempted > 0 && photosSent < imagesAttempted) {
-      const missing = imagesAttempted - photosSent
-      return lang === 'en'
-        ? `✅ Text sent to the client — but ${missing}/${imagesAttempted} photo${imagesAttempted > 1 ? 's' : ''} couldn't go through (only the text arrived).`
-        : `✅ Texte envoyé au client — mais ${missing}/${imagesAttempted} photo${imagesAttempted > 1 ? 's' : ''} n'${missing > 1 ? 'ont' : 'a'} pas pu partir (seul le texte est arrivé).`
-    }
-    return t(lang, 'listingsSent')
   }
   if (pending.tool === 'delete_contact') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }

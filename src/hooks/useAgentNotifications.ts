@@ -85,8 +85,12 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // Les boîtes de la Messagerie : branchée, refusée, déconnectée, réglée
   mail_account_connected: 'message', mail_account_connect_failed: 'message',
   mail_account_disconnected: 'message', mail_account_updated: 'message',
-  // Matching : correspondances et sélections envoyées
+  // Matching : correspondances et gestes de l'agent. Depuis le 21.09.2026 rien ne part plus vers
+  // l'acheteur ; `whatsapp_ai_send_listings` et `reception_link_created` ne s'écrivent plus, mais leurs
+  // libellés restent au journal (dix ans) et chaque libellé doit garder son type (sans eux, le second
+  // tomberait en « Système » : agent-notifications-scenarios.spec.ts).
   match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
+  match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching',
   // Agenda
   visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
   onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',

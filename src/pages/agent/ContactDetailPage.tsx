@@ -21,7 +21,6 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
-import { useReceptionLinks, useRevokeReceptionLink, estRefusDeRetrait } from '@/hooks/useReceptionLinks'
 import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useKycDossier'
 import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
@@ -30,10 +29,7 @@ import { mapKycStatus, pickAvatarBg } from '@/lib/crmAdapters'
 import type { KycDossierStatus } from '@/types/kyc'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { supabase } from '@/lib/supabase'
-import ContactDetailPager, {
-  type FicheContact,
-  type FicheRevokeResult,
-} from '@/components/crm/contacts-pager/ContactDetailPager'
+import ContactDetailPager, { type FicheContact } from '@/components/crm/contacts-pager/ContactDetailPager'
 import { useContactNotes } from '@/hooks/useContactNotes'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
@@ -57,8 +53,6 @@ export default function ContactDetailPage() {
   // restaurés qu'on n'a pas encore ouverts) ; ici c'est immédiat et sans requête.
   useTabLabel(contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : null)
   const loop = useContactSentMatches(id)
-  const receptionLinks = useReceptionLinks(id)
-  const revokeLink = useRevokeReceptionLink()
   const { data: kyc } = useKycDossierByContact(id)
   const notesFil = useContactNotes(id)
   // Écrire au contact depuis l'en-tête : dans la Messagerie si une boîte est connectée
@@ -166,8 +160,7 @@ export default function ContactDetailPage() {
   return shell(
     <ContactDetailPager
       fiche={fiche}
-      loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, opened: loop.opened }}
-      links={{ items: receptionLinks.data ?? [], isLoading: receptionLinks.isLoading, failed: receptionLinks.isError }}
+      loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, dismissed: loop.dismissed }}
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
@@ -233,17 +226,6 @@ export default function ContactDetailPage() {
       // Pas de navigate ici : le pager affiche « Contact supprimé » puis appelle
       // onBack (naviguer tout de suite démonterait la carte avant qu'on la voie).
       onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
-      // Le pager reste sans appel Supabase : il reçoit le VERDICT, pas l'erreur brute.
-      // Un refus de la RPC (lien déjà retiré ailleurs) et une panne réseau doivent se
-      // dire différemment à l'agent — les confondre ferait croire à un accès coupé.
-      onRevokeLink={async (linkId): Promise<FicheRevokeResult> => {
-        try {
-          await revokeLink.mutateAsync({ linkId, contactId: id })
-          return 'ok'
-        } catch (e) {
-          return estRefusDeRetrait(e) ? 'refused' : 'failed'
-        }
-      }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
       onEmail={ecrire}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}

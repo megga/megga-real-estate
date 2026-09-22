@@ -65,9 +65,6 @@
       "title": "Close to the criteria",
       "note": "1 criterion relaxed"
     },
-    "send_one": "Send {{count}} listing to {{name}}",
-    "send_other": "Send {{count}} listings to {{name}}",
-    "sendSoon": "Sending a selection from search, coming soon.",
     "card": {
       "estimate": "On request",
       "perMonth": "/month",
@@ -165,18 +162,15 @@
       "nearHere": "None within the criteria · nearby listings"
     },
     "slow": "The search is taking unusually long.",
-    "blocked": "The search could not start."
-  },
-  "sendSheet": {
-    "title": "Send to {{name}}",
-    "body": "Private link, no email. {{firstName}}'s replies come back to their file.",
-    "whatsapp": "Send via WhatsApp",
-    "copyLink": "Copy the link",
-    "copied": "Link copied",
-    "preview": "Open the buyer preview",
-    "error": "Couldn't prepare the link. Try again.",
-    "noPhone": "This contact has no phone number. Copy the link to send it.",
-    "waMessage": "Hi {{firstName}}, here's a selection of properties for you: {{url}}"
+    "blocked": "The search could not start.",
+    "ajouter": "Add to {{prenom}}'s selection",
+    "ajoute_one": "{{count}} property added to {{prenom}}'s selection",
+    "ajoute_other": "{{count}} properties added to {{prenom}}'s selection",
+    "dejaPresents_one": "{{count}} already in their matches",
+    "dejaPresents_other": "{{count}} already in their matches",
+    "dejaHorsFile_one": "including {{count}} dismissed or postponed, left as is",
+    "dejaHorsFile_other": "including {{count}} dismissed or postponed, left as is",
+    "ajoutErreur": "The properties could not be added. Try again."
   },
   "runMatching": "Run matching",
   "running": "Analysing...",
@@ -184,13 +178,13 @@
   "market": "Market",
   "kpi": {
     "totalMatches": "Total matches",
-    "toSend": "To send",
+    "toSend": "To propose",
     "sent": "Sent",
     "contacts": "Contacts"
   },
   "filter": {
     "all": "All",
-    "suggested": "To send",
+    "suggested": "To propose",
     "sentLabel": "Sent",
     "internal": "Internal",
     "marketLabel": "Market",
@@ -255,7 +249,7 @@
   },
   "tabs": {
     "all": "All",
-    "to-send": "To send",
+    "to-send": "To propose",
     "engaged": "Engaged",
     "no-reply": "No reply"
   },
@@ -263,7 +257,7 @@
     "daysAgo_one": "{{count}} day ago",
     "daysAgo_other": "{{count}} days ago",
     "recently": "recently",
-    "noReply": "File sent {{age}}, no response. Try another channel, phone or WhatsApp.",
+    "noReply": "Proposed {{age}}, no answer logged. Follow up by phone or WhatsApp.",
     "engagedVisit": "Viewing already scheduled. Prepare the viewing slip and the property's highlights.",
     "engaged": "{{engage}}, strike while it's hot, now's the time to propose a viewing.",
     "aligned": "Profile aligned on all axes. {{kyc}}",
@@ -271,8 +265,8 @@
     "twoPos": "{{a}} and {{b}} aligned. {{kyc}}",
     "default": "Match at {{score}}/100 on active criteria. {{kyc}}",
     "kycPhrase": {
-      "verified": "No KYC blocker, ready to send immediately.",
-      "pending": "KYC in progress, no blocker for sending.",
+      "verified": "No KYC blocker, ready to propose right away.",
+      "pending": "KYC in progress, no blocker for proposing.",
       "stale": "KYC verification expired, re-screen before an offer.",
       "none": "KYC not started, gentle reminder, non-blocking at this stage."
     }
@@ -367,7 +361,6 @@
     "start": "Start",
     "interested": "Interested",
     "notInterested": "Not interested",
-    "followUpOtherChannel": "Follow up · another channel",
     "proposeVisit": "Propose a viewing",
     "dismiss": "Dismiss",
     "later": "Later",
@@ -388,13 +381,12 @@
     "reactivateNow": "Reactivate now",
     "backOn": "Back on {{date}}",
     "seeDeal": "View deal →",
-    "toastSentBuyer": "File sent to {{name}} · {{title}} · added to their client file",
+    "toastSentBuyer": "{{title}} proposed to {{name}} · reminder in 3 days",
     "toastLaterListing": "Later · {{title}} will come back on {{date}}",
     "toastDismissedBuyer": "{{title}} dismissed for {{name}}",
     "toastBackInQueue": "{{title}} is back in the queue",
     "neighborhoodLabel": "{{area}} neighbourhood",
     "mapAlt": "Map, {{address}}",
-    "defaultAgentName": "Your MEGGA agent",
     "closeAtelier": "Close the workspace",
     "buyerTitle": "Buyer matching",
     "listingTitle": "Listing matching",
@@ -431,8 +423,8 @@
       "desc": "Every buyer in this tab has been triaged. Switch tabs."
     },
     "toast": {
-      "sent": "File sent to {{name}} · added to their client file",
-      "relance": "Follow-up sent to {{name}} · logged in their file",
+      "sent": "Proposed to {{name}} · reminder in 3 days",
+      "relance": "Follow-up with {{name}} recorded · reminder in 3 days",
       "later": "Later · {{name}} will return to the queue on {{date}}",
       "interested": "{{name}} · interested, responsiveness logged",
       "rejected": "{{name}} · not interested",
@@ -440,7 +432,7 @@
       "backInQueue": "{{name}} is back in the queue",
       "seeDeal": "View deal →"
     },
-    "sendDossier": "Send the dossier",
+    "sendDossier": "I proposed it",
     "priceBefore": "Was",
     "queueSortedBy": "sorted by",
     "sortByMatch": "match strength",
@@ -450,7 +442,8 @@
     "scheduleThisWeek": "This week",
     "scheduleLater": "Later",
     "resume": "Resume",
-    "changeDate": "Change"
+    "changeDate": "Change",
+    "followedUp": "I followed up"
   },
   "cockpit": {
     "switchTitle": "Match another listing",
@@ -464,43 +457,29 @@
     "queueDone": "Queue cleared"
   },
   "confirm": {
-    "sendTitle": "Send the file",
-    "followUpTitle": "Follow up",
-    "sendQuestion": "Send the file?",
-    "followUpQuestion": "Follow up with {{name}}?",
-    "sendBody": "The property's full file will be added to {{firstName}}'s client file, with a notification. Everything is logged automatically in their record.",
-    "followUpBody": "A gentle follow-up will be added to {{firstName}}'s client file, with the property as a reminder. Everything is logged automatically in their record.",
-    "sendCta": "Send",
-    "followUpCta": "Follow up",
-    "successSendTitle": "File sent",
-    "successFollowUpTitle": "Follow-up sent",
-    "successSendBody": "Added to {{name}}'s client file · notification sent.",
-    "successFollowUpBody": "{{name}} received a reminder · logged in their client file."
+    "sendTitle": "I proposed it",
+    "followUpTitle": "I followed up",
+    "sendQuestion": "I proposed it to {{firstName}}?",
+    "followUpQuestion": "I followed up with {{name}}?",
+    "sendBody": "Nothing is sent to {{firstName}}: the CRM records the proposal on the contact record and reminds you in 3 days to log the answer.",
+    "followUpBody": "Nothing is sent to {{firstName}}: the CRM records your follow-up on the contact record and pushes the reminder back by 3 days.",
+    "sendCta": "I proposed it",
+    "followUpCta": "I followed up",
+    "successSendTitle": "Proposal recorded",
+    "successFollowUpTitle": "Follow-up recorded",
+    "successSendBody": "Proposed to {{name}} · reminder in 3 days.",
+    "successFollowUpBody": "{{name}} · reminder in 3 days."
   },
   "panel": {
     "loading": "Loading matches...",
     "loadError": "Failed to load",
     "suggestionCount_one": "{{count}} suggestion",
     "suggestionCount_other": "{{count}} suggestions",
-    "sentCount_one": "{{count}} sent",
-    "sentCount_other": "{{count}} sent",
     "searchCompatible": "Find matching properties",
     "matchesFound_one": "{{count}} new match found",
     "matchesFound_other": "{{count}} new matches found",
     "emptyTitle": "No matching property found",
     "emptyDesc": "Run the search or add search criteria to the contact."
-  },
-  "send": {
-    "fallbackName": "Contact",
-    "title": "Send the property to {{name}}",
-    "description": "{{title}} - {{price}}, Score {{score}}%",
-    "channelLabel": "Channel",
-    "messageLabel": "Message",
-    "error": "Sending failed. Please try again.",
-    "template": {
-      "whatsapp": "Hello {{firstName}}, I have a property that might interest you: {{title}}, {{address}} in {{city}}. Price: {{price}}. {{rooms}} rooms, {{surface}} m². Would you like to schedule a viewing?",
-      "email": "Hello {{firstName}},\n\nFollowing our conversation, I am pleased to present a property that matches your criteria:\n\n{{title}}\n{{address}}, {{city}}\nPrice: {{price}}\n{{rooms}} rooms · {{surface}} m²\n\nWould you like to arrange a viewing? I remain at your disposal.\n\nKind regards,\nGregory Lyonnet\nMEGGA Immobilier"
-    }
   },
   "mobile": {
     "activeBuyers_one": "{{count}} active buyer",
@@ -511,17 +490,15 @@
     "schedule": "Schedule",
     "visitPlanned": "Visit scheduled",
     "visitProposed": "Visit proposed",
-    "send": "Send",
-    "sent": "Sent",
+    "send": "I proposed it",
+    "sent": "Proposed",
     "surfaceSuffix": "m²",
     "roomsSuffix": "rooms",
-    "channelEmail": "By email · {{email}}",
-    "channelNone": "Filed in the client folder",
     "viewContact": "View contact",
     "refine": "Refine criteria",
     "removeFromList": "Remove from list",
     "removeTitle": "Remove from list?",
-    "removeBody": "{{name}} will no longer receive proposals from this search.",
+    "removeBody": "These properties will no longer be suggested to you for {{name}}.",
     "emptyFilter": "No buyer in this filter.",
     "verdict": {
       "excellent": "Excellent",
@@ -542,5 +519,162 @@
       "recommended": "Recommended",
       "save": "Save"
     }
+  },
+  "fil": {
+    "titre": "Matching",
+    "aTraiter": "To review · {{count}}",
+    "chargement": "Loading matches",
+    "filtres": {
+      "bien": "Filter by property",
+      "tousLesBiens": "All properties",
+      "acheteur": "Filter by buyer",
+      "tousLesAcheteurs": "All buyers",
+      "recherche": "Search a property or a buyer",
+      "retirer": "Clear filters",
+      "inconnu": "Current selection"
+    },
+    "vosBiens": "Your properties",
+    "listeAria": "Matches to review",
+    "acheteurs_one": "{{count}} buyer",
+    "acheteurs_other": "{{count}} buyers",
+    "sansEcart": "No gaps flagged",
+    "ecartSur": "{{critere}} to check",
+    "nonEvalues": "Criteria not assessed",
+    "sansCriteres": "No detailed criteria",
+    "reportes_one": "{{count}} postponed · back from {{date}}",
+    "reportes_other": "{{count}} postponed · back from {{date}}",
+    "deRetour": "back on {{date}}",
+    "reactiver": "Reactivate",
+    "votreBien": "Your property",
+    "voirBien": "View property",
+    "sansPhoto": "No photo",
+    "estimation": "estimate",
+    "scoreAria": "Score {{score}}, estimate · {{palier}}",
+    "palier": {
+      "fort": "very close",
+      "bon": "close",
+      "possible": "worth a look"
+    },
+    "kyc": {
+      "verified": "KYC verified",
+      "pending": "KYC in progress",
+      "stale": "KYC to renew",
+      "none": "KYC to complete"
+    },
+    "panneauAria": "{{acheteur}} for {{bien}}",
+    "pourquoi": "Why this match",
+    "colonnes": {
+      "critere": "Criterion",
+      "recherche": "Looking for",
+      "bien": "This property",
+      "verdict": "Verdict"
+    },
+    "criteres": {
+      "budget": "Budget",
+      "zone": "Area",
+      "type": "Type",
+      "pieces": "Rooms",
+      "surface": "Surface",
+      "equipements": "Features"
+    },
+    "correspond": "Matches",
+    "ecart": "Differs",
+    "valeurs": {
+      "entre": "{{min}} to {{max}}",
+      "jusqua": "up to {{valeur}}",
+      "desDe": "from {{valeur}}",
+      "auMoins": "{{valeur}} or more",
+      "auPlus": "{{valeur}} at most",
+      "m2": "{{valeur}} m²",
+      "parMois": "{{valeur}} / month",
+      "presents": "{{n}} of {{total}}",
+      "inconnu": "Not specified"
+    },
+    "types": {
+      "apartment": "Apartment",
+      "house": "House",
+      "villa": "Villa",
+      "office": "Office",
+      "commercial": "Commercial",
+      "parking": "Parking",
+      "storage": "Storage",
+      "land": "Land"
+    },
+    "equipementsNoms": {
+      "balcon": "Balcony",
+      "terrasse": "Terrace",
+      "jardin": "Garden",
+      "ascenseur": "Lift",
+      "cave": "Cellar",
+      "parking": "Parking",
+      "garage": "Garage",
+      "piscine": "Pool",
+      "cheminee": "Fireplace",
+      "climatisation": "Air conditioning",
+      "parquet": "Parquet",
+      "vue-lac": "Lake view",
+      "vue": "View",
+      "place-de-parc": "Parking space",
+      "clim": "Air conditioning"
+    },
+    "historique": {
+      "aucun": "Already proposed to {{prenom}}: nothing yet",
+      "proposes_one": "Already proposed to {{prenom}}: {{count}} property",
+      "proposes_other": "Already proposed to {{prenom}}: {{count}} properties",
+      "interesses_one": " · {{count}} interested",
+      "interesses_other": " · {{count}} interested"
+    },
+    "actions": {
+      "proposer": "I proposed it to {{prenom}}",
+      "plusTard": "Later",
+      "ecarter": "Dismiss",
+      "raccourci": "Shortcut: {{touche}}"
+    },
+    "reporte": "{{nom}} postponed by a week",
+    "ecarte": "{{nom}} dismissed for this property",
+    "annuler": "Undo",
+    "erreurGeste": "This action couldn't be saved. Try again.",
+    "vide": {
+      "titre": "All caught up",
+      "texte": "None of your properties is waiting to be proposed.",
+      "contacts": "Complete a contact's search",
+      "marche": "View the market"
+    },
+    "filtreVide": "Nothing matches these filters.",
+    "choisir": "Pick a match from the list.",
+    "erreur": "Matches couldn't be loaded.",
+    "erreurRafraichir": "The list couldn't be refreshed.",
+    "reessayer": "Try again",
+    "marche": "Market · one selection per buyer",
+    "marcheAria": "Market selections",
+    "ecarteSelection": "“{{titre}}” dismissed for {{prenom}}",
+    "selection": {
+      "ligne_one": "{{count}} property not yet proposed",
+      "ligne_other": "{{count}} properties not yet proposed",
+      "titreAria": "Market selection for {{nom}}",
+      "marche": "Market",
+      "recherche": "Search: {{resume}}",
+      "inclure": "Include “{{titre}}”",
+      "ecarterAria": "Dismiss “{{titre}}”",
+      "ecarts": "To check: {{liste}}",
+      "pieces_one": "{{valeur}} room",
+      "pieces_other": "{{valeur}} rooms",
+      "piecesAuMoins_one": "{{valeur}} room or more",
+      "piecesAuMoins_other": "{{valeur}} rooms or more",
+      "piecesAuPlus_one": "at most {{valeur}} room",
+      "piecesAuPlus_other": "at most {{valeur}} rooms",
+      "piecesEntre_one": "{{min}} to {{max}} room",
+      "piecesEntre_other": "{{min}} to {{max}} rooms",
+      "voirPlus": "Show 20 more",
+      "aucunCoche": "Tick at least one property.",
+      "vide": "No market properties to propose.",
+      "erreur": "The selection couldn't be loaded.",
+      "proposer_one": "I proposed {{count}} property to {{prenom}}",
+      "proposer_other": "I proposed {{count}} properties to {{prenom}}",
+      "proposerAucun": "I proposed them to {{prenom}}"
+    },
+    "propose": "Proposed to {{prenom}} · reminder in 3 days",
+    "proposeSelection_one": "{{count}} property proposed to {{prenom}} · reminder in 3 days",
+    "proposeSelection_other": "{{count}} properties proposed to {{prenom}} · reminder in 3 days"
   }
 }

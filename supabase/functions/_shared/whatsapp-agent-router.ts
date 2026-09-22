@@ -73,7 +73,9 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
   update_pipeline: 'confirm',
   send_client_message: 'confirm',
-  send_listings: 'confirm',
+  // L'envoi d'une sélection de biens au client (send_listings) n'est plus au registre depuis
+  // le 21.09.2026 : le matching reste chez l'agent. Hors registre, le nom retombe sur le défaut
+  // 'confirm' SANS être dans CONFIRM_TOOLS : stashPending le refuse avant toute question.
   record_offer: 'confirm',
   // delete_contact : suppression DÉFINITIVE d'une fiche contact → confirm obligatoire
   // (destructif + irréversible, jamais dans la boucle). Le socle légal ne peut jamais
@@ -124,8 +126,8 @@ export function normalizePortal(raw: string): string {
 }
 
 // SEUL outil 'confirm' qui peut passer en auto (Palier 3) : update_pipeline — réversible
-// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/send_listings/
-// record_offer/open_kyc_case) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
+// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/record_offer/
+// open_kyc_case/send_client_email) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
 export function canLeaveConfirm(tool: string): boolean {
   return tool === 'update_pipeline'
 }

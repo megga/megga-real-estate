@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Nuovo",
-        "sent": "Fascicolo inviato",
+        "sent": "Immobile proposto",
         "visitPlanned": "Visita pianificata",
         "interested": "Interessato"
       },
+      "proposeError": "La proposta non è stata registrata. Riprovi.",
       "why": {
         "fallback": "Nuovo match, primo contatto da avviare."
       },
@@ -318,8 +319,8 @@
         "toRefine": "da affinare"
       },
       "action": {
-        "addToFile": "Aggiungi al fascicolo di {{name}}",
-        "added": "Aggiunto al fascicolo di {{name}}",
+        "addToFile": "L'ho proposto a {{name}}",
+        "added": "Proposto a {{name}}",
         "openInMatching": "Apri in Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Nessun contatto dormiente da ricontattare oggi. I tuoi follow-up appariranno qui non appena un contatto si raffredda."
       },
       "sendError": "Invio non riuscito, riprova o copia il messaggio.",
+      "sendErrorBien": "Non è partito nulla: questo messaggio contiene un immobile (link di annuncio o riferimento MG-…). Il matching resta a Lei: presenti l'immobile personalmente, poi registri «L'ho proposto» nel matching.",
       "draft": {
         "to": "A",
         "emailMissing": "(email mancante)",

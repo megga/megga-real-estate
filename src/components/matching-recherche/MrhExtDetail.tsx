@@ -259,9 +259,10 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         {/* ⚠ LA SEULE ENTRÉE VERS LA FICHE AUTONOME, et c'est ce qui la rend
             atteignable : réparée le 05.09.2026, elle n'avait plus aucun lien entrant
             depuis le 18.05.2026. Cette surcouche montre l'annonce, mais elle ne sait
-            NI annoter, NI envoyer au client, NI importer au portefeuille — trois
-            capacités que seule la page porte. D'où « ouvrir en grand » plutôt qu'un
-            doublon d'affordances ici.
+            NI annoter, NI importer au portefeuille — deux capacités que seule la page
+            porte (l'envoi au client en était une troisième, retirée le 21.09.2026 : le
+            matching reste chez l'agent). D'où « ouvrir en grand » plutôt qu'un doublon
+            d'affordances ici.
             ⚠ Un vrai `<Link>` et non un `onClick` : ⌘-clic doit pouvoir l'ouvrir dans
             un onglet du navigateur, et la barre d'onglets du CRM lui donne le sien. */}
         <Link

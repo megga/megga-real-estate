@@ -577,15 +577,6 @@ verify_jwt = false
 [functions.backfill-cf-images]
 verify_jwt = false
 
-[functions.buyer-reception-create]
-verify_jwt = false
-
-[functions.buyer-reception-get]
-verify_jwt = false
-
-[functions.buyer-reception-react]
-verify_jwt = false
-
 [functions.c2pa-sign]
 verify_jwt = false
 
@@ -710,9 +701,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.send-email]
-verify_jwt = false
-
-[functions.send-property-email]
 verify_jwt = false
 
 [functions.send-relance-email]

@@ -23,7 +23,6 @@ import type { OutboundTemplateMessage } from './whatsapp-gateway.ts'
 export type WaTemplateKey =
   | 'followup'
   | 'availability'
-  | 'new_listings'
   | 'agent_daily_brief'
   | 'kyc_documents_missing'
   | 'number_verification'
@@ -31,7 +30,6 @@ export type WaTemplateKey =
 export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
   'followup',
   'availability',
-  'new_listings',
   'agent_daily_brief',
   'kyc_documents_missing',
   'number_verification',
@@ -40,7 +38,6 @@ export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
 export interface WaTemplateContext {
   clientFirstName?: string   // {{1}} — prénom du client (repli « Bonjour »)
   agentName?: string         // {{2}} — nom de l'agent/agence
-  count?: number             // new_listings : nombre de biens ({{2}})
   extra?: string             // availability : objet du créneau (ex. « une visite »)
   agentFirstName?: string    // agent_daily_brief : prénom de l'AGENT destinataire ({{1}})
   itemCount?: number         // agent_daily_brief : nombre d'éléments à traiter ({{2}})
@@ -139,21 +136,10 @@ const REGISTRY: Record<WaTemplateKey, WaTemplateDef> = {
       nonEmpty(c.extra, FALLBACK[l].slot),
     ],
   },
-  // « Bonjour {{1}}, {{2}} nouveau(x) bien(s) correspondant à votre recherche viennent
-  //   d'arriver. Voulez-vous les découvrir ? »
-  // ⚠ {{2}} est un NOMBRE : chaque traduction doit rester grammaticale avec 1
-  // comme avec 12. D'où « Treffer » (invariable) en allemand et « listing(s) » en
-  // anglais, sur le modèle du « bien(s) » français.
-  new_listings: {
-    nameEnv: 'WA_TEMPLATE_NEW_LISTINGS', langEnv: 'WA_TEMPLATE_NEW_LISTINGS_LANG', defaultLang: 'fr',
-    bodyTexts: {
-      fr: 'Bonjour {{1}}, {{2}} nouveau(x) bien(s) correspondant à votre recherche viennent d’arriver. Voulez-vous les découvrir ?',
-      de: 'Guten Tag {{1}}, zu Ihrer Suche gibt es neu {{2}} Treffer. Möchten Sie mehr dazu erfahren?',
-      en: 'Hello {{1}}, we have found {{2}} new listing(s) matching your search. Would you like to take a look?',
-      it: 'Buongiorno {{1}}, Le segnaliamo {{2}} proprietà di recente pubblicazione in linea con la Sua ricerca. Desidera riceverne i dettagli?',
-    },
-    bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), String(Math.max(1, c.count ?? 1))],
-  },
+  // `new_listings` (« {{2}} nouveau(x) bien(s) correspondant à votre recherche ») est retiré le
+  // 21.09.2026 : le matching reste chez l'agent, le CRM n'annonce plus de biens à l'acheteur. Sans
+  // appelant depuis toujours (aucun `__template_key` ne le portait), il n'était qu'une promesse de
+  // marketing en attente d'un câblage.
 
   // ── Agent-facing ───────────────────────────────────────────────────────────
   // Le SEUL template dont le destinataire a un consentement tracé en base

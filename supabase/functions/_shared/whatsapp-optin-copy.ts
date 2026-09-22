@@ -9,6 +9,12 @@
 // Cinq informations, dans cet ordre : qui écrira · quoi · à quelle fréquence · comment se
 // retirer · que rien ne change si l'on ignore ce message.
 //
+// ⛔ « QUOI » NE PROMET PAS D'ENVOI DE BIENS (21.09.2026) : le matching reste chez l'agent, le
+// CRM n'envoie plus de biens à l'acheteur. Le texte disait « peut vous envoyer sur WhatsApp les
+// biens qui correspondent à votre recherche » : une information préalable doit décrire ce qui
+// sera réellement fait. Les invitations déjà envoyées gardent leur texte archivé
+// (`whatsapp_optin_invites.shown_text`), qui reste la preuve de ce qui a été consenti.
+//
 // ⛔ La dernière compte autant que les autres : un consentement n'est libre que si le
 // refuser ne coûte rien. Une invitation qui laisse croire qu'un silence pénalise n'obtient
 // pas un consentement, elle obtient une signature sous contrainte.
@@ -54,11 +60,11 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
   const who = agencyName.trim()
   const T: Record<OptinLang, OptinCopy> = {
     fr: {
-      subject: `Recevoir nos annonces sur WhatsApp ?`,
+      subject: `Échanger avec nous sur WhatsApp ?`,
       body:
         `Bonjour,\n\n` +
-        `${who} peut vous envoyer sur WhatsApp les biens qui correspondent à votre recherche, ` +
-        `ainsi que le suivi de vos visites et de vos dossiers.\n\n` +
+        `${who} peut vous écrire sur WhatsApp au sujet de votre projet immobilier : le suivi ` +
+        `de vos visites, de vos dossiers et de vos échanges avec votre conseiller.\n\n` +
         `Ce que cela implique : nous utiliserons votre numéro de téléphone pour vous écrire sur ` +
         `WhatsApp, quelques messages par mois au plus. Vos données sont traitées par ${who} dans ` +
         `le cadre de son activité immobilière.\n\n` +
@@ -74,11 +80,11 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Tant que vous n'avez pas répondu, aucun message ne vous sera envoyé sur ce canal.`,
     },
     de: {
-      subject: `Unsere Angebote per WhatsApp erhalten?`,
+      subject: `Mit uns per WhatsApp in Kontakt bleiben?`,
       body:
         `Guten Tag,\n\n` +
-        `${who} kann Ihnen die zu Ihrer Suche passenden Objekte per WhatsApp senden, ebenso die ` +
-        `Nachverfolgung Ihrer Besichtigungen und Dossiers.\n\n` +
+        `${who} kann Ihnen per WhatsApp zu Ihrem Immobilienprojekt schreiben: die Nachverfolgung ` +
+        `Ihrer Besichtigungen, Ihrer Dossiers und Ihres Austauschs mit Ihrer Beraterin oder Ihrem Berater.\n\n` +
         `Was das bedeutet: Wir verwenden Ihre Telefonnummer, um Ihnen auf WhatsApp zu schreiben, ` +
         `höchstens einige Nachrichten pro Monat. Ihre Daten werden von ${who} im Rahmen der ` +
         `Immobilientätigkeit bearbeitet.\n\n` +
@@ -94,11 +100,11 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Solange Sie nicht geantwortet haben, wird Ihnen über diesen Kanal keine Nachricht gesendet.`,
     },
     en: {
-      subject: `Receive our listings on WhatsApp?`,
+      subject: `Keep in touch with us on WhatsApp?`,
       body:
         `Hello,\n\n` +
-        `${who} can send you the properties matching your search on WhatsApp, along with ` +
-        `follow-ups on your viewings and files.\n\n` +
+        `${who} can write to you on WhatsApp about your property project: follow-ups on your ` +
+        `viewings, your files and your exchanges with your adviser.\n\n` +
         `What this means: we will use your phone number to write to you on WhatsApp, at most a ` +
         `few messages a month. Your data is processed by ${who} as part of its real estate ` +
         `activity.\n\n` +
@@ -113,11 +119,11 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Until you reply, no message will be sent to you on this channel.`,
     },
     it: {
-      subject: `Ricevere i nostri annunci su WhatsApp?`,
+      subject: `Restare in contatto con noi su WhatsApp?`,
       body:
         `Buongiorno,\n\n` +
-        `${who} può inviarle su WhatsApp gli immobili corrispondenti alla sua ricerca, oltre al ` +
-        `seguito delle sue visite e delle sue pratiche.\n\n` +
+        `${who} può scriverle su WhatsApp riguardo al suo progetto immobiliare: il seguito delle ` +
+        `sue visite, delle sue pratiche e dei suoi scambi con il suo consulente.\n\n` +
         `Cosa comporta: useremo il suo numero di telefono per scriverle su WhatsApp, al massimo ` +
         `qualche messaggio al mese. I suoi dati sono trattati da ${who} nell'ambito della sua ` +
         `attività immobiliare.\n\n` +

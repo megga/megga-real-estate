@@ -98,7 +98,9 @@ describe('detectPhantomAction — confirmation simulée ou action annoncée sans
   it('recopie un compte rendu que seul l’exécuteur écrit, après le « oui »', () => {
     for (const s of [
       t('fr', 'clientMsgSent'), t('en', 'clientMsgSent'),
-      t('fr', 'listingsSent'), t('en', 'listingsSent'),
+      // L'envoi de biens au client est retiré (21.09.2026) : son compte rendu n'a plus de clé,
+      // mais le cerveau peut encore l'inventer, et c'est alors une fausse annonce certaine.
+      '✅ Sélection envoyée au client.', '✅ Selection sent to the client.',
       t('fr', 'templateSent'), t('en', 'templateSent'),
       '✅️ Message envoyé au client.', // avec le sélecteur de variante emoji
     ]) expect(detectPhantomAction(s), s).toBe('action_claim')

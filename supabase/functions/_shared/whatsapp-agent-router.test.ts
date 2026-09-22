@@ -127,7 +127,6 @@ describe('toolTier', () => {
   it('classe les outils confirm (sensibles : pipeline + envois client + offre)', () => {
     expect(toolTier('update_pipeline')).toBe('confirm')
     expect(toolTier('send_client_message')).toBe('confirm')
-    expect(toolTier('send_listings')).toBe('confirm')
     expect(toolTier('record_offer')).toBe('confirm')
     expect(toolTier('send_client_email')).toBe('confirm')
   })
@@ -170,7 +169,7 @@ describe('CONFIRM_TOOLS — les seuls outils que stashPending prépare', () => {
   it('contient exactement les outils confirm du registre', () => {
     expect([...CONFIRM_TOOLS].sort()).toEqual([
       'delete_contact', 'invite_optin', 'open_kyc_case', 'publish_to_portals', 'record_offer',
-      'send_client_email', 'send_client_message', 'send_kyc_link', 'send_listings',
+      'send_client_email', 'send_client_message', 'send_kyc_link',
       'update_pipeline', 'withdraw_from_portals',
     ])
   })
@@ -193,6 +192,13 @@ describe('CONFIRM_TOOLS — les seuls outils que stashPending prépare', () => {
     for (const name of ['search_contacts', 'get_kyc_status', 'create_contact', 'add_note', 'run_kyc_screening', 'send_kyc_report']) {
       expect(CONFIRM_TOOLS.has(name), name).toBe(false)
     }
+  })
+
+  it('l’envoi de biens au client est retiré : ni au catalogue, ni proposable', () => {
+    // Le matching reste chez l'agent (21.09.2026). Si le modèle rappelle encore ce nom, il
+    // retombe sur le défaut 'confirm' mais stashPending le refuse avant toute question.
+    expect(WHATSAPP_TOOLS.map((t) => t.function.name)).not.toContain('send_listings')
+    expect(CONFIRM_TOOLS.has('send_listings')).toBe(false)
   })
 })
 
@@ -243,7 +249,7 @@ describe('toolTier — tiers des outils KYC (Palier 2)', () => {
     expect(toolTier('attach_kyc_document')).toBe('auto')
   })
   it('le socle légal reste confirm (jamais slow_async/auto)', () => {
-    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email']) {
+    for (const t of ['send_client_message', 'record_offer', 'open_kyc_case', 'send_client_email']) {
       expect(toolTier(t)).toBe('confirm')
     }
   })
@@ -305,7 +311,7 @@ describe('canLeaveConfirm — invariant socle légal (Palier 3)', () => {
     expect(canLeaveConfirm('update_pipeline')).toBe(true)
   })
   it('le socle légal ne quitte JAMAIS confirm', () => {
-    for (const t of ['send_client_message', 'send_listings', 'record_offer', 'open_kyc_case', 'send_client_email', 'publish_to_portals', 'withdraw_from_portals']) {
+    for (const t of ['send_client_message', 'record_offer', 'open_kyc_case', 'send_client_email', 'publish_to_portals', 'withdraw_from_portals']) {
       expect(canLeaveConfirm(t)).toBe(false)
     }
   })

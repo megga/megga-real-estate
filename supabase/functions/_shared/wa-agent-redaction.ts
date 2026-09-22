@@ -30,7 +30,7 @@ export interface LlmWireMessage extends Record<string, unknown> {
 }
 
 // Les UUID des résultats d'outils sont des CLÉS fonctionnelles (id de bien pour
-// send_listings, contact_id…), pas des identifiants sensibles. Or le pattern CARD
+// schedule_visit, contact_id…), pas des identifiants sensibles. Or le pattern CARD
 // (13-19 chiffres) peut mordre la queue d'un UUID à segments tout-numériques
 // (« …-2222-3333-444455556666 » → [REDACTED:CARD]) et casser l'outil en aval.
 // On BLINDE donc les UUID avant redactPII (placeholders en zone Unicode privée,

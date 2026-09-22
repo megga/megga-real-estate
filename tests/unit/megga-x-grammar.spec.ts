@@ -175,9 +175,9 @@ const PAGES_ACQUISES = [
  * verdict ». Elles attendent d'être regardées, pas d'être inscrites.
  */
 const PAGES_PUBLIQUES = new Set([
-  // Lot 2 (15 août 2026). Autonome : son seul import de premier niveau était un
-  // hook, et sa palette `RC` vient d'être extraite pour pouvoir être GARDÉE.
-  'BuyerReceptionPage.tsx',
+  // ⚠ `BuyerReceptionPage.tsx` (lot 2, 15 août 2026) est sortie de ces deux listes le
+  // 21.09.2026 : la page de réception acheteur est RETIRÉE (le matching reste chez
+  // l'agent), pas désinscrite du cliquet.
   // Lot 3 (15 août 2026). Les deux dernières pages publiques qui rendent des
   // marqueurs. `AppointmentManagePage` monte `kyc-magic-link/` — elle hérite
   // donc du gros du lot 1 et ne porte plus que ses propres littéraux ;
@@ -192,7 +192,7 @@ const PAGES_PUBLIQUES = new Set([
 
 /** Écrite à part, en dur — elle ne peut pas rétrécir avec l'ensemble surveillé (n°15). */
 const PAGES_PUBLIQUES_ACQUISES = [
-  'BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
+  'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
   'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
   'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
@@ -415,13 +415,13 @@ const ZONES: RootSpec[] = [
   // seulement la casse, la graisse, l'interlettrage, l'échelle et le noir de
   // Sugar. Les trois PAGES publiques entrent plus tard, à leurs propres lots.
   { root: 'src/components/kyc-magic-link', keep: (n) => /\.tsx?$/.test(n) },
-  // ⛔ LA PAGE **ET** SON MODULE DE JETONS (lot 2, 15 août 2026). Entrer la page
-  // seule aurait suffi à faire passer la clause : les littéraux venaient d'être
-  // sortis dans `receptionTokens.ts`, et le cliquet n'aurait plus vu que leur
-  // NOM. C'est exactement le piège que `crm-dossiers/tokens.ts` a posé pendant
-  // six lots — le noir de Sugar vivait dans le fichier de jetons, hors balayage.
+  // ⛔ UNE PAGE **ET** SON MODULE DE JETONS : entrer la page seule laisse hors
+  // balayage les littéraux sortis dans un fichier de jetons, et le cliquet n'en
+  // voit plus que le NOM. C'est le piège que `crm-dossiers/tokens.ts` a posé
+  // pendant six lots — le noir de Sugar vivait dans le fichier de jetons. (La
+  // racine `src/components/buyer-reception`, qui en était l'exemple, est partie
+  // le 21.09.2026 avec la page de réception acheteur.)
   { root: 'src/pages/public', keep: (n) => PAGES_PUBLIQUES.has(n) },
-  { root: 'src/components/buyer-reception', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-dossiers/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
@@ -452,6 +452,8 @@ const ZONES: RootSpec[] = [
   // pour protéger une poignée de teintes de fond.
   { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
+  // Le fil de matchs (17.09.2026), né porté : aucun littéral, aucune graisse au-dessus de 600.
+  { root: 'src/components/matching-fil', keep: (n) => /\.tsx?$/.test(n) },
   // Les 19 pages de la console super-admin (lot 3 du chantier MEGGA X,
   // 14 août 2026). Le dossier ENTIER, pas une liste de noms : les 19 fichiers
   // ont été traités, et un vingtième qui arriverait doit l'être aussi.
@@ -603,7 +605,6 @@ const TEMOINS_DE_ZONE = [
   // resserrait par accident, la racine rendrait encore ses cinq autres fichiers
   // et `emptyRoots` la croirait saine.
   'src/components/kyc-magic-link/MlkScreens.tsx',
-  'src/components/buyer-reception/receptionTokens.ts',
   // Lot 1 du chantier « 100 % » (15 août 2026). Deux témoins, deux raisons
   // DISTINCTES — un témoin qui ne prouve rien de plus qu'`emptyRoots` est du
   // bruit, et cette liste ne vaut que si chaque entrée nomme un mode d'échec
@@ -849,7 +850,8 @@ const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; ech
   ['src/components/ui/modal.tsx', { echelle: 2 }],
   ['src/components/ui/Toast.tsx', { echelle: 2 }],
   ['src/components/ui/UpgradePrompt.tsx', { echelle: 3 }],
-  ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 9, blanc: 2, echelle: 63 }],
+  // {9,2,63} -> {5,2,52} (21.09.2026) : l'« Envoyer par e-mail » et l'historique d'envoi sont retirés.
+  ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 5, blanc: 2, echelle: 52 }],
   // ⚠ 25 sites de palette payés le 15 août 2026, et ils étaient TOUS sémantiques
   // (rouge / émeraude) : zéro gris. Les dix ENCRES passent à `-dark`, qui est
   // l'encre dans les DEUX thèmes — plus foncée en clair, plus claire en sombre.
@@ -964,7 +966,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/ai-copilot/panel', { hors: 94, total: 118 }],
   ['src/components/auth', { hors: 0, total: 13 }],
   ['src/components/auth-bento', { hors: 16, total: 28 }],
-  ['src/components/crm-mobile', { hors: 228, total: 319 }],
+  // total 319 -> 318 (21.09.2026) : la modale mobile « Je l'ai proposé » (ex-`MmSendModal`) perd sa
+  // ligne « canal » et son `marginTop: 12` : le matching n'envoie plus rien à l'acheteur.
+  ['src/components/crm-mobile', { hors: 228, total: 318 }],
   // 3 -> 2 (04.09.2026). Le chrome du CRM est passé à UNE barre latérale : la
   // barre du haut a emporté son `padding: '24px 24px 14px 33px'`, et le rail —
   // qui survit pour la console admin — garde ses deux littéraux (`borderRadius:
@@ -1012,7 +1016,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // du fil de notes (périodes, pastilles) et perd son `gap: 6` en littéral.
   // {49,68} -> {47,66} (16.09.2026) : le bloc « Joignabilité WhatsApp » de la fiche refait en
   // carte d'état perd ses deux `marginTop: 5` en littéral.
-  ['src/components/crm/contacts-pager', { hors: 47, total: 66 }],
+  // {47,66} -> {44,61} (21.09.2026) : les liens de réception de la fiche (`CdLinks` et sa modale
+  // de retrait) partent avec la page de l'acheteur ; le matching reste chez l'agent.
+  ['src/components/crm/contacts-pager', { hors: 44, total: 61 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
   // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,
@@ -1049,8 +1055,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/layout', { hors: 9, total: 94 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
-  ['src/components/matching-atelier', { hors: 37, total: 50 }],
-  ['src/components/matching-recherche', { hors: 123, total: 185 }],
+  // {37,50} -> {31,43} (21.09.2026) : la feuille d'envoi `AtlSendSheet` est retirée, « Je l'ai
+  // proposé » n'envoie plus rien à l'acheteur.
+  ['src/components/matching-atelier', { hors: 31, total: 43 }],
+  ['src/components/matching-fil', { hors: 0, total: 0 }],
+  // {123,185} -> {112,171} (21.09.2026) : la feuille d'envoi `MrhSendSheet` est retirée, la
+  // Recherche ajoute à la sélection de l'acheteur au lieu de lui envoyer un lien.
+  ['src/components/matching-recherche', { hors: 112, total: 171 }],
   ['src/components/onboarding-call', { hors: 0, total: 27 }],
   ['src/components/propertyx', { hors: 2, total: 3 }],
   // {8,12} -> {1,2} (04.09.2026). `CrmPageSkeleton` décalquait un chrome qui
@@ -1115,9 +1126,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // ⚠ −1 le 20.09.2026 : le cadre du pager de « Aujourd'hui » rendait le
   // littéral `26`, hors échelle et désaccordé du dock comme de la carte
   // latérale. Il lit `--crm-radius-4xl`.
-  ['src/pages/agent', { hors: 215, total: 782 }],
+  // ⚠ 762 le 21.09.2026 : la fiche d'une annonce du marché perd son « Envoyer par e-mail » et son
+  // historique d'envoi (le matching reste chez l'agent).
+  ['src/pages/agent', { hors: 215, total: 762 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  ['src/pages/public', { hors: 66, total: 257 }],
+  // {66,257} -> {10,178} (21.09.2026) : `BuyerReceptionPage` est retirée avec la page de
+  // réception acheteur (le matching reste chez l'agent), et ses littéraux avec elle.
+  ['src/pages/public', { hors: 10, total: 178 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
@@ -2274,7 +2289,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
       'src/components/kyc-magic-link',
       'src/pages/public',
-      'src/components/buyer-reception',
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.

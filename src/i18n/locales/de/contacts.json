@@ -1,24 +1,17 @@
 {
   "loop": {
     "inboxTitle": "Zu bearbeiten",
-    "likedTitle": "Hat {{title}} geliked",
+    "likedTitle": "Interessiert an {{title}}",
     "likedSub": "{{when}} · {{price}}{{score}}",
     "matchPct": " · Match {{score}} %",
     "proposeVisit": "Besichtigung vorschlagen",
     "later": "Später",
     "handled": "Besichtigung in Vorbereitung · in seinem Profil vermerkt",
-    "filEyebrow": "Empfang",
-    "filTitle": "Gesendete Dossiers",
-    "filMeta": "{{sent}} gesendet · {{opened}} geöffnet",
     "openAtelier": "Atelier öffnen",
-    "empty": "Noch kein Dossier gesendet.",
-    "pillLiked": "Geliked",
-    "pillSeen": "Gesehen",
-    "pillSent": "Gesendet",
-    "pillDismissed": "Verworfen",
-    "metaLiked": "Gesendet {{sent}} · geöffnet · geliked {{when}}",
-    "metaSeen": "Gesendet {{sent}} · geöffnet · ohne Reaktion",
-    "metaSent": "Gesendet {{sent}} · noch nicht geöffnet",
+    "empty": "Noch kein Objekt vorgeschlagen.",
+    "pillLiked": "Interessiert",
+    "pillSent": "Vorgeschlagen",
+    "pillDismissed": "Nicht interessiert",
     "metaDismissed": "Grund vermerkt · kalibriert das Matching neu",
     "motif": "«{{motif}}»"
   },
@@ -69,7 +62,7 @@
     "nextAction": {
       "call": "Qualifizierungsanruf",
       "visit": "Besichtigung planen",
-      "match": "3 Objekte aus dem Portfolio senden",
+      "match": "Objekte vorschlagen",
       "kyc": "KYC starten"
     },
     "lead": {
@@ -226,7 +219,6 @@
     "followUp": "Nachfassen",
     "noInteractionDays": "Keine Interaktion seit {{days}} Tagen.",
     "call": "Anrufen",
-    "sendSelection": "Objektauswahl senden",
     "sendSelectionDesc": "Passende Objekte zu den Suchkriterien vorschlagen.",
     "seeMatches": "Matches ansehen",
     "sellerUpdate": "Verkäufer-Update",
@@ -359,7 +351,7 @@
   },
   "nextAction": {
     "planifier_visite": "Besichtigung planen",
-    "envoyer_biens": "Objekte senden",
+    "envoyer_biens": "Objekte vorschlagen",
     "relancer": "Nachfassen",
     "qualifier_lead": "Lead qualifizieren",
     "repondre": "Antworten",
@@ -715,7 +707,7 @@
         "rooms": "{{n}} Zi.",
         "status": {
           "suggested": "Vorgeschlagen",
-          "sent": "Gesendet",
+          "sent": "Vorgeschlagen",
           "visit_planned": "Besichtigung geplant",
           "interested": "Interessiert",
           "rejected": "Abgelehnt",
@@ -936,7 +928,7 @@
     },
     "kycDossier": "KYC-Dossier",
     "cta": {
-      "transmit": "Objekte senden",
+      "transmit": "Objekte vorschlagen",
       "viewMandate": "Mandat ansehen"
     },
     "menu": {
@@ -1068,50 +1060,16 @@
     },
     "page": {
       "infos": "Informationen zum Kontakt",
-      "loop": "Match-Schleife"
+      "loop": "Sein Verlauf"
     },
     "loop": {
-      "opened": "Geöffnet",
       "toHandleCount": "Zu bearbeiten ({{count}})",
-      "transmittedCount": "Gesendete Objekte ({{count}})",
+      "transmittedCount": "Vorgeschlagene Objekte ({{count}})",
       "openInMatching": "Im Matching öffnen",
       "ignore": "Ignorieren",
       "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
-      "emptyTitle": "Noch keine Objekte gesendet",
-      "emptyBody": "Senden Sie {{name}} eine Auswahl an Objekten.<1/>Die Rückmeldungen erscheinen hier."
-    },
-    "links": {
-      "title": "Gesendete Links ({{count}})",
-      "loading": "Links werden geladen…",
-      "failed": "Links konnten nicht geladen werden.",
-      "empty": "Noch kein Link gesendet.",
-      "selection_one": "Auswahl mit {{count}} Objekt",
-      "selection_other": "Auswahl mit {{count}} Objekten",
-      "sentOn": "Gesendet am {{date}}",
-      "expiresOn": "gültig bis {{date}}",
-      "revokedOn": "zurückgezogen am {{date}}",
-      "revoke": "Link zurückziehen",
-      "channel": {
-        "whatsapp": "WhatsApp",
-        "link": "Kopierter Link"
-      },
-      "status": {
-        "pending": "Nicht geöffnet",
-        "viewed": "Geöffnet",
-        "reacted": "Antwort erhalten",
-        "expired": "Abgelaufen",
-        "revoked": "Zurückgezogen",
-        "unknown": "Unbekannter Status"
-      },
-      "confirm": {
-        "title": "Diesen Link zurückziehen?",
-        "body_one": "Der Käufer verliert den Zugriff auf das erhaltene Objekt. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
-        "body_other": "Der Käufer verliert den Zugriff auf die {{count}} erhaltenen Objekte. Das Zurückziehen ist endgültig: für einen erneuten Zugriff muss ein neuer Link gesendet werden.",
-        "cta": "Link zurückziehen",
-        "busy": "Wird zurückgezogen…",
-        "refused": "Dieser Link war bereits nicht mehr aktiv. Die Liste wurde soeben aktualisiert.",
-        "failed": "Der Link wurde nicht zurückgezogen. Bitte erneut versuchen."
-      }
+      "emptyTitle": "Noch keine Objekte vorgeschlagen",
+      "emptyBody": "Schlagen Sie {{name}} Objekte vor und erfassen Sie die Antworten.<1/>Sie erscheinen hier."
     },
     "saved": {
       "coord": "Kontaktdaten gespeichert",

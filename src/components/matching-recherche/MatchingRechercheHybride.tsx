@@ -4,9 +4,10 @@
 // cantons). Port du proto handoff `crm-matching-recherche.jsx`, câblé LIVE :
 //   - filtre DUR (transaction, canton, type, budget) poussé EN SQL (useMatchingSearch)
 //   - texte libre + scoring + tri côté client sur le sous-ensemble borné
-//   - omnibox à jetons (acheteur → score de match), Tout/Vente/Location, envoi multiple.
+//   - omnibox à jetons (acheteur → score de match), Tout/Vente/Location, ajout multiple
+//     à la sélection de l'acheteur (⛔ rien ne part vers lui depuis le 21.09.2026).
 //
-// ⚠️ Incrément B : grille + omnibox + scoring + envoi. La fiche « Voir l'annonce »
+// ⚠️ Incrément B : grille + omnibox + scoring + ajout. La fiche « Voir l'annonce »
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
 // pour l'instant). « Proches des critères » aussi.
 
@@ -19,18 +20,17 @@ import { crmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
-import { useSendReceptionSelection, type SendSelectionResult } from '@/hooks/useSendReceptionSelection'
+import { useAjouterSelection, type BilanAjout } from '@/hooks/useAjouterSelection'
 import { formatCHF } from '@/lib/utils'
 import RechIcon from './RechIcon'
 import MrhGrid, { type MrhItem } from './MrhGrid'
 import MrhExtDetail from './MrhExtDetail'
 import MrhMapView from './MrhMapView'
-import MrhSendSheet from './MrhSendSheet'
 import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import {
-  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_SEND,
+  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL,
   MRH_DEMO_TOTAL, type MrhDemoEtat,
 } from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
@@ -91,7 +91,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const { profile } = useAuth()
-  const sendSel = useSendReceptionSelection()
+  const ajout = useAjouterSelection()
   const ai = useAiPanel()
   const sp = crmPalette(dark)
   const surf: MrhSurf = {
@@ -117,7 +117,6 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<'pertinence' | 'recent' | 'price-asc' | 'price-desc'>('recent')
   const [sel, setSel] = useState<string[]>([])
-  const [sentLink, setSentLink] = useState<SendSelectionResult | null>(null)
   const [dd, setDd] = useState(false)
   const [sugIdx, setSugIdx] = useState(0)
   const [extBien, setExtBien] = useState<MrhBien | null>(null)
@@ -284,27 +283,32 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const clearAll = () => { setBuyer(null); setTokens([]); setQ(''); setSort('recent'); setSel([]); setTrans('all') }
   const toggleSel = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
-  // Envoi de la sélection à l'acheteur : crée les matches marché (RPC idempotente)
-  // + mint le lien de réception, puis ouvre la feuille de partage (WhatsApp / copier).
-  const onSendSelection = () => {
+  // « Ajouter à la sélection de … » : les biens cochés entrent dans les matchs à proposer
+  // de l'acheteur (RPC idempotente), où l'atelier et le fil les montrent. ⛔ Rien ne part
+  // vers lui (21.09.2026) : c'est l'agent qui les lui proposera.
+  // Le toast dit ce qui est RÉELLEMENT entré, et ce qui y était déjà — dont ce qui reste hors de
+  // la file (écarté, refusé, reporté), que l'ajout ne réactive pas.
+  const onAjouterSelection = () => {
     if (!buyer || !sel.length) return
-    // La feuille d'envoi ne s'ouvre QUE par ce geste : sans branche de démo elle
-    // resterait invisible au banc, faute d'`agency_id`. Une modale qu'aucun banc
-    // n'atteint n'est pas une modale vérifiée.
-    if (demo) {
-      setSentLink({ ...MRH_DEMO_SEND, firstName: buyer.firstName, count: sel.length })
+    const prenom = buyer.firstName
+    const confirmer = ({ ajoutes, dejaPresents, horsFile }: BilanAjout) => {
+      const bilan = [t('recherche.ajoute', { count: ajoutes, prenom })]
+      if (dejaPresents > 0) bilan.push(t('recherche.dejaPresents', { count: dejaPresents }))
+      if (horsFile > 0) bilan.push(t('recherche.dejaHorsFile', { count: horsFile }))
+      toast.success(bilan.join(' · '))
       setSel([])
-      return
     }
-    if (!profile?.agency_id || sendSel.isPending) return
+    // Banc : le geste se voit (toast, sélection vidée) sans rien écrire, faute d'`agency_id`.
+    if (demo) { confirmer({ ajoutes: sel.length, dejaPresents: 0, horsFile: 0 }); return }
+    if (!profile?.agency_id || ajout.isPending) return
     const items = sel
       .map((id) => biens.find((b) => b.id === id))
       .filter((b): b is MrhBien => !!b)
       .map((b) => { const m = scoreBien(buyer, b); return { marketListingId: b.id, score: m.score, reasons: m.reasons } })
     if (!items.length) return
-    sendSel.mutate(
+    ajout.mutate(
       { contactId: buyer.id, agencyId: profile.agency_id, clientSearchId: buyer.searchId, items },
-      { onSuccess: (res) => { setSentLink(res); setSel([]) }, onError: () => toast.error(t('sendSheet.error')) },
+      { onSuccess: confirmer, onError: () => toast.error(t('recherche.ajoutErreur')) },
     )
   }
 
@@ -618,24 +622,14 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
         </div>
       )}
 
-      {/* Barre d'envoi */}
+      {/* Barre d'ajout à la sélection de l'acheteur */}
       {buyer && sel.length > 0 && (
         <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
-          <button onClick={onSendSelection} disabled={sendSel.isPending}
+          <button onClick={onAjouterSelection} disabled={ajout.isPending}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(3,3,3,.28), 0 4px 12px rgba(3,3,3,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
-            <RechIcon name="send" size={15} stroke={ONACC} /> {t('recherche.send', { count: sel.length, name: buyer.firstName })}
+            <RechIcon name="plus" size={15} stroke={ONACC} /> {t('recherche.ajouter', { prenom: buyer.firstName })}
           </button>
         </div>
-      )}
-
-      {/* Feuille d'envoi de la sélection (lien de réception créé) */}
-      {sentLink && (
-        <MrhSendSheet
-          result={sentLink}
-          buyerName={buyer ? `${buyer.firstName} ${buyer.lastName}`.trim() : sentLink.firstName || ''}
-          ctx={ctx}
-          onClose={() => setSentLink(null)}
-        />
       )}
 
       {/* Fiche annonce marché (« Voir l'annonce ») */}

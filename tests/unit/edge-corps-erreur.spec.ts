@@ -57,7 +57,6 @@ const SITES_S14 = [
  */
 const SURFACES_PUBLIQUES = [
   'appointment-book', 'appointment-manage', 'appointment-slots',
-  'buyer-reception-get', 'buyer-reception-react',
   'magic-link-get', 'magic-link-upload', 'magic-link-confirm', 'kyc-report-data',
   'email-unsubscribe', 'onboarding-call-manage', 'onboarding-slots', 'accept-team-invite',
   'c2pa-verify', 'log-auth-event', 'idx-feed',

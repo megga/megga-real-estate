@@ -92,7 +92,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'send_client_message',
-      description: "Envoie un message WhatsApp à un CLIENT (contact du CRM). Pour répondre à un client ou le relancer. Appelle directement l'outil. contact_id via search_contacts.",
+      description: "Envoie un message WhatsApp à un CLIENT (contact du CRM). Pour répondre à un client ou le relancer. JAMAIS de bien dans ce message, même si l'agent le demande : ni annonce, ni bien en mandat, ni prix de bien, ni lien d'annonce, ni référence MG-… (le matching reste chez l'agent, et un tel message est refusé). Appelle directement l'outil. contact_id via search_contacts.",
       parameters: {
         type: 'object',
         properties: {
@@ -207,21 +207,9 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       },
     },
   },
-  {
-    type: 'function',
-    function: {
-      name: 'send_listings',
-      description: "Envoie une sélection de biens à un client par WhatsApp (texte + première photo de chaque bien quand elle existe). Pour « envoie à Sarah ses meilleures correspondances », « envoie ces biens à Dubois ». Sans listing_ids, prend automatiquement les meilleures correspondances du contact. Appelle directement l'outil.",
-      parameters: {
-        type: 'object',
-        properties: {
-          contact_id: { type: 'string' },
-          listing_ids: { type: 'array', items: { type: 'string' }, description: 'IDs de biens (market_listing_id/property_id via get_matches). Optionnel : par défaut, les meilleures correspondances.' },
-        },
-        required: ['contact_id'],
-      },
-    },
-  },
+  // L'outil qui envoyait une sélection de biens au client (send_listings) est retiré le
+  // 21.09.2026 : le matching reste chez l'agent, rien de ce qu'il produit ne part vers
+  // l'acheteur par le CRM (docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md §5.1).
   {
     type: 'function',
     function: {
@@ -260,7 +248,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'search_listings',
-      description: "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) avec leur id (utilisable ensuite avec send_listings) ; annonce ce total à l'agent. N'invente jamais de bien.",
+      description: "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) ; annonce ce total à l'agent. N'invente jamais de bien.",
       parameters: {
         type: 'object',
         properties: {
@@ -357,7 +345,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'send_client_email',
-      description: "Rédige un EMAIL à un client (contact du CRM) et l'envoie APRÈS validation de l'agent. MEGGA rédige le brouillon (sujet + corps) au ton de l'agent et selon la conversation ; l'agent valide ou corrige avant l'envoi.",
+      description: "Rédige un EMAIL à un client (contact du CRM) et l'envoie APRÈS validation de l'agent. MEGGA rédige le brouillon (sujet + corps) au ton de l'agent et selon la conversation ; l'agent valide ou corrige avant l'envoi. JAMAIS de bien dans cet email, même si l'agent le demande : ni annonce, ni bien en mandat, ni prix de bien, ni lien d'annonce, ni référence MG-… (le matching reste chez l'agent, et un tel email est refusé).",
       parameters: {
         type: 'object',
         properties: {

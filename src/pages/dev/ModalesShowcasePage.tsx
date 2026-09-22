@@ -7,10 +7,10 @@
  * CÂBLÉES (piège de focus, nom accessible) sans jamais être ÉPROUVÉES — un état
  * qui ressemble à du travail fini et n'en est pas. Ce banc les monte directement.
  *
- * ⚠ IL NE COUVRE QUE CE QUE LES AUTRES BANCS N'ATTEIGNENT PAS. Neuf modales ici ;
+ * ⚠ IL NE COUVRE QUE CE QUE LES AUTRES BANCS N'ATTEIGNENT PAS. Huit modales ici ;
  * les autres sont déjà accessibles et doivent être éprouvées LÀ-BAS, sur leur
  * vrai écran, pas remontées ici en double :
- *   · `/dev/matching-atelier` → AtlConfirm, AtlSendSheet, AtlAnnonceVue
+ *   · `/dev/matching-atelier` → AtlConfirm, AtlAnnonceVue
  *   · `/dev/mobile`           → CrmBottomCard (et ses trois consommateurs),
  *                               MrNotifSheet, la visionneuse photo du bien,
  *                               la confirmation « tout marquer » du KYC
@@ -27,27 +27,25 @@
 import { useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
 import { deriveAiPalette } from '@/components/ai-copilot/panel/aiPanel'
-import type { MrhCtx } from '@/components/matching-recherche/mrhCtx'
 import EmailReviewModal from '@/components/ai-copilot/panel/EmailReviewModal'
 import AnnonceReviewModal from '@/components/ai-copilot/panel/AnnonceReviewModal'
 import LetterReviewModal from '@/components/ai-copilot/panel/LetterReviewModal'
 import PublishReviewModal from '@/components/ai-copilot/panel/PublishReviewModal'
 import DeleteContactReviewModal from '@/components/ai-copilot/panel/DeleteContactReviewModal'
-import MrhSendSheet from '@/components/matching-recherche/MrhSendSheet'
 import { MlkAgentModal } from '@/components/crm-dossiers/kyc-wizard/MlkAgentModal'
 import { SourceOfFundsOverlay } from '@/components/crm-dossiers/kyc/KycSourceOfFundsCard'
 import MxModal from '@/components/megga-x/MxModal'
 import {
   DEMO_AI_EMAIL, DEMO_AI_ANNONCE, DEMO_AI_LETTER,
   DEMO_AI_PENDING_PUBLISH, DEMO_AI_PENDING_DELETE,
-  DEMO_SEND_RESULT, DEMO_KYC_CASE, DEMO_KYC_DOCS,
+  DEMO_KYC_CASE, DEMO_KYC_DOCS,
 } from './demoFixtures'
 import { readCrmDark, writeCrmDark } from '@/lib/crmDark'
 
-/** Identifiants des neuf modales du banc — l'état ouvert en porte au plus une. */
+/** Identifiants des huit modales du banc — l'état ouvert en porte au plus une. */
 type Id =
   | 'email' | 'annonce' | 'lettre' | 'publier' | 'supprimer'
-  | 'envoi' | 'lienKyc' | 'fonds' | 'vitrine'
+  | 'lienKyc' | 'fonds' | 'vitrine'
 
 const MODALES: { id: Id; label: string; note: string }[] = [
   { id: 'email', label: 'Relecture e-mail', note: 'copilote · avant envoi' },
@@ -55,7 +53,6 @@ const MODALES: { id: Id; label: string; note: string }[] = [
   { id: 'lettre', label: 'Relecture courrier', note: 'copilote · lecture seule' },
   { id: 'publier', label: 'Validation publication', note: 'copilote · action en attente' },
   { id: 'supprimer', label: 'Validation suppression', note: 'copilote · action en attente' },
-  { id: 'envoi', label: 'Sélection envoyée', note: 'matching · lien de réception' },
   { id: 'lienKyc', label: 'Lien magique KYC', note: 'wizard · envoi au client' },
   { id: 'fonds', label: 'Origine des fonds', note: 'KYC · LBA art. 6' },
   { id: 'vitrine', label: 'Modale MEGGA X', note: 'coquille de la vitrine' },
@@ -88,20 +85,6 @@ export default function ModalesShowcasePage() {
       ? { result: 'Contact rattaché à 2 deals en cours — suppression refusée.', ok: false }
       : { result: 'Fait.', ok: true }
 
-  // MrhSendSheet ne lit que six champs du contexte ; le reste est exigé par le
-  // type, pas par l'écran. Les handlers de grille ne peuvent pas être atteints
-  // depuis la feuille, d'où les fonctions vides.
-  const ctx: MrhCtx = {
-    sp, dark, sel: [], buyer: null, animate: false,
-    surf: {
-      card: sp.cardBg, cardSub: sp.cardSubBg, hairline: sp.cardBorder,
-      shadow: sp.shadow, shadowHov: sp.shadow,
-    },
-    ACC: sp.accent, ONACC: sp.accentInk, line: sp.cardBorder,
-    chipBg: sp.cardSubBg, cardSolid: sp.solidBg,
-    toggleSel: NOOP, onOpen: NOOP, onAskAi: NOOP,
-  }
-
   const pilule = (actif: boolean) => ({
     border: 0, cursor: 'pointer', fontFamily: 'inherit',
     padding: 'var(--crm-space-xs) var(--crm-space-xl)',
@@ -122,7 +105,7 @@ export default function ModalesShowcasePage() {
           Modales sans écran d’accueil
         </h1>
         <p style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, lineHeight: 1.5, margin: '8px 0 0' }}>
-          Les neuf modales qu’aucun autre banc n’atteint sans session. Les autres s’éprouvent
+          Les huit modales qu’aucun autre banc n’atteint sans session. Les autres s’éprouvent
           sur leur propre écran — <code>/dev/matching-atelier</code>, <code>/dev/mobile</code>,
           {' '}<code>/dev/contacts</code> — et non ici.
         </p>
@@ -172,9 +155,6 @@ export default function ModalesShowcasePage() {
         pending={DEMO_AI_PENDING_DELETE} onClose={fermer}
         executePending={executer} onExecuted={NOOP} />
 
-      {ouverte === 'envoi' && (
-        <MrhSendSheet result={DEMO_SEND_RESULT} buyerName="Marie Bertrand" ctx={ctx} onClose={fermer} />
-      )}
       {ouverte === 'lienKyc' && (
         <MlkAgentModal kycCaseId="demo-kyc-banc" contactId="demo-c1"
           contactName="Marie Bertrand" contactSummary="Acheteuse · 4 pièces Plainpalais"

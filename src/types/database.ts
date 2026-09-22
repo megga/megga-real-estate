@@ -1755,98 +1755,6 @@ export type Database = {
           },
         ]
       }
-      buyer_reception_links: {
-        Row: {
-          agency_id: string
-          agent_id: string | null
-          channel: string | null
-          client_ip: string | null
-          client_user_agent: string | null
-          contact_id: string
-          created_at: string
-          created_by: string | null
-          expires_at: string
-          id: string
-          match_ids: string[]
-          reacted_at: string | null
-          revoked_at: string | null
-          sent_at: string
-          status: string
-          token: string
-          updated_at: string
-          viewed_at: string | null
-        }
-        Insert: {
-          agency_id: string
-          agent_id?: string | null
-          channel?: string | null
-          client_ip?: string | null
-          client_user_agent?: string | null
-          contact_id: string
-          created_at?: string
-          created_by?: string | null
-          expires_at: string
-          id?: string
-          match_ids: string[]
-          reacted_at?: string | null
-          revoked_at?: string | null
-          sent_at?: string
-          status?: string
-          token: string
-          updated_at?: string
-          viewed_at?: string | null
-        }
-        Update: {
-          agency_id?: string
-          agent_id?: string | null
-          channel?: string | null
-          client_ip?: string | null
-          client_user_agent?: string | null
-          contact_id?: string
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string
-          id?: string
-          match_ids?: string[]
-          reacted_at?: string | null
-          revoked_at?: string | null
-          sent_at?: string
-          status?: string
-          token?: string
-          updated_at?: string
-          viewed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buyer_reception_links_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       calendar_events: {
         Row: {
           agency_id: string
@@ -10121,6 +10029,15 @@ export type Database = {
           type: string
         }[]
       }
+      matching_fil_marche: {
+        Args: never
+        Returns: {
+          contact_id: string
+          meilleur_score: number
+          nombre: number
+          vignettes: string[]
+        }[]
+      }
       megga_agency_slug: { Args: { p_name: string }; Returns: string }
       ml_extract_rooms: {
         Args: { p_description: string; p_type: string }
@@ -10257,16 +10174,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      record_buyer_reaction: {
-        Args: {
-          p_link_id: string
-          p_match_id: string
-          p_motif?: string
-          p_note?: string
-          p_reaction: string
-        }
-        Returns: undefined
-      }
       record_consent: {
         Args: { p_type: string; p_version?: string }
         Returns: undefined
@@ -10309,7 +10216,6 @@ export type Database = {
           id: string
         }[]
       }
-      revoke_reception_link: { Args: { p_link_id: string }; Returns: boolean }
       revoke_user_session: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined

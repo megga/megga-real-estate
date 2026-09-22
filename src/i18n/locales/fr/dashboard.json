@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Nouveau",
-        "sent": "Dossier envoyé",
+        "sent": "Bien proposé",
         "visitPlanned": "Visite prévue",
         "interested": "Intéressé"
       },
+      "proposeError": "La proposition n'a pas pu être consignée. Réessayez.",
       "why": {
         "fallback": "Nouveau match, premier contact à initier."
       },
@@ -318,8 +319,8 @@
         "toRefine": "à affiner"
       },
       "action": {
-        "addToFile": "Mettre dans le dossier de {{name}}",
-        "added": "Ajouté au dossier de {{name}}",
+        "addToFile": "Je l'ai proposé à {{name}}",
+        "added": "Proposé à {{name}}",
         "openInMatching": "Ouvrir dans Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Aucun contact dormant à relancer aujourd'hui. Vos relances apparaîtront ici dès qu'un contact se refroidira."
       },
       "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
+      "sendErrorBien": "Rien n'est parti : ce message contient un bien (lien d'annonce ou référence MG-…). Le matching reste chez vous : présentez le bien vous-même, puis consignez « Je l'ai proposé » dans le matching.",
       "draft": {
         "to": "À",
         "emailMissing": "(email manquant)",

@@ -13,9 +13,7 @@
  */
 import type { Property } from '@/types/listing'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
-import type {
-  FicheContact, FicheLoopItem, FicheReceptionLink,
-} from '@/components/crm/contacts-pager/ContactDetailPager'
+import type { FicheContact, FicheLoopItem } from '@/components/crm/contacts-pager/ContactDetailPager'
 import type { KycCase, KycDocument } from '@/types/kyc'
 import type { ContactNoteView } from '@/hooks/useContactNotes'
 
@@ -106,36 +104,23 @@ export const DEMO_FICHE: FicheContact = {
   lastContactAt: new Date(Date.now() - 86_400_000).toISOString(),
 }
 
-/** Boucle de match — page 1 de la fiche. Les quatre états y sont représentés. */
+/**
+ * Boucle de match — page 1 de la fiche (« Sa boucle »). Les trois états y sont
+ * représentés : proposé sans réponse, intéressé, pas intéressé (avec son motif).
+ */
 export const DEMO_FICHE_LOOP: {
-  items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number
+  items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; dismissed: number
 } = {
   items: [
     { matchId: 'm1', title: 'Appartement 4.5p — Eaux-Vives', addr: 'Rue des Eaux-Vives 18, Genève', photo: DEMO_LISTING.photos?.[0] ?? null, state: 'sent', motif: null },
-    { matchId: 'm2', title: 'Duplex 5p — Carouge', addr: 'Rue Ancienne 7, Carouge', photo: DEMO_LISTING.photos?.[1] ?? null, state: 'seen', motif: null },
+    { matchId: 'm2', title: 'Duplex 5p — Carouge', addr: 'Rue Ancienne 7, Carouge', photo: DEMO_LISTING.photos?.[1] ?? null, state: 'sent', motif: null },
     { matchId: 'm4', title: 'Appartement 3.5p — Champel', addr: 'Avenue de Champel 30, Genève', photo: null, state: 'dismissed', motif: 'Étage trop bas' },
   ],
   pendingLikes: [
     { matchId: 'm3', title: 'Attique 4p — Plainpalais', addr: 'Boulevard du Pont-d’Arve 5, Genève', photo: DEMO_LISTING.photos?.[2] ?? null, state: 'liked', motif: null },
   ],
   transmitted: 4,
-  opened: 3,
-}
-
-/**
- * Liens de réception — les états qui se PEIGNENT différemment : actif, échu,
- * retiré, et le statut non reconnu (`null`), sur lequel l'UI n'offre pas de
- * retrait.
- */
-export const DEMO_FICHE_LINKS: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean } = {
-  items: [
-    { id: 'l1', status: 'viewed', channel: 'whatsapp', createdAt: '2026-06-01T10:00:00', expiresAt: '2026-07-01T10:00:00', count: 3, revokedAt: null, active: true },
-    { id: 'l2', status: 'expired', channel: 'link', createdAt: '2026-04-02T09:00:00', expiresAt: '2026-05-02T09:00:00', count: 2, revokedAt: null, active: false },
-    { id: 'l3', status: 'revoked', channel: 'whatsapp', createdAt: '2026-05-10T14:00:00', expiresAt: '2026-06-10T14:00:00', count: 1, revokedAt: '2026-05-18T08:20:00', active: false },
-    { id: 'l4', status: null, channel: null, createdAt: '2026-05-22T11:00:00', expiresAt: '2026-06-22T11:00:00', count: 1, revokedAt: null, active: false },
-  ],
-  isLoading: false,
-  failed: false,
+  dismissed: 1,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -178,15 +163,6 @@ export const DEMO_AI_PENDING_DELETE = {
   id: 'demo-pending-2', kind: 'delete_contact', title: 'Marie Bertrand',
   portals: [],
   preview: 'Acheteuse · aucun deal ouvert · dernière activité il y a 8 mois',
-}
-
-/** Lien de réception minté, tel que `MrhSendSheet` le reçoit après l'envoi. */
-export const DEMO_SEND_RESULT = {
-  url: 'https://app.getmegga.com/r/demo-token-de-banc',
-  token: 'demo-token-de-banc',
-  phone: '+41798749484',
-  firstName: 'Marie',
-  count: 3,
 }
 
 /**

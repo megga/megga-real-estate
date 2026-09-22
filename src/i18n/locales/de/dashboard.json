@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Neu",
-        "sent": "Dossier gesendet",
+        "sent": "Objekt vorgeschlagen",
         "visitPlanned": "Besichtigung geplant",
         "interested": "Interessiert"
       },
+      "proposeError": "Der Vorschlag konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "why": {
         "fallback": "Neues Match, erster Kontakt herzustellen."
       },
@@ -318,8 +319,8 @@
         "toRefine": "zu verfeinern"
       },
       "action": {
-        "addToFile": "In das Dossier von {{name}} legen",
-        "added": "Zum Dossier von {{name}} hinzugefügt",
+        "addToFile": "Ich habe es {{name}} vorgeschlagen",
+        "added": "{{name}} vorgeschlagen",
         "openInMatching": "In Matching öffnen"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Heute kein schlafender Kontakt zum Nachfassen. Ihre Follow-ups erscheinen hier, sobald ein Kontakt abkühlt."
       },
       "sendError": "Der Versand ist fehlgeschlagen, versuchen Sie es erneut oder kopieren Sie die Nachricht.",
+      "sendErrorBien": "Nichts wurde gesendet: Diese Nachricht enthält ein Objekt (Inseratelink oder Referenz MG-…). Das Matching bleibt bei Ihnen: Stellen Sie das Objekt selbst vor und erfassen Sie danach «Ich habe es vorgeschlagen» im Matching.",
       "draft": {
         "to": "An",
         "emailMissing": "(E-Mail fehlt)",

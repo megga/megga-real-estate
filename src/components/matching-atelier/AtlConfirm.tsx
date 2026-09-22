@@ -1,7 +1,8 @@
-// Atelier Matching — confirmation d'envoi / de relance (modal Sugar minimale)
-// puis écran succès auto-fermant (~1,25 s). Enter = confirmer · Esc = annuler
-// (verrouillés pendant l'animation de succès). Human-in-the-loop : rien ne
-// part sans cette validation explicite de l'agent.
+// Atelier Matching — confirmation de « Je l'ai proposé » (mode acheteur) et de
+// « J'ai relancé » (modal Sugar minimale) puis écran succès auto-fermant (~1,25 s).
+// Enter = confirmer · Esc = annuler (verrouillés pendant l'animation de succès).
+// ⛔ Rien ne part vers l'acheteur (21.09.2026) : l'agent confirme ce qu'il a fait
+// lui-même, le CRM le consigne et pose le rappel de sa réponse.
 
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -35,7 +36,7 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
   }
 
   // ⛔ Écran caché muet : non portée dans le mode acheteur, cette confirmation
-  // restait montée derrière l'onglet regardé — et son Entrée ENVOYAIT le bien.
+  // restait montée derrière l'onglet regardé — et son Entrée CONSIGNAIT le bien.
   const ecranActif = useEcranActif()
   useEffect(() => {
     if (!ecranActif) return
@@ -80,7 +81,7 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="t4 semi" style={{ color: 'var(--ink)' }}>
-                  {relance ? t('confirm.followUpQuestion', { name }) : t('confirm.sendQuestion')}
+                  {relance ? t('confirm.followUpQuestion', { name }) : t('confirm.sendQuestion', { firstName: b.first })}
                 </div>
               </div>
             </div>

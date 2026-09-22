@@ -50,9 +50,10 @@ const PF_GROUPS: GroupDef[] = [
   // même personne produisaient surtout de la divergence : mesuré en prod le même jour,
   // le seul agent apparié portait `+41 79 899 93 79` dans son profil et
   // `+41 76 608 04 08` sur son WhatsApp vérifié. C'est le premier que voyait l'acheteur.
-  // `profiles.phone` continue d'exister et d'alimenter la réception acheteur et les
-  // e-mails de matching — il est désormais écrit par le trigger de vérification
-  // (20260817133211), plus par une saisie libre.
+  // `profiles.phone` continue d'exister — il alimentait aussi la réception acheteur et
+  // les e-mails de matching, retirés le 21.09.2026 (le matching reste chez l'agent) —
+  // et il est désormais écrit par le trigger de vérification (20260817133211), plus
+  // par une saisie libre.
   { id: 'contact', rows: [
     { key: 'email', icon: 'mail', locked: true, hintKey: 'emailHint' },
     { key: 'whatsapp', icon: 'smartphone', hintKey: 'whatsappHint' },

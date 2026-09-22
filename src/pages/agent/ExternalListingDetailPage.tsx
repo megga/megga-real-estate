@@ -5,9 +5,11 @@
  * (uuid). Le bien est LU EN BASE depuis cet identifiant — il arrivait auparavant par
  * `location.state`, que plus rien ne posait depuis le 18.05.2026, si bien que la page
  * rendait « introuvable » à chaque visite. Carrousel photos, analyse
- * prix/m² honnête (sans comparables fabriqués), notes agent, envoi par email au client
- * (Resend) avec historique, et import au portefeuille. Actions déléguées à
- * `useExternalListingActions`.
+ * prix/m² honnête (sans comparables fabriqués), notes agent et import au portefeuille.
+ * Actions déléguées à `useExternalListingActions`.
+ *
+ * ⛔ Plus d'« Envoyer par e-mail » (21.09.2026) : le matching reste chez l'agent, rien ne
+ * part vers l'acheteur depuis le CRM. L'agent propose le bien par ses propres moyens.
  */
 import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
@@ -17,7 +19,6 @@ import { useTranslation } from 'react-i18next'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import { useMarketListing, projeterAnnonce } from '@/hooks/useMarketListing'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
-import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
@@ -39,7 +40,7 @@ const PROPERTY_TYPE_DETAIL_KEYS: Record<string, string> = {
   apartment_terrasse_flat: 'external.subtypes.apartment_terrasse_flat',
 }
 
-/** Fiche lecture seule d'une annonce externe + actions CRM (notes, envoi email, import). */
+/** Fiche lecture seule d'une annonce externe + actions CRM (notes, import). */
 export default function ExternalListingDetailPage() {
   const { t } = useTranslation('listings')
   const location = useLocation()
@@ -63,25 +64,17 @@ export default function ExternalListingDetailPage() {
   const listing = annonce ? projeterAnnonce(annonce) : undefined
   /**
    * ⚠ Enrichissement OPTIONNEL, jamais la source. Le nom du contact alimente le
-   * bento « Match pour » ET le prénom de l'e-mail réellement envoyé au client
-   * (`contactFirstName`). Quand on arrive par une URL nue il n'y en a pas : l'e-mail
-   * retombe alors sur « Client », ce qui est le repli déjà écrit ligne ~116.
+   * bento « Match pour » ; arrivé par une URL nue, il n'y en a pas et le bento se tait.
    */
   const contactName = (location.state?.contactName as string) || null
   const [photoIdx, setPhotoIdx] = useState(0)
   const [copied, setCopied] = useState(false)
   const [noteText, setNoteText] = useState('')
-  const [showSendForm, setShowSendForm] = useState(false)
-  const [sendEmail, setSendEmail] = useState('')
-  const [sendMessage, setSendMessage] = useState('')
-  const [emailSentSuccess, setEmailSentSuccess] = useState(false)
 
   const {
-    notes, sends, imported, importedAt,
-    addNote, deleteNote, recordSend, markImported,
+    notes, imported, importedAt,
+    addNote, deleteNote, markImported,
   } = useExternalListingActions(listing)
-
-  const sendPropertyEmail = useSendPropertyEmail()
 
   const [dark, setDark] = useCrmDarkPref()
 
@@ -152,38 +145,6 @@ export default function ExternalListingDetailPage() {
     if (!noteText.trim()) return
     addNote(noteText)
     setNoteText('')
-  }
-
-  const handleSendEmail = async () => {
-    if (!sendEmail.trim() || !listing) return
-    try {
-      await sendPropertyEmail.mutateAsync({
-        to: sendEmail.trim(),
-        contactFirstName: contactName?.split(' ')[0] || 'Client',
-        property: {
-          title: listing.title,
-          price: listing.price,
-          address: listing.address,
-          city: listing.city,
-          rooms: listing.rooms,
-          surface_m2: listing.surface_m2,
-          type: listing.type,
-          photo_url: listing.photo_url,
-          source_url: listing.source_url,
-          source_agency: listing.source_agency,
-          source_portal: listing.source_portal,
-        },
-        message: sendMessage.trim() || undefined,
-      })
-      recordSend(contactName || sendEmail, 'email')
-      setShowSendForm(false)
-      setSendEmail('')
-      setSendMessage('')
-      setEmailSentSuccess(true)
-      setTimeout(() => setEmailSentSuccess(false), 4000)
-    } catch {
-      // Error shown via mutation state
-    }
   }
 
   const statsRaw = [
@@ -431,60 +392,6 @@ export default function ExternalListingDetailPage() {
             <div className="rounded-xl border border-theme-border p-4 space-y-2.5">
               <p className="text-xs text-theme-tertiary mb-1">{t('external.actions')}</p>
 
-              {/* Email sent success toast */}
-              {emailSentSuccess && (
-                <div className="rounded-lg border border-emerald-500/30 p-3 flex items-center gap-2">
-                  <MEIcon name="check" className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <p className="text-xs text-emerald-500">{t('external.emailSentSuccess')}</p>
-                </div>
-              )}
-
-              {/* Send to client */}
-              {!showSendForm ? (
-                <button
-                  onClick={() => setShowSendForm(true)}
-                  className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <MEIcon name="send" className="w-3.5 h-3.5" />
-                  {t('external.sendByEmail')}
-                </button>
-              ) : (
-                <div className="rounded-lg border border-theme-border p-3 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium text-theme-primary">{t('external.sendByEmail')}</p>
-                    <button onClick={() => setShowSendForm(false)}><MEIcon name="close" className="w-3.5 h-3.5 text-theme-muted" /></button>
-                  </div>
-                  <input
-                    type="email"
-                    value={sendEmail}
-                    onChange={(e) => setSendEmail(e.target.value)}
-                    placeholder={t('external.clientEmail')}
-                    className="w-full h-9 px-3 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors text-theme-primary placeholder:text-theme-muted"
-                  />
-                  <textarea
-                    value={sendMessage}
-                    onChange={(e) => setSendMessage(e.target.value)}
-                    placeholder={t('external.customMessage')}
-                    rows={3}
-                    className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors text-theme-primary placeholder:text-theme-muted resize-none"
-                  />
-                  {sendPropertyEmail.error && (
-                    <p className="text-xs text-red-500">{sendPropertyEmail.error.message}</p>
-                  )}
-                  <button
-                    onClick={handleSendEmail}
-                    disabled={!sendEmail.trim() || sendPropertyEmail.isPending}
-                    className="w-full h-9 rounded-lg text-sm font-medium border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1.5"
-                  >
-                    {sendPropertyEmail.isPending ? (
-                      <><div className="h-3.5 w-3.5 border-2 border-theme-border border-t-accent rounded-full animate-spin" /> {t('external.sending')}</>
-                    ) : (
-                      <><MEIcon name="send" className="w-3.5 h-3.5" /> {t('external.send')}</>
-                    )}
-                  </button>
-                </div>
-              )}
-
               {/* Import to portfolio */}
               {!imported ? (
                 <button
@@ -520,24 +427,6 @@ export default function ExternalListingDetailPage() {
                 {copied ? <><MEIcon name="check" className="w-3.5 h-3.5 text-emerald-500" /> {t('external.copied')}</> : <><MEIcon name="copy" className="w-3.5 h-3.5" /> {t('external.copyLink')}</>}
               </button>
             </div>
-
-            {/* ── NIVEAU 3 : Historique d'envoi ─────────────────────────── */}
-            {sends.length > 0 && (
-              <div className="rounded-xl border border-theme-border p-4">
-                <p className="text-xs text-theme-tertiary mb-2">{t('external.sendHistory')}</p>
-                <div className="space-y-2">
-                  {sends.map((send) => (
-                    <div key={send.id} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-theme-secondary">{send.contact_name}</p>
-                        <p className="text-xs text-theme-muted">{send.channel === 'email' ? t('external.channelEmail') : t('external.channelMessaging')}</p>
-                      </div>
-                      <p className="text-xs text-theme-muted">{formatRelativeDate(send.sent_at)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Location */}
             {listing.city && (

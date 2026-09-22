@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "New",
-        "sent": "File sent",
+        "sent": "Property proposed",
         "visitPlanned": "Visit scheduled",
         "interested": "Interested"
       },
+      "proposeError": "The proposal couldn't be recorded. Try again.",
       "why": {
         "fallback": "New match, first contact to initiate."
       },
@@ -318,8 +319,8 @@
         "toRefine": "to refine"
       },
       "action": {
-        "addToFile": "Add to {{name}}'s file",
-        "added": "Added to {{name}}'s file",
+        "addToFile": "I proposed it to {{name}}",
+        "added": "Proposed to {{name}}",
         "openInMatching": "Open in Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
       },
       "sendError": "Sending failed, try again or copy the message.",
+      "sendErrorBien": "Nothing was sent: this message contains a property (listing link or MG-… reference). Matching stays with you: present the property yourself, then record “I proposed it” in matching.",
       "draft": {
         "to": "To",
         "emailMissing": "(email missing)",

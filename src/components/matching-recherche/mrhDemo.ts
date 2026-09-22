@@ -20,7 +20,6 @@
  * mais inventées : c'est un banc visuel, pas un aperçu du marché.
  */
 import type { CityHit } from '@/hooks/useMatchingRecherche'
-import type { SendSelectionResult } from '@/hooks/useSendReceptionSelection'
 import type { MrhBien, MrhBienDetail, MrhContact } from './types'
 
 /**
@@ -263,18 +262,4 @@ export const MRH_DEMO_DETAIL: MrhBienDetail = {
   availability_date: '2026-10-01',
   visit_contact_name: 'Sandra Perrin',
   agency_reference: 'RDR-2026-0412',
-}
-
-/**
- * Lien de réception simulé — ouvre `MrhSendSheet` sans rien minter.
- *
- * ⚠ Le jeton n'est PAS un jeton : il ne survivrait à aucune vérification de
- * signature. C'est voulu — la feuille se regarde, elle ne se suit pas.
- */
-export const MRH_DEMO_SEND: SendSelectionResult = {
-  url: 'https://app.getmegga.com/reception/demo-banc-essai',
-  token: 'demo-banc-essai',
-  phone: '+41 79 000 00 00',
-  firstName: 'Marie',
-  count: 2,
 }
