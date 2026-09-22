@@ -51,11 +51,17 @@ const ilYA = (heures: number) => new Date(Date.now() - heures * 3_600_000).toISO
  * sur « acheteur », et la liste Contacts montrait un vendeur en acheteur — sans budget
  * ni critère, puisque rien ne les portait. `full_name`, `status` et `canton` n'existent
  * pas non plus ; ils restent pour les lecteurs du banc qui les attendaient.
+ *
+ * ⚠ `roles` (PLURIEL) est une vraie colonne depuis le 22.09.2026 — à ne pas confondre avec le
+ * `role` singulier ci-dessus, qui n'a jamais existé. C'est elle qui fait foi, `type` en dérive.
+ * Mais le banc n'a AUCUN déclencheur : c'est à chaque fixture d'être d'accord avec elle-même,
+ * comme pour les dates du lot C. `banc-contacts-roles.spec.ts` rejoue `typeDeRoles()` sur
+ * chaque ligne et rougit à la première qui diverge.
  */
 const contact = (id: string, prenom: string, nom: string, champs: Record<string, unknown>) => ({
   id, agency_id: AGENCE_BANC.id, entity_type: 'pp', user_id: null, deleted_user_id: null,
   full_name: `${prenom} ${nom}`, first_name: prenom, last_name: nom, status: 'active',
-  email: null, phone: null, type: 'buyer', source: 'manual', score: null, tags: [],
+  email: null, phone: null, type: 'buyer', roles: ['buyer'], source: 'manual', score: null, tags: [],
   notes: null, language: 'fr', form_data: null, search_criteria: null,
   birth_date: null, nationality: null, residence_country: null, home_address: null,
   wa_opt_in: false, wa_consent_at: null, wa_opt_out_at: null, wa_suppressed: false,
@@ -64,7 +70,9 @@ const contact = (id: string, prenom: string, nom: string, champs: Record<string,
   ...champs,
 })
 
-const CONTACTS = [
+// ⚠ EXPORTÉ pour `banc-contacts-roles.spec.ts` seul : c'est la seule façon de confronter les
+// fixtures à `typeDeRoles()` sans monter un écran. Les écrans, eux, passent par `CRM_TABLES`.
+export const CONTACTS = [
   contact('c1', 'Camille', 'Rochat', {
     email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03', canton: 'GE',
     type: 'buyer', score: 'hot', source: 'website', tags: ['Primo-accédante'],
@@ -75,7 +83,8 @@ const CONTACTS = [
   }),
   contact('c2', 'Théo', 'Baumgartner', {
     email: 'theo.b@example.ch', phone: '+41 78 220 14 77', canton: 'VD',
-    type: 'seller', score: 'warm', source: 'referral', language: 'de', tags: ['Mandat exclusif'],
+    // Étape 3 : le contact à TROIS rôles — la pastille « Vendeur », le « +2 », les trois noms au survol.
+    type: 'seller', roles: ['seller', 'referrer', 'trustee'], score: 'warm', source: 'referral', language: 'de', tags: ['Mandat exclusif'],
     notes: 'Vend son 5 pièces à Lutry ; souhaite signer avant la fin de l’année.',
     last_interaction_at: ilYA(74), created_at: ilYA(1400),
   }),
@@ -87,31 +96,33 @@ const CONTACTS = [
   }),
   contact('c4', 'Luca', 'Bernasconi', {
     email: 'luca.bernasconi@example.ch', phone: '+41 79 655 31 20', canton: 'GE',
-    type: 'tenant', score: 'hot', source: 'whatsapp_ai', language: 'it',
+    type: 'tenant', roles: ['tenant'], score: 'hot', source: 'whatsapp_ai', language: 'it',
     search_criteria: { transaction_type: 'rent', type: 'apartment', zones: ['Genève', 'GE'], budget_min: 2_500, budget_max: 3_200, rooms_min: 3.5 },
     last_interaction_at: ilYA(5), created_at: ilYA(60),
   }),
   contact('c5', 'Nadia', 'Haddad', {
     email: 'n.haddad@example.ch', phone: '+41 22 710 44 90', canton: 'GE',
-    type: 'landlord', score: 'cold', source: 'import', tags: ['Immeuble Plainpalais'],
+    type: 'landlord', roles: ['landlord'], score: 'cold', source: 'import', tags: ['Immeuble Plainpalais'],
     last_interaction_at: ilYA(620), created_at: ilYA(3000),
   }),
   contact('c6', 'Olivier', 'Mottier', {
     email: 'olivier.mottier@example.ch', phone: '+41 79 301 67 45', canton: 'VD',
-    type: 'both', score: 'warm', source: 'referral',
+    // Étape 3 : l'acquéreur-vendeur, enfin ÉCRIVABLE — `both` n'est plus qu'un type dérivé de ces deux rôles.
+    type: 'both', roles: ['buyer', 'seller'], score: 'warm', source: 'referral',
     notes: 'Vend sa maison de Pully pour acheter plus petit en ville.',
     search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Lausanne', 'VD'], budget_max: 1_100_000, rooms_min: 3.5 },
     last_interaction_at: ilYA(48), created_at: ilYA(400),
   }),
   contact('c7', 'Emma', 'Schneider', {
     email: 'emma.schneider@example.com', phone: '+41 76 488 02 19', canton: 'ZH',
-    type: 'investor', score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
+    type: 'investor', roles: ['investor'], score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
     search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Zürich', 'Genève', 'ZH', 'GE'], budget_min: 1_200_000, budget_max: 3_000_000 },
     last_interaction_at: ilYA(12), created_at: ilYA(150),
   }),
   // Le prospect entré par WhatsApp que la cloche annonce (`n1`, « Léa Martin (via WhatsApp) »).
+  // Étape 3 : le contact SANS rôle — aucune pastille sur sa ligne, et c'est ce vide qui rend `lead`.
   contact('c8', 'Léa', 'Martin', {
-    phone: '+41 78 902 11 36', type: 'lead', source: 'whatsapp_ai',
+    phone: '+41 78 902 11 36', type: 'lead', roles: [], source: 'whatsapp_ai',
     last_interaction_at: ilYA(0.2), created_at: ilYA(0.2),
   }),
   // Le fil de matchs (17.09.2026) : deux acheteurs dont la recherche TIENT sur Champel et sur
@@ -144,6 +155,17 @@ const CONTACTS = [
   contact('c13', 'Nathalie', 'Gerber', {
     email: 'n.gerber@example.ch', phone: '+41 76 540 93 17', canton: 'GE', type: 'buyer', score: 'warm', source: 'referral',
     last_interaction_at: ilYA(24 * 25), created_at: ilYA(24 * 500),
+  }),
+  // Étape 3 (22.09.2026) : le RÉSEAU PUR, le cas qu'aucune autre ligne ne montrait. Aucun rôle
+  // de transaction, donc `type = 'lead'` : il se voit au sélecteur de rôles et compte pour
+  // « Private banker », mais aucun des quatre onglets ne le prend.
+  // ⚠ Sans recherche, sans score, sans dossier ni deal — un banquier privé n'achète rien ici, et
+  // lui inventer des critères ferait croire que le matching le prend.
+  contact('c14', 'Jean-Marc', 'Dupraz', {
+    email: 'jm.dupraz@example.ch', phone: '+41 22 819 03 27', canton: 'GE',
+    type: 'lead', roles: ['private_banker'], source: 'manual',
+    notes: 'Banquier privé à Genève ; il présente ses clients quand l’un d’eux vend ou achète.',
+    last_interaction_at: ilYA(24 * 6), created_at: ilYA(24 * 210),
   }),
 ]
 

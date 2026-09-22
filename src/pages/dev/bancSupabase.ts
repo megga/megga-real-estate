@@ -163,6 +163,86 @@ function valeur(v: string): unknown {
 }
 
 /**
+ * Éléments d'une liste PostgREST, quelle que soit sa CLÔTURE.
+ *
+ * ⚠ DEUX ÉCRITURES POUR LA MÊME CHOSE, et le banc lit ce qui ARRIVE plutôt que
+ * d'arbitrer laquelle est canonique : `in` clôt par des PARENTHÈSES
+ * (`statut=in.(match,clear)`), un tableau par des ACCOLADES — `roles=ov.{seller}`
+ * est le littéral d'un `text[]`, c'est ce que `postgrest-js` écrit pour
+ * `.overlaps('roles', […])`.
+ *
+ * ⚠ La liste VIDE rend `[]`, et non `['']` : `''.split(',')` rend un élément vide,
+ * et une ligne dont la valeur serait la chaîne vide aurait alors chevauché « aucune
+ * valeur demandée ».
+ */
+function liste(brut: string): string[] {
+  const corps = brut.replace(/^[({]|[)}]$/g, '')
+  return corps === '' ? [] : corps.split(',').map((x) => String(valeur(x)))
+}
+
+/** Un prédicat de colonne : la valeur de la ligne, puis le texte qui suit l'opérateur. */
+type Predicat = (v: unknown, brut: string) => boolean
+
+/**
+ * Les prédicats que le banc sait appliquer.
+ *
+ * ⚠ C'EST CETTE TABLE, ET RIEN D'AUTRE, QUI DIT CE QUI EST IMPLÉMENTÉ — un
+ * opérateur absent d'ici est signalé puis laissé passer par {@link filtrer}. Elle a
+ * remplacé un `switch` : tant que la liste des opérateurs connus aurait vécu à côté
+ * du code qui les applique, les deux auraient pu diverger sans que rien ne le dise.
+ */
+const PREDICATS: Record<string, Predicat | undefined> = {
+  eq: (v, b) => String(v) === String(valeur(b)),
+  neq: (v, b) => String(v) !== String(valeur(b)),
+  gt: (v, b) => String(v) > b,
+  gte: (v, b) => String(v) >= b,
+  lt: (v, b) => String(v) < b,
+  lte: (v, b) => String(v) <= b,
+  is: (v, b) => (b === 'null' ? v == null : v != null),
+  in: (v, b) => liste(b).includes(String(v)),
+  /**
+   * Chevauchement de tableaux (`roles=ov.{seller,buyer}`) — l'opérateur des rôles
+   * multiples : la ligne passe si SON tableau partage au moins un élément avec la
+   * liste demandée.
+   *
+   * ⛔ UNE LIGNE SANS TABLEAU NE CHEVAUCHE RIEN, et ce n'est pas une rigueur que le
+   * banc s'ajoute : en SQL `NULL && ARRAY[…]` vaut NULL, donc la ligne sort du
+   * résultat. La laisser passer ferait répondre « Private banker » par le
+   * portefeuille entier — le mensonge par excès que cet opérateur vient fermer.
+   */
+  ov: (v, b) => {
+    const demandes = liste(b)
+    return Array.isArray(v) && v.some((e) => demandes.includes(String(e)))
+  },
+}
+
+/**
+ * Prédicats non implémentés DÉJÀ dits — une fois chacun, par vie d'intercepteur.
+ *
+ * ⛔ SANS DÉDOUBLONNAGE C'EST UN FLOT, PAS UN AVERTISSEMENT : `filtrer` s'exécute
+ * par REQUÊTE et son prédicat par LIGNE. Une seule liste de contacts en cracherait
+ * une ligne par contact, à chaque rafraîchissement — on filtrerait la console au
+ * lieu de la lire, ce qui revient au silence d'avant en plus bruyant.
+ */
+const predicatsDits = new Set<string>()
+
+/**
+ * Dit UNE fois qu'un prédicat n'a pas été appliqué.
+ *
+ * ⚠ `console.warn` et jamais une exception : un banc doit rester regardable. Et
+ * jamais `contrat.signaler`, qui alimente la liste « sans fixture » des commandes —
+ * y mêler des opérateurs brouillerait ce qu'elle veut dire (une donnée manquante,
+ * pas un filtre ignoré). Ce module ne part pas en production : les pages `/dev/*`
+ * qui l'importent vivent derrière `import.meta.env.DEV` (cf.
+ * `tests/unit/dev-bancs-frontiere.spec.ts`).
+ */
+function signalerPredicat(cle: string, quoi: string): void {
+  if (predicatsDits.has(cle)) return
+  predicatsDits.add(cle)
+  console.warn(`[banc] filtre NON appliqué — ${quoi} : toutes les lignes passent.`)
+}
+
+/**
  * -1, 0 ou 1, par FAMILLE puis dans la famille : les valeurs absentes, puis les nombres (en nombres),
  * puis tout le reste (en chaînes).
  *
@@ -191,10 +271,23 @@ function comparerValeurs(a: unknown, b: unknown): number {
  * un écran cohérent en apparence et faux en substance — la variante (e) des
  * pièges de sonde.
  *
- * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
- * `order`, `limit` et `offset`. Un opérateur inconnu laisse passer la ligne plutôt
- * que de la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme
- * un bogue de la page.
+ * Sous-ensemble volontaire ({@link PREDICATS}) : `eq`, `neq`, `gt(e)`, `lt(e)`,
+ * `in`, `is`, `ov`, plus `order`, `limit` et `offset`. Un opérateur inconnu laisse
+ * passer la ligne plutôt que de la retirer : mieux vaut un écran trop plein qu'un
+ * vide qu'on lirait comme un bogue de la page.
+ *
+ * ⛔ MAIS IL LE DIT DÉSORMAIS. « Laisser passer » en silence est ce qui a permis le
+ * défaut suivant : `roles=ov.{private_banker}` (étape 3, les rôles multiples)
+ * tombait dans ce repli, et l'écran répondait « Private banker » par le
+ * portefeuille ENTIER — cohérent en apparence, faux en substance, et indiscernable
+ * d'un filtre qui marche sur une fixture où tout le monde correspond. Un prédicat
+ * ignoré se dit une fois en console ({@link signalerPredicat}) ; la ligne passe
+ * quand même, le banc reste regardable.
+ *
+ * ⛔ CE QUI N'EST TOUJOURS PAS LU : `or=(…)` / `and=(…)`, les arbres booléens. La
+ * recherche par nom (`useContacts`, `useAdminSearch`) rend donc TOUTES les lignes
+ * sur le banc — c'est signalé, et les implémenter est une décision à part, pas un
+ * effet de bord de celle-ci.
  *
  * ⚠ `order` porte PLUSIEURS colonnes (`created_at.desc,id.desc` — c'est ce que
  * `postgrest-js` écrit pour deux `.order()` à la suite) : lu comme une seule, le
@@ -213,25 +306,31 @@ function filtrer(lignes: unknown[], requete: string): unknown[] {
 
   for (const [col, expr] of p.entries()) {
     if (PARAMS_HORS_FILTRE.has(col)) continue
+    // ⚠ `or=(a.eq.1,b.eq.2)` N'EST PAS un prédicat de colonne, c'est un ARBRE : le
+    // découpage au premier point en tirerait un opérateur nommé `(a`, qu'on
+    // chercherait en vain dans la doc PostgREST. Il est donc nommé pour ce qu'il est,
+    // et une seule fois — sinon chaque forme de recherche en produirait une ligne.
+    if (col === 'or' || col === 'and') {
+      signalerPredicat(col, `« ${col}=(…) », un arbre booléen que le banc ne lit pas`)
+      continue
+    }
     const sep = expr.indexOf('.')
     if (sep < 0) continue
     const op = expr.slice(0, sep)
     const brut = expr.slice(sep + 1)
-    out = out.filter((l) => {
-      const v = l[col]
-      switch (op) {
-        case 'eq': return String(v) === String(valeur(brut))
-        case 'neq': return String(v) !== String(valeur(brut))
-        case 'gt': return String(v) > brut
-        case 'gte': return String(v) >= brut
-        case 'lt': return String(v) < brut
-        case 'lte': return String(v) <= brut
-        case 'is': return brut === 'null' ? v == null : v != null
-        case 'in': return brut.replace(/^\(|\)$/g, '').split(',')
-          .map((x) => String(valeur(x))).includes(String(v))
-        default: return true
-      }
-    })
+    const test = PREDICATS[op]
+    // ⚠ `ov` porte AUSSI les intervalles (`ov.[2026-01-01,2026-01-02)`), que le
+    // chevauchement de tableaux ci-dessus lirait de travers. Les crochets les
+    // distinguent sans ambiguïté d'une liste, dont les deux clôtures sont `()` et
+    // `{}`. Aucun appel du dépôt n'en écrit — le jour où l'un le fera, il sera dit.
+    const intervalle = op === 'ov' && (brut.startsWith('[') || brut.endsWith(']'))
+    if (!test || intervalle) {
+      signalerPredicat(`${col}.${op}`, intervalle
+        ? `« ${col}=ov.${brut} », un INTERVALLE (le banc ne chevauche que des tableaux)`
+        : `« ${col}=${op}.… », un opérateur non implémenté`)
+      continue
+    }
+    out = out.filter((l) => test(l[col], brut))
   }
 
   const ordre = p.get('order')
@@ -421,6 +520,10 @@ let fetchOrigine: typeof window.fetch | null = null
  */
 export function installerBanc(): void {
   if (fetchOrigine) return
+  // ⚠ Un intercepteur neuf redit ce qu'il ne sait pas filtrer : sans ce vidage, un
+  // banc rouvert après `desinstallerBanc` hériterait de l'inventaire du précédent et
+  // se tairait sur des filtres qu'il ignore toujours.
+  predicatsDits.clear()
   fetchOrigine = window.fetch.bind(window)
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
