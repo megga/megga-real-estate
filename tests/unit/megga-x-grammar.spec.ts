@@ -1413,15 +1413,47 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
  * explique un retrait fait rougir la garde : le garde-fou trébuche sur sa
  * propre documentation. Défaut déjà rencontré sur `t.primary`
  * (`megga-x-crm-tokens.spec.ts`).
+ *
+ * ⛔ ET IL A RENDU LE CLIQUET AVEUGLE SUR 108 LIGNES, EN DEMANDANT LUI-MÊME
+ * QU'ON DESCENDE SON COMPTE (22.09.2026).
+ *
+ * Il passait en DEUX temps — les blocs, puis les lignes. Un `//` qui CONTIENT
+ * `/*` ouvrait donc un bloc FANTÔME, puisque la ligne qui le portait n'était pas
+ * encore retirée. `ContactDetailPage.tsx` en porte un depuis toujours dans son
+ * en-tête : le chemin `src/hooks/*`, écrit en commentaire de ligne.
+ *
+ * Il n'avait jamais rien coûté, pour une raison qui ne tient à rien : ce fichier
+ * ne contenait AUCUN bloc `/* … *\/`, donc le fantôme ne se refermait jamais et
+ * la regex ne trouvait aucune paire. L'étape 3 y a écrit son premier JSDoc — et
+ * le fantôme s'est refermé DESSUS, avalant les lignes 11 à 119 : tous les
+ * imports et le haut du composant, dont `marginTop: 14` et `padding: '0 16px'`.
+ *
+ * ⛔ CE QUI REND LE DÉFAUT GRAVE, c'est la forme qu'il prend en sortie. La zone
+ * `src/pages/agent` tombait de {215, 762} à {213, 760}, et « l'inventaire ne
+ * garde aucun crédit » réclamait de descendre le compte — la clause écrite pour
+ * empêcher qu'on réintroduise en silence réclamait d'inscrire un nettoyage qui
+ * n'avait pas eu lieu, et de rendre ces 108 lignes invisibles POUR DE BON. Un
+ * cliquet qui se resserre sur un angle mort est pire que pas de cliquet : il
+ * signe.
+ *
+ * ⚠ Et le remède n'est PAS d'inverser les deux passes : `/* x // y *\/` perdrait
+ * alors son fermant et avalerait la fin du fichier. Il faut UN seul balayage de
+ * gauche à droite où, à chaque position, le premier ouvrant l'emporte — ce que
+ * fait l'alternance ci-dessous.
+ *
+ * ⚠ Mesuré sur tout `src/` le 22.09.2026 : DEUX fichiers se lisent autrement,
+ * `App.tsx` (6 749 caractères rendus visibles, hors des racines de ce spec) et
+ * `ContactDetailPage.tsx` (3 289). Le second est ici ; le premier reste aveugle
+ * à toute garde qui retirerait ses commentaires en deux temps.
  */
 function sansCommentaires(code: string): string {
-  return code
-    // ⚠ Un bloc `/* … */` de N lignes doit rendre N sauts de ligne, pas une
-    // espace : sinon tout ce qui suit REMONTE, et chaque `fichier:ligne` que ce
-    // spec rapporte désigne la mauvaise ligne. Une garde qui envoie au mauvais
-    // endroit coûte plus de temps qu'elle n'en fait gagner.
-    .replace(/\/\*[\s\S]*?\*\//g, (bloc) => '\n'.repeat((bloc.match(/\n/g) ?? []).length))
-    .replace(/\/\/[^\n]*/g, ' ')
+  // ⚠ Un bloc `/* … */` de N lignes doit rendre N sauts de ligne, pas une
+  // espace : sinon tout ce qui suit REMONTE, et chaque `fichier:ligne` que ce
+  // spec rapporte désigne la mauvaise ligne. Une garde qui envoie au mauvais
+  // endroit coûte plus de temps qu'elle n'en fait gagner.
+  return code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (com) =>
+    com.startsWith('//') ? ' ' : '\n'.repeat((com.match(/\n/g) ?? []).length),
+  )
 }
 
 const scan = scanRoots(ZONES)
