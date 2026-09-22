@@ -75,7 +75,18 @@ contacts (
   -- Identité
   first_name, last_name, email, phone, whatsapp_phone, language, nationality,
   -- Classification
+  roles,         -- text[] (étape 3, 22.09.2026) — LA SOURCE DE VÉRITÉ. Douze valeurs :
+                 --   transaction : buyer | seller | tenant | landlord | investor
+                 --   réseau      : family_office | referrer | private_banker | lawyer | trustee | broker | architect
+                 --   Vide = un lead ; « prospect » n'est PAS un rôle, c'est un stade.
+                 --   Index GIN `idx_contacts_roles` (filtre et recherche par rôle).
   type,          -- 'buyer' | 'seller' | 'investor' | 'tenant' | 'landlord' | 'both' | 'lead'
+                 -- ⚠ DÉRIVÉ de `roles` par le déclencheur `trg_contacts_roles_sync`, dans les DEUX
+                 --   sens : écrire `roles` recalcule `type` (both si acquéreur ET côté offre, sinon
+                 --   le premier rôle de transaction, sinon lead) ; écrire `type` seul (l'IA, un
+                 --   import, `create_lead_with_optional_deal`) AJOUTE le rôle correspondant sans
+                 --   effacer les rôles de réseau. Gardé parce que ~100 lecteurs en dépendent encore,
+                 --   dont trois politiques RLS et quatre fonctions SQL.
   source,        -- 'website' | 'referral' | 'portal' | 'walk_in' | 'social' | 'cold_call' | 'other'
   score,         -- 'hot' | 'warm' | 'cold'
   -- Budget
