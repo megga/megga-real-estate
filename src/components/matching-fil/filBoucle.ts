@@ -26,6 +26,13 @@ export type FilOnglet = (typeof ONGLETS)[number]
 export const MOTIFS_REFUS = ['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements', 'etat', 'autre'] as const
 export type MotifRefus = (typeof MOTIFS_REFUS)[number]
 
+/**
+ * La clé i18n d'un motif de refus (`fil.motifs.*`), ou `null` pour tout autre code — `recherche_ajustee` compris, qui
+ * n'est pas une réponse de l'acheteur. Un motif ne s'affiche jamais en code brut (lot D1).
+ */
+export const cleMotif = (code: string | null | undefined): string | null =>
+  (code && (MOTIFS_REFUS as readonly string[]).includes(code) ? `fil.motifs.${code}` : null)
+
 /** Une relance de proposition en cours (`reminders`), et les biens qu'elle couvre. */
 export interface RelanceProposition { id: string; contactId: string; matchIds: string[]; echeance: string | null }
 

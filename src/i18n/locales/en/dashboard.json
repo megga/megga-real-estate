@@ -456,16 +456,18 @@
         "markAll": "Mark all as seen",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signals",
-        "groupBuyers": "Buyer feedback",
+        "groupBuyers": "Recorded feedback",
         "groupReminders": "Reminders",
-        "liked": "liked {{subject}}",
-        "skipped": "passed on {{subject}}",
         "reminderDue": "{{subject}} to pick back up",
         "ctaProposeVisit": "Propose a viewing",
         "ctaRecalibrate": "Recalibrate",
         "ctaResume": "Resume",
         "unknownContact": "Contact",
-        "unknownProperty": "a property"
+        "unknownProperty": "a property",
+        "interesse": "interested in {{subject}}",
+        "pasInteresse": "not interested in {{subject}}",
+        "retourAttendu_one": "feedback due on {{count}} proposed property",
+        "retourAttendu_other": "feedback due on {{count}} proposed properties"
       },
       "toast": {
         "allUpToDate": "Everything is up to date",

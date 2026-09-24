@@ -680,6 +680,12 @@ export function PageAujourdhuiH() {
   // recalcul du moteur de matching — et surtout, la base ne contient AUCUNE
   // réaction acheteur, donc aucun des deux ne pourrait être éprouvé aujourd'hui.
   const onSignal = async (s: AbsenceSignal) => {
+    // Lot D1 : une relance de proposition s'ouvre dans « Retours de … », sans rien écrire — elle se clôt quand les
+    // réponses sont consignées. La passer à `done` ici laissait ses biens `sent` sans échéance.
+    if (s.retoursDe) {
+      nav('matching-fil', lienFil({ attente: s.retoursDe }))
+      return
+    }
     if (s.type === 'rappel') {
       const ok = await resumeReminder(s)
       if (!ok) { say(t('today.h.toast.resumeFailed')); return }

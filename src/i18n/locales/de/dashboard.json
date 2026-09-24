@@ -456,16 +456,18 @@
         "markAll": "Alle als gesehen markieren",
         "count_one": "{{count}} Signal",
         "count_other": "{{count}} Signale",
-        "groupBuyers": "Käuferrückmeldungen",
+        "groupBuyers": "Erfasste Rückmeldungen",
         "groupReminders": "Erinnerungen",
-        "liked": "mag {{subject}}",
-        "skipped": "hat {{subject}} abgelehnt",
         "reminderDue": "Dossier {{subject}} wieder aufnehmen",
         "ctaProposeVisit": "Besichtigung vorschlagen",
         "ctaRecalibrate": "Neu justieren",
         "ctaResume": "Aufnehmen",
         "unknownContact": "Kontakt",
-        "unknownProperty": "ein Objekt"
+        "unknownProperty": "ein Objekt",
+        "interesse": "interessiert an {{subject}}",
+        "pasInteresse": "nicht interessiert an {{subject}}",
+        "retourAttendu_one": "Rückmeldung zu {{count}} vorgeschlagenen Objekt fällig",
+        "retourAttendu_other": "Rückmeldung zu {{count}} vorgeschlagenen Objekten fällig"
       },
       "toast": {
         "allUpToDate": "Alles aktuell",

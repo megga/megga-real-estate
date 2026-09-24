@@ -456,16 +456,18 @@
         "markAll": "Segna tutto come visto",
         "count_one": "{{count}} segnale",
         "count_other": "{{count}} segnali",
-        "groupBuyers": "Riscontri acquirenti",
+        "groupBuyers": "Riscontri registrati",
         "groupReminders": "Promemoria",
-        "liked": "ha apprezzato {{subject}}",
-        "skipped": "ha scartato {{subject}}",
         "reminderDue": "dossier {{subject}} da riprendere",
         "ctaProposeVisit": "Proponi la visita",
         "ctaRecalibrate": "Ricalibra",
         "ctaResume": "Riprendi",
         "unknownContact": "Contatto",
-        "unknownProperty": "un immobile"
+        "unknownProperty": "un immobile",
+        "interesse": "interessato/a a {{subject}}",
+        "pasInteresse": "non interessato/a a {{subject}}",
+        "retourAttendu_one": "riscontro atteso su {{count}} immobile proposto",
+        "retourAttendu_other": "riscontro atteso su {{count}} immobili proposti"
       },
       "toast": {
         "allUpToDate": "Tutto aggiornato",

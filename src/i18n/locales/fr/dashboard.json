@@ -456,16 +456,18 @@
         "markAll": "Tout marquer comme vu",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signaux",
-        "groupBuyers": "Retours acheteurs",
+        "groupBuyers": "Retours consignés",
         "groupReminders": "Rappels",
-        "liked": "a aimé {{subject}}",
-        "skipped": "a écarté {{subject}}",
         "reminderDue": "dossier {{subject}} à reprendre",
         "ctaProposeVisit": "Proposer la visite",
         "ctaRecalibrate": "Recalibrer",
         "ctaResume": "Reprendre",
         "unknownContact": "Contact",
-        "unknownProperty": "un bien"
+        "unknownProperty": "un bien",
+        "interesse": "intéressé·e par {{subject}}",
+        "pasInteresse": "pas intéressé·e par {{subject}}",
+        "retourAttendu_one": "retour attendu sur {{count}} bien proposé",
+        "retourAttendu_other": "retour attendu sur {{count}} biens proposés"
       },
       "toast": {
         "allUpToDate": "Tout est à jour",
