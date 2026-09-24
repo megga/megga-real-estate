@@ -19,6 +19,14 @@ const R = process.cwd()
  * `src/hooks/*Matching*` plus les trois du fil et de la Recherche (`useMatchingFil`,
  * `useSelectionMarche`, `useAjouterSelection`). `useExternalMatching.ts` n'y est pas : malgré son
  * nom, il ne porte plus qu'un type de fiche d'annonce (sa logique de matching est morte en mai 2026).
+ *
+ * ⛔ Les pages qui HÉBERGENT une surface de matching (« Aujourd'hui », les fiches, « Nouveau bien »,
+ * Mes biens) restent HORS du périmètre : elles ne font que naviguer — en gabarit ANCRÉ — ou monter des
+ * modules déjà couverts ci-dessus. Tout geste qui toucherait l'acheteur depuis une surface de matching
+ * doit vivre dans un module DU périmètre, jamais dans la page qui l'héberge. `ContactDetailPage` ne
+ * peut pas y entrer pour cette raison précise : elle porte aussi le `mailto:` de son en-tête et le lien
+ * vers le composeur de la Messagerie, légitimes pour LA FICHE (écrire au contact, pour tout motif), pas
+ * pour le matching. Ne pas ajouter de page hôte ici.
  */
 const MATCHING = [
   'src/components/matching-atelier',
@@ -33,6 +41,21 @@ const MATCHING = [
   'src/hooks/useAjouterSelection.ts',
   'src/hooks/useAnciensProspects.ts',
   'src/hooks/useContactSentMatches.ts',
+  // Lot D1 (23.09.2026) : les surfaces qui montrent la boucle hors du fil. `src/components/matching-fil` couvre déjà
+  // `filLiens`, `filQuiPour`, `QuiPourCeBien` et `QuiPourFiche`.
+  'src/hooks/useQuiPourCeBien.ts',
+  'src/hooks/usePigeAcheteurs.ts',
+  'src/hooks/useAcquereursNouveauMandat.ts',
+  'src/components/crm/today/matchingDuJour.ts',
+  'src/components/crm/today/useMatchingDuJour.ts',
+  'src/components/crm/today/HlMatching.tsx',
+  'src/components/crm/today/useAbsenceSignals.ts',
+  // La traduction pure ligne → signal de « Pendant ton absence », sortie de useAbsenceSignals.ts : c'est elle
+  // qui reconnaît une relance de proposition (retoursDe).
+  'src/components/crm/today/absenceSignaux.ts',
+  'src/components/crm/contacts-pager/saBoucle.ts',
+  'src/components/crm/biens/nouveau/acquereurs.ts',
+  'src/components/crm/biens/nouveau/LigneAcquereurs.tsx',
   'src/pages/agent/MatchingPage.tsx',
   'src/pages/agent/MatchingAtelierPage.tsx',
   'src/pages/agent/ExternalListingDetailPage.tsx',
@@ -48,6 +71,9 @@ const MATCHING = [
  */
 const SECTIONS: { fichier: string; debut: string }[] = [
   { fichier: 'src/components/crm/contacts-pager/ContactDetailPager.tsx', debut: 'function CdBoucle(' },
+  // Ses deux atomes (lot D1) : une ligne « À traiter » et un bien de la boucle.
+  { fichier: 'src/components/crm/contacts-pager/ContactDetailPager.tsx', debut: 'function CdATraiter(' },
+  { fichier: 'src/components/crm/contacts-pager/ContactDetailPager.tsx', debut: 'function CdBienBoucle(' },
 ]
 
 /**
@@ -68,6 +94,12 @@ const INTERDITS: [RegExp, string][] = [
   [/buyer-reception-/, 'lien de réception'],
   [/useCreateReceptionLink|useSendReceptionSelection|useReceptionLinks|useBuyerReception/, 'hook de réception'],
   [/buildWaMeUrl|PxWhatsAppButton|wa\.me\/|api\.whatsapp\.com\/send|whatsapp:\/\/send/, 'message WhatsApp à l’acheteur'],
+  // Lot D1 (23.09.2026) : la fiche peut ouvrir un e-mail, un SMS ou le composeur de la Messagerie pour LE
+  // CONTACT — légitime hors du matching (`ContactDetailPage`). Depuis une surface DU matching, ce sont trois
+  // autres façons d'écrire à l'acheteur.
+  [/mailto:/, 'lien mailto: à l’acheteur'],
+  [/sms:/, 'lien sms: à l’acheteur'],
+  [/\/dashboard\/messagerie\?ecrire/, 'composeur de la Messagerie sur l’acheteur'],
 ]
 
 /**
