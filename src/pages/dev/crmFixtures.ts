@@ -36,7 +36,8 @@ import { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { PHOTO } from '@/components/crm/today/data'
 import type { KycDossierStatus } from '@/types/kyc'
-import { JOURS_BAISSE, JOURS_NOUVEAU } from '@/components/matching-fil/filSignaux'
+import { JOURS_BAISSE, JOURS_MANDAT, JOURS_NOUVEAU } from '@/components/matching-fil/filSignaux'
+import { STATUTS_COMPATIBLES } from '@/components/matching-fil/filQuiPour'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
 
@@ -736,14 +737,17 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   // `due_at` — colonne qui n'existe pas dans `reminders` —, si bien que les trois
   // écrans du banc ne voyaient AUCUN rappel. Depuis le 13.09.2026, « Aujourd'hui »
   // montre donc r1 (+3 h) dans sa journée, et le Calendrier les deux.
+  // ⚠ `contact` : la jointure `contact:contacts(first_name, last_name)` que lit `useReminders` — le banc
+  // n'applique pas `select`, la ligne la porte. Sans elle, « Dossiers » nommait chacun de ces rappels
+  // « Contact » (son repli) : une limite du banc, antérieure au lot D1, relevée en le rejouant.
   reminders: [
-    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
-    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
+    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48), contact: { first_name: 'Camille', last_name: 'Rochat' } },
+    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52), contact: { first_name: 'Salomé', last_name: 'Perret' } },
     // La boucle du fil (lot B) : UNE relance par proposition, qui couvre TOUS ses biens (`match_ids`). rb1
     // reste ouverte — Julie a refusé m14 mais pas encore répondu sur m15 (`fermer_relance_proposition`) ;
     // rb2, échue, couvre les deux biens proposés ensemble à Emma. Colonnes réelles de `reminders`, telles que `poserRelance` les pose.
-    { id: 'rb1', agency_id: AGENCE_BANC.id, contact_id: 'c9', property_id: null, transaction_id: null, match_id: 'm14', match_ids: ['m14', 'm15'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(-24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Julie Morand sur 2 biens proposés', created_at: ilYA(48) },
-    { id: 'rb2', agency_id: AGENCE_BANC.id, contact_id: 'c7', property_id: null, transaction_id: null, match_id: 'm18', match_ids: ['m18', 'm21'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Emma Schneider sur 2 biens proposés', created_at: ilYA(96) },
+    { id: 'rb1', agency_id: AGENCE_BANC.id, contact_id: 'c9', property_id: null, transaction_id: null, match_id: 'm14', match_ids: ['m14', 'm15'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(-24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Julie Morand sur 2 biens proposés', created_at: ilYA(48), contact: { first_name: 'Julie', last_name: 'Morand' } },
+    { id: 'rb2', agency_id: AGENCE_BANC.id, contact_id: 'c7', property_id: null, transaction_id: null, match_id: 'm18', match_ids: ['m18', 'm21'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Emma Schneider sur 2 biens proposés', created_at: ilYA(96), contact: { first_name: 'Emma', last_name: 'Schneider' } },
   ],
   // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
   // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
@@ -1554,6 +1558,273 @@ function resumeMarcheBanc() {
 }
 
 /**
+ * Lot D1 (23.09.2026) — les RPC des surfaces, REJOUÉES sur les tables du banc à chaque appel, comme `resumeMarcheBanc` :
+ * les matchs et les rappels y sont écrivables, donc un geste consigné au banc se voit dans « Aujourd'hui ». Sans elles, le
+ * banc disait toujours « Tu es à jour », relance échue comprise.
+ * ⚠ MIROIRS de `…_matching_surfaces.sql` (`matching_actions_du_jour`, `pige_acheteurs_compatibles`, et le
+ * `today_absence` qu'elle réécrit) : mêmes règles, mêmes seuils (`filSignaux`), mêmes statuts compatibles
+ * (`STATUTS_COMPATIBLES`) — `banc-matching-d1.spec.ts` confronte leur sortie à l'histoire du banc. Une règle changée d'un
+ * côté se change de l'autre.
+ * ⚠ Le banc n'a pas de RLS : le filtre d'agence que la base tient de la RLS (`security invoker`) ou écrit en dur
+ * (`today_absence`, `security definer`) est écrit ici, sur `AGENCE_BANC`.
+ * ⛔ Ni de TRIGGER : ce que la base pose seule après un geste n'y est pas écrit. Deux effets sont rejoués ici, À LA
+ * LECTURE, parce que sans eux le banc mentait après un geste : la relance close par `fermer_relance_proposition`
+ * (`relanceClose`) et la réponse datée par `set_match_response_at` (`reponduLe`). Pas `set_match_prix_propose` : « Je
+ * l'ai proposé » sur le bien revenu d'Antoine (m5) garde au banc son prix de proposition et sa réponse d'avant, et
+ * l'action « prix » y reste, là où la base la retirerait — une limite du banc du lot B, pas de ces miroirs.
+ */
+type MatchBanc = {
+  id: string; agency_id: string; contact_id: string; property_id: string | null; market_listing_id: string | null
+  status: string; score: number; sent_at: string | null; response_at?: string | null; reaction_motif?: string | null
+  prix_propose?: number | null; snoozed_until?: string | null; updated_at?: string | null
+}
+type RappelBanc = {
+  id: string; agency_id: string; contact_id: string | null; property_id?: string | null; type: string; status: string
+  trigger_at: string | null; match_id?: string | null; match_ids?: string[] | null
+}
+type BienBanc = {
+  id: string; agency_id: string; title?: string | null; address?: string | null; city?: string | null; price?: number | null
+  status?: string; transaction_type?: string | null; mandate_signed_at?: string | null; published_at?: string | null
+  deleted_at?: string | null
+}
+type AnnonceBanc = {
+  id: string; title?: string | null; address?: string | null; city?: string | null; price?: number | null
+  current_price?: number | null; status?: string | null; transaction_type?: string | null; price_at_first_seen?: number | null
+  price_reduced_at?: string | null; first_seen_at?: string | null
+}
+type ContactBanc = { id: string; first_name: string | null; last_name: string | null }
+/** Une ligne de `matching_actions_du_jour` avant la coupe : `rang` est la sorte, qui ordonne. */
+type ActionBanc = {
+  genre: 'retour' | 'prix' | 'mandat' | 'marche'; rang: 1 | 2 | 3 | 4
+  contact_id: string | null; match_id: string | null; property_id: string | null; market_listing_id: string | null
+  statut: string | null; titre: string | null; ville: string | null; nombre: number | null; nouveaux: number | null
+  baisses: number | null; montant: number | null; location: boolean | null; quand: string | null
+}
+
+const JOUR_BANC = 86_400_000
+const STATUTS_COMPATIBLES_BANC = new Set<string>(STATUTS_COMPATIBLES)
+/** `x > now() - interval '<jours> days' and x <= now()` : une date récente, jamais future. */
+const recenteBanc = (iso: string | null | undefined, jours: number, maintenant: number): boolean =>
+  iso != null && Date.parse(iso) > maintenant - jours * JOUR_BANC && Date.parse(iso) <= maintenant
+/** `greatest(…)` / `max(…)` sur des dates : la plus récente des présentes, nulle s'il n'y en a aucune. */
+const plusRecenteBanc = (dates: readonly (string | null | undefined)[]): string | null =>
+  dates.reduce<string | null>((max, d) => (d != null && (max == null || Date.parse(d) > Date.parse(max)) ? d : max), null)
+/** `least(greatest(coalesce(v, défaut), min), max)` : la borne d'un paramètre. */
+const borneBanc = (v: unknown, defaut: number, min: number, max: number): number => {
+  const n = v == null ? defaut : Number(v)
+  return Math.min(Math.max(Number.isFinite(n) ? n : defaut, min), max)
+}
+/** `nullif(x, '')`. */
+const nonVideBanc = (s: string | null | undefined): string | null => (s == null || s === '' ? null : s)
+/** `type = 'rent'` : nul quand le type l'est. */
+const locationBanc = (type: string | null | undefined): boolean | null => (type == null ? null : type === 'rent')
+/** Un ordre `nulls last`, croissant (`sens` 1) ou décroissant (-1) : un absent reste en dernier dans les deux sens. */
+const ordreBanc = (x: string | number | null, y: string | number | null, sens: 1 | -1 = 1): number =>
+  x === y ? 0 : x == null ? 1 : y == null ? -1 : (x < y ? -1 : 1) * sens
+const tempsOuNulBanc = (iso: string | null): number | null => (iso == null ? null : Date.parse(iso))
+const matchsBanc = () => (CRM_TABLES.matches as MatchBanc[]).filter((m) => m.agency_id === AGENCE_BANC.id)
+const contactBanc = (id: string | null) => (CRM_TABLES.contacts as ContactBanc[]).find((c) => c.id === id)
+const bienBanc = (id: string | null | undefined) => (CRM_TABLES.properties as BienBanc[]).find((p) => p.id === id)
+const annonceBanc = (id: string | null | undefined) => (CRM_TABLES.market_listings as AnnonceBanc[]).find((x) => x.id === id)
+/** `coalesce(r.match_ids, array[r.match_id])` : les biens qu'une relance couvre. */
+const couvertsBanc = (r: RappelBanc): string[] => r.match_ids ?? (r.match_id ? [r.match_id] : [])
+/** Les biens d'une relance qui attendent encore leur réponse (`sent`) — de l'agence seule. */
+const envoyesBanc = (ids: readonly string[]) => matchsBanc().filter((m) => ids.includes(m.id) && m.status === 'sent')
+/**
+ * Une relance de PROPOSITION dont plus aucun bien n'attend : la base l'aurait close (`fermer_relance_proposition`, quand
+ * son dernier bien quitte `sent`) ; le banc, qui ne joue pas ce trigger, la garde `pending`. Lue ouverte, elle sortait de
+ * `today_absence` avec `nb_biens: 0`, le hook en faisait un rappel ordinaire, et « Reprendre » l'écrivait `done` —
+ * exactement ce que le lot D1 a retiré.
+ * ⚠ Seulement si elle COUVRE des biens. `automation-engine` (§4, l'acheteur chaud inactif) en pose une sans aucun
+ * (`match_id` nul) : aucun bien ne la désigne, le trigger ne la ferme jamais, et la base la rend avec `nb_biens: 0` —
+ * un rappel ordinaire, qui se reprend.
+ * ⚠ Rejouée à la LECTURE seulement : la table la garde `pending`, et « Dossiers », qui lit `reminders` sans passer par
+ * ces miroirs (`useReminders`), la montre encore — le banc n'a pas de déclencheur.
+ */
+const relanceClose = (r: RappelBanc): boolean =>
+  r.type === 'follow_up_sent_property' && couvertsBanc(r).length > 0 && envoyesBanc(couvertsBanc(r)).length === 0
+/**
+ * La date d'une réponse : `response_at`, que la base pose au passage du statut (`set_match_response_at`). Le banc ne joue
+ * pas ce trigger, mais son PATCH pose `updated_at` (`ecrire`, `bancSupabase.ts`) : l'heure du geste qui a consigné la
+ * réponse. ⚠ Au plus près, pas à l'identique : la base fige la PREMIÈRE réponse, `updated_at` suit le dernier PATCH.
+ */
+const reponduLe = (m: MatchBanc): string | null => m.response_at ?? m.updated_at ?? null
+
+/** `matching_actions_du_jour(p_limite)`, sur le banc. */
+function actionsDuJourBanc(a: Record<string, unknown>) {
+  const maintenant = Date.now()
+  const limite = borneBanc(a.p_limite, 5, 1, 20)
+  const vide = {
+    contact_id: null, match_id: null, property_id: null, market_listing_id: null, statut: null, titre: null, ville: null,
+    nombre: null, nouveaux: null, baisses: null, montant: null, location: null, quand: null,
+  }
+  const lignes: ActionBanc[] = []
+
+  // 1. Les retours dus : une relance de proposition échue dont un bien au moins attend encore sa réponse. Une ligne par
+  //    acheteur, datée de la plus ancienne de SES relances qui comptent (une relance sans bien `sent` ne compte pas).
+  const retours = new Map<string, { ids: Set<string>; quand: string }>()
+  for (const r of CRM_TABLES.reminders as RappelBanc[]) {
+    if (r.agency_id !== AGENCE_BANC.id || r.type !== 'follow_up_sent_property' || !['pending', 'triggered', 'snoozed'].includes(r.status)) continue
+    if (r.contact_id == null || r.trigger_at == null || !(Date.parse(r.trigger_at) <= maintenant)) continue
+    // Sans bien `sent`, rien ne se consigne : la jointure de la RPC sur les biens `sent` l'écarte des retours, qu'elle
+    // ait couvert des biens répondus depuis (la base l'aurait close : `relanceClose`) ou aucun (celle d'`automation-engine`).
+    const envoyes = envoyesBanc(couvertsBanc(r))
+    if (!envoyes.length) continue
+    const e = retours.get(r.contact_id) ?? { ids: new Set<string>(), quand: r.trigger_at }
+    for (const m of envoyes) e.ids.add(m.id)
+    if (Date.parse(r.trigger_at) < Date.parse(e.quand)) e.quand = r.trigger_at
+    retours.set(r.contact_id, e)
+  }
+  for (const [contact, e] of retours) lignes.push({ ...vide, genre: 'retour', rang: 1, contact_id: contact, nombre: e.ids.size, quand: e.quand })
+
+  // 2. Un prix passé sous le prix de proposition : proposé sans réponse, ou refusé pour le prix et revenu à proposer (son
+  //    report échu). Ni prix nul, ni annonce retirée, ni mandat vendu, retiré, supprimé — ou absent.
+  for (const m of matchsBanc()) {
+    if (m.prix_propose == null) continue
+    const revenu = m.status === 'suggested' && m.reaction_motif === 'prix'
+      && (m.snoozed_until == null || Date.parse(m.snoozed_until) <= maintenant)
+    if (m.status !== 'sent' && !revenu) continue
+    const bien = bienBanc(m.property_id)
+    const annonce = annonceBanc(m.market_listing_id)
+    if (annonce?.status === 'removed') continue
+    if (m.property_id != null && !(bien?.status === 'active' && bien.deleted_at == null)) continue
+    const brut = m.property_id != null ? bien?.price : annonce?.current_price ?? annonce?.price
+    const prix = brut == null ? null : Number(brut)
+    if (prix == null || !(prix > 0) || !(prix < m.prix_propose)) continue
+    lignes.push({
+      ...vide, genre: 'prix', rang: 2, contact_id: m.contact_id, match_id: m.id, property_id: m.property_id,
+      market_listing_id: m.market_listing_id, statut: m.status,
+      titre: nonVideBanc(bien?.title) ?? nonVideBanc(annonce?.title) ?? bien?.address ?? annonce?.address ?? null,
+      ville: bien?.city ?? annonce?.city ?? null, montant: m.prix_propose - prix,
+      location: locationBanc(bien?.transaction_type ?? annonce?.transaction_type), quand: m.sent_at,
+    })
+  }
+
+  // 3. Les nouveaux mandats : signés ou mis en service il y a 7 jours au plus (la plus récente des deux dates), actifs,
+  //    non supprimés, avec au moins un acquéreur compatible.
+  for (const p of CRM_TABLES.properties as BienBanc[]) {
+    if (p.agency_id !== AGENCE_BANC.id || p.status !== 'active' || p.deleted_at != null) continue
+    const quand = plusRecenteBanc([p.mandate_signed_at, p.published_at])
+    if (!recenteBanc(quand, JOURS_MANDAT, maintenant)) continue
+    const acheteurs = new Set(matchsBanc().filter((m) => m.property_id === p.id && STATUTS_COMPATIBLES_BANC.has(m.status)).map((m) => m.contact_id))
+    if (!acheteurs.size) continue
+    lignes.push({
+      ...vide, genre: 'mandat', rang: 3, property_id: p.id, titre: nonVideBanc(p.title) ?? p.address ?? null,
+      ville: p.city ?? null, nombre: acheteurs.size, location: locationBanc(p.transaction_type), quand,
+    })
+  }
+
+  // 4. Le marché, par acheteur : ses annonces jamais proposées (sans `prix_propose` — une baisse sur un bien déjà
+  //    proposé est l'action 2), nouvelles (3 jours) ou en baisse (14 jours). En baisse ne compte pas aussi en nouvelle.
+  const parContact = new Map<string, { annonce: AnnonceBanc; nouveau: boolean; enBaisse: boolean }[]>()
+  for (const m of matchsBanc()) {
+    if (m.status !== 'suggested' || m.market_listing_id == null || m.prix_propose != null) continue
+    if (m.snoozed_until != null && Date.parse(m.snoozed_until) > maintenant) continue
+    const x = annonceBanc(m.market_listing_id)
+    if (!x || x.status === 'removed') continue
+    const prix = Number(x.current_price ?? x.price ?? 0)
+    const enBaisse = recenteBanc(x.price_reduced_at, JOURS_BAISSE, maintenant) && Number(x.price_at_first_seen ?? 0) > prix && prix > 0
+    const nouveau = recenteBanc(x.first_seen_at, JOURS_NOUVEAU, maintenant)
+    if (!enBaisse && !nouveau) continue
+    parContact.set(m.contact_id, [...(parContact.get(m.contact_id) ?? []), { annonce: x, nouveau, enBaisse }])
+  }
+  for (const [contact, s] of parContact) {
+    // UNE annonce est nommée ; au-delà, on compte.
+    const seule = s.length === 1 ? s[0]!.annonce : null
+    const locations = s.map((x) => locationBanc(x.annonce.transaction_type))
+    lignes.push({
+      ...vide, genre: 'marche', rang: 4, contact_id: contact, market_listing_id: seule?.id ?? null,
+      titre: seule ? nonVideBanc(seule.title) ?? seule.address ?? null : null, ville: seule ? seule.city ?? null : null,
+      nombre: s.length, nouveaux: s.filter((x) => x.nouveau && !x.enBaisse).length, baisses: s.filter((x) => x.enBaisse).length,
+      // `bool_or` : vraie si l'une l'est, nulle si toutes le sont.
+      location: locations.includes(true) ? true : locations.includes(false) ? false : null,
+      quand: plusRecenteBanc(s.map((x) => (x.enBaisse ? x.annonce.price_reduced_at : x.annonce.first_seen_at))),
+    })
+  }
+
+  // L'ordre de la RPC : la sorte ; dans une sorte, la plus ancienne échéance, la plus forte baisse, le plus récent ; puis
+  // les identifiants, absents en dernier.
+  lignes.sort((x, y) => (x.rang - y.rang)
+    || (x.rang === 1 ? ordreBanc(tempsOuNulBanc(x.quand), tempsOuNulBanc(y.quand))
+      : x.rang === 2 ? ordreBanc(x.montant, y.montant, -1)
+        : ordreBanc(tempsOuNulBanc(x.quand), tempsOuNulBanc(y.quand), -1))
+    || ordreBanc(x.contact_id, y.contact_id) || ordreBanc(x.property_id, y.property_id) || ordreBanc(x.match_id, y.match_id))
+  // `count(*) over ()` : le total AVANT la coupe — ce que « Voir les N actions » promet.
+  const total = lignes.length
+  return lignes.slice(0, limite).map(({ rang: _rang, ...l }) => {
+    const c = contactBanc(l.contact_id)
+    return { ...l, prenom: c?.first_name ?? null, nom: c?.last_name ?? null, total }
+  })
+}
+
+/** `pige_acheteurs_compatibles(p_annonces)`, sur le banc : les 30 premiers identifiants, une ligne par annonce qui a un acheteur. */
+function acheteursPigeBanc(a: Record<string, unknown>) {
+  const ids = new Set((Array.isArray(a.p_annonces) ? a.p_annonces : []).slice(0, 30).filter((x): x is string => typeof x === 'string'))
+  const parAnnonce = new Map<string, Set<string>>()
+  for (const m of matchsBanc()) {
+    if (m.market_listing_id == null || !ids.has(m.market_listing_id) || !STATUTS_COMPATIBLES_BANC.has(m.status)) continue
+    parAnnonce.set(m.market_listing_id, (parAnnonce.get(m.market_listing_id) ?? new Set<string>()).add(m.contact_id))
+  }
+  return [...parAnnonce].map(([market_listing_id, acheteurs]) => ({ market_listing_id, acheteurs: acheteurs.size }))
+}
+
+/**
+ * `today_absence(p_fallback_hours)`, sur le banc. L'agent du banc n'a pas de présence (`agent_presence`) : la fenêtre est
+ * celle du repli. Les réactions y sont bornées ; les rappels échus NON, comme dans la fonction — ce qui attend attend
+ * d'autant plus qu'il est vieux.
+ */
+function absenceBanc(a: Record<string, unknown>) {
+  const maintenant = Date.now()
+  const depuis = maintenant - borneBanc(a.p_fallback_hours, 72, 1, 720) * 3_600_000
+  const reactions = matchsBanc().flatMap((m) => {
+    const le = reponduLe(m)
+    if ((m.status !== 'interested' && m.status !== 'rejected') || le == null || !(Date.parse(le) > depuis)) return []
+    // `join contacts` : une réponse sans acheteur n'est pas un signal.
+    const c = contactBanc(m.contact_id)
+    if (!c) return []
+    const p = bienBanc(m.property_id)
+    const x = annonceBanc(m.market_listing_id)
+    return [{
+      id: `match:${m.id}`, kind: m.status === 'interested' ? 'like' : 'skip', contact_id: m.contact_id,
+      first_name: c.first_name, last_name: c.last_name, subject: p?.title ?? p?.address ?? x?.title ?? null,
+      motif: m.reaction_motif ?? null, occurred_at: le, late: false, ref_id: m.id, reminder_type: null, nb_biens: null,
+    }]
+  })
+  const rappels = (CRM_TABLES.reminders as RappelBanc[]).flatMap((r) => {
+    if (r.agency_id !== AGENCE_BANC.id || (r.status !== 'pending' && r.status !== 'triggered')) return []
+    if (r.trigger_at == null || !(Date.parse(r.trigger_at) <= maintenant)) return []
+    // Close en base, elle n'attend plus rien : ce n'est plus un signal (`relanceClose`).
+    if (relanceClose(r)) return []
+    const c = contactBanc(r.contact_id)
+    const p = bienBanc(r.property_id)
+    return [{
+      id: `reminder:${r.id}`, kind: 'reminder', contact_id: r.contact_id, first_name: c?.first_name ?? null,
+      last_name: c?.last_name ?? null, subject: p?.title ?? p?.address ?? null, motif: null, occurred_at: r.trigger_at,
+      late: true, ref_id: r.id, reminder_type: r.type,
+      // Une relance de PROPOSITION dit combien de ses biens attendent encore leur réponse : « Reprendre » la consigne.
+      nb_biens: r.type === 'follow_up_sent_property' ? envoyesBanc(couvertsBanc(r)).length : null,
+    }]
+  })
+  const signals = [...reactions, ...rappels].sort((x, y) => Date.parse(y.occurred_at) - Date.parse(x.occurred_at)).slice(0, 50)
+  return { since: new Date(depuis).toISOString(), signals }
+}
+
+/**
+ * `focus_top_matches` : la file Focus des meilleurs matchs. ⚠ Le BUREAU ne la lit plus depuis le lot D1 (`useHotDeals` →
+ * `useFocusQueue({ matchs: false })` : la requête ne part pas, les matchs vivent dans le segment Matching). Son seul
+ * lecteur restant, `MobileTodayScreen`, n'est monté que par le banc `/dev/mobile`, en démo — le mobile routé
+ * (`MobileTodayHScreen`) ne la lit pas. Ces deux lignes font de ce banc un TÉMOIN : si le bureau relisait la file, deux
+ * matchs de Florissant (Anastasia, Emma) entreraient dans celle de « Dossiers ».
+ * ⚠ Une CONSTANTE, pas un miroir : deux lignes à la forme de la RPC, pour deux matchs RÉELS du banc (m22, m23), et
+ * écrites comme elle les écrirait — `reason_keys` en ordre alphabétique, les seuls axes tenus (Emma n'a ni pièces ni
+ * équipements dans sa recherche), la première photo du bien, et `kyc_risk_high` nul faute de dossier KYC.
+ */
+const FOCUS_TOP_BANC = [
+  { match_id: 'm22', contact_id: 'c11', contact_name: 'Anastasia Volkova', kind: 'internal', score: 100, lead_score: null, reasons_match_count: 5, reason_keys: ['budget', 'features', 'rooms', 'type', 'zone'], property_title: 'Attique 5,5 pièces · Florissant', property_price: 2_350_000, property_photo: unsplash(PHOTOS_APPART[9]!), city: 'Genève', kyc_risk_high: null, kyc_days_to_expiry: null },
+  { match_id: 'm23', contact_id: 'c7', contact_name: 'Emma Schneider', kind: 'internal', score: 100, lead_score: null, reasons_match_count: 3, reason_keys: ['budget', 'type', 'zone'], property_title: 'Attique 5,5 pièces · Florissant', property_price: 2_350_000, property_photo: unsplash(PHOTOS_APPART[9]!), city: 'Genève', kyc_risk_high: null, kyc_days_to_expiry: null },
+]
+
+/**
  * Ce que les trois RPC d'Analytics rendent quand il n'y a RIEN — un objet
  * complet à zéro, pas `null`. C'est la différence entre « aucune commission sur
  * la période » (un état vide, qui se dessine) et « la donnée n'est pas arrivée »
@@ -1591,6 +1862,13 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
   matching_fil_marche_resume: () => resumeMarcheBanc(),
+  // Lot D1 — les surfaces du CRM (miroirs des RPC : voir `actionsDuJourBanc`). À l'état « Vide », `today_absence`
+  // retombe sur `null`, que son hook lit comme « aucun signal », et les trois autres sur `[]` : rien à ajouter à
+  // `CRM_RPC_VIDE`.
+  matching_actions_du_jour: (a: Record<string, unknown>) => actionsDuJourBanc(a),
+  pige_acheteurs_compatibles: (a: Record<string, unknown>) => acheteursPigeBanc(a),
+  today_absence: (a: Record<string, unknown>) => absenceBanc(a),
+  focus_top_matches: FOCUS_TOP_BANC,
   // Les crédits du studio Labs. ⚠ Sous `/dev/crm`, `useCredits` passe par les fixtures du
   // studio (`LabsFixturesContext`) et n'atteint pas ces deux entrées ; elles répondent
   // aux surfaces qui liraient la RPC HORS de ce contexte — le solde d'une agence Pro
