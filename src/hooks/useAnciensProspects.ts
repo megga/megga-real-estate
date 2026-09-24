@@ -4,15 +4,18 @@
  * `supabase/functions/_shared/matching-prospects.ts`.
  *
  * ⚠ La réponse de l'edge est relue champ par champ : un prospect mal formé est écarté, jamais affiché à moitié.
- * ⚠ Réactiver invalide TOUT le fil (`CLE_FIL`) : le match né entre dans « À proposer », et la liste des prospects —
- * sous la même clé — le perd. Un ÉCHEC relit la liste seule : la ligne refusée était périmée (réactivée entre-temps,
- * passée sous le seuil), elle doit disparaître au lieu d'appeler un second refus.
+ * ⚠ Réactiver invalide TOUT le fil (`CLE_FIL`) — et les fiches, dont la clé vit sous ce préfixe (`useQuiPourCeBien`) :
+ * le match né entre dans « À proposer », et la liste des prospects — sous la même clé — le perd. Un ÉCHEC relit la liste
+ * seule : la ligne refusée était périmée (réactivée entre-temps, passée sous le seuil), elle doit disparaître au lieu
+ * d'appeler un second refus.
+ * ⚠ `CLE_FIL` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
+ * `useAtelierMatching` : les deux fiches de bien montent ce hook (`QuiPourCeBien`) et n'ont pas à le charger.
  * ⛔ Rien n'est écrit à l'acheteur : la seule fonction appelée est `matching-engine` (`matching-sans-sortie.spec.ts`).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { CLE_FIL } from '@/hooks/useMatchingFil'
+import { CLE_FIL } from '@/components/matching-fil/filModele'
 
 /** Un ancien prospect d'un bien, tel que le moteur le rend. */
 export interface AncienProspect {

@@ -914,8 +914,12 @@
         "interesse": "Interessato",
         "visite": "Visita pianificata",
         "refuse": "Non interessato · {{motif}}",
-        "refuseSansMotif": "Non interessato"
-      }
+        "refuseSansMotif": "Non interessato",
+        "revenu": "Tornato · rifiutato a {{prix}}"
+      },
+      "chargementCompatibles": "Lettura degli acquirenti compatibili…",
+      "erreurCompatibles": "Non è stato possibile leggere gli acquirenti compatibili.",
+      "retiree": "Annuncio ritirato dal mercato: non viene più proposto ai suoi acquirenti."
     }
   }
 }

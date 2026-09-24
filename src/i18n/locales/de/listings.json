@@ -729,8 +729,6 @@
       "title": "Aktive Käufer",
       "pipeline": "Pipeline",
       "buyerFallback": "Käufer",
-      "matchAffinity": "MEGGA AI Match · {{score}}% Übereinstimmung",
-      "propose": "Vorschlagen",
       "kycNotice": "<0>KYC zu vervollständigen</0> für einen Käufer, in dieser Phase optional, vor der Unterzeichnung erforderlich.",
       "startKyc": "Starten"
     },
@@ -1787,10 +1785,6 @@
       "mandateExpires_other": "Mandat {{type}} · läuft in {{count}} Tagen ab",
       "mandateOverdue_one": "Mandat {{type}} · seit {{count}} Tag abgelaufen",
       "mandateOverdue_other": "Mandat {{type}} · seit {{count}} Tagen abgelaufen"
-    },
-    "suggestions": {
-      "title": "MEGGA AI Vorschläge",
-      "affinity": "{{score}} % geschätzte Übereinstimmung"
     },
     "photos": {
       "none": "Keine Fotos",

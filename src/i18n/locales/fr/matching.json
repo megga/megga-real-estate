@@ -914,8 +914,12 @@
         "interesse": "Intéressé·e",
         "visite": "Visite planifiée",
         "refuse": "Pas intéressé·e · {{motif}}",
-        "refuseSansMotif": "Pas intéressé·e"
-      }
+        "refuseSansMotif": "Pas intéressé·e",
+        "revenu": "Revenu · refusé à {{prix}}"
+      },
+      "chargementCompatibles": "Lecture des acquéreurs compatibles…",
+      "erreurCompatibles": "Les acquéreurs compatibles n'ont pas pu être lus.",
+      "retiree": "Annonce retirée du marché : on ne peut plus la proposer à ses acquéreurs."
     }
   }
 }

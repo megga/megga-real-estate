@@ -914,8 +914,12 @@
         "interesse": "Interested",
         "visite": "Viewing planned",
         "refuse": "Not interested · {{motif}}",
-        "refuseSansMotif": "Not interested"
-      }
+        "refuseSansMotif": "Not interested",
+        "revenu": "Returned · declined at {{prix}}"
+      },
+      "chargementCompatibles": "Reading matching buyers…",
+      "erreurCompatibles": "Matching buyers could not be read.",
+      "retiree": "Listing withdrawn from the market: it is no longer proposed to its buyers."
     }
   }
 }

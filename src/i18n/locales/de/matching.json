@@ -914,8 +914,12 @@
         "interesse": "Interessiert",
         "visite": "Besichtigung geplant",
         "refuse": "Kein Interesse · {{motif}}",
-        "refuseSansMotif": "Kein Interesse"
-      }
+        "refuseSansMotif": "Kein Interesse",
+        "revenu": "Wieder da · abgelehnt bei {{prix}}"
+      },
+      "chargementCompatibles": "Passende Käufer werden gelesen…",
+      "erreurCompatibles": "Passende Käufer konnten nicht gelesen werden.",
+      "retiree": "Inserat vom Markt zurückgezogen: Es wird seinen Käufern nicht mehr vorgeschlagen."
     }
   }
 }

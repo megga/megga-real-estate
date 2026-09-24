@@ -729,8 +729,6 @@
       "title": "Acheteurs en cours",
       "pipeline": "Pipeline",
       "buyerFallback": "Acheteur",
-      "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
-      "propose": "Proposer",
       "kycNotice": "<0>KYC à compléter</0> pour un acheteur, optionnel à ce stade, requis avant signature.",
       "startKyc": "Lancer"
     },
@@ -1787,10 +1785,6 @@
       "mandateExpires_other": "Mandat {{type}} · expire dans {{count}} jours",
       "mandateOverdue_one": "Mandat {{type}} · échu depuis {{count}} jour",
       "mandateOverdue_other": "Mandat {{type}} · échu depuis {{count}} jours"
-    },
-    "suggestions": {
-      "title": "Suggestions MEGGA AI",
-      "affinity": "{{score}} % d’affinité estimée"
     },
     "photos": {
       "none": "Aucune photo",

@@ -12,10 +12,11 @@
  * part vers l'acheteur depuis le CRM. L'agent propose le bien par ses propres moyens.
  *
  * L'historique du prix (pige, 21.09.2026) : `MrhHistoriquePrix`, la même lecture que la fiche de la Recherche.
+ * « Qui pour ce bien ? » (lot D1) : les acquéreurs compatibles de l'annonce (`QuiPourFiche`) ; `?qui=1` y fait défiler.
  */
-import { useState, useMemo } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useTranslation } from 'react-i18next'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
@@ -27,6 +28,8 @@ import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import MrhHistoriquePrix from '@/components/matching-recherche/MrhHistoriquePrix'
+import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
+import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -83,6 +86,28 @@ export default function ExternalListingDetailPage() {
 
   // Chrome CRM porté ici : cette page vivait sous `AgentLayout`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])
+  // `?qui=1` (« Ce qui a bougé », lot D1) : la page amène « Qui pour ce bien ? » à l'écran, sous le carrousel.
+  // ⚠ Seulement si le bloc n'est pas ENTIER à l'écran : c'est le DOCUMENT qui défile ici, et défiler un bloc déjà
+  // visible cachait la barre d'onglets, « Retour » et la photo. ⚠ Et alors par le HAUT (`start`), jamais `nearest` :
+  // au moment du défilement, le bloc dit encore « Lecture… », et en une colonne l'historique du prix, au-dessus, n'est
+  // qu'une réserve de 120 px (`MrhHistoriquePrix`). `nearest` alignait le bas du bloc sur la fenêtre, puis l'historique
+  // grandissait sous le point d'ancrage et repoussait le bloc hors de l'écran (mesuré en 768 × 1 024 : section entre
+  // 1 095 et 1 242 px). Par le haut, le bloc garde sous lui la marge de cette croissance ; s'il atteint le haut de la
+  // fenêtre, il devient le point d'ancrage du défilement (`overflow-anchor`), et le navigateur la compense. Même mesure :
+  // le défilement bute sur la fin de la page, laisse le bloc à 477 px, l'historique le repousse à 626-773, à l'écran.
+  const [params] = useSearchParams()
+  const quiDemande = params.has(PARAM_QUI_POUR)
+  const blocQuiPour = useRef<HTMLElement>(null)
+  // L'id du titre qui nomme la région : `useId`, pas une constante — six écrans restent montés, deux fiches d'annonce
+  // ouvertes dans deux onglets porteraient sinon le même id.
+  const titreQuiPour = useId()
+  const annonceChargee = annonce?.id
+  useEffect(() => {
+    const el = blocQuiPour.current
+    if (!quiDemande || !annonceChargee || !el) return
+    const r = el.getBoundingClientRect()
+    if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'start' })
+  }, [quiDemande, annonceChargee])
   // Animations partagées du CRM — les popovers de la barre latérale en dépendent.
   const crmKeyframes = <style>{CRM_KEYFRAMES}</style>
   const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
@@ -397,6 +422,23 @@ export default function ExternalListingDetailPage() {
                 <p className="text-xs text-theme-tertiary mb-1.5">{t('external.matchFor')}</p>
                 <p className="text-sm font-medium text-theme-primary">{contactName}</p>
               </div>
+            )}
+
+            {/* « Qui pour ce bien ? » (lot D1, conception §7) : les acquéreurs compatibles de CETTE annonce, par une
+                requête ciblée. Pas d'anciens prospects : le moteur ne les note que contre un mandat. Rayon et marge en
+                jetons : cette page est au cliquet de `megga-x-grammar.spec.ts`. ⚠ `transaction`, pas `transaction_type` :
+                l'annonce arrive MAPPÉE (`mapListingRow`). */}
+            {annonce && (
+              <section ref={blocQuiPour} aria-labelledby={titreQuiPour} className="border border-theme-border" style={{ borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-2xl)' }}>
+                {/* Le titre porte la taille et la graisse de ses voisins « Actions » et « Localisation » (12 px, 400). */}
+                <h2 id={titreQuiPour} style={{ margin: 0, marginBottom: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)', fontWeight: 400, color: sgSp.sub }}>
+                  {t('fil.quiPour.titre', { ns: 'matching' })}
+                </h2>
+                <QuiPourFiche sp={sgSp} genre="annonce" bienId={annonce.id} location={annonce.transaction === 'location'}
+                  avecAnciens={false} retiree={annonce.status === 'removed'}
+                  onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
+                  onVoirContact={(contactId) => navigate(`/dashboard/contacts/${contactId}`)} />
+              </section>
             )}
 
             {/* Actions */}
