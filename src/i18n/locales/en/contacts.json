@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "To handle",
-    "likedTitle": "Interested in {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}}%",
     "proposeVisit": "Propose a visit",
-    "later": "Later",
-    "handled": "Visit in preparation · logged in their file",
-    "openAtelier": "Open the atelier",
-    "empty": "No property proposed yet.",
-    "pillLiked": "Interested",
-    "pillSent": "Proposed",
-    "pillDismissed": "Not interested",
-    "metaDismissed": "Reason logged · recalibrates matching",
-    "motif": "“{{motif}}”"
+    "etat": {
+      "propose": "Proposed",
+      "interesse": "Interested",
+      "visite": "Viewing planned",
+      "refuse": "Not interested",
+      "revenu": "Returned"
+    },
+    "compteurs": {
+      "proposes_one": "Proposed",
+      "proposes_other": "Proposed",
+      "interesses_one": "Interested",
+      "interesses_other": "Interested",
+      "refuses_one": "Not interested",
+      "refuses_other": "Not interested"
+    },
+    "detail": {
+      "propose": "Proposed on {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposed on {{date}}",
+      "interesse": "Interested on {{date}}",
+      "refuse": "Not interested · {{motif}}",
+      "revenu": "Ready to propose again"
+    },
+    "note": "“{{note}}”",
+    "bienSansTitre": "Untitled property",
+    "aTraiter": {
+      "interesse": "Interested in {{titre}}",
+      "ouvrir": "Open in Matching"
+    },
+    "correction": {
+      "titre": "Search to adjust · {{motif}}",
+      "detail_one": "{{count}} decline for this reason",
+      "detail_other": "{{count}} declines for this reason",
+      "voir": "See the adjustment"
+    }
   },
   "title": "Contacts",
   "add_button": "Add",
@@ -1080,7 +1101,6 @@
       "toHandleCount": "To handle ({{count}})",
       "transmittedCount": "Properties proposed ({{count}})",
       "openInMatching": "Open in Matching",
-      "ignore": "Ignore",
       "nothingToHandle": "All up to date, nothing to handle right now.",
       "emptyTitle": "No properties proposed yet",
       "emptyBody": "Propose properties to {{name}}, then log their answers.<1/>They land here."

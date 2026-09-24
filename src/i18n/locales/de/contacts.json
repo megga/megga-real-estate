@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "Zu bearbeiten",
-    "likedTitle": "Interessiert an {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · Match {{score}} %",
     "proposeVisit": "Besichtigung vorschlagen",
-    "later": "Später",
-    "handled": "Besichtigung in Vorbereitung · in seinem Profil vermerkt",
-    "openAtelier": "Atelier öffnen",
-    "empty": "Noch kein Objekt vorgeschlagen.",
-    "pillLiked": "Interessiert",
-    "pillSent": "Vorgeschlagen",
-    "pillDismissed": "Nicht interessiert",
-    "metaDismissed": "Grund vermerkt · kalibriert das Matching neu",
-    "motif": "«{{motif}}»"
+    "etat": {
+      "propose": "Vorgeschlagen",
+      "interesse": "Interessiert",
+      "visite": "Besichtigung geplant",
+      "refuse": "Nicht interessiert",
+      "revenu": "Wieder da"
+    },
+    "compteurs": {
+      "proposes_one": "Vorgeschlagen",
+      "proposes_other": "Vorgeschlagen",
+      "interesses_one": "Interessiert",
+      "interesses_other": "Interessiert",
+      "refuses_one": "Nicht interessiert",
+      "refuses_other": "Nicht interessiert"
+    },
+    "detail": {
+      "propose": "Vorgeschlagen am {{date}} · {{prix}}",
+      "proposeSansPrix": "Vorgeschlagen am {{date}}",
+      "interesse": "Interessiert seit {{date}}",
+      "refuse": "Nicht interessiert · {{motif}}",
+      "revenu": "Wieder vorzuschlagen"
+    },
+    "note": "„{{note}}“",
+    "bienSansTitre": "Objekt ohne Titel",
+    "aTraiter": {
+      "interesse": "Interessiert an {{titre}}",
+      "ouvrir": "Im Matching öffnen"
+    },
+    "correction": {
+      "titre": "Suche anpassen · {{motif}}",
+      "detail_one": "{{count}} Absage aus diesem Grund",
+      "detail_other": "{{count}} Absagen aus diesem Grund",
+      "voir": "Anpassung ansehen"
+    }
   },
   "title": "Kontakte",
   "add_button": "Hinzufügen",
@@ -1080,7 +1101,6 @@
       "toHandleCount": "Zu bearbeiten ({{count}})",
       "transmittedCount": "Vorgeschlagene Objekte ({{count}})",
       "openInMatching": "Im Matching öffnen",
-      "ignore": "Ignorieren",
       "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
       "emptyTitle": "Noch keine Objekte vorgeschlagen",
       "emptyBody": "Schlagen Sie {{name}} Objekte vor und erfassen Sie die Antworten.<1/>Sie erscheinen hier."

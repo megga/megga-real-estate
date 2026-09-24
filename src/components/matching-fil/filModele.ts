@@ -450,3 +450,44 @@ export function precoches(matchs: readonly FilMatch[], max = 5): string[] {
     .slice(0, max)
     .map((m) => m.id)
 }
+
+// Les aides de LECTURE, pures : le fil (`useMatchingFil`) et les surfaces du lot D1 — « Sa boucle », « Qui pour ce
+// bien ? » — les partagent. Elles vivent ici, pas dans un module de hook : `useMatchingFil` tire statiquement
+// `useAtelierMatching`, et une fiche n'a pas à le charger pour lire une ligne.
+
+/**
+ * Les lignes d'une lecture PostgREST (ou du banc) ; son erreur est LEVÉE, pour que TanStack la tienne pour un échec.
+ * Pur : il attend la requête qu'on lui passe, sans importer de client.
+ */
+export async function lire<T>(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
+  const { data, error } = await requete
+  if (error) throw error
+  return (data ?? []) as T[]
+}
+
+/** Un nombre lu en base (`numeric` arrive en chaîne) ; `null` s'il n'en est pas un. */
+export const nombreOuNull = (v: number | string | null): number | null => {
+  if (v == null || v === '') return null
+  const n = typeof v === 'string' ? Number(v) : v
+  return Number.isFinite(n) ? n : null
+}
+
+/** Les équipements d'un bien : un tableau de chaînes, ou un objet `{ equipement: vrai }`. */
+export function listeEquipements(brut: unknown): string[] {
+  if (Array.isArray(brut)) return brut.filter((f): f is string => typeof f === 'string')
+  if (brut && typeof brut === 'object') {
+    return Object.entries(brut as Record<string, unknown>).filter(([, v]) => Boolean(v)).map(([k]) => k)
+  }
+  return []
+}
+
+/** La vignette d'une annonce : `photos_cf` porte des URL en chaîne OU des objets `{thumb, …}`, sinon `photos`. */
+export function photoAnnonce(cf: unknown, photos: string[] | null): string | null {
+  const premier: unknown = Array.isArray(cf) ? cf[0] : undefined
+  if (typeof premier === 'string' && premier) return premier
+  if (premier && typeof premier === 'object') {
+    const thumb = (premier as Record<string, unknown>).thumb
+    if (typeof thumb === 'string' && thumb) return thumb
+  }
+  return photos?.find((p) => typeof p === 'string' && p !== '') ?? null
+}

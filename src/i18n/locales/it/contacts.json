@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "Da gestire",
-    "likedTitle": "Interessato a {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}}%",
     "proposeVisit": "Proponi la visita",
-    "later": "Più tardi",
-    "handled": "Visita in preparazione · registrata nella sua scheda",
-    "openAtelier": "Apri l'atelier",
-    "empty": "Nessun immobile proposto per il momento.",
-    "pillLiked": "Interessato",
-    "pillSent": "Proposto",
-    "pillDismissed": "Non interessato",
-    "metaDismissed": "Motivo registrato · ricalibra il matching",
-    "motif": "«{{motif}}»"
+    "etat": {
+      "propose": "Proposto",
+      "interesse": "Interessato/a",
+      "visite": "Visita pianificata",
+      "refuse": "Non interessato/a",
+      "revenu": "Tornato"
+    },
+    "compteurs": {
+      "proposes_one": "Proposto",
+      "proposes_other": "Proposti",
+      "interesses_one": "Interessato",
+      "interesses_other": "Interessati",
+      "refuses_one": "Non interessato",
+      "refuses_other": "Non interessati"
+    },
+    "detail": {
+      "propose": "Proposto il {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposto il {{date}}",
+      "interesse": "Interessato/a il {{date}}",
+      "refuse": "Non interessato/a · {{motif}}",
+      "revenu": "Da riproporre"
+    },
+    "note": "«{{note}}»",
+    "bienSansTitre": "Immobile senza titolo",
+    "aTraiter": {
+      "interesse": "Interessato/a a {{titre}}",
+      "ouvrir": "Apri nel Matching"
+    },
+    "correction": {
+      "titre": "Ricerca da adattare · {{motif}}",
+      "detail_one": "{{count}} rifiuto per questo motivo",
+      "detail_other": "{{count}} rifiuti per questo motivo",
+      "voir": "Vedi la correzione"
+    }
   },
   "title": "Contatti",
   "add_button": "Aggiungere",
@@ -1080,7 +1101,6 @@
       "toHandleCount": "Da gestire ({{count}})",
       "transmittedCount": "Immobili proposti ({{count}})",
       "openInMatching": "Apri nel Matching",
-      "ignore": "Ignora",
       "nothingToHandle": "Tutto aggiornato, nulla da gestire al momento.",
       "emptyTitle": "Nessun immobile proposto",
       "emptyBody": "Proponga immobili a {{name}}, poi registri le risposte.<1/>Appariranno qui."

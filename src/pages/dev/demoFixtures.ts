@@ -13,7 +13,9 @@
  */
 import type { Property } from '@/types/listing'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
-import type { FicheContact, FicheLoopItem } from '@/components/crm/contacts-pager/ContactDetailPager'
+import type { FicheContact } from '@/components/crm/contacts-pager/ContactDetailPager'
+import { construireSaBoucle, type LigneBoucleContact, type SaBoucle } from '@/components/crm/contacts-pager/saBoucle'
+import type { SearchCriteria } from '@/types/contact'
 import type { KycCase, KycDocument } from '@/types/kyc'
 import type { ContactNoteView } from '@/hooks/useContactNotes'
 
@@ -117,24 +119,53 @@ export const DEMO_FICHE: FicheContact = {
   lastContactAt: new Date(Date.now() - 86_400_000).toISOString(),
 }
 
+const JOUR_DEMO = 86_400_000
 /**
- * Boucle de match — page 1 de la fiche (« Sa boucle »). Les trois états y sont
- * représentés : proposé sans réponse, intéressé, pas intéressé (avec son motif).
+ * L'instant UNIQUE de la démonstration : il date les lignes (`ilYAJours`) ET sert d'heure de lecture à
+ * `construireSaBoucle`, comme `chargeLe` en production. Deux `Date.now()` distincts jugeraient un report contre
+ * une autre heure que celle qui a daté les lignes.
  */
-export const DEMO_FICHE_LOOP: {
-  items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; dismissed: number
-} = {
-  items: [
-    { matchId: 'm1', title: 'Appartement 4.5p — Eaux-Vives', addr: 'Rue des Eaux-Vives 18, Genève', photo: DEMO_LISTING.photos?.[0] ?? null, state: 'sent', motif: null },
-    { matchId: 'm2', title: 'Duplex 5p — Carouge', addr: 'Rue Ancienne 7, Carouge', photo: DEMO_LISTING.photos?.[1] ?? null, state: 'sent', motif: null },
-    { matchId: 'm4', title: 'Appartement 3.5p — Champel', addr: 'Avenue de Champel 30, Genève', photo: null, state: 'dismissed', motif: 'Étage trop bas' },
-  ],
-  pendingLikes: [
-    { matchId: 'm3', title: 'Attique 4p — Plainpalais', addr: 'Boulevard du Pont-d’Arve 5, Genève', photo: DEMO_LISTING.photos?.[2] ?? null, state: 'liked', motif: null },
-  ],
-  transmitted: 4,
-  dismissed: 1,
-}
+const MAINTENANT_DEMO = Date.now()
+const ilYAJours = (j: number) => new Date(MAINTENANT_DEMO - j * JOUR_DEMO).toISOString()
+/** Une annonce de démonstration, jointe à sa ligne comme PostgREST la rend. */
+const annonceDemo = (titre: string, adresse: string, prix: number, photo: string | null | undefined) => ({
+  title: titre, address: adresse, city: 'Genève', price: prix, current_price: prix, transaction_type: 'buy',
+  photos: photo ? [photo] : null,
+})
+/**
+ * La recherche de l'acheteuse de démonstration, d'où viennent toutes ses lignes. Ses critères sont ceux que corrige
+ * « Apprendre » (`construireCorrections`) : deux refus « prix » non encore pris en compte, sur CETTE recherche, sous un
+ * budget maximum qui reste au-dessus d'eux.
+ */
+const RECHERCHE_DEMO = 'cs-demo'
+const CRITERES_DEMO = new Map<string, SearchCriteria | null>([
+  [RECHERCHE_DEMO, { transaction_type: 'buy', budget_min: 900_000, budget_max: 1_300_000, zones: ['Genève', 'Carouge'] }],
+])
+const ligneDemo = (id: string, status: string, champs: Partial<LigneBoucleContact>): LigneBoucleContact => ({
+  id, status, score: 90, sent_at: ilYAJours(4), response_at: null, reaction_motif: null, reaction_note: null,
+  prix_propose: null, apprentissage_at: null, client_search_id: RECHERCHE_DEMO, snoozed_until: null, property_id: null,
+  market_listing_id: `ml-${id}`, ...champs,
+})
+const ACHETEUR_DEMO = { id: DEMO_FICHE.id, prenom: DEMO_FICHE.firstName, nom: DEMO_FICHE.lastName, telephone: null, email: null, kyc: 'none' as const }
+
+/**
+ * Boucle de match — page 1 de la fiche (« Sa boucle »). Les cinq états y sont : proposé (dont un en baisse depuis),
+ * intéressé, visite planifiée, pas intéressé (motif et note) et un bien revenu par une baisse — plus une correction de
+ * recherche, que fondent les deux refus « prix » (m7, m8).
+ */
+export const DEMO_FICHE_LOOP: SaBoucle = construireSaBoucle([
+  ligneDemo('m1', 'sent', { prix_propose: 1_290_000, market_listing: annonceDemo('Appartement 4.5p — Eaux-Vives', 'Rue des Eaux-Vives 18', 1_250_000, DEMO_LISTING.photos?.[0]) }),
+  ligneDemo('m2', 'sent', { sent_at: ilYAJours(6), prix_propose: 1_180_000, market_listing: annonceDemo('Duplex 5p — Carouge', 'Rue Ancienne 7', 1_180_000, DEMO_LISTING.photos?.[1]) }),
+  ligneDemo('m3', 'interested', { sent_at: ilYAJours(8), response_at: ilYAJours(2), prix_propose: 1_350_000, market_listing: annonceDemo('Attique 4p — Plainpalais', 'Boulevard du Pont-d’Arve 5', 1_350_000, DEMO_LISTING.photos?.[2]) }),
+  ligneDemo('m6', 'visit_planned', { sent_at: ilYAJours(10), response_at: ilYAJours(5), prix_propose: 1_150_000, market_listing: annonceDemo('Appartement 4p — Servette', 'Rue de la Servette 42', 1_150_000, null) }),
+  ligneDemo('m4', 'rejected', { sent_at: ilYAJours(12), response_at: ilYAJours(10), reaction_motif: 'etat', reaction_note: 'Étage trop bas', prix_propose: 990_000, market_listing: annonceDemo('Appartement 3.5p — Champel', 'Avenue de Champel 30', 990_000, null) }),
+  ligneDemo('m7', 'rejected', { sent_at: ilYAJours(14), response_at: ilYAJours(13), reaction_motif: 'prix', prix_propose: 1_280_000, market_listing: annonceDemo('Appartement 4.5p — Petit-Saconnex', 'Avenue Trembley 12', 1_280_000, null) }),
+  ligneDemo('m8', 'rejected', { sent_at: ilYAJours(16), response_at: ilYAJours(15), reaction_motif: 'prix', prix_propose: 1_260_000, market_listing: annonceDemo('Appartement 4p — Jonction', 'Boulevard Carl-Vogt 70', 1_260_000, null) }),
+  ligneDemo('m5', 'suggested', { sent_at: ilYAJours(20), response_at: ilYAJours(18), reaction_motif: 'prix', prix_propose: 1_450_000, market_listing: annonceDemo('Appartement 5p — Florissant', 'Route de Florissant 60', 1_390_000, null) }),
+], CRITERES_DEMO, ACHETEUR_DEMO, MAINTENANT_DEMO)
+
+/** La même fiche, boucle jamais démarrée. */
+export const DEMO_FICHE_LOOP_VIDE: SaBoucle = construireSaBoucle([], new Map(), ACHETEUR_DEMO, MAINTENANT_DEMO)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures du banc des modales (`/dev/modales`).

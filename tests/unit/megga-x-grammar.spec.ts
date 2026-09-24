@@ -1018,7 +1018,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // carte d'état perd ses deux `marginTop: 5` en littéral.
   // {47,66} -> {44,61} (21.09.2026) : les liens de réception de la fiche (`CdLinks` et sa modale
   // de retrait) partent avec la page de l'acheteur ; le matching reste chez l'agent.
-  ['src/components/crm/contacts-pager', { hors: 44, total: 61 }],
+  // {44,61} -> {42,59} (23.09.2026) : « Sa boucle » refaite (lot D1) écrit ses marges en jetons —
+  // le `marginTop: 3` du motif et le `marginBottom: 6` de l'en-tête des biens proposés sont partis.
+  ['src/components/crm/contacts-pager', { hors: 42, total: 59 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
   // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,

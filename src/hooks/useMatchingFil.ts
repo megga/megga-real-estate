@@ -47,14 +47,15 @@ import {
 import type { SearchCriteria } from '@/types/contact'
 import type { KycDossierStatus } from '@/types/kyc'
 import {
-  CLE_FIL, compterHistorique, type FilBien, type FilMatch, type FilSelectionResume, type Historique,
-  type RaisonsMoteur, type SuiviMatch,
+  CLE_FIL, compterHistorique, lire, listeEquipements, nombreOuNull, photoAnnonce, type FilBien, type FilMatch,
+  type FilSelectionResume, type Historique, type RaisonsMoteur, type SuiviMatch,
 } from '@/components/matching-fil/filModele'
 import type { RelanceProposition } from '@/components/matching-fil/filBoucle'
 
-// Le préfixe des clés du fil vit dans le module pur (`filModele`) : ré-exporté ici pour que ses importeurs ne
-// changent pas. « Aujourd'hui » le prend à la source — ce module tire `useAtelierMatching` statiquement.
-export { CLE_FIL } from '@/components/matching-fil/filModele'
+// Le préfixe des clés du fil et `lire` vivent dans le module pur (`filModele`) : ré-exportés ici pour que leurs
+// importeurs ne changent pas. « Aujourd'hui » et « Sa boucle » les prennent à la source — ce module tire
+// `useAtelierMatching` statiquement.
+export { CLE_FIL, lire } from '@/components/matching-fil/filModele'
 
 /** Ce qu'une ligne `matches` porte de son suivi (lot B). */
 interface ColonnesSuivi {
@@ -115,26 +116,6 @@ const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
 const VIDE: DonneesFil = { matchs: [], selections: [], boucle: [], relances: [], historique: new Map(), chargeLe: 0 }
 const nonNul = (id: string | null): id is string => id != null
 
-export async function lire<T>(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
-  const { data, error } = await requete
-  if (error) throw error
-  return (data ?? []) as T[]
-}
-
-const nombreOuNull = (v: number | string | null): number | null => {
-  if (v == null || v === '') return null
-  const n = typeof v === 'string' ? Number(v) : v
-  return Number.isFinite(n) ? n : null
-}
-
-function listeEquipements(brut: unknown): string[] {
-  if (Array.isArray(brut)) return brut.filter((f): f is string => typeof f === 'string')
-  if (brut && typeof brut === 'object') {
-    return Object.entries(brut as Record<string, unknown>).filter(([, v]) => Boolean(v)).map(([k]) => k)
-  }
-  return []
-}
-
 /** La plus récente de deux dates ISO ; l'une absente, l'autre. */
 function plusRecente(a: string | null, b: string | null): string | null {
   if (!a || !b) return a ?? b
@@ -152,17 +133,6 @@ function versBien(b: LigneBien): FilBien {
     // la mise en service (`published_at`) date aussi un nouveau mandat.
     mandatLe: plusRecente(b.mandate_signed_at, b.published_at),
   }
-}
-
-/** La vignette d'une annonce : `photos_cf` porte des URL en chaîne OU des objets `{thumb, …}`, sinon `photos`. */
-function photoAnnonce(cf: unknown, photos: string[] | null): string | null {
-  const premier: unknown = Array.isArray(cf) ? cf[0] : undefined
-  if (typeof premier === 'string' && premier) return premier
-  if (premier && typeof premier === 'object') {
-    const thumb = (premier as Record<string, unknown>).thumb
-    if (typeof thumb === 'string' && thumb) return thumb
-  }
-  return photos?.find((p) => typeof p === 'string' && p !== '') ?? null
 }
 
 /** Une annonce du marché, dans la forme du fil. */

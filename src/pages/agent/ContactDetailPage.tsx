@@ -11,7 +11,7 @@
 // relances, docs, score de contact) restent dans src/hooks/* — sans caller UI
 // desktop pour l'instant — prêts à re-câbler si on ré-expose ces surfaces.
 
-import { type ReactNode, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -31,6 +31,7 @@ import type { KycDossierStatus } from '@/types/kyc'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { supabase } from '@/lib/supabase'
 import ContactDetailPager, { type FicheContact } from '@/components/crm/contacts-pager/ContactDetailPager'
+import { construireSaBoucle } from '@/components/crm/contacts-pager/saBoucle'
 import { useContactNotes } from '@/hooks/useContactNotes'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
@@ -53,7 +54,15 @@ export default function ContactDetailPage() {
   // Le serveur sait aussi le résoudre (`crm_tabs_resolve_labels`, pour les onglets
   // restaurés qu'on n'a pas encore ouverts) ; ici c'est immédiat et sans requête.
   useTabLabel(contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : null)
-  const loop = useContactSentMatches(id)
+  const boucle = useContactSentMatches(id)
+  // « Sa boucle » (lot D1) : le modèle pur ; l'identité de l'acheteur nomme un bien revenu (« Refusé par Antoine … »).
+  // `chargeLe` est l'heure de la lecture : c'est contre elle que se juge un report, comme dans le fil.
+  const loop = useMemo(() => construireSaBoucle(boucle.lignes, boucle.criteres, {
+    id: id ?? '', prenom: contact?.first_name ?? '', nom: contact?.last_name ?? '', telephone: null, email: null, kyc: 'none',
+  }, boucle.chargeLe), [boucle.lignes, boucle.criteres, boucle.chargeLe, id, contact?.first_name, contact?.last_name])
+  // En lecture, ou en échec sans rien de lu, la boucle est INCONNUE, pas vide. Des lignes déjà lues restent montrées
+  // quand une relecture échoue : elles valent mieux qu'un écran d'erreur.
+  const lectureBoucle = boucle.isLoading ? 'chargement' : boucle.isError && boucle.chargeLe === 0 ? 'erreur' : 'pret'
   const { data: kyc } = useKycDossierByContact(id)
   const notesFil = useContactNotes(id)
   // Écrire au contact depuis l'en-tête : dans la Messagerie si une boîte est connectée
@@ -195,7 +204,9 @@ export default function ContactDetailPage() {
   return shell(
     <ContactDetailPager
       fiche={fiche}
-      loop={{ items: loop.items, pendingLikes: loop.pendingLikes, transmitted: loop.transmitted, dismissed: loop.dismissed }}
+      loop={loop}
+      lectureBoucle={lectureBoucle}
+      onReessayer={() => { void boucle.refetch() }}
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
@@ -268,7 +279,8 @@ export default function ContactDetailPage() {
       onEmail={ecrire}
       onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
       onOpenListings={() => navigate('/dashboard/listings')}
-      onProposeVisit={() => navigate(`/dashboard/matching?contact=${id}`)}
+      // Chaque bien de « Sa boucle » ouvre SA place dans le fil. ⛔ Gabarit ANCRÉ : `redirection-ouverte.spec.ts`.
+      onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
     />,
   )
 }

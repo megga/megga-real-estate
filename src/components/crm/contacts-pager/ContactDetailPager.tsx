@@ -42,6 +42,9 @@ import { ChampAdresseSuisse, ChampDateNaissance, type PaletteChamps } from '@/co
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import PxSocialIcon from '@/components/propertyx/PxSocialIcon'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { dateCourte, montant, texteSignal } from '@/components/matching-fil/filAffichage'
+import { cleMotif } from '@/components/matching-fil/filBoucle'
+import type { BienBoucle, EtatBoucle, SaBoucle } from '@/components/crm/contacts-pager/saBoucle'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -93,20 +96,6 @@ export interface FicheContact {
 }
 
 /**
- * Un bien proposé à ce contact, avec la réponse que l'agent a consignée. ⛔ Plus d'état « vu »
- * (21.09.2026) : il venait de la page de réception de l'acheteur, retirée avec elle — rien ne part
- * plus vers lui, donc rien n'est « ouvert ».
- */
-export interface FicheLoopItem {
-  matchId: string
-  title: string
-  addr: string
-  photo: string | null
-  state: 'liked' | 'sent' | 'dismissed'
-  motif: string | null
-}
-
-/**
  * Ce que la modale « Modifier l'identité » enregistre : les 6 champs LBA, PLUS les rôles.
  *
  * Les rôles voyagent avec l'identité parce qu'ils s'éditent au même endroit — mais ils n'en
@@ -116,8 +105,15 @@ export type FicheIdentite = ContactIdentity & { roles: RoleContact[] }
 
 export interface ContactDetailPagerProps {
   fiche: FicheContact
-  /** `transmitted` : biens proposés ; `dismissed` : ceux dont la réponse consignée est « Pas intéressé ». */
-  loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; dismissed: number }
+  /** « Sa boucle » (lot D1) : le modèle pur de `saBoucle.ts`. */
+  loop: SaBoucle
+  /**
+   * Où en est la LECTURE de la boucle. En chargement, ou en échec sans rien de lu, la boucle est INCONNUE, pas vide :
+   * la montrer vide écrirait « Aucun bien proposé » sur un acheteur qui en a peut-être dix (CLAUDE.md §5).
+   */
+  lectureBoucle: 'chargement' | 'erreur' | 'pret'
+  /** Relit la boucle après un échec de lecture. */
+  onReessayer: () => void
   sp: CrmPalette
   dark: boolean
   onBack: () => void
@@ -144,7 +140,8 @@ export interface ContactDetailPagerProps {
   onOpenMatching: () => void
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
   onOpenListings: () => void
-  onProposeVisit: (matchId: string) => void
+  /** Ouvre le fil à une place précise — la requête de `lienFil` / `lienPlace`. */
+  onOuvrirFil: (requete: string) => void
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -271,13 +268,15 @@ const CD_LANGS = ['fr', 'de', 'en', 'it']
 const CD_CANALS = ['whatsapp', 'sms', 'call', 'email']
 const cap = (s: string) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1)
 
-// État de la boucle → clé couleur de la palette + clé i18n du pill.
-// `liked` est VERT (clé `ok`) et non rouge : le like est un signal positif, et c'est
-// la couleur du handoff. Passer par une clé de palette garde le mode sombre correct.
-const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'wait' | 'ghost'; labelK: string }> = {
-  liked: { key: 'ok', labelK: 'loop.pillLiked' },
-  sent: { key: 'wait', labelK: 'loop.pillSent' },
-  dismissed: { key: 'ghost', labelK: 'loop.pillDismissed' },
+// État de la boucle (lot D1 : cinq) → clé de couleur de la palette + clé i18n de la pastille. Intéressé et visite en
+// VERT (`ok`) : un signal positif. Un bien revenu dans le bleu de l'acheteur (`buyer`) : une occasion, pas une attente.
+// Passer par une clé de palette garde le mode sombre correct (tons confrontés par `contacts-contraste.spec.ts`).
+const ETAT_BOUCLE: Record<EtatBoucle, { key: 'ok' | 'wait' | 'ghost' | 'buyer'; labelK: string }> = {
+  propose: { key: 'wait', labelK: 'loop.etat.propose' },
+  interesse: { key: 'ok', labelK: 'loop.etat.interesse' },
+  visite: { key: 'ok', labelK: 'loop.etat.visite' },
+  refuse: { key: 'ghost', labelK: 'loop.etat.refuse' },
+  revenu: { key: 'buyer', labelK: 'loop.etat.revenu' },
 }
 
 // Gel du pager pendant une édition inline / une modale : increment/decrement.
@@ -380,8 +379,8 @@ function CdReadRow({ label, value, empty, mono, P }: { label: string; value: Rea
  * mesuré au rendu, pas dans le source : c'est la sonde de contraste qui l'a
  * trouvée, la relecture ne l'avait pas vue.
  */
-function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label: string; P: FichePal }) {
-  const aplat = P[LOOP_STATE[state].key]
+function CdStatePill({ state, label, P }: { state: EtatBoucle; label: string; P: FichePal }) {
+  const aplat = P[ETAT_BOUCLE[state].key]
   return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
@@ -1791,27 +1790,43 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 //   PAGE 1 — BOUCLE DE MATCH
 // ═══════════════════════════════════════════════════════════════════════
 /**
- * La boucle d'un acheteur : ce que l'agent lui a proposé et la réponse qu'il a consignée. ⛔ Rien
- * ne part vers l'acheteur (21.09.2026) : plus de liens envoyés à retirer, plus d'« ouverts ».
+ * Le filet d'une carte posée sur une colonne de la boucle. En sombre, carte et colonne ont la même teinte : la
+ * séparation vient du filet SEUL (CLAUDE.md §3). Un anneau sans flou, pas une ombre portée — l'idiome de
+ * `CdNoteAvatar`. ⚠ Pas `P.shadowSm` : en sombre il vaut `inset …, none`, que le navigateur rejette.
  */
-function CdBoucle({ P, dark, loop, firstName, onOpenMatching, onProposeVisit }: {
+const cdFiletCarte = (P: FichePal): string => `inset 0 0 0 1px ${P.hairline}`
+
+/**
+ * La boucle d'un acheteur (lot D1, conception §6) : ce que l'agent lui a proposé, la réponse consignée, les biens
+ * revenus et la correction de recherche en attente. Une surface MONTRE et ORIENTE ; le fil agit — chaque bien ouvre sa
+ * place dans le fil, et aucun geste n'est recopié ici. ⛔ « Plus tard » et « Ignorer » sont retirés : ils masquaient une
+ * ligne jusqu'au rechargement, sans rien écrire. ⛔ Rien ne part vers l'acheteur (21.09.2026).
+ * ⚠ En lecture ou en échec, la boucle est INCONNUE, pas vide (`lecture`) : ni « Aucun bien proposé », ni zéro.
+ */
+function CdBoucle({ P, dark, loop, lecture, firstName, onOpenMatching, onOuvrirFil, onReessayer }: {
   P: FichePal
   dark: boolean
-  loop: ContactDetailPagerProps['loop']
+  loop: SaBoucle
+  lecture: ContactDetailPagerProps['lectureBoucle']
   firstName: string
   onOpenMatching: () => void
-  onProposeVisit: (matchId: string) => void
+  onOuvrirFil: (requete: string) => void
+  onReessayer: () => void
 }) {
   const { t } = useTranslation('contacts')
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
-  const hide = (id: string) => setHidden((s) => { const n = new Set(s); n.add(id); return n })
-  const pending = loop.pendingLikes.filter((p) => !hidden.has(p.matchId))
-  const totallyEmpty = loop.pendingLikes.length === 0 && loop.items.length === 0
+  const { t: tm } = useTranslation('matching')
+  const pret = lecture === 'pret'
+  const totallyEmpty = loop.biens.length === 0
+  const aTraiter = loop.aTraiter.length + loop.corrections.length
+  const titreDe = (b: BienBoucle) => b.m.bien.titre || t('loop.bienSansTitre')
 
-  const counters: { v: number; l: string; liked?: boolean }[] = [
-    { v: loop.transmitted, l: t('loop.pillSent') },
-    { v: loop.pendingLikes.length, l: t('loop.pillLiked'), liked: true },
-    { v: loop.dismissed, l: t('loop.pillDismissed') },
+  // Un compte lu accorde son intitulé (« 1 Proposé », « 5 Proposés ») ; un compte INCONNU s'écrit « — » sous
+  // l'intitulé au pluriel : une catégorie, pas une quantité.
+  const compteur = (cle: string, n: number) => ({ v: pret ? String(n) : '—', l: pret ? t(cle, { count: n }) : t(`${cle}_other`) })
+  const counters: { v: string; l: string; liked?: boolean }[] = [
+    compteur('loop.compteurs.proposes', loop.compteurs.proposes),
+    { ...compteur('loop.compteurs.interesses', loop.compteurs.interesses), liked: true },
+    compteur('loop.compteurs.refuses', loop.compteurs.refuses),
   ]
 
   return (
@@ -1823,13 +1838,27 @@ function CdBoucle({ P, dark, loop, firstName, onOpenMatching, onProposeVisit }: 
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: !pret ? P.muted : c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
       </header>
 
-      {totallyEmpty ? (
+      {lecture === 'chargement' ? (
+        // En lecture : une ligne neutre, rien qui ressemble à un résultat.
+        <div role="status" style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted }}>{t('loading')}</div>
+      ) : lecture === 'erreur' ? (
+        // En échec : on n'a PAS PU savoir. Un verdict, et le geste qui relit.
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
+          <EtatVide
+            dark={dark}
+            registre="erreur"
+            titre={t('pager.error.title')}
+            corps={t('cd.error.message')}
+            action={{ libelle: t('cd.error.retry'), onClick: onReessayer }}
+          />
+        </div>
+      ) : totallyEmpty ? (
         // Boucle jamais démarrée → invitation à proposer, pas un cul-de-sac gris.
         <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
           <EtatVide
@@ -1842,60 +1871,41 @@ function CdBoucle({ P, dark, loop, firstName, onOpenMatching, onProposeVisit }: 
         </div>
       ) : (
         <div className="cdp-cols cdp-cols-2">
-          {/* À traiter */}
+          {/* À traiter : les intéressés, les biens revenus, la correction de recherche en attente */}
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
-            <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: pending.length })}</CdGrp>
-            {pending.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)' }}>
+            <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: aTraiter })}</CdGrp>
+            {aTraiter === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)', boxShadow: cdFiletCarte(P) }}>
                 <FcpIcon name="check" size={16} stroke={P.ok} />
                 <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft }}>{t('fiche.loop.nothingToHandle')}</div>
               </div>
-            ) : pending.map((p) => (
-              <div key={p.matchId} style={{ background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
-                  <CdCta small P={P} onClick={() => onProposeVisit(p.matchId)}>{t('loop.proposeVisit')}</CdCta>
-                  <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('loop.later')}</CdCta>
-                  <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('fiche.loop.ignore')}</CdCta>
-                </div>
-              </div>
-            ))}
+            ) : (
+              <>
+                {loop.aTraiter.map((b) => (
+                  <CdATraiter key={b.m.id} P={P} icone={b.etat === 'interesse' ? 'heart' : 'send'}
+                    titre={b.etat === 'interesse' ? t('loop.aTraiter.interesse', { titre: titreDe(b) }) : titreDe(b)}
+                    detail={b.etat === 'revenu' ? texteSignal(b.m, tm) ?? t('loop.detail.revenu') : null}
+                    action={b.lien ? { libelle: b.etat === 'interesse' ? t('loop.proposeVisit') : t('loop.aTraiter.ouvrir'), faire: () => onOuvrirFil(b.lien!) } : null} />
+                ))}
+                {loop.corrections.map(({ c, lien }) => (
+                  <CdATraiter key={c.cle} P={P} icone="pencil"
+                    titre={t('loop.correction.titre', { motif: tm(`fil.motifs.${c.motif}`) })}
+                    detail={t('loop.correction.detail', { count: c.refus.length })}
+                    action={{ libelle: t('loop.correction.voir'), faire: () => onOuvrirFil(lien) }} />
+                ))}
+              </>
+            )}
           </section>
 
           {/* Ce que l'agent a proposé, et la réponse qu'il a consignée */}
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
-            {/* Biens proposés — réponse par bien */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-                <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--crm-space-sm)' }}>
+                <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.biens.length })}</CdGrp>
                 <div style={{ flex: 1 }} />
-                <span onClick={onOpenMatching} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
+                <button type="button" onClick={onOpenMatching} style={{ border: 0, background: 'transparent', padding: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</button>
               </div>
-              {loop.items.length === 0 ? (
-                <EtatVide dark={dark} titre={t('loop.empty')} />
-              ) : loop.items.map((m, i) => {
-                const out = m.state === 'dismissed'
-                return (
-                  <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-                    {m.photo
-                      ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
-                      : <div style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                      {/* Le motif d'un refus est une DONNÉE consignée, lue telle quelle. */}
-                      {out && m.motif && (
-                        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('loop.motif', { motif: m.motif })}</div>
-                      )}
-                    </div>
-                    <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
-                  </div>
-                )
-              })}
+              {loop.biens.map((b, i) => <CdBienBoucle key={b.m.id} P={P} b={b} premier={i === 0} titre={titreDe(b)} onOuvrirFil={onOuvrirFil} />)}
             </div>
           </section>
         </div>
@@ -1904,11 +1914,103 @@ function CdBoucle({ P, dark, loop, firstName, onOpenMatching, onProposeVisit }: 
   )
 }
 
+/** Une ligne « À traiter » : ce qui attend l'agent, et le geste qui l'ouvre dans le fil. */
+function CdATraiter({ P, icone, titre, detail, action }: {
+  P: FichePal; icone: string; titre: string; detail: string | null; action: { libelle: string; faire: () => void } | null
+}) {
+  const coeur = icone === 'heart'
+  return (
+    <div style={{ background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', boxShadow: cdFiletCarte(P) }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+        <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: P.card, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <FcpIcon name={icone} size={15} stroke={coeur ? P.ok : P.inkSoft} fill={coeur ? P.ok : 'none'} sw={1.5} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>{titre}</div>
+          {detail && <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted }}>{detail}</div>}
+        </div>
+      </div>
+      {action && <div style={{ display: 'flex' }}><CdCta small P={P} onClick={action.faire}>{action.libelle}</CdCta></div>}
+    </div>
+  )
+}
+
+/**
+ * Un bien proposé : son état, ce qui s'est passé et quand — la date et le prix d'une proposition, le motif LIBELLÉ et la
+ * note d'un refus, le texte du fil pour un bien revenu ou en baisse depuis —, et, s'il a encore une place dans le fil,
+ * le geste qui l'y ouvre (toute la ligne).
+ * ⚠ La ligne cliquable est un `<button>`, qui n'admet que du contenu de phrase : des `<span>` en bloc, jamais des
+ * `<div>` (comme `FilListe`).
+ */
+function CdBienBoucle({ P, b, premier, titre, onOuvrirFil }: {
+  P: FichePal; b: BienBoucle; premier: boolean; titre: string; onOuvrirFil: (requete: string) => void
+}) {
+  const { t } = useTranslation('contacts')
+  const { t: tm } = useTranslation('matching')
+  const s = b.m.suivi
+  const horsJeu = b.etat === 'refuse'
+  const prix = s?.prixPropose != null ? montant(b.m.bien.location, s.prixPropose, tm) : null
+  const motif = cleMotif(s?.motif)
+  const pastille = t(ETAT_BOUCLE[b.etat].labelK)
+  // Ce que la ligne AJOUTE à sa pastille : une date, un prix, un motif, le texte du fil. Rien pour une visite planifiée,
+  // ni pour une proposition, un intérêt ou un refus sans date ni motif — la pastille dit déjà tout.
+  const detail = b.etat === 'propose'
+    ? (!s?.proposeLe ? null
+      : prix ? t('loop.detail.propose', { date: dateCourte(s.proposeLe), prix })
+        : t('loop.detail.proposeSansPrix', { date: dateCourte(s.proposeLe) }))
+    : b.etat === 'interesse' ? (s?.reponduLe ? t('loop.detail.interesse', { date: dateCourte(s.reponduLe) }) : null)
+      : b.etat === 'refuse' ? (motif ? t('loop.detail.refuse', { motif: tm(motif) }) : null)
+        : b.etat === 'revenu' ? texteSignal(b.m, tm) ?? t('loop.detail.revenu')
+          : null
+  // La baisse depuis la proposition, sur un bien encore sans réponse : le texte du fil.
+  const signal = b.etat === 'propose' ? texteSignal(b.m, tm) : null
+  // Les quatre côtés, un à un : un `<button>` porte une bordure d'agent utilisateur, et un raccourci `border` mêlé à
+  // `borderTop` faisait dépendre le filet de l'ordre des clés (mesuré au banc : effacé sur trois lignes cliquables).
+  const ligne: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)',
+    borderTop: premier ? 0 : `1px solid ${P.hairline}`, borderRight: 0, borderBottom: 0, borderLeft: 0,
+  }
+  // Détail, signal et note passent à la ligne : coupé, un montant ne se lit plus, et une note va jusqu'à 500 caractères.
+  // Seul le titre garde l'ellipse.
+  const petit: CSSProperties = {
+    display: 'block', marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted,
+    whiteSpace: 'normal', overflowWrap: 'anywhere',
+  }
+  // Hors jeu, seules la vignette et l'encre du titre s'effacent : une opacité sur toute la ligne faisait tomber le motif
+  // et la note à 2,27:1. `P.muted` tient l'AA, et la pastille « ghost » dit déjà que le bien est sorti.
+  const vignette: CSSProperties = { width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, opacity: horsJeu ? 0.55 : 1 }
+  const contenu = (
+    <>
+      {b.m.bien.photo
+        ? <img src={b.m.bien.photo} alt="" style={{ ...vignette, objectFit: 'cover', filter: horsJeu ? 'grayscale(.6)' : 'none' }} />
+        : <span style={{ ...vignette, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></span>}
+      <span style={{ display: 'block', flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: horsJeu ? P.muted : P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{titre}</span>
+        {/* Un détail qui redirait la pastille ne s'écrit pas, quelle que soit la langue. */}
+        {detail && detail !== pastille && <span style={petit}>{detail}</span>}
+        {signal && <span style={{ ...petit, fontWeight: 600, color: P.ink }}>{signal}</span>}
+        {/* La note de l'agent est une DONNÉE consignée, lue telle quelle. */}
+        {horsJeu && s?.note && <span style={petit}>{t('loop.note', { note: s.note })}</span>}
+      </span>
+      <CdStatePill state={b.etat} label={pastille} P={P} />
+    </>
+  )
+  if (!b.lien) return <div style={ligne}>{contenu}</div>
+  const lien = b.lien
+  // `cdp-bien` porte le survol des lignes cliquables, posé par le pager sur `focusSurface`.
+  return (
+    <button type="button" className="cdp-bien" onClick={() => onOuvrirFil(lien)}
+      style={{ ...ligne, width: '100%', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', color: 'inherit' }}>
+      {contenu}
+    </button>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, loop, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onProposeVisit } = props
+  const { fiche, loop, lectureBoucle, onReessayer, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onOuvrirFil } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -2032,6 +2134,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
         .cdp-col:first-child { border-left: 0; }
         .cdp-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .cdp-joindre:not(:disabled):hover { color: ${P.ink} !important; box-shadow: inset 0 0 0 1px ${P.hairline}; }
+        /* Le survol d'un bien de « Sa boucle » qui ouvre sa place dans le fil : un ÉTAT, sur \`focusSurface\`. */
+        .cdp-bien:hover { background: ${sp.focusSurface} !important; }
         /* Modifier / Supprimer d'une note : au survol ou au clavier, et toujours sur écran tactile. */
         .cdp-note-actions { opacity: 0; transition: opacity 120ms ease; }
         .cdp-note:hover .cdp-note-actions, .cdp-note:focus-within .cdp-note-actions { opacity: 1; }
@@ -2049,8 +2153,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} noteThread={noteThread} onAddNote={onAddNote} onUpdateNote={onUpdateNote} onDeleteNote={onDeleteNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdBoucle P={P} dark={dark} loop={loop} firstName={fiche.firstName}
-              onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} />
+            <CdBoucle P={P} dark={dark} loop={loop} lecture={lectureBoucle} firstName={fiche.firstName}
+              onOpenMatching={onOpenMatching} onOuvrirFil={onOuvrirFil} onReessayer={onReessayer} />
           </div>
         </div>
         <CdDots page={page} onGo={goTo} P={P} labels={pageLabels} />

@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "À traiter",
-    "likedTitle": "Intéressé par {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}} %",
     "proposeVisit": "Proposer la visite",
-    "later": "Plus tard",
-    "handled": "Visite en préparation · consignée dans sa fiche",
-    "openAtelier": "Ouvrir l'atelier",
-    "empty": "Aucun bien proposé pour l'instant.",
-    "pillLiked": "Intéressé",
-    "pillSent": "Proposé",
-    "pillDismissed": "Pas intéressé",
-    "metaDismissed": "Motif consigné · recalibre le matching",
-    "motif": "« {{motif}} »"
+    "etat": {
+      "propose": "Proposé",
+      "interesse": "Intéressé·e",
+      "visite": "Visite planifiée",
+      "refuse": "Pas intéressé·e",
+      "revenu": "Revenu"
+    },
+    "compteurs": {
+      "proposes_one": "Proposé",
+      "proposes_other": "Proposés",
+      "interesses_one": "Intéressé",
+      "interesses_other": "Intéressés",
+      "refuses_one": "Pas intéressé",
+      "refuses_other": "Pas intéressés"
+    },
+    "detail": {
+      "propose": "Proposé le {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposé le {{date}}",
+      "interesse": "Intéressé·e le {{date}}",
+      "refuse": "Pas intéressé·e · {{motif}}",
+      "revenu": "Revenu à proposer"
+    },
+    "note": "« {{note}} »",
+    "bienSansTitre": "Bien sans titre",
+    "aTraiter": {
+      "interesse": "Intéressé·e par {{titre}}",
+      "ouvrir": "Ouvrir dans le Matching"
+    },
+    "correction": {
+      "titre": "Recherche à ajuster · {{motif}}",
+      "detail_one": "{{count}} refus pour ce motif",
+      "detail_other": "{{count}} refus pour ce motif",
+      "voir": "Voir la correction"
+    }
   },
   "title": "Contacts",
   "add_button": "Ajouter",
@@ -1080,7 +1101,6 @@
       "toHandleCount": "À traiter ({{count}})",
       "transmittedCount": "Biens proposés ({{count}})",
       "openInMatching": "Ouvrir dans le Matching",
-      "ignore": "Ignorer",
       "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
       "emptyTitle": "Aucun bien proposé",
       "emptyBody": "Proposez des biens à {{name}}, puis notez ses réponses.<1/>Elles arrivent ici."
