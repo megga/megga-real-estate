@@ -2011,7 +2011,15 @@
       "autre": "Weiteres Objekt erfassen",
       "retour": "Zurück zu Meine Objekte",
       "offMarket": "Objekt Off-market",
-      "offMarketAide": "«{{titre}}» ist aktiv: Es wird Ihren Käufern angeboten und nie ausgeschrieben."
+      "offMarketAide": "«{{titre}}» ist aktiv: Es wird Ihren Käufern angeboten und nie ausgeschrieben.",
+      "acquereurs": {
+        "recherche": "Passende Käufer werden gesucht…",
+        "trouves_one": "{{count}} passender Käufer",
+        "trouves_other": "{{count}} passende Käufer",
+        "aucun": "Vorerst kein passender Käufer",
+        "erreur": "Die passenden Käufer stehen auf seiner Seite.",
+        "voir": "Wer passt"
+      }
     },
     "proposerOffMarket": "Off-market anbieten"
   }

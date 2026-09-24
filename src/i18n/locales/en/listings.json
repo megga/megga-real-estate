@@ -2011,7 +2011,15 @@
       "autre": "Create another property",
       "retour": "Back to My properties",
       "offMarket": "Property off-market",
-      "offMarketAide": "“{{titre}}” is live: it is offered to your buyers and never advertised."
+      "offMarketAide": "“{{titre}}” is live: it is offered to your buyers and never advertised.",
+      "acquereurs": {
+        "recherche": "Looking for matching buyers…",
+        "trouves_one": "{{count}} matching buyer",
+        "trouves_other": "{{count}} matching buyers",
+        "aucun": "No matching buyer for now",
+        "erreur": "Matching buyers are listed on its page.",
+        "voir": "See who"
+      }
     },
     "proposerOffMarket": "Offer off-market"
   }

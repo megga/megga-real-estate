@@ -2011,7 +2011,15 @@
       "autre": "Créer un autre bien",
       "retour": "Retour à Mes biens",
       "offMarket": "Bien en Off-market",
-      "offMarketAide": "« {{titre}} » est en service : il est proposé à vos acheteurs, jamais diffusé."
+      "offMarketAide": "« {{titre}} » est en service : il est proposé à vos acheteurs, jamais diffusé.",
+      "acquereurs": {
+        "recherche": "Recherche des acquéreurs compatibles…",
+        "trouves_one": "{{count}} acquéreur compatible",
+        "trouves_other": "{{count}} acquéreurs compatibles",
+        "aucun": "Aucun acquéreur compatible pour l'instant",
+        "erreur": "Les acquéreurs compatibles se retrouvent sur sa fiche.",
+        "voir": "Voir qui"
+      }
     },
     "proposerOffMarket": "Proposer en Off-market"
   }

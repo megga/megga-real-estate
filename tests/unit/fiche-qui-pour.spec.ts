@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest'
 import {
   etatCompatible, STATUTS_COMPATIBLES, trierCompatibles, versCompatible, type Compatible,
 } from '@/components/matching-fil/filQuiPour'
+import { DELAI_RECHERCHE_MS, etatAcquereurs } from '@/components/crm/biens/nouveau/acquereurs'
 
 const T = Date.parse('2026-09-23T10:00:00Z')
 const base: Compatible = { id: 'm1', score: 90, reporteJusquau: null, acheteur: { id: 'c1', prenom: 'Julie', nom: 'Morand' } }
@@ -141,3 +142,23 @@ describe('la base compte les mêmes compatibles (lecture de la migration du lot 
   })
 })
 
+describe('le nouveau mandat', () => {
+  it('cherche, puis compte, ou dit qu’il n’y a personne après 30 secondes', () => {
+    expect(DELAI_RECHERCHE_MS).toBe(30_000)
+    expect(etatAcquereurs(null, false, false)).toEqual({ genre: 'recherche' })
+    expect(etatAcquereurs(0, false, false)).toEqual({ genre: 'recherche' })
+    expect(etatAcquereurs(0, true, false)).toEqual({ genre: 'aucun' })
+    expect(etatAcquereurs(4, true, false)).toEqual({ genre: 'trouves', nombre: 4 })
+    // Un compte en échec n'est pas « aucun » : ce serait une affirmation fausse.
+    expect(etatAcquereurs(null, true, true)).toEqual({ genre: 'erreur' })
+  })
+
+  it('des acquéreurs trouvés se disent AVANT les 30 secondes, et l’emportent sur une erreur', () => {
+    // Le chemin nominal : une version qui lirait `ecoule` en premier passerait le test précédent, tout en affichant
+    // « Recherche… » pendant 30 s devant 4 acheteurs déjà trouvés.
+    expect(etatAcquereurs(4, false, false)).toEqual({ genre: 'trouves', nombre: 4 })
+    // Un rafraîchissement en échec garde ses données : 4 acheteurs lus restent 4 acheteurs.
+    expect(etatAcquereurs(4, false, true)).toEqual({ genre: 'trouves', nombre: 4 })
+    expect(etatAcquereurs(0, false, true)).toEqual({ genre: 'erreur' })
+  })
+})

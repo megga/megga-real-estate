@@ -2011,7 +2011,15 @@
       "autre": "Crea un altro immobile",
       "retour": "Torna a I miei immobili",
       "offMarket": "Immobile off-market",
-      "offMarketAide": "«{{titre}}» è attivo: è proposto ai Suoi acquirenti, mai pubblicizzato."
+      "offMarketAide": "«{{titre}}» è attivo: è proposto ai Suoi acquirenti, mai pubblicizzato.",
+      "acquereurs": {
+        "recherche": "Ricerca degli acquirenti compatibili…",
+        "trouves_one": "{{count}} acquirente compatibile",
+        "trouves_other": "{{count}} acquirenti compatibili",
+        "aucun": "Nessun acquirente compatibile per ora",
+        "erreur": "Gli acquirenti compatibili sono sulla sua scheda.",
+        "voir": "Vedi chi"
+      }
     },
     "proposerOffMarket": "Proponi off-market"
   }

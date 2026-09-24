@@ -36,6 +36,8 @@ import { EMPTY_WIZARD, type WizardData } from '@/components/crm-wizard/tokens'
 import { useWizardDraft, wizardPayload } from '@/components/crm-wizard/useWizardDraft'
 import { usePublierWizard } from '@/components/crm-wizard/usePublierWizard'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { useAcquereursNouveauMandat } from '@/hooks/useAcquereursNouveauMandat'
+import LigneAcquereurs from './LigneAcquereurs'
 import { annoncerAvis } from '@/lib/crmAvis'
 import { EtapeBien } from './EtapeBien'
 import { EtapePhotos } from './EtapePhotos'
@@ -56,9 +58,11 @@ interface Props {
   onClose: () => void
   /** Ouvre la fiche du bien enregistré. */
   onOuvrirBien: (id: string) => void
+  /** « Voir qui » : la fiche du bien, sur « Qui pour ce bien ? ». Absent : pas de bouton (banc de Mes biens). */
+  onVoirQui?: (id: string) => void
 }
 
-export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
+export default function NouveauBien({ dark, onClose, onOuvrirBien, onVoirQui }: Props) {
   const { t, i18n } = useTranslation('listings')
   const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)
@@ -66,6 +70,8 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
   const set = (patch: Partial<WizardData>) => setData((d) => ({ ...d, ...patch }))
   const [etape, setEtape] = useState(0)
   const [fini, setFini] = useState<{ id: string; publie: boolean } | null>(null)
+  // Lot D1 : un mandat mis en service compte ses acquéreurs compatibles, en direct. Un brouillon n'est pas noté.
+  const acquereurs = useAcquereursNouveauMandat(fini?.publie ? fini.id : null)
   const { publier, enCours, erreur } = usePublierWizard(set)
   const { etat: brouillon, attendreEcriture, enregistrerMaintenant, nonEcrit } = useWizardDraft(data, set, !enCours && !fini, wizardPayload)
   const ecranActif = useEcranActif()
@@ -235,8 +241,10 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
       </header>
 
       {fini ? (
-        /* ═══ Fini : ce qui a été enregistré, et la suite ═══ */
-        <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: 'var(--crm-space-6xl)' }}>
+        /* ═══ Fini : ce qui a été enregistré, et la suite ═══
+           ⚠ `minHeight: 0` et le défilement : le cadre rogne sans défiler, et la ligne des acquéreurs (lot D1) a
+           allongé l'écran — sous 844 px de fenêtre, les trois boutons passaient sous le pli, hors d'atteinte. */
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'grid', placeItems: 'center', padding: 'var(--crm-space-6xl)' }}>
           <div style={{ display: 'grid', justifyItems: 'center', gap: 'var(--crm-space-2xl)', textAlign: 'center', maxWidth: 520 }}>
             <span style={{ width: 64, height: 64, borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk, display: 'grid', placeItems: 'center' }}>
               <MEIcon name="check" size={28} />
@@ -247,6 +255,7 @@ export default function NouveauBien({ dark, onClose, onOuvrirBien }: Props) {
             <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: sp.sub, lineHeight: 1.5 }}>
               {t(!fini.publie ? 'nouveauBien.fini.gardeAide' : offMarket ? 'nouveauBien.fini.offMarketAide' : 'nouveauBien.fini.publieAide', { titre: data.title?.trim() || titreSuggere })}
             </p>
+            {fini.publie && <LigneAcquereurs sp={sp} etat={acquereurs} onVoirQui={onVoirQui ? () => onVoirQui(fini.id) : undefined} />}
             <div style={{ width: 320, maxWidth: '100%', textAlign: 'left' }}>
               <GalCard apercu bien={{ ...apercuBien(data, data.title?.trim() || titreSuggere), status: fini.publie ? 'active' : 'draft' }} onOpen={() => {}} sp={sp} surf={surf} dark={dark} />
             </div>
