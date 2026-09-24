@@ -47,7 +47,13 @@ export interface FocusMatch {
   kyc: FocusKyc
 }
 
-export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading: boolean; isError: boolean } {
+const AUCUN: FocusMatch[] = []
+
+/**
+ * Les matchs forts de la file Focus. `actif: false` (le bureau depuis le lot D1) : la requête ne part pas, et le hook
+ * rend une source vide, sans chargement ni échec — même si le cache porte la clé, lue ailleurs par le mobile.
+ */
+export function useFocusMatches(limit = 30, actif = true): { matches: FocusMatch[]; isLoading: boolean; isError: boolean } {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
@@ -73,12 +79,12 @@ export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading:
         kyc: { riskHigh: r.kyc_risk_high ?? false, daysToExpiry: r.kyc_days_to_expiry },
       }))
     },
-    enabled: !!agencyId,
+    enabled: actif && !!agencyId,
     staleTime: 60_000,
   })
 
-  const matches = useMemo(() => query.data ?? [], [query.data])
-  return { matches, isLoading: query.isLoading, isError: query.isError }
+  const matches = useMemo(() => (actif ? query.data ?? AUCUN : AUCUN), [actif, query.data])
+  return { matches, isLoading: actif && query.isLoading, isError: actif && query.isError }
 }
 
 /** Snooze réel d'un match (Replanifier) : +3 j sur snoozed_until. RLS agence. */

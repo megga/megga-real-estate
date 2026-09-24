@@ -422,7 +422,8 @@
       "freeWindow": "{{duration}} liberi · sessione solleciti",
       "tabs": {
         "deals": "Dossier",
-        "listings": "Annunci"
+        "listings": "Annunci",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} caldo",
       "hotCount_other": "{{count}} caldi",
@@ -525,10 +526,37 @@
         "ctaKyc": "Apri KYC",
         "ctaSign": "Preparare",
         "ctaOffer": "Vedi l’offerta",
-        "ctaMatch": "Vedi i match",
         "ctaVisit": "Vedi la visita",
         "ctaSeller": "Apri",
         "ctaListing": "Vedi l’immobile"
+      },
+      "matching": {
+        "compte_one": "{{count}} azione",
+        "compte_other": "{{count}} azioni",
+        "retour_one": "Riscontro da registrare per {{prenom}} · {{count}} immobile",
+        "retour_other": "Riscontro da registrare per {{prenom}} · {{count}} immobili",
+        "prixPropose": "Prezzo ribassato di {{montant}} sull'immobile proposto a {{prenom}}",
+        "prixRefuse": "Prezzo ribassato di {{montant}} sull'immobile rifiutato da {{prenom}}",
+        "mandat_one": "Nuovo mandato · {{count}} acquirente compatibile",
+        "mandat_other": "Nuovo mandato · {{count}} acquirenti compatibili",
+        "marcheNouveau": "Nuovo immobile a {{ville}} per {{prenom}}",
+        "marcheNouveauSansVille": "Nuovo immobile per {{prenom}}",
+        "marcheBaisse": "Ribasso a {{ville}} per {{prenom}}",
+        "marcheBaisseSansVille": "Ribasso per {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nuovo immobile",
+        "nouveaux_other": "{{count}} nuovi immobili",
+        "baisses_one": "{{count}} ribasso",
+        "baisses_other": "{{count}} ribassi",
+        "ctaRetour": "Registra",
+        "ctaPrix": "Apri",
+        "ctaMandat": "Vedi chi",
+        "ctaMarche": "Vedi gli immobili",
+        "voirTout": "Vedi tutto nel Matching",
+        "voirToutCompte_one": "Vedi l'azione nel Matching",
+        "voirToutCompte_other": "Vedi tutte le {{count}} azioni nel Matching",
+        "vide": "Nessuna azione di matching oggi.",
+        "erreur": "Azioni di matching non disponibili: caricamento non riuscito."
       }
     }
   },

@@ -422,7 +422,8 @@
       "freeWindow": "{{duration}} free · follow-up session",
       "tabs": {
         "deals": "Deals",
-        "listings": "Listings"
+        "listings": "Listings",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} hot",
       "hotCount_other": "{{count}} hot",
@@ -525,10 +526,37 @@
         "ctaKyc": "Open KYC",
         "ctaSign": "Prepare",
         "ctaOffer": "View offer",
-        "ctaMatch": "View matches",
         "ctaVisit": "View viewing",
         "ctaSeller": "Open",
         "ctaListing": "View listing"
+      },
+      "matching": {
+        "compte_one": "{{count}} action",
+        "compte_other": "{{count}} actions",
+        "retour_one": "Feedback to record for {{prenom}} · {{count}} property",
+        "retour_other": "Feedback to record for {{prenom}} · {{count}} properties",
+        "prixPropose": "Price down {{montant}} on the property proposed to {{prenom}}",
+        "prixRefuse": "Price down {{montant}} on the property {{prenom}} declined",
+        "mandat_one": "New mandate · {{count}} matching buyer",
+        "mandat_other": "New mandate · {{count}} matching buyers",
+        "marcheNouveau": "New property in {{ville}} for {{prenom}}",
+        "marcheNouveauSansVille": "New property for {{prenom}}",
+        "marcheBaisse": "Price drop in {{ville}} for {{prenom}}",
+        "marcheBaisseSansVille": "Price drop for {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} new property",
+        "nouveaux_other": "{{count}} new properties",
+        "baisses_one": "{{count}} price drop",
+        "baisses_other": "{{count}} price drops",
+        "ctaRetour": "Record",
+        "ctaPrix": "Open",
+        "ctaMandat": "See who",
+        "ctaMarche": "See properties",
+        "voirTout": "See all in Matching",
+        "voirToutCompte_one": "See the action in Matching",
+        "voirToutCompte_other": "See all {{count}} actions in Matching",
+        "vide": "No matching action today.",
+        "erreur": "Matching actions unavailable: loading failed."
       }
     }
   },

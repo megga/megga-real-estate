@@ -24,6 +24,14 @@
 import type { SearchCriteria } from '@/types/contact'
 import { splitZones } from '@/lib/contactCriteria'
 
+/**
+ * Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes et « Aujourd'hui » (le
+ * segment Matching, « Pendant ton absence »). Défini ICI, dans le module pur, et ré-exporté par `useMatchingFil` :
+ * « Aujourd'hui » l'importe, et `useMatchingFil` tire statiquement `useAtelierMatching` — l'écran mobile le chargeait
+ * pour une chaîne.
+ */
+export const CLE_FIL = 'matching-fil'
+
 type AxeMoteur = 'budget' | 'zone' | 'type' | 'rooms' | 'features'
 type RaisonMoteur = { match: boolean; score: number; detail: string }
 /** `matches.reasons` : cinq axes, `match` = fraction tenue ≥ 0,5 (`matching-normalize.ts`). */

@@ -422,7 +422,8 @@
       "freeWindow": "{{duration}} libres · session relances",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Annonces"
+        "listings": "Annonces",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} chaud",
       "hotCount_other": "{{count}} chauds",
@@ -525,10 +526,37 @@
         "ctaKyc": "Ouvrir le KYC",
         "ctaSign": "Préparer",
         "ctaOffer": "Voir l’offre",
-        "ctaMatch": "Voir les matchs",
         "ctaVisit": "Voir la visite",
         "ctaSeller": "Ouvrir",
         "ctaListing": "Voir le bien"
+      },
+      "matching": {
+        "compte_one": "{{count}} action",
+        "compte_other": "{{count}} actions",
+        "retour_one": "Retour à consigner pour {{prenom}} · {{count}} bien",
+        "retour_other": "Retour à consigner pour {{prenom}} · {{count}} biens",
+        "prixPropose": "Prix baissé de {{montant}} sur le bien proposé à {{prenom}}",
+        "prixRefuse": "Prix baissé de {{montant}} sur le bien refusé par {{prenom}}",
+        "mandat_one": "Nouveau mandat · {{count}} acquéreur compatible",
+        "mandat_other": "Nouveau mandat · {{count}} acquéreurs compatibles",
+        "marcheNouveau": "Nouveau bien à {{ville}} pour {{prenom}}",
+        "marcheNouveauSansVille": "Nouveau bien pour {{prenom}}",
+        "marcheBaisse": "Bien en baisse à {{ville}} pour {{prenom}}",
+        "marcheBaisseSansVille": "Bien en baisse pour {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nouveau bien",
+        "nouveaux_other": "{{count}} nouveaux biens",
+        "baisses_one": "{{count}} en baisse",
+        "baisses_other": "{{count}} en baisse",
+        "ctaRetour": "Consigner",
+        "ctaPrix": "Ouvrir",
+        "ctaMandat": "Voir qui",
+        "ctaMarche": "Voir les biens",
+        "voirTout": "Voir tout dans le Matching",
+        "voirToutCompte_one": "Voir l'action dans le Matching",
+        "voirToutCompte_other": "Voir les {{count}} actions dans le Matching",
+        "vide": "Aucune action de matching aujourd'hui.",
+        "erreur": "Actions de matching indisponibles : le chargement a échoué."
       }
     }
   },

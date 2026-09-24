@@ -47,10 +47,14 @@ import {
 import type { SearchCriteria } from '@/types/contact'
 import type { KycDossierStatus } from '@/types/kyc'
 import {
-  compterHistorique, type FilBien, type FilMatch, type FilSelectionResume, type Historique, type RaisonsMoteur,
-  type SuiviMatch,
+  CLE_FIL, compterHistorique, type FilBien, type FilMatch, type FilSelectionResume, type Historique,
+  type RaisonsMoteur, type SuiviMatch,
 } from '@/components/matching-fil/filModele'
 import type { RelanceProposition } from '@/components/matching-fil/filBoucle'
+
+// Le préfixe des clés du fil vit dans le module pur (`filModele`) : ré-exporté ici pour que ses importeurs ne
+// changent pas. « Aujourd'hui » le prend à la source — ce module tire `useAtelierMatching` statiquement.
+export { CLE_FIL } from '@/components/matching-fil/filModele'
 
 /** Ce qu'une ligne `matches` porte de son suivi (lot B). */
 interface ColonnesSuivi {
@@ -104,8 +108,6 @@ interface DonneesFil {
   chargeLe: number
 }
 
-/** Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes. */
-export const CLE_FIL = 'matching-fil'
 /** Les colonnes d'une annonce du marché que le fil lit. */
 export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url, bedrooms, year_built, year_renovated, first_seen_at, price_at_first_seen, price_reduced_at'
 /** Les statuts de la boucle — ceux que compte aussi « Déjà proposé » (`compterHistorique`), et l'index `idx_matches_boucle`. */

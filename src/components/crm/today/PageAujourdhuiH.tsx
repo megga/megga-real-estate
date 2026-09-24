@@ -8,8 +8,8 @@
 //   - colonne « Ta journée » (420 px) : vue Jour façon Calendrier, fenêtre
 //     horaire ADAPTATIVE (1er→dernier créneau arrondi à l'heure), blocs opaques
 //     aux couleurs fonctionnelles, ligne « maintenant », fenêtre libre ;
-//   - colonne droite : segment Dossiers | Annonces, puis « Pendant ton absence »
-//     (teaser 4 lignes + overlay groupé par nature).
+//   - colonne droite : segment Dossiers | Annonces | Matching (lot D1), puis
+//     « Pendant ton absence » (teaser 4 lignes + overlay groupé par nature).
 // Clic sur un bloc → popover ancré, position mesurée puis CLAMPÉE dans le bento.
 //
 // Les helpers non rendus du prototype (`HlDossier`, superseded par le popover)
@@ -21,6 +21,7 @@
 import EtatVide from '@/components/crm/EtatVide'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
+import { lienFil } from '@/components/matching-fil/filLiens'
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 // `motion/react` = la voie du dépôt (18 fichiers, dont le voisin FocusMode).
@@ -32,6 +33,9 @@ import {
   type HlSignalData, type HlHotData, type HlAnnData, type HlNewsData,
 } from './dataH'
 import { useHotDeals } from './useHotDeals'
+import HlMatching from './HlMatching'
+import { useMatchingDuJour } from './useMatchingDuJour'
+import type { ActionMatching } from './matchingDuJour'
 import { useListingActions } from './useListingActions'
 import { useTodayH, type TodayHBlock, type TodayHDay } from './useTodayH'
 import { useAbsenceSignals, type AbsenceGroup, type AbsenceSignal } from './useAbsenceSignals'
@@ -617,7 +621,7 @@ export function PageAujourdhuiH() {
 
   const [whatsNew, setWhatsNew] = useState(false)
   const [absOpen, setAbsOpen] = useState(false)
-  const [zone, setZone] = useState<'dossiers' | 'annonces'>('dossiers')
+  const [zone, setZone] = useState<'dossiers' | 'annonces' | 'matching'>('dossiers')
   // Lot 1 — « Pendant ton absence » : réactions acheteur et rappels échus réels,
   // bornés par la présence de l'agent.
   const {
@@ -628,6 +632,8 @@ export function PageAujourdhuiH() {
   // état de diffusion). Les deux dernières zones de démonstration tombent.
   const { deals: hotDeals, isError: dealsError } = useHotDeals()
   const { actions: listingActions, isError: listingsError } = useListingActions()
+  // Lot D1 — le segment Matching : cinq actions au plus, classées par la base (`matching_actions_du_jour`).
+  const matching = useMatchingDuJour()
   // Lot 0 — journée, nouveautés et total Pipeline viennent de Supabase.
   // « fait » reste un ÉTAT DE DONNÉE (barré + badge « Terminé ») : le geste
   // `event_mark_done` est du Lot 2, et le popover de la maquette ne l'expose pas.
@@ -686,6 +692,8 @@ export function PageAujourdhuiH() {
   // la diffusion se pilote.
   const onDeal = (d: HlHotData) => nav('contact-detail', (d as { contactId?: string }).contactId)
   const onAnn = (a: HlAnnData) => nav('biens-detail', (a as { propertyId?: string }).propertyId)
+  // Lot D1 — une action du Matching mène à SA place du fil, ou à la fiche du mandat sur « Qui pour ce bien ? ».
+  const onMatching = (a: ActionMatching) => (a.cible.vers === 'fil' ? nav('matching-fil', a.cible.requete) : nav('biens-qui-pour', a.cible.id))
 
   // Teaser : les 4 signaux les plus récents, tous groupes confondus.
   const teaser = absenceSignals.slice(0, 4)
@@ -758,19 +766,28 @@ export function PageAujourdhuiH() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0, gap: 'var(--crm-space-xl)' }}>
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
                   <div style={{ display: 'inline-flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', background: TK.card }}>
-                    {([['dossiers', t('today.h.tabs.deals')], ['annonces', t('today.h.tabs.listings')]] as const).map(([k, l]) => (
+                    {([['dossiers', t('today.h.tabs.deals')], ['annonces', t('today.h.tabs.listings')], ['matching', t('today.h.tabs.matching')]] as const).map(([k, l]) => (
                       <button
-                        key={k} onClick={() => setZone(k as 'dossiers' | 'annonces')}
+                        key={k} onClick={() => setZone(k)}
+                        aria-label={k === 'matching' && matching.total > 0 ? `${l}, ${t('today.h.matching.compte', { count: matching.total })}` : undefined}
                         style={{ height: 26, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', background: zone === k ? TK.accent : 'transparent', color: zone === k ? TK.accentInk : TK.sub }}
-                      >{l}</button>
+                      >
+                        {l}
+                        {/* Le segment dit son compte : une action ne se cache pas derrière un clic sans le dire. Son nom
+                            accessible le dit en mots (« Matching, 7 actions ») : collé au libellé, il se lisait « Matching7 ». */}
+                        {k === 'matching' && matching.total > 0 && <span style={{ marginLeft: 'var(--crm-space-xs)', fontVariantNumeric: 'tabular-nums' }}>{matching.total}</span>}
+                      </button>
                     ))}
                   </div>
                   </div>
                   {zone === 'dossiers'
                     ? (!dealsError && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>)
-                    : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-sm)', marginRight: -4 }}>{t('today.h.openListings')}</button>}
+                    : zone === 'annonces'
+                      ? <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-sm)', marginRight: -4 }}>{t('today.h.openListings')}</button>
+                      : (!matching.isError && !matching.isLoading && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub }}>{t('today.h.matching.compte', { count: matching.total })}</span>)}
                 </div>
-                <div key={zone} className="hl-dossier" style={{ minHeight: 0 }}>
+                {/* Le segment Matching peut dépasser la hauteur disponible : le corps défile alors au lieu de se peindre sur « Pendant ton absence ». */}
+                <div key={zone} className="hl-dossier" style={{ minHeight: 0, overflowY: 'auto' }}>
                   {zone === 'dossiers' ? (
                     <>
                       {!hotDeals.length && (dealsError
@@ -789,12 +806,22 @@ export function PageAujourdhuiH() {
                         </button>
                       )}
                     </>
-                  ) : (
+                  ) : zone === 'annonces' ? (
                     listingActions.length
                       ? listingActions.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
                       : listingsError
                         ? <HlZoneError label={t('today.h.listings.error')} />
                         : <HlZoneEmpty label={t('today.h.listings.empty')} />
+                  ) : (
+                    // Pendant la lecture, rien : « à jour » serait une affirmation, et elle serait fausse.
+                    matching.actions.length
+                      // « Voir tout » ouvre le FIL (conception §5.1), sans filtre : `onglet=aProposer` est un paramètre du
+                      // fil, qui impose des filtres vides et fait pivoter le pager sur lui. Sans paramètre, l'onglet
+                      // gardait le filtre qu'il avait retenu (un seul acheteur), ou atterrissait sur la Recherche.
+                      ? <HlMatching actions={matching.actions} total={matching.total} onAction={onMatching} onVoirTout={() => nav('matching-fil', lienFil({ onglet: 'aProposer' }))} />
+                      : matching.isError
+                        ? <HlZoneError label={t('today.h.matching.erreur')} />
+                        : matching.isLoading ? null : <HlZoneEmpty label={t('today.h.matching.vide')} />
                   )}
                 </div>
               </div>

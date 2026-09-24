@@ -157,7 +157,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
   // 504 → 502 le 21.09.2026 : le cyan de l'état « vu » de la fiche contact part avec la page de
   // réception de l'acheteur (le matching reste chez l'agent).
-  ['src/components/crm', 502],
+  // 502 → 501 le 23.09.2026 : le bleu des cartes de match (`MATCH: '#6F8CFF'`) quitte
+  // « Dossiers » avec elles — les matchs vivent dans le segment Matching (lot D1).
+  ['src/components/crm', 501],
   ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de

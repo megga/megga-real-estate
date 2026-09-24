@@ -422,7 +422,8 @@
       "freeWindow": "{{duration}} frei · Nachfass-Session",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Inserate"
+        "listings": "Inserate",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} heiss",
       "hotCount_other": "{{count}} heisse",
@@ -525,10 +526,37 @@
         "ctaKyc": "KYC öffnen",
         "ctaSign": "Vorbereiten",
         "ctaOffer": "Angebot ansehen",
-        "ctaMatch": "Matches ansehen",
         "ctaVisit": "Besichtigung ansehen",
         "ctaSeller": "Öffnen",
         "ctaListing": "Objekt ansehen"
+      },
+      "matching": {
+        "compte_one": "{{count}} Aktion",
+        "compte_other": "{{count}} Aktionen",
+        "retour_one": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekt",
+        "retour_other": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekte",
+        "prixPropose": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} vorgeschlagen wurde",
+        "prixRefuse": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} abgelehnt hat",
+        "mandat_one": "Neues Mandat · {{count}} passender Käufer",
+        "mandat_other": "Neues Mandat · {{count}} passende Käufer",
+        "marcheNouveau": "Neues Objekt in {{ville}} für {{prenom}}",
+        "marcheNouveauSansVille": "Neues Objekt für {{prenom}}",
+        "marcheBaisse": "Preissenkung in {{ville}} für {{prenom}}",
+        "marcheBaisseSansVille": "Preissenkung für {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} neues Objekt",
+        "nouveaux_other": "{{count}} neue Objekte",
+        "baisses_one": "{{count}} Preissenkung",
+        "baisses_other": "{{count}} Preissenkungen",
+        "ctaRetour": "Erfassen",
+        "ctaPrix": "Öffnen",
+        "ctaMandat": "Wer passt",
+        "ctaMarche": "Objekte ansehen",
+        "voirTout": "Alles im Matching ansehen",
+        "voirToutCompte_one": "Die Aktion im Matching ansehen",
+        "voirToutCompte_other": "Alle {{count}} Aktionen im Matching ansehen",
+        "vide": "Heute keine Matching-Aktion.",
+        "erreur": "Matching-Aktionen nicht verfügbar: Laden fehlgeschlagen."
       }
     }
   },

@@ -18,7 +18,7 @@ export const JOURS_NOUVEAU = 3
 /** Une baisse de prix de 14 jours au plus dit « pourquoi maintenant » ; au-delà, c'est son prix. */
 export const JOURS_BAISSE = 14
 /** Un mandat signé ou mis en service il y a 7 jours au plus est « nouveau ». */
-const JOURS_MANDAT = 7
+export const JOURS_MANDAT = 7
 const JOUR = 86_400_000
 
 export type SignalBien =
