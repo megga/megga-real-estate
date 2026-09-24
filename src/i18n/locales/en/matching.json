@@ -214,7 +214,11 @@
       "filtreVide_one": "The loaded change doesn't match your filters.",
       "filtreVide_other": "None of the {{count}} loaded changes match your filters.",
       "filtreVideCorps": "Text, rooms and area only filter the changes already loaded.",
-      "suiteErreur": "The next changes could not be loaded."
+      "suiteErreur": "The next changes could not be loaded.",
+      "acheteurs_one": "{{count}} buyer",
+      "acheteurs_other": "{{count}} buyers",
+      "acheteursAria_one": "Who is “{{titre}}” for? {{count}} buyer matches",
+      "acheteursAria_other": "Who is “{{titre}}” for? {{count}} buyers match"
     },
     "historique": {
       "titre": "Price history",

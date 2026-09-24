@@ -7,10 +7,12 @@
  * le marché — et cachait « Voir plus », seule issue vers la page où l'annonce se trouve peut-être.
  * (2) Une page suivante en échec levait `isError`, et l'écran d'erreur remplaçait les pages déjà lues
  * (le versant parent est `etatDuFlux`, dans `pige.spec.ts`).
+ * Lot D1 : la pastille des acheteurs compatibles — dite quand il y en a, tue sinon.
  *
  * Idiome createRoot + act (le dépôt n'a pas @testing-library/react). Mock PARTIEL de react-i18next : la clé
  * EST le libellé, et un compte s'y accole (`clé#N`) pour prouver qu'il est passé.
  */
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -110,5 +112,69 @@ describe('MrhBouge — deux vides, et une suite qui échoue sans rien effacer', 
   it('témoin : une première page en échec reste un écran d’erreur', () => {
     const el = monter({ etat: 'erreur' })
     expect(el.textContent).toContain('recherche.bouge.erreur')
+  })
+
+  it('D1 — la ligne dit combien d’acheteurs compatibles, et la pastille ouvre « Qui pour ce bien ? »', () => {
+    const vus: string[] = []
+    const el = monter({ mouvements: [APPARITION], charges: 1, acheteurs: new Map([['ml-1', 3]]), onQuiPour: (b) => { vus.push(b.id) } })
+    const pastille = [...el.querySelectorAll('button')].find((b) => b.textContent === 'recherche.bouge.acheteurs#3')
+    expect(pastille, 'pastille absente').toBeDefined()
+    act(() => { pastille!.click() })
+    expect(vus).toEqual(['ml-1'])
+  })
+
+  it('D1 — une annonce ABSENTE de la carte n’a pas de pastille : la ligne ne dit rien', () => {
+    // La RPC ne rend jamais une annonce à 0 acheteur : sans compatible, l'annonce manque à la carte.
+    const el = monter({ mouvements: [APPARITION], charges: 1, acheteurs: new Map([['ml-2', 3]]), onQuiPour: () => {} })
+    expect(el.textContent).not.toContain('recherche.bouge.acheteurs')
+    expect(el.querySelectorAll('li button')).toHaveLength(1)
+  })
+
+  it('D1 — sans `onQuiPour`, aucune pastille : elle ne mènerait nulle part', () => {
+    const el = monter({ mouvements: [APPARITION], charges: 1, acheteurs: new Map([['ml-1', 3]]) })
+    expect(el.textContent).not.toContain('recherche.bouge.acheteurs')
+    expect(el.querySelectorAll('li button')).toHaveLength(1)
+  })
+
+  it('⛔ D1 — la pastille est un bouton FRÈRE : elle n’ouvre pas la fiche, et la ligne l’ouvre toujours', () => {
+    // Imbriquée dans le bouton de la ligne, la pastille ferait remonter son clic : « Qui pour ce bien ? » ET la fiche.
+    const onOuvrir = vi.fn()
+    const onQuiPour = vi.fn()
+    const el = monter({ mouvements: [APPARITION], charges: 1, acheteurs: new Map([['ml-1', 3]]), onQuiPour, onOuvrir })
+    act(() => { bouton(el, 'recherche.bouge.acheteurs#3')!.click() })
+    expect(onQuiPour).toHaveBeenCalledTimes(1)
+    expect(onOuvrir).not.toHaveBeenCalled()
+    act(() => { el.querySelector<HTMLButtonElement>('button.mrh-flux-ligne')!.click() })
+    expect(onOuvrir).toHaveBeenCalledTimes(1)
+    expect(onOuvrir.mock.calls[0]![0]).toMatchObject({ id: 'ml-1' })
+  })
+})
+
+/**
+ * ⛔ Le nom accessible de la pastille CONTIENT son texte visible, mot pour mot (WCAG 2.5.3) : qui la commande à la voix
+ * dit ce qu'il lit — « 3 buyers » —, et un nom en « 3 matching buyers » ne l'entend pas. Le mock de `react-i18next`
+ * ci-dessus rend les CLÉS : il ne peut pas voir ce défaut, d'où la lecture des quatre fichiers.
+ */
+describe('la pastille des acheteurs — nom accessible (quatre langues)', () => {
+  const LANGUES = ['fr', 'en', 'de', 'it'] as const
+  const lire = (l: string) => JSON.parse(readFileSync(`src/i18n/locales/${l}/matching.json`, 'utf8')) as {
+    fil: { quiPour: { titreAria: string } }
+    recherche: { bouge: Record<string, string> }
+  }
+
+  it.each(LANGUES)('%s : `acheteursAria` contient `acheteurs` tel quel, au singulier et au pluriel', (l) => {
+    const { bouge } = lire(l).recherche
+    for (const forme of ['one', 'other']) {
+      const visible = bouge[`acheteurs_${forme}`]
+      expect(visible, `acheteurs_${forme} absent`).toBeTruthy()
+      expect(bouge[`acheteursAria_${forme}`], `acheteursAria_${forme}`).toContain(visible)
+    }
+  })
+
+  it.each(LANGUES)('%s : la question est celle du bloc où la pastille mène (`fil.quiPour.titreAria`)', (l) => {
+    const d = lire(l)
+    for (const forme of ['one', 'other']) {
+      expect(d.recherche.bouge[`acheteursAria_${forme}`]!.startsWith(d.fil.quiPour.titreAria), `acheteursAria_${forme}`).toBe(true)
+    }
   })
 })

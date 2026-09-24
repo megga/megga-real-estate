@@ -214,7 +214,11 @@
       "filtreVide_one": "Le mouvement chargé ne passe pas vos filtres.",
       "filtreVide_other": "Aucun des {{count}} mouvements chargés ne passe vos filtres.",
       "filtreVideCorps": "Le texte, les pièces et la surface ne filtrent que les mouvements déjà chargés.",
-      "suiteErreur": "La suite n'a pas pu être chargée."
+      "suiteErreur": "La suite n'a pas pu être chargée.",
+      "acheteurs_one": "{{count}} acheteur",
+      "acheteurs_other": "{{count}} acheteurs",
+      "acheteursAria_one": "Qui pour « {{titre}} » ? {{count}} acheteur compatible",
+      "acheteursAria_other": "Qui pour « {{titre}} » ? {{count}} acheteurs compatibles"
     },
     "historique": {
       "titre": "Historique du prix",

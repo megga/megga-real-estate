@@ -209,7 +209,11 @@
       "filtreVide_one": "Die geladene Bewegung passt nicht zu Ihren Filtern.",
       "filtreVide_other": "Keine der {{count}} geladenen Bewegungen passt zu Ihren Filtern.",
       "filtreVideCorps": "Text, Zimmer und Fläche filtern nur die bereits geladenen Bewegungen.",
-      "suiteErreur": "Die weiteren Bewegungen konnten nicht geladen werden."
+      "suiteErreur": "Die weiteren Bewegungen konnten nicht geladen werden.",
+      "acheteurs_one": "{{count}} Käufer",
+      "acheteurs_other": "{{count}} Käufer",
+      "acheteursAria_one": "Für wen ist «{{titre}}»? {{count}} Käufer passt",
+      "acheteursAria_other": "Für wen ist «{{titre}}»? {{count}} Käufer passen"
     },
     "historique": {
       "titre": "Preisverlauf",

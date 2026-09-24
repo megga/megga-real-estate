@@ -209,7 +209,11 @@
       "filtreVide_one": "Il movimento caricato non corrisponde ai Suoi filtri.",
       "filtreVide_other": "Nessuno dei {{count}} movimenti caricati corrisponde ai Suoi filtri.",
       "filtreVideCorps": "Testo, locali e superficie filtrano solo i movimenti già caricati.",
-      "suiteErreur": "Non è stato possibile caricare i movimenti successivi."
+      "suiteErreur": "Non è stato possibile caricare i movimenti successivi.",
+      "acheteurs_one": "{{count}} acquirente",
+      "acheteurs_other": "{{count}} acquirenti",
+      "acheteursAria_one": "Per chi è «{{titre}}»? {{count}} acquirente compatibile",
+      "acheteursAria_other": "Per chi è «{{titre}}»? {{count}} acquirenti compatibili"
     },
     "historique": {
       "titre": "Storico del prezzo",

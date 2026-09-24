@@ -307,6 +307,9 @@ export const MRH_DEMO_MOUVEMENTS: MouvementPige[] = [
   retiree('demo-mv-06', 'demo-ml-07', ILYA(2)),
 ]
 
+/** Lot D1 : les acheteurs compatibles de deux annonces du flux de démonstration — la pastille se voit au banc. */
+export const MRH_DEMO_ACHETEURS: ReadonlyMap<string, number> = new Map([['demo-ml-02', 3], ['demo-ml-01', 1]])
+
 /** Début FICTIF du suivi au banc, en jours : la frontière entre un relevé initial et une apparition. */
 const DEBUT_SUIVI_JOURS = 40
 

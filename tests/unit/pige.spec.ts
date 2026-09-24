@@ -1,14 +1,18 @@
 /**
  * Pige lisible — le modèle PUR (`src/components/matching-recherche/pige.ts`) : période, pagination, mise
- * en forme des mouvements, résumé et tracé de l'historique d'une annonce.
+ * en forme des mouvements, résumé et tracé de l'historique d'une annonce, et les lots des acheteurs
+ * compatibles (lot D1), liés à la borne de leur RPC.
  *
  * ⚠ « aujourd'hui / hier » se comptent en jours CIVILS locaux : ces instants sont construits en heure
  * locale (`new Date(a, m, j, h)`), jamais par `Date.now() + Δ`, qui casse près de minuit.
  */
+import { readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
-  biensAjoutables, curseurSuivant, depuisFenetre, ecartPct, etatDuFlux, formaterPct, joursEntre, quandRelatif,
-  resumerHistorique, tracerCourbe, versMouvement, versPointPrix, type LigneMouvement, type PointPrix,
+  biensAjoutables, curseurSuivant, depuisFenetre, ecartPct, etatDuFlux, formaterPct, joursEntre, lotsAnnonces,
+  lotsParPage, quandRelatif, resumerHistorique, tracerCourbe, versMouvement, versPointPrix, type LigneMouvement,
+  type MouvementPige, type PointPrix,
 } from '@/components/matching-recherche/pige'
 import type { MrhBien } from '@/components/matching-recherche/types'
 
@@ -186,5 +190,47 @@ describe('historique d’une annonce', () => {
     const t0 = Date.parse('2026-09-01T00:00:00.000Z')
     expect(tracerCourbe([point('suivi', new Date(t0).toISOString(), 100)], 200, 100, t0)?.chemin).toBe('M0 50 H200')
     expect(tracerCourbe([point('statut', new Date(t0).toISOString(), null)], 200, 100, t0)).toBeNull()
+  })
+})
+
+describe('lotsAnnonces (lot D1)', () => {
+  it('des lots de 30 au plus, dans l’ordre reçu, sans doublon ; quand la liste s’allonge, seuls les lots PLEINS restent', () => {
+    const ids = Array.from({ length: 65 }, (_, i) => `a${i}`)
+    const lots = lotsAnnonces([...ids, 'a3'])
+    expect(lots.map((l) => l.length)).toEqual([30, 30, 5])
+    expect(lots[0]![0]).toBe('a0')
+    const court = lotsAnnonces(ids.slice(0, 40))
+    expect(court[0]).toEqual(lots[0])
+    // Le dernier lot, incomplet, change : d'où `lotsParPage`.
+    expect(court[1]).not.toEqual(lots[1])
+    expect(lotsAnnonces([])).toEqual([])
+  })
+
+  it('⛔ lotsParPage : un lot par PAGE du flux — une page de plus ne touche aucun lot d’avant, même incomplet', () => {
+    const page = (...ids: string[]) => ({ mouvements: ids.map((id) => ({ id: `mv-${id}`, bien: { id } }) as MouvementPige) })
+    // Première page incomplète (une annonce y bouge deux fois) ; la seconde reprend `a`, lue deux fois pour la même valeur.
+    const une = lotsParPage([page('a', 'b', 'a')])
+    const deux = lotsParPage([page('a', 'b', 'a'), page('c', 'a')])
+    expect(une).toEqual([['a', 'b']])
+    expect(deux).toEqual([['a', 'b'], ['c', 'a']])
+    expect(deux[0]).toEqual(une[0])
+    expect(lotsParPage([])).toEqual([])
+    expect(lotsParPage([page()])).toEqual([])
+  })
+
+  /**
+   * ⛔ La RPC LIT au plus N identifiants (`(p_annonces)[1:N]`) et ignore les suivants SANS ERREUR : un lot plus grand
+   * que sa borne laisserait des annonces sans pastille, et rien ne le dirait. Les deux tailles vivent dans deux
+   * runtimes (SQL, navigateur) : c'est cette lecture de la migration qui les lie.
+   */
+  it('⛔ la taille des lots est la borne SQL de `pige_acheteurs_compatibles`', () => {
+    const dossier = 'supabase/migrations'
+    const fichier = readdirSync(dossier).find((f) => f.endsWith('_matching_surfaces.sql'))
+    expect(fichier, 'migration du lot D1 introuvable').toBeDefined()
+    const sql = readFileSync(join(dossier, fichier!), 'utf8')
+    const bornes = [...sql.matchAll(/\(p_annonces\)\[1:(\d+)\]/g)].map((m) => Number(m[1]))
+    expect(bornes.length, 'borne `(p_annonces)[1:N]` introuvable dans la migration').toBeGreaterThan(0)
+    const taille = lotsAnnonces(Array.from({ length: 31 }, (_, i) => `a${i}`))[0]!.length
+    expect(bornes.every((n) => n === taille), `bornes SQL ${bornes.join(', ')} ≠ lots de ${taille}`).toBe(true)
   })
 })

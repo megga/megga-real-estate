@@ -8,7 +8,8 @@
 //     à la sélection de l'acheteur (⛔ rien ne part vers lui depuis le 21.09.2026).
 //   - « Ce qui a bougé » (pige, 21.09.2026) : Nouveaux · En baisse · Retirés sur 24 h, 7 ou 30 jours, sur
 //     les MÊMES filtres durs (`usePigeMouvements`, rendu par `MrhBouge`). Filtres, vue et période se
-//     rangent dans l'onglet (`useTabScopedState`).
+//     rangent dans l'onglet (`useTabScopedState`). Chaque ligne dit ses acheteurs compatibles (lot D1,
+//     `usePigeAcheteurs`), et sa pastille ouvre la fiche de l'annonce sur « Qui pour ce bien ? ».
 //
 // ⚠️ Incrément B : grille + omnibox + scoring + ajout. La fiche « Voir l'annonce »
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
@@ -33,16 +34,18 @@ import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySu
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
 import {
-  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_MOUVEMENTS,
+  MRH_DEMO_ACHETEURS, MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_MOUVEMENTS,
   MRH_DEMO_TOTAL, historiqueDuBanc, type MrhDemoEtat,
 } from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { usePigeMouvements, type PigeParams } from '@/hooks/usePige'
+import { usePigeAcheteurs } from '@/hooks/usePigeAcheteurs'
+import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
 import MrhBouge from './MrhBouge'
 import {
-  biensAjoutables, etatDuFlux, FENETRES_PIGE, VUES_RECHERCHE,
+  biensAjoutables, etatDuFlux, FENETRES_PIGE, lotsParPage, VUES_RECHERCHE,
   type EtatFlux, type FenetrePige, type GenreMouvement, type VueRecherche,
 } from './pige'
 import './mrh.css'
@@ -207,6 +210,11 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   }), [genreFlux, fenetre, serverParams])
   const pige = usePigeMouvements(pigeParams, genreFlux != null && !demo)
   const mouvementsCharges = useMemo(() => (pige.data?.pages ?? []).flatMap((p) => p.mouvements), [pige.data])
+  // Lot D1 : les acheteurs compatibles des annonces CHARGÉES, un lot par PAGE (`lotsParPage`) — une page de plus ajoute
+  // son lot sans toucher aux autres. Avant les jetons client, pour la même raison : un jeton ne redécoupe rien.
+  const lotsPige = useMemo(() => lotsParPage(pige.data?.pages ?? []), [pige.data])
+  const acheteursPige = usePigeAcheteurs(lotsPige, genreFlux != null && !demo)
+  const acheteurs = demo ? MRH_DEMO_ACHETEURS : acheteursPige
   const mouvements = useMemo(() => (demo
     ? (demo === 'ok' && genreFlux ? MRH_DEMO_MOUVEMENTS.filter((m) => m.genre === genreFlux) : [])
     : mouvementsCharges), [demo, genreFlux, mouvementsCharges])
@@ -685,6 +693,8 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
               // l'état « Échec » du banc interrogerait la vraie RPC. La grille garde son `refetch` pareil.
               onReessayer={() => { if (!demo) void pige.refetch() }}
               onOuvrir={openBien}
+              acheteurs={acheteurs}
+              onQuiPour={(b) => { if (!demo) navigate(`/dashboard/market/${b.id}?${PARAM_QUI_POUR}=1`) }}
               ctx={ctx}
             />
           ) : isFetchingFirst ? (

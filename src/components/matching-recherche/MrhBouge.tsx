@@ -13,6 +13,8 @@
  * annonce sur cette période » serait faux, et cacher « Voir plus » empêcherait d'aller chercher la suite
  * où l'annonce se trouve peut-être. D'où `charges`, le compte d'AVANT ces filtres.
  * ⛔ Une page suivante en échec n'efface pas les précédentes : la liste reste, « Réessayer » dessous.
+ * Lot D1 (conception §7bis) : une ligne dit « 3 acheteurs » quand des acheteurs compatibles existent
+ * (`usePigeAcheteurs`), et rien sinon ; la pastille ouvre la fiche de l'annonce sur « Qui pour ce bien ? ».
  * ⚠ Aucun littéral de rayon ni d'espacement : le cliquet de `megga-x-grammar.spec.ts` compte ceux du
  * dossier, et ce fichier n'en ajoute pas.
  */
@@ -41,10 +43,14 @@ interface Props {
   onSuite: () => void
   onReessayer: () => void
   onOuvrir: (b: MrhBien) => void
+  /** Lot D1 : annonce → acheteurs compatibles ; une ligne ne dit rien sans eux. */
+  acheteurs?: ReadonlyMap<string, number>
+  /** La pastille « 3 acheteurs » : la fiche de l'annonce, sur « Qui pour ce bien ? ». */
+  onQuiPour?: (b: MrhBien) => void
   ctx: MrhCtx
 }
 
-export default function MrhBouge({ genre, mouvements, charges, etat, suiteDisponible, chargeSuite, suiteEnEchec, onSuite, onReessayer, onOuvrir, ctx }: Props) {
+export default function MrhBouge({ genre, mouvements, charges, etat, suiteDisponible, chargeSuite, suiteEnEchec, onSuite, onReessayer, onOuvrir, acheteurs, onQuiPour, ctx }: Props) {
   const { t } = useTranslation('matching')
   const { sp, surf, dark, ACC, ONACC } = ctx
   // Horloge figée au montage : « hier » ne bascule pas pendant qu'on lit (idiome de `BpTopGallery`).
@@ -100,9 +106,11 @@ export default function MrhBouge({ genre, mouvements, charges, etat, suiteDispon
 
   return (
     <div>
-      <ol aria-label={t(`recherche.vue.${genre}`)} style={{ listStyle: 'none', margin: 0, padding: 0, background: surf.card, border: surf.hairline, borderRadius: 'var(--crm-radius-4xl)', boxShadow: surf.shadow, overflow: 'hidden' }}>
+      {/* `mrh-flux` : la grille commune des lignes (`mrh.css`) — toutes les dates s'alignent, pastille ou non. */}
+      <ol className="mrh-flux" aria-label={t(`recherche.vue.${genre}`)} style={{ listStyle: 'none', margin: 0, padding: 0, background: surf.card, border: surf.hairline, borderRadius: 'var(--crm-radius-4xl)', boxShadow: surf.shadow, overflow: 'hidden' }}>
         {mouvements.map((m, i) => (
-          <LigneFlux key={m.id} m={m} bordure={i > 0} maintenant={maintenant} onOuvrir={onOuvrir} ctx={ctx} />
+          <LigneFlux key={m.id} m={m} bordure={i > 0} maintenant={maintenant} onOuvrir={onOuvrir} ctx={ctx}
+            acheteurs={acheteurs?.get(m.bien.id) ?? 0} onQuiPour={onQuiPour} />
         ))}
       </ol>
       {suite}
@@ -110,10 +118,16 @@ export default function MrhBouge({ genre, mouvements, charges, etat, suiteDispon
   )
 }
 
-/** Une ligne : vignette, identité, ce qui a bougé, et quand. Toute la ligne ouvre la fiche. */
-function LigneFlux({ m, bordure, maintenant, onOuvrir, ctx }: { m: MouvementPige; bordure: boolean; maintenant: number; onOuvrir: (b: MrhBien) => void; ctx: MrhCtx }) {
+/**
+ * Une ligne : vignette, identité, ce qui a bougé, et quand. Toute la ligne ouvre la fiche ; la pastille des acheteurs
+ * compatibles (lot D1), elle, ouvre la fiche sur « Qui pour ce bien ? ».
+ */
+function LigneFlux({ m, bordure, maintenant, onOuvrir, ctx, acheteurs, onQuiPour }: {
+  m: MouvementPige; bordure: boolean; maintenant: number; onOuvrir: (b: MrhBien) => void; ctx: MrhCtx
+  acheteurs: number; onQuiPour?: (b: MrhBien) => void
+}) {
   const { t, i18n } = useTranslation('matching')
-  const { sp, surf, dark, line } = ctx
+  const { sp, surf, dark, line, chipBg } = ctx
   const b = m.bien
   const loyer = b.transaction === 'location'
   const encreBaisse = mrhPriceDropInk(dark)
@@ -132,10 +146,12 @@ function LigneFlux({ m, bordure, maintenant, onOuvrir, ctx }: { m: MouvementPige
       : t('recherche.bouge.apresJours', { count: m.joursSurMarche })
 
   return (
-    <li style={{ borderTop: bordure ? '1px solid ' + line : 'none' }}>
-      {/* Pas de `background` en ligne : le fond au repos et au survol vit dans `mrh.css`. */}
+    <li className="mrh-flux-item" style={{ borderTop: bordure ? '1px solid ' + line : 'none' }}>
+      {/* Pas de `background` en ligne : le fond au repos et au survol vit dans `mrh.css`, sur la ligne ENTIÈRE — la
+          pastille des acheteurs est un second bouton, frère du premier (un bouton n'en contient pas un autre). Le
+          bouton de ligne est ÉTIRÉ (`::after`, `mrh.css`) : la bande autour de la pastille ouvre la fiche, elle aussi. */}
       <button onClick={() => onOuvrir(b)} className="mrh-flux-ligne"
-        style={{ display: 'grid', gridTemplateColumns: '56px minmax(0, 1fr) auto', alignItems: 'center', gap: 'var(--crm-space-2xl)', width: '100%', padding: 'var(--crm-space-lg) var(--crm-space-4xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: sp.ink }}>
+        style={{ minWidth: 0, display: 'grid', gridTemplateColumns: '56px minmax(0, 1fr) auto', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-lg) var(--crm-space-4xl)', border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', color: sp.ink }}>
         <span style={{ position: 'relative', display: 'block', width: 56, height: 56, borderRadius: 'var(--crm-radius-lg)', overflow: 'hidden', background: surf.cardSub }}>
           <MrhPhoto url={b.photos[0] ?? null} dark={dark} fallbackBg={surf.cardSub} fallbackInk={sp.sub} />
         </span>
@@ -153,6 +169,17 @@ function LigneFlux({ m, bordure, maintenant, onOuvrir, ctx }: { m: MouvementPige
         </span>
         <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, whiteSpace: 'nowrap' }}>{quand}</span>
       </button>
+      {/* Lot D1 : la ligne dit s'il existe des acheteurs compatibles, jamais qu'il n'y en a pas.
+          Une PUCE de l'écran : `chipBg` sous l'anneau du filet (`line`), comme les segments et les cases de sélection.
+          ⚠ Ni l'un ni l'autre n'est décoratif en sombre, où carte et ligne ne font qu'une surface (20.09.2026) : sans
+          l'anneau, mesuré au banc, la pastille n'avait aucun contour (ΔL* 0,00) ; et un fond OPAQUE — `surf.cardSub`,
+          celui des vignettes — trouait la ligne survolée. `chipBg` y est un voile : il éclaircit la ligne, pas l'inverse. */}
+      {acheteurs > 0 && onQuiPour && (
+        <button type="button" className="mrh-flux-pastille" onClick={() => onQuiPour(b)} aria-label={t('recherche.bouge.acheteursAria', { count: acheteurs, titre: b.title })}
+          style={{ marginRight: 'var(--crm-space-4xl)', padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line, color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+          {t('recherche.bouge.acheteurs', { count: acheteurs })}
+        </button>
+      )}
     </li>
   )
 }

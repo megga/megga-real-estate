@@ -282,3 +282,34 @@ export function tracerCourbe(points: PointPrix[], largeur: number, hauteur: numb
   for (const m of marques.slice(1)) chemin += ` H${m.x} V${m.y}`
   return { chemin: `${chemin} H${arrondi(largeur)}`, marques }
 }
+
+/**
+ * Le plafond de `pige_acheteurs_compatibles` (lot D1) : une page du flux.
+ * ⛔ C'est la borne `(p_annonces)[1:30]` de la migration : au-delà, la RPC ignore les identifiants sans rien dire.
+ * `pige.spec.ts` lit la migration et lie les deux.
+ */
+const LOT_ACHETEURS = 30
+
+/**
+ * Des identifiants d'annonces en lots pour `pige_acheteurs_compatibles` (lot D1) : sans doublon, dans l'ordre reçu, 30 au
+ * plus par lot. ⚠ Quand la liste s'allonge, seuls les lots PLEINS gardent leur contenu : le dernier, incomplet, change à
+ * chaque ajout — donc de clé de requête. Le flux découpe donc page par page (`lotsParPage`), pas sur la liste entière.
+ */
+export function lotsAnnonces(ids: readonly string[], taille = LOT_ACHETEURS): string[][] {
+  const uniques = [...new Set(ids)]
+  const lots: string[][] = []
+  for (let i = 0; i < uniques.length; i += taille) lots.push(uniques.slice(i, i + taille))
+  return lots
+}
+
+/**
+ * Les lots de « Ce qui a bougé », PAGE PAR PAGE (lot D1) : une page du flux porte 30 mouvements au plus, donc un seul
+ * lot, sous la borne de la RPC. ⛔ Découpée sur la liste entière, la dernière page incomplète changerait de lot à chaque
+ * « Voir plus » : `useQueries` associe ses lectures par clé, et les pastilles des lignes juste au-dessus du bouton —
+ * celles qu'on regarde — disparaîtraient le temps de la relecture. Page par page, une page de plus ajoute son lot sans
+ * toucher aux autres.
+ * Une annonce présente dans deux pages (elle a bougé deux fois) est lue deux fois, pour la même valeur : sans conséquence.
+ */
+export function lotsParPage(pages: readonly { mouvements: readonly MouvementPige[] }[]): string[][] {
+  return pages.flatMap((p) => lotsAnnonces(p.mouvements.map((m) => m.bien.id)))
+}
