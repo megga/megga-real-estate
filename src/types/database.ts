@@ -10067,6 +10067,28 @@ export type Database = {
           year_renovated: number
         }[]
       }
+      matching_actions_du_jour: {
+        Args: { p_limite?: number }
+        Returns: {
+          baisses: number
+          contact_id: string
+          genre: string
+          location: boolean
+          market_listing_id: string
+          match_id: string
+          montant: number
+          nom: string
+          nombre: number
+          nouveaux: number
+          prenom: string
+          property_id: string
+          quand: string
+          statut: string
+          titre: string
+          total: number
+          ville: string
+        }[]
+      }
       matching_ajuster_recherche: {
         Args: {
           p_acteur_id: string
@@ -10132,6 +10154,10 @@ export type Database = {
       }
       pg_cron_installe: { Args: never; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
+      pige_acheteurs_compatibles: {
+        Args: { p_annonces: string[] }
+        Returns: { acheteurs: number; market_listing_id: string }[]
+      }
       pige_mouvements: {
         Args: {
           p_before_at?: string
