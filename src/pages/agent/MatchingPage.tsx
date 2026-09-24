@@ -23,6 +23,7 @@ import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
+import { estArriveeFil } from '@/components/matching-fil/filLiens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
@@ -173,11 +174,12 @@ export default function MatchingPage(
 
   // ─── Pager molette ──────────────────────────────────────────────────
   // Arrivée pivotée (fiche deal V4 « Transmettre à … », fiche contact) : un
-  // `?contact=` / `?annonce=` cible l'Atelier — on atterrit directement dessus
+  // lien d'arrivée du fil (`estArriveeFil` : `?contact=`, `?annonce=`, `?onglet=`,
+  // `?ligne=`, `?attente=`) cible la page 0 — on atterrit directement dessus
   // au lieu de la page Recherche (le param était ignoré et l'atelier hors écran).
   const [searchParams] = useSearchParams()
   const [initialPage] = useState(() =>
-    searchParams.has('contact') || searchParams.has('annonce') || atterrissage === 'score'
+    estArriveeFil(searchParams) || atterrissage === 'score'
       ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
       : LANDING_PAGE,
   )
@@ -200,7 +202,7 @@ export default function MatchingPage(
    * seulement dans l'effet ferait afficher une frame sur la mauvaise page avant
    * de glisser vers l'Atelier.
    */
-  const pivot = searchParams.has('contact') || searchParams.has('annonce')
+  const pivot = estArriveeFil(searchParams)
   const [pivotConsomme, setPivotConsomme] = useState(!pivot)
   const page = pivotConsomme ? pageStockee : initialPage
   useEffect(() => {
