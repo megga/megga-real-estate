@@ -24,7 +24,13 @@ import {
 } from '@intercom/messenger-js-sdk'
 import { sanitizeIntercomArgs } from './intercom-allowlist'
 
-const APP_ID = import.meta.env.VITE_INTERCOM_APP_ID as string | undefined
+// Seule la production parle à Intercom. Un poste de développement boote avec son propre
+// projet Supabase, donc avec d'autres `user_id` : c'est ce qui dédoublait les fiches
+// (un même e-mail sous 2 à 4 fiches, plan Intercom §2 et §3.1). Pour essayer le Messenger
+// en local : `VITE_INTERCOM_FORCE_DEV=true`, comme `VITE_SENTRY_FORCE_DEV` pour Sentry.
+const APP_ID = import.meta.env.PROD || import.meta.env.VITE_INTERCOM_FORCE_DEV === 'true'
+  ? (import.meta.env.VITE_INTERCOM_APP_ID as string | undefined)
+  : undefined
 
 /** Filtre LPD : ne laisse passer que les clés allowlistées + alerte en dev si on en bloque. */
 function guardArgs(args: IntercomBootArgs): Record<string, unknown> {
@@ -59,7 +65,8 @@ let identifiedUserId: string | null = null
 
 /**
  * Boote (ou re-boote) le Messenger. Anonyme si aucun argument utilisateur.
- * No-op tant que `VITE_INTERCOM_APP_ID` n'est pas défini (comme PostHog sans clé).
+ * No-op tant que `VITE_INTERCOM_APP_ID` n'est pas défini (comme PostHog sans clé), et hors
+ * production sauf `VITE_INTERCOM_FORCE_DEV=true`.
  */
 export function bootIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || typeof window === 'undefined') return
