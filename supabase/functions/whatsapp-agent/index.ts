@@ -19,7 +19,7 @@ import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetDailyBrief,
-  execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
+  execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink, prepareInviteOptin,
   prepareSendClientEmail, prepareDeleteContact, prepareSendClientMessage, prepareUpdatePipeline,
@@ -32,7 +32,7 @@ import {
   findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
-import { execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome } from '../_shared/whatsapp-matching-outils.ts'
+import { execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, execScheduleVisit } from '../_shared/whatsapp-matching-outils.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'

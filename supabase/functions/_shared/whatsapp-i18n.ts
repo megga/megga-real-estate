@@ -508,6 +508,14 @@ export function consignationEchec(lang: WaLang): string {
     : "La consignation a échoué — rien n'a été écrit. Réessaie dans un instant."
 }
 
+/** Une panne de TRANSPORT (l'erreur ne porte pas de `code` Postgres) : la base a pu écrire avant que la réponse ne se
+ *  perde. « Rien n'a été écrit » serait parfois faux — la phrase reste honnête sur ce qu'on ignore. */
+export function consignationNonConfirmee(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Not confirmed — check the record before trying again.'
+    : 'Non confirmée — vérifie la fiche avant de réessayer.'
+}
+
 /** Un refus sans motif ne se consigne pas : le motif nourrit « Apprendre ». */
 export function consignerMotifManquant(lang: WaLang): string {
   return lang === 'en'

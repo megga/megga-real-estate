@@ -55,6 +55,11 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   file_document: 'auto',
   create_contact: 'auto',
   add_note: 'auto',
+  // schedule_visit : planifie EN INTERNE (CRM), jamais un envoi client → auto, comme les autres écritures d'état
+  // réversibles. ⚠ Exception nommée au garde-fou de update_pipeline plus bas : un acheteur intéressé par ce bien voit
+  // AUSSI son deal avancer à visit_planned, jamais en arrière — décision de Julien du 24.09.2026, annulable 30 s
+  // comme toute action auto. Le deal peut aussi être CRÉÉ (à new_lead, faute d'un deal actif) plutôt que simplement
+  // avancé ; « /annuler » ne défait alors que le passage à visit_planned — le deal créé, lui, reste à new_lead.
   schedule_visit: 'auto',
   create_reminder: 'auto',
   qualify_lead: 'auto',
@@ -73,6 +78,8 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_client_email: 'confirm',
   // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
+  // ⚠ Le garde-fou n'est plus absolu au sens strict : schedule_visit (ci-dessus, 'auto') avance lui aussi une étape,
+  // à visit_planned seulement et jamais en arrière — décidé par Julien le 24.09.2026, annulable 30 s.
   update_pipeline: 'confirm',
   send_client_message: 'confirm',
   // L'envoi d'une sélection de biens au client (send_listings) n'est plus au registre depuis

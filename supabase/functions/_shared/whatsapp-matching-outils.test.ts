@@ -19,9 +19,9 @@
  * finirait en échec même si la première avait été lue comme une absence. Et `rpc#n`, le n-ième appel d'une fonction
  * seul : l'écho d'un libellé relit `wa_matching_biens_de_l_acheteur` une seconde fois.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import {
-  execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, executeRecordMatchOutcome,
+  execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, executeRecordMatchOutcome, execScheduleVisit, annulerVisite,
 } from './whatsapp-matching-outils'
 import {
   confirmConsigner, consigne, consignerAnnonceRetiree, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens,
@@ -83,8 +83,17 @@ function trier(lignes: readonly Ligne[], cles: readonly Cle[]): Ligne[] {
  * comme le ferait la fonction réelle avec son propre `limit` : un appelant qui demanderait la mauvaise limite reçoit
  * donc moins (ou plus) de lignes, pas les mêmes. Pour l'agence et les mots, c'est `appels` (rendu par `fauxClient`)
  * que les tests inspectent directement — aucune donnée de fixture n'est elle-même scopée par agence.
+ * ⚠ `opts.echecInsertion` fait échouer `.insert()` sur une table nommée (`{ error: {...} }`, rien poussé dans
+ * `inserts`) : éprouve qu'une confirmation (« /annuler ») n'est JAMAIS promise sur un enregistrement qui a échoué.
+ * ⚠ `opts.erreurCode` porte un `code` Postgres sur l'erreur simulée d'un `rpc` déjà nommé par `erreurSur` (même clé,
+ * `nom` ou `nom#n`) : SANS lui, l'erreur simulée n'a PAS de `code` — une panne de TRANSPORT, comme un `fetch` qui
+ * échoue après que la base a écrit. Distingue les deux chemins d'échec qu'un exécuteur doit garder séparés (schedule_visit,
+ * record_match_outcome) : un `code` dit que la base a tranché (rien n'a été écrit, de bonne foi), son absence ne le dit pas.
  */
-function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown> = {}, opts: { erreurSur?: ReadonlySet<string> } = {}) {
+function fauxClient(
+  tables: Record<string, Ligne[]>, rpc: Record<string, unknown> = {},
+  opts: { erreurSur?: ReadonlySet<string>; echecInsertion?: ReadonlySet<string>; erreurCode?: Record<string, string> } = {},
+) {
   const appels: Appel[] = []
   const inserts: { table: string; row: unknown }[] = []
   const lectures: string[] = []
@@ -141,7 +150,11 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
       if (coupees.length > 1) return { data: null, error: { message: 'plusieurs lignes trouvées, une seule attendue', code: 'PGRST116' } }
       return { data: coupees[0] ? projeter(coupees[0]) : null, error: null }
     }
-    self.insert = (row: unknown) => { inserts.push({ table, row }); return { error: null } }
+    self.insert = (row: unknown) => {
+      if (opts.echecInsertion?.has(table)) return { error: { message: `échec simulé de l'insertion dans ${table}` } }
+      inserts.push({ table, row })
+      return { error: null }
+    }
     // `touchHotContact` (le « contact chaud » de l'agent) : sans effet ici.
     self.upsert = () => Promise.resolve({ error: null })
     self.then = (resolve: (r: unknown) => void) => resolve(lire() ? echec : { data: resoudre(), error: null })
@@ -154,7 +167,11 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
     rpc: async (nom: string, args: Record<string, unknown>) => {
       appels.push({ rpc: nom, args })
       const rang = appels.filter((a) => a.rpc === nom).length
-      if (opts.erreurSur?.has(nom) || opts.erreurSur?.has(`${nom}#${rang}`)) return { data: null, error: { message: `erreur simulée sur rpc ${nom}` } }
+      const cle = opts.erreurSur?.has(nom) ? nom : opts.erreurSur?.has(`${nom}#${rang}`) ? `${nom}#${rang}` : null
+      if (cle) {
+        const code = opts.erreurCode?.[cle]
+        return { data: null, error: { message: `erreur simulée sur rpc ${nom}`, ...(code ? { code } : {}) } }
+      }
       const brut = rpc[nom]
       // `p_limite` coupe les lignes configurées comme le ferait le `limit` réel de la fonction : un appelant qui
       // demanderait la mauvaise limite reçoit un nombre de lignes différent, jamais les mêmes.
@@ -1423,9 +1440,15 @@ describe('executeRecordMatchOutcome — l’écriture d’un bloc, par la base',
     expect(appels).toEqual([])
   })
 
-  it('le rpc en panne rend un échec, jamais une exception', async () => {
-    const { client } = fauxClient({}, {}, { erreurSur: new Set(['wa_matching_consigner']) })
-    await expect(executeRecordMatchOutcome(ctx(client), payload)).resolves.toBe(ECHEC)
+  it('le rpc en panne rend un échec, jamais une exception : « rien n’a été écrit » SEULEMENT si l’erreur porte un `code` Postgres', async () => {
+    // Avec `code` : la base a VU la requête et l'a tranchée — « rien n'a été écrit » est de bonne foi.
+    const codee = fauxClient({}, {}, { erreurSur: new Set(['wa_matching_consigner']), erreurCode: { wa_matching_consigner: '23505' } })
+    await expect(executeRecordMatchOutcome(ctx(codee.client), payload)).resolves.toBe(ECHEC)
+    // Sans `code` : une panne de TRANSPORT — la base a pu écrire avant que la réponse ne se perde.
+    const sansCode = fauxClient({}, {}, { erreurSur: new Set(['wa_matching_consigner']) })
+    const r = await executeRecordMatchOutcome(ctx(sansCode.client), payload)
+    expect(r).toBe('Non confirmée — vérifie la fiche avant de réessayer.')
+    expect(r).not.toBe(ECHEC)
   })
 
   it('« pas intéressé » transmet le motif ET la note à `wa_matching_consigner`', async () => {
@@ -1615,5 +1638,567 @@ describe('whatsapp-i18n — le total tu par consignerAucunBien/consignerPlusieur
     expect(consignerPlusieursBiens('en', 'Julie', dix, 100)).toContain('(5 of over 100)')
     expect(consignerAucunBien('fr', 'interesse', 'Julie', dix, 100)).toContain('(5 sur plus de 100)')
     expect(consignerAucunBien('en', 'interesse', 'Julie', dix, 100)).toContain('(5 of over 100)')
+  })
+})
+
+const QUAND = '2026-09-29T14:00:00+02:00'
+
+/**
+ * Fige « maintenant » avant QUAND et les autres dates de ce fichier, écrites en dur : sans ça, elles finissent par
+ * entrer dans le passé, et le refus des dates passées (`DATE_PASSEE`) ferait échouer la suite à partir de ce
+ * jour-là. Seule `Date` est truquée (pas les timers) : chaque `describe` d'`execScheduleVisit` l'appelle en premier.
+ */
+function figerHorloge() {
+  beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-09-25T08:00:00Z') }) })
+  afterAll(() => { vi.useRealTimers() })
+}
+
+describe('execScheduleVisit — une visite interne, mandat ou annonce', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it('un mandat part en `p_property`, une annonce en `p_market_listing` ; p_debut et p_profile atteignent la base ; « /annuler » est enregistré', async () => {
+    const { client, appels, inserts } = fauxClient(tables, {
+      wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', match_id: 'm1', statut_match: 'interested', match_avant: 'interested', deal_id: 'd1', etape_avant: 'new_lead' },
+    })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+    expect(r).toContain(`pour Julie Martin — « ${VIL} ».`)
+    expect(r).toContain('Julie Martin passe en « visite planifiée » dans le Matching.')
+    expect(appels[0].args).toMatchObject({
+      p_agency: A, p_profile: 'p-agent', p_contact: JULIE, p_property: VILLA, p_market_listing: null,
+      p_debut: '2026-09-29T12:00:00.000Z', p_duree: 45, p_type: 'sur_place',
+    })
+    expect(inserts).toEqual([{ table: 'whatsapp_recent_auto_actions', row: expect.objectContaining({ tool: 'schedule_visit', payload_undo: { visite_id: 'v1', evenement_id: null, match_id: 'm1', deal_id: 'd1', etape_avant: 'new_lead' } }) }])
+
+    const annonce = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Attique 4 p.', evenement_id: 'e1', statut_match: 'sent' } })
+    const r2 = await execScheduleVisit(ctx(annonce.client), { contact_id: JULIE, property_id: ATTIQUE, scheduled_at: QUAND })
+    expect(annonce.appels[0].args).toMatchObject({ p_property: null, p_market_listing: ATTIQUE })
+    // Le LIBELLÉ de l'annonce (titre · adresse), pas son seul titre — distingue deux annonces au même titre.
+    expect(r2).toContain(`pour Julie Martin — « ${ATT} ».`)
+    expect(r2).toMatch(/L’intérêt de Julie Martin pour ce bien n’est pas consigné/)
+  })
+
+  it('un bien inconnu (UUID valide, absent des deux tables) n’est pas planifié', async () => {
+    const { client, appels } = fauxClient(tables)
+    expect(await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: 'f0000000-0000-4000-8000-000000000000', scheduled_at: QUAND })).toMatch(/bien introuvable/)
+    expect(appels).toEqual([])
+  })
+
+  it('market_listing_id SEUL (sans property_id) fonctionne', async () => {
+    const { client, appels } = fauxClient(tables, {
+      wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Attique 4 p.', evenement_id: 'e9', statut_match: null },
+    })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, market_listing_id: ATTIQUE, scheduled_at: QUAND })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+    expect(appels[0].args).toMatchObject({ p_property: null, p_market_listing: ATTIQUE })
+  })
+})
+
+describe('execScheduleVisit — « non consigné » ne se dit QUE pour un match "sent", jamais un autre statut', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it.each(['visit_planned', 'suggested', 'rejected', null])('statut_match = %s : ni « passe en visite planifiée » ni « non consigné »', async (statut) => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: statut } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).not.toMatch(/n’est pas consigné|passe en « visite planifiée »/)
+  })
+})
+
+describe('execScheduleVisit — le contact : trois issues distinctes, jamais confondues', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it('une PANNE de lecture (pas une absence) ⇒ le message de lecture impossible', async () => {
+    const { client } = fauxClient(tables, {}, { erreurSur: new Set(['contacts']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/momentanément impossible/)
+  })
+
+  it('un identifiant mal formé ⇒ refusé SANS lire `contacts` (la panne posée sur cette table ne se déclenche jamais)', async () => {
+    const { client, lectures } = fauxClient(tables, {}, { erreurSur: new Set(['contacts']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: 'Julie Martin', property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/search_contacts/)
+    expect(r).not.toMatch(/momentanément impossible/)
+    expect(lectures).toEqual([])
+  })
+
+  it('absent (contact d’une autre agence) ⇒ introuvable dans l’agence', async () => {
+    const { client } = fauxClient(tables)
+    const r = await execScheduleVisit(ctx(client), { contact_id: AUTRE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/contact introuvable dans votre agence/)
+  })
+})
+
+describe('execScheduleVisit — une panne de lecture du BIEN n’est jamais une absence', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it('panne sur properties (un mandat est visé) ⇒ lecture impossible, sans rpc', async () => {
+    const { client, appels } = fauxClient(tables, {}, { erreurSur: new Set(['properties']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/momentanément impossible/)
+    expect(appels).toEqual([])
+  })
+
+  it('panne sur market_listings (une annonce est visée, absente des mandats) ⇒ lecture impossible, sans rpc', async () => {
+    const { client, appels } = fauxClient(tables, {}, { erreurSur: new Set(['market_listings']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: ATTIQUE, scheduled_at: QUAND })
+    expect(r).toMatch(/momentanément impossible/)
+    expect(appels).toEqual([])
+  })
+})
+
+describe('execScheduleVisit — property_id / market_listing_id : conflit, un seul UUID valide, un identifiant mal formé', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: null } }
+  const okAnnonce = { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Attique 4 p.', evenement_id: 'e1', statut_match: null } }
+
+  it('deux ids VALIDES et DIFFÉRENTS : refusé, demande lequel — sans appeler la base', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, market_listing_id: ATTIQUE, scheduled_at: QUAND })
+    expect(r).toMatch(/lequel/)
+    expect(appels).toEqual([])
+  })
+
+  it('un seul UUID valide parmi les deux (l’autre est un nom) : c’est lui', async () => {
+    const { client, appels } = fauxClient(tables, okAnnonce)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: 'Attique Florissant', market_listing_id: ATTIQUE, scheduled_at: QUAND })
+    expect(appels[0].args).toMatchObject({ p_property: null, p_market_listing: ATTIQUE })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+
+  it('property_id est un NOM, seul : refusé — « l’id vient de get_matches », jamais « bien introuvable »', async () => {
+    const { client, appels } = fauxClient(tables, okAnnonce)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: 'l’attique', scheduled_at: QUAND })
+    expect(r).toMatch(/get_matches/)
+    expect(r).not.toMatch(/bien introuvable/)
+    expect(appels).toEqual([])
+  })
+
+  it('les deux ids IDENTIQUES : pas un conflit, planifié normalement', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, market_listing_id: VILLA, scheduled_at: QUAND })
+    expect(appels[0].args).toMatchObject({ p_property: VILLA })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+
+  it('le MÊME UUID en casses différentes n’est pas un conflit (Postgres compare un uuid sans égard à la casse)', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, market_listing_id: VILLA.toUpperCase(), scheduled_at: QUAND })
+    expect(appels).toHaveLength(1)
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+
+  it('DEUX TEXTES qui ne sont ni l’un ni l’autre un UUID : refusé « l’id vient de get_matches », jamais « lequel ? »', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: 'Villa', market_listing_id: 'Attique', scheduled_at: QUAND })
+    expect(r).toMatch(/get_matches/)
+    expect(r).not.toMatch(/lequel/)
+    expect(appels).toEqual([])
+  })
+})
+
+describe('execScheduleVisit — l’heure d’un scheduled_at SANS décalage suit Genève, jamais le fuseau du process', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: null } }
+
+  it('« 14:00 » sans décalage part à l’heure de Genève même si le process tourne en UTC, comme l’Edge Function en production', async () => {
+    const original = process.env.TZ
+    process.env.TZ = 'UTC'
+    try {
+      const { client, appels } = fauxClient(tables, okMandat)
+      const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:00' })
+      // 14:00 à Genève (CEST, +02:00 fin septembre) = 12:00 UTC — jamais 14:00Z, ce que lirait `new Date(...)` sous un
+      // process en UTC (la panne mesurée par la revue : la visite partirait deux heures plus tard qu'annoncé).
+      expect(appels[0].args.p_debut).toBe('2026-09-29T12:00:00.000Z')
+      expect(r).toContain('29.09.26 14:00')
+    } finally {
+      if (original === undefined) delete process.env.TZ; else process.env.TZ = original
+    }
+  })
+
+  it('un décalage EXPLICITE reste lu tel quel, secondes comprises', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:30+02:00' })
+    expect(appels[0].args.p_debut).toBe('2026-09-29T12:00:30.000Z')
+  })
+
+  it('une date SEULE (sans heure) est refusée, sans appeler la base', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29' })
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+
+  it('« 1 » (que `Date.parse` lirait comme 2001) est refusé, jamais planifié à une date fabriquée', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '1' })
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+
+  it('une heure SAUTÉE au passage à l’heure d’été (29.03.2026, 02:00 → 03:00) a son propre message, distinct de « date/heure requise »', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-03-29T02:30' })
+    expect(r).toMatch(/n’existe pas ce jour-là/)
+    expect(r).not.toMatch(/ISO 8601/)
+    expect(appels).toEqual([])
+  })
+
+  it('une date PASSÉE de plus d’une heure est refusée, jamais planifiée', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2020-01-07T14:00:00+01:00' })
+    expect(r).toMatch(/passée/)
+    expect(appels).toEqual([])
+  })
+
+  it('une date à MOINS d’une heure dans le passé est tolérée (planifiée quand même)', async () => {
+    const { client } = fauxClient(tables, okMandat)
+    const ilYA10Min = new Date(Date.now() - 10 * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: ilYA10Min })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+
+  it('la borne : 59 minutes dans le passé acceptée, 61 minutes refusée', async () => {
+    const ilYA = (min: number) => new Date(Date.now() - min * 60_000).toISOString().replace(/\.\d{3}Z$/, 'Z')
+    const oui = fauxClient(tables, okMandat)
+    expect((await execScheduleVisit(ctx(oui.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: ilYA(59) })).startsWith('Visite planifiée le')).toBe(true)
+    const non = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(non.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: ilYA(61) })
+    expect(r).toMatch(/passée/)
+  })
+
+  it('des SECONDES sans décalage sont gardées, à l’heure de Genève', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:45' })
+    expect(appels[0].args.p_debut).toBe('2026-09-29T12:00:45.000Z')
+  })
+
+  it('des fractions de seconde sont acceptées (avec ou sans décalage)', async () => {
+    const sansDecalage = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(sansDecalage.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:00.500' })
+    expect(sansDecalage.appels[0].args.p_debut).toBe('2026-09-29T12:00:00.500Z')
+    const avecDecalage = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(avecDecalage.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:00.000Z' })
+    expect(avecDecalage.appels[0].args.p_debut).toBe('2026-09-29T14:00:00.000Z')
+  })
+
+  it('l’heure 24 n’existe pas (24:00) : refusée', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T24:00' })
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+
+  it('du texte APRÈS une heure par ailleurs valide est refusé (l’ancre de fin tient), avec ou sans décalage', async () => {
+    // Avec décalage : `Date.parse` refuserait de toute façon le texte en trop, même sans l'ancre — ce cas seul ne
+    // prouverait rien sur l'ancre elle-même.
+    const avecDecalage = fauxClient(tables, okMandat)
+    const r1 = await execScheduleVisit(ctx(avecDecalage.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00Z et vendredi' })
+    expect(r1).toMatch(/date\/heure/)
+    expect(avecDecalage.appels).toEqual([])
+    // Sans décalage : la lecture passe par `wallTimeToInstant`, qui ne voit que les GROUPES CAPTURÉS (hh, mi) —
+    // jamais la chaîne complète. Sans l'ancre de fin, le texte en trop serait silencieusement ignoré.
+    const sansDecalage = fauxClient(tables, okMandat)
+    const r2 = await execScheduleVisit(ctx(sansDecalage.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00 et vendredi' })
+    expect(r2).toMatch(/date\/heure/)
+    expect(sansDecalage.appels).toEqual([])
+  })
+
+  it('un décalage ÉTRANGER à Genève (+05:45, -05:00) est lu tel quel, jamais recalculé pour Genève', async () => {
+    const inde = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(inde.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00+05:45' })
+    expect(inde.appels[0].args.p_debut).toBe('2026-09-29T08:15:00.000Z')
+    const est = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(est.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:00-05:00' })
+    expect(est.appels[0].args.p_debut).toBe('2026-09-29T19:00:00.000Z')
+  })
+
+  it('« +00:00 » n’est pas un décalage genevois : lu tel quel, comme « Z »', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-09-29T14:00:00+00:00' })
+    expect(appels[0].args.p_debut).toBe('2026-09-29T14:00:00.000Z')
+  })
+})
+
+describe('execScheduleVisit — un décalage GENEVOIS (+01:00 ou +02:00) suit la vraie saison de la date, pas celui écrit', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: null } }
+
+  it('novembre (hiver, vrai décalage +01:00) écrit avec « +02:00 » (l’écart de septembre) : lu à 14:00 Genève = 13:00Z, pas 12:00Z', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2026-11-15T14:00:00+02:00' })
+    expect(appels[0].args.p_debut).toBe('2026-11-15T13:00:00.000Z')
+  })
+
+  it('juillet (été, vrai décalage +02:00) écrit avec « +01:00 » : lu à 14:00 Genève = 12:00Z, pas 13:00Z', async () => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: '2027-07-15T14:00:00+01:00' })
+    expect(appels[0].args.p_debut).toBe('2027-07-15T12:00:00.000Z')
+  })
+})
+
+describe('execScheduleVisit — une date IMPOSSIBLE, même avec un décalage explicite, est refusée (jamais reportée au jour suivant)', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: null } }
+  const refuse = async (scheduled_at: string) => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at })
+    return { r, appels }
+  }
+
+  it('31 septembre (30 jours seulement) : refusé, jamais reporté au 1ᵉʳ octobre', async () => {
+    const { r, appels } = await refuse('2026-09-31T10:00:00Z')
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+
+  it('29 février 2027 (non bissextile) : refusé, jamais reporté au 1ᵉʳ mars', async () => {
+    const { r, appels } = await refuse('2027-02-29T14:00:00+01:00')
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+
+  it('29 février 2028 (bissextile) : accepté', async () => {
+    const { r, appels } = await refuse('2028-02-29T14:00:00+01:00')
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+    expect(appels).toHaveLength(1)
+  })
+
+  it('30 février (n’existe jamais) : refusé', async () => {
+    const { r, appels } = await refuse('2026-02-30T14:00:00+01:00')
+    expect(r).toMatch(/date\/heure/)
+    expect(appels).toEqual([])
+  })
+})
+
+describe('execScheduleVisit — durée : un nombre OU une chaîne numérique, arrondie, bornée à [5, 480], 45 par défaut', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v9', statut_match: null } }
+  const duree = async (duration_minutes?: unknown) => {
+    const { client, appels } = fauxClient(tables, okMandat)
+    await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND, ...(duration_minutes === undefined ? {} : { duration_minutes }) })
+    return appels[0].args.p_duree
+  }
+
+  it('absente : 45 (défaut)', async () => expect(await duree()).toBe(45))
+  it('0 ou négative : 45 (défaut, pas « zéro minute »)', async () => {
+    expect(await duree(0)).toBe(45)
+    expect(await duree(-5)).toBe(45)
+  })
+  it('une chaîne numérique ("60") est acceptée comme un nombre', async () => expect(await duree('60')).toBe(60))
+  it('une chaîne DÉCIMALE ("30.5") est acceptée et arrondie, comme le nombre équivalent', async () => expect(await duree('30.5')).toBe(31))
+  it('des espaces autour d’une chaîne numérique (" 60 ") sont tolérés (`.trim()` avant le test)', async () => expect(await duree(' 60 ')).toBe(60))
+  it('bornée à 480 au plus', async () => expect(await duree(1000)).toBe(480))
+  it('arrondie, et plancher à 5 (0.4 minute ne devient pas 0)', async () => {
+    expect(await duree(30.5)).toBe(31)
+    expect(await duree(0.4)).toBe(5)
+  })
+  it('une chaîne qui n’est PAS que des chiffres ⇒ le défaut, jamais lue par `Number()` (hexadécimal, notation scientifique, unité)', async () => {
+    expect(await duree('1h30')).toBe(45)
+    expect(await duree('0x10')).toBe(45) // Number('0x10') vaut 16 : accepté à tort avant ce garde
+    expect(await duree('1e2')).toBe(45) // Number('1e2') vaut 100 : idem
+  })
+  it('la réponse AFFICHE la durée retenue, pour que l’agent la voie', async () => {
+    const { client } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND, duration_minutes: 60 })
+    expect(r).toContain('(60 min)')
+    const parDefaut = fauxClient(tables, okMandat)
+    const r2 = await execScheduleVisit(ctx(parDefaut.client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r2).toContain('(45 min)')
+  })
+})
+
+describe('execScheduleVisit — la base refuse : trois raisons connues, et un retour anormal (jamais « bien introuvable » hors raison "bien")', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it('raison "contact"', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: false, raison: 'contact' } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/contact introuvable dans votre agence/)
+  })
+
+  it('raison "bien"', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: false, raison: 'bien' } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/bien introuvable/)
+  })
+
+  it('raison "profil" : un message dédié, jamais « bien introuvable »', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: false, raison: 'profil' } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/profil n.est pas rattaché à cette agence/)
+    expect(r).not.toMatch(/bien introuvable/)
+  })
+
+  it('un retour anormal — data nulle, ok:false sans raison, ou une raison inconnue — dit l’échec générique, jamais « bien introuvable », et n’enregistre rien', async () => {
+    for (const donnee of [null, { ok: false }, { ok: false, raison: 'mystere' }]) {
+      const { client, inserts } = fauxClient(tables, { wa_matching_visite: donnee })
+      const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+      expect(r, JSON.stringify(donnee)).toMatch(/la planification a échoué/)
+      expect(r, JSON.stringify(donnee)).not.toMatch(/bien introuvable/)
+      expect(inserts, JSON.stringify(donnee)).toEqual([])
+    }
+  })
+})
+
+describe('execScheduleVisit — un bien qui n’est plus disponible est signalé (règle du module, BienWa.retire), une annonce vidéo sans visio', () => {
+  figerHorloge()
+  const RETIREE = 'd0000000-0000-4000-8000-0000000000e1'
+  const annonceRetiree = { id: RETIREE, title: 'Chalet Retiré', address: 'Route de la Neige 9', city: 'Verbier', price: 800_000, transaction_type: 'buy', status: 'removed' }
+  const VENDU = 'e0000000-0000-4000-8000-0000000000e2'
+  const mandatVendu = { id: VENDU, agency_id: A, deleted_at: null, title: 'Duplex vendu', address: 'Rue du Marché 5', city: 'Genève', status: 'sold' }
+  const EN_BAISSE = 'd0000000-0000-4000-8000-0000000000e3'
+  const annonceEnBaisse = { id: EN_BAISSE, title: 'Loft en baisse', address: 'Quai des Bergues 8', city: 'Genève', price: 1_100_000, transaction_type: 'buy', status: 'price_reduced' }
+  const tables = { contacts, properties: [...mandats, mandatVendu], market_listings: [...annonces, annonceRetiree, annonceEnBaisse] }
+
+  it('une annonce RETIRÉE du marché (status: removed) : planifiée quand même, et signalée', async () => {
+    const { client, appels } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Chalet Retiré', evenement_id: 'e5', statut_match: null } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: RETIREE, scheduled_at: QUAND })
+    expect(appels).toHaveLength(1) // planifiée quand même, jamais refusée
+    expect(r).toMatch(/plus disponible/)
+  })
+
+  it('un mandat VENDU (status: sold) est signalé lui aussi — la règle vient du module, pas d’un cas spécial « annonce »', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Duplex vendu', visite_id: 'v-vendu', statut_match: null } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VENDU, scheduled_at: QUAND })
+    expect(r).toMatch(/plus disponible/)
+  })
+
+  it('une annonce EN BAISSE (price_reduced) n’est JAMAIS dite retirée — seul `removed` l’est', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Loft en baisse', evenement_id: 'e8', statut_match: null } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: EN_BAISSE, scheduled_at: QUAND })
+    expect(r).not.toMatch(/plus disponible/)
+  })
+
+  it('une annonce ACTIVE n’est pas dite retirée ; son agenda est dit', async () => {
+    const { client } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Attique 4 p.', evenement_id: 'e1', statut_match: null } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: ATTIQUE, scheduled_at: QUAND })
+    expect(r).not.toMatch(/plus disponible/)
+    expect(r).toContain('Annonce du marché : inscrite à l’agenda.')
+  })
+
+  it('visit_type "video" sur une annonce : signalé, jamais refusé', async () => {
+    const { client, appels } = fauxClient(tables, { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Attique 4 p.', evenement_id: 'e6', statut_match: 'sent' } })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: ATTIQUE, scheduled_at: QUAND, visit_type: 'video' })
+    expect(appels[0].args).toMatchObject({ p_type: 'video' })
+    expect(r).toMatch(/sans visio/)
+  })
+})
+
+describe('execScheduleVisit — une panne de la base : transport (non confirmé) vs un `code` Postgres (rien n’a été écrit)', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+
+  it('SANS `code` : panne de TRANSPORT — « non confirmé », jamais « rien n’a été écrit », aucun enregistrement d’annulation', async () => {
+    const { client, inserts } = fauxClient(tables, { wa_matching_visite: 'jamais lu' }, { erreurSur: new Set(['wa_matching_visite']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/non confirmé/)
+    expect(r).not.toMatch(/erreur simulée/)
+    expect(r).not.toMatch(/rien n.a été écrit/)
+    expect(inserts).toEqual([])
+  })
+
+  it('AVEC `code` : la base a tranché — phrase générique « rien n’a été écrit », sans le message de la base', async () => {
+    const { client, inserts } = fauxClient(
+      tables, { wa_matching_visite: 'jamais lu' },
+      { erreurSur: new Set(['wa_matching_visite']), erreurCode: { wa_matching_visite: '23505' } },
+    )
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toMatch(/la planification a échoué/)
+    expect(r).not.toMatch(/erreur simulée/)
+    expect(inserts).toEqual([])
+  })
+})
+
+describe('execScheduleVisit — « /annuler » n’est promis QUE si son enregistrement réussit', () => {
+  figerHorloge()
+  const tables = { contacts, market_listings: annonces, properties: mandats }
+  const okMandat = { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Villa contemporaine', visite_id: 'v1', statut_match: null } }
+
+  it('l’insertion de whatsapp_recent_auto_actions échoue : la visite reste planifiée, mais « /annuler » n’est jamais promis', async () => {
+    const { client } = fauxClient(tables, okMandat, { echecInsertion: new Set(['whatsapp_recent_auto_actions']) })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+    expect(r).not.toContain('/annuler')
+  })
+
+  it('à l’identique, sur une insertion réussie : « /annuler » EST promis', async () => {
+    const { client } = fauxClient(tables, okMandat)
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: VILLA, scheduled_at: QUAND })
+    expect(r).toContain('/annuler')
+  })
+})
+
+describe('execScheduleVisit — le genre est ancré sur l’agence : un mandat d’une AUTRE agence n’en est pas un', () => {
+  figerHorloge()
+  it('même id qu’une annonce suivie : un mandat hors agence ne le masque pas, l’annonce répond', async () => {
+    const PARTAGE = 'e0000000-0000-4000-8000-000000000099'
+    const mandatHorsAgence = { id: PARTAGE, agency_id: B, deleted_at: null, title: 'Bien agence B', address: 'Rue X 1', city: 'Lausanne', price: 1_000_000, transaction_type: 'buy', status: 'active', off_market: false }
+    const annonceMemeId = { id: PARTAGE, title: 'Annonce suivie', address: 'Rue Y 2', city: 'Lausanne', price: 900_000, transaction_type: 'buy', status: 'active' }
+    const { client, appels } = fauxClient(
+      { contacts, properties: [...mandats, mandatHorsAgence], market_listings: [...annonces, annonceMemeId] },
+      { wa_matching_visite: { ok: true, genre: 'annonce', titre: 'Annonce suivie', evenement_id: 'e7', statut_match: null } },
+    )
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: PARTAGE, scheduled_at: QUAND })
+    expect(appels[0].args).toMatchObject({ p_property: null, p_market_listing: PARTAGE })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+
+  it('un mandat SUPPRIMÉ (deleted_at posé) de l’agence n’en est pas un non plus : jamais planifié comme mandat', async () => {
+    const SUPPRIME = 'e0000000-0000-4000-8000-0000000000f2'
+    const mandatSupprime = { id: SUPPRIME, agency_id: A, deleted_at: '2026-09-01T00:00:00Z', title: 'Mandat supprimé', address: 'Rue Z 1', city: 'Genève', status: 'active' }
+    const { client, appels } = fauxClient({ contacts, properties: [...mandats, mandatSupprime], market_listings: annonces })
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: SUPPRIME, scheduled_at: QUAND })
+    expect(r).toMatch(/bien introuvable/)
+    expect(appels).toEqual([])
+  })
+
+  it('un id qui désigne un mandat ET une annonce, DANS LA MÊME agence : le mandat gagne (lu en premier)', async () => {
+    const PARTAGE2 = 'e0000000-0000-4000-8000-0000000000f3'
+    const mandatIci = { id: PARTAGE2, agency_id: A, deleted_at: null, title: 'Les deux à la fois', address: 'Rue W 1', city: 'Genève', status: 'active' }
+    const annonceIci = { id: PARTAGE2, title: 'Les deux à la fois (annonce)', address: 'Rue W 1', city: 'Genève', status: 'active' }
+    const { client, appels } = fauxClient(
+      { contacts, properties: [...mandats, mandatIci], market_listings: [...annonces, annonceIci] },
+      { wa_matching_visite: { ok: true, genre: 'mandat', titre: 'Les deux à la fois', visite_id: 'v-double', statut_match: null } },
+    )
+    const r = await execScheduleVisit(ctx(client), { contact_id: JULIE, property_id: PARTAGE2, scheduled_at: QUAND })
+    expect(appels[0].args).toMatchObject({ p_property: PARTAGE2, p_market_listing: null })
+    expect(r.startsWith('Visite planifiée le')).toBe(true)
+  })
+})
+
+describe('annulerVisite — « /annuler » passe par la base', () => {
+  figerHorloge()
+  it('rend vrai seulement si la base a défait quelque chose', async () => {
+    const oui = fauxClient({}, { wa_matching_visite_annuler: { ok: true } })
+    expect(await annulerVisite(oui.client as never, A, 'p-agent', { visite_id: 'v1' })).toBe(true)
+    expect(oui.appels).toEqual([{ rpc: 'wa_matching_visite_annuler', args: { p_agency: A, p_profile: 'p-agent', p_retour: { visite_id: 'v1' } } }])
+    const non = fauxClient({}, { wa_matching_visite_annuler: { ok: false } })
+    expect(await annulerVisite(non.client as never, A, 'p-agent', { visite_id: 'v1' })).toBe(false)
+  })
+
+  it('agence nulle : `false` SANS appeler la base', async () => {
+    const f = fauxClient({}, { wa_matching_visite_annuler: { ok: true } })
+    expect(await annulerVisite(f.client as never, null, 'p-agent', { visite_id: 'v1' })).toBe(false)
+    expect(f.appels).toEqual([])
+  })
+
+  it('une erreur rpc ⇒ `false`', async () => {
+    const f = fauxClient({}, { wa_matching_visite_annuler: { ok: true } }, { erreurSur: new Set(['wa_matching_visite_annuler']) })
+    expect(await annulerVisite(f.client as never, A, 'p-agent', { visite_id: 'v1' })).toBe(false)
+  })
+
+  it('un retour vide (data nulle) ⇒ `false`', async () => {
+    const f = fauxClient({}, { wa_matching_visite_annuler: null })
+    expect(await annulerVisite(f.client as never, A, 'p-agent', { visite_id: 'v1' })).toBe(false)
   })
 })

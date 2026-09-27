@@ -416,7 +416,9 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 // ── Phase 4C / C4 : outils ACTION (tier 🟢 auto — état CRM interne, réversible) ─
 // Aucun envoi client / KYC / argent / signature ici (→ tiers confirm/never).
 
-const frDateTime = (iso: string): string =>
+/** Une date ISO en clair, à la suisse (jour.mois.année heure:minute), toujours à l'heure de Genève — quel que soit
+ *  le fuseau du runtime qui l'appelle. */
+export const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
 /** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
@@ -452,38 +454,6 @@ async function resolveContactDeal(
   const p = Array.isArray(row.properties) ? (row.properties[0] ?? null) : row.properties
   const party: 'buyer' | 'seller' = row.contact_seller_id === contactId ? 'seller' : 'buyer'
   return { id: row.id, label: p?.title || p?.address || p?.city || 'dossier', stage: row.stage, party }
-}
-
-/** Planifie une visite (table visits). property_id ET contact_id obligatoires (NOT NULL). */
-export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id), propertyId = s(a.property_id), when = s(a.scheduled_at)
-  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
-  if (!propertyId) return 'Erreur: pour quel bien ? (property_id requis, via get_matches ou demande à l’agent).'
-  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date/heure (scheduled_at, ISO 8601) requise.'
-  const contact = await contactInAgency(ctx, contactId)
-  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
-  const { data: prop } = await ctx.supabase
-    .from('properties').select('id, title').eq('id', propertyId).eq('agency_id', ctx.agencyId).maybeSingle()
-  if (!prop) return 'Erreur: bien introuvable dans votre agence.'
-  const propTitle = (prop as { title: string | null }).title ?? 'bien'
-
-  const visitType = s(a.visit_type) === 'video' ? 'video' : 'sur_place'
-  const buyerName = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || null
-  const iso = new Date(when).toISOString()
-  const row: Record<string, unknown> = {
-    agency_id: ctx.agencyId, agent_id: ctx.profileId,
-    property_id: propertyId, contact_id: contactId,
-    scheduled_at: iso, status: 'planned', visit_type: visitType, buyer_name: buyerName,
-  }
-  if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
-  if (visitType === 'video') row.video_platform = 'google_meet'
-  const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
-  if (error) return `Erreur planification: ${error.message}`
-  await logTimeline(ctx, 'visit_scheduled', `${propTitle} — ${frDateTime(iso)}`, contactId)
-  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
-  const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
-  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */

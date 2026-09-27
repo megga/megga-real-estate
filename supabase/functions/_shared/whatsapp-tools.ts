@@ -169,17 +169,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'schedule_visit',
-      description: "Planifie une visite d'un BIEN pour un contact, EN INTERNE seulement : enregistre la visite dans le CRM, n'envoie RIEN au client (ni invitation, ni email, ni lien) et ne le prévient pas. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts, property_id via get_matches (ou demande à l'agent quel bien).",
+      description: "Planifie une visite d'un BIEN pour un contact, EN INTERNE seulement : enregistre la visite dans le CRM (un mandat : une visite ; une annonce du marché : un rendez-vous d'agenda), n'envoie RIEN au client (ni invitation, ni email, ni rappel, ni lien) et ne le prévient pas. Si l'acheteur est intéressé par ce bien, il passe en « visite planifiée » dans le Matching. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts ; l'id du bien via get_matches (property_id pour un mandat, market_listing_id pour une annonce) — ou demande à l'agent quel bien.",
       parameters: {
         type: 'object',
         properties: {
           contact_id: { type: 'string' },
-          property_id: { type: 'string', description: 'Bien à visiter (obligatoire).' },
-          scheduled_at: { type: 'string', description: 'Date/heure ISO 8601, ex 2026-06-05T14:00:00+02:00' },
+          property_id: { type: 'string', description: 'Mandat à visiter (ou market_listing_id pour une annonce du marché).' },
+          market_listing_id: { type: 'string', description: 'Annonce du marché à visiter, à la place de property_id.' },
+          scheduled_at: { type: 'string', description: 'Date/heure ISO 8601 avec décalage, ex 2026-06-05T14:00:00+02:00 (+01:00 en hiver — voir la consigne de conversion en tête de conversation). Une heure sans décalage est tolérée : lue à Genève.' },
           duration_minutes: { type: 'number', description: 'Durée en minutes (défaut 45).' },
           visit_type: { type: 'string', enum: ['sur_place', 'video'], description: 'Défaut sur_place.' },
         },
-        required: ['contact_id', 'property_id', 'scheduled_at'],
+        required: ['contact_id', 'scheduled_at'],
       },
     },
   },

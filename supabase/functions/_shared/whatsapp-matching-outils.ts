@@ -4,21 +4,28 @@
 // Conception : docs/superpowers/specs/2026-09-24-matching-lot-d2-whatsapp-design.md (§5).
 //
 // SÉCURITÉ. Le client contourne la RLS : chaque lecture porte `.eq('agency_id', …)` — ou, pour une désignation en
-// base, `p_agency` —, et chaque écriture passe par une fonction de base qui revérifie l'agence et signe MEGGA AI
-// (`wa_matching_consigner`, `wa_matching_visite`, migration `…_matching_whatsapp.sql`). ⛔ Aucune n'écrit à
+// base, `p_agency` —, et chaque écriture MÉTIER passe par une fonction de base qui revérifie l'agence et signe
+// MEGGA AI (`wa_matching_consigner`, `wa_matching_visite`, migration `…_matching_whatsapp.sql`). Le journal
+// d'annulation (`recordAutoUndo`, `whatsapp_recent_auto_actions`) est un insert direct, comme pour les autres
+// outils auto : il n'écrit rien de métier, seulement de quoi défaire l'action dans sa fenêtre. ⛔ Aucune n'écrit à
 // l'acheteur (`tests/unit/matching-sans-sortie.spec.ts`).
 
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { ActionCtx, Prepared } from './whatsapp-actions.ts'
+import { frDateTime, recordAutoUndo } from './whatsapp-actions.ts'
 import { touchHotContact } from './contact-memory.ts'
+import { wallTimeToInstant } from './onboarding-slots.ts'
 import {
-  confirmConsigner, consigne, consignationChangee, consignationDeja, consignationImpossible, consignationEchec,
-  consignerMotifManquant, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens, consignerQuelAcheteur,
-  consignerQuelleReponse, consignerTropDeBiens, consignerTropLarge, consignerAnnonceRetiree, type Consignation,
+  confirmConsigner, consigne, consignationChangee, consignationDeja, consignationEchec, consignationImpossible,
+  consignationNonConfirmee, consignerMotifManquant, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens,
+  consignerQuelAcheteur, consignerQuelleReponse, consignerTropDeBiens, consignerTropLarge, consignerAnnonceRetiree,
+  undoHint, type Consignation,
 } from './whatsapp-i18n.ts'
 import {
   COLONNES_MATCH, COLONNES_MANDAT, COLONNES_ANNONCE, LIMITE_ECHO, STATUTS_COMPATIBLES, STATUTS_EN_COURS, STATUTS_DE_DEPART, STATUT_D_ARRIVEE,
-  bienDeMandat, bienDAnnonce, candidats, estEcho, estMotif, estReponse, libelleBien, motsDe, vueAcheteurs, vueCandidats, vueGetMatches,
+  bienDeMandat, bienDAnnonce, candidats, estEcho, estMotif, estReponse, libelleBien, motsDe, retourDeVisite, vueAcheteurs, vueCandidats, vueGetMatches,
   type BienWa, type Criteres, type Designable, type EntreeMatch, type LigneAcheteur, type LigneAnnonce, type LigneMandat, type LigneMatch,
+  type VisitePlanifiee,
 } from './whatsapp-matching.ts'
 
 type Args = Record<string, unknown>
@@ -519,7 +526,9 @@ export async function executeRecordMatchOutcome(ctx: ActionCtx, p: Args): Promis
   })
   if (error) {
     console.error('wa_matching_consigner failed:', (error.message ?? 'error').slice(0, 120))
-    return consignationEchec(lang)
+    // Même garde que schedule_visit : sans `code` Postgres, la panne a pu survenir APRÈS l'écriture — jamais
+    // promettre « rien n'a été écrit » sur une simple panne de transport.
+    return error.code ? consignationEchec(lang) : consignationNonConfirmee(lang)
   }
   const r = (data ?? {}) as { ok?: boolean; deja?: boolean; statut?: string }
   if (!r.ok) return consignationImpossible(lang)
@@ -532,4 +541,201 @@ export async function executeRecordMatchOutcome(ctx: ActionCtx, p: Args): Promis
       : consignationChangee(lang, c.nom, c.bien)
   }
   return consigne(lang, c)
+}
+
+// ── schedule_visit (automatique, « /annuler » 30 s) ─────────────────────────
+
+const PROFIL_HORS_AGENCE = 'Erreur: ton profil n’est pas rattaché à cette agence ; rien n’a été planifié. Contacte un administrateur.'
+const PLANIFICATION_ECHEC = 'Erreur: la planification a échoué, rien n’a été écrit ; réessaie dans un instant.'
+// La règle que ce code applique, telle qu'il l'applique — rien de plus : `error.code` absent ou vide ⇒ « non
+// confirmé ». postgrest-js 2.102.1 (PostgrestBuilder.then) pose `code: ''` (ou omet `code`) dans trois cas où
+// PostgREST n'a jamais construit de réponse structurée : `fetch()` qui échoue (réseau, `AbortError`…), une réponse
+// 2xx dont le corps n'est PAS du JSON valide (`JSON.parse` lève dans `processResponse`, rattrapé par le même
+// `catch` que `fetch()`), et une réponse d'erreur (4xx/5xx) dont le corps n'est pas du JSON valide — une passerelle
+// devant PostgREST, par exemple (`error = { message: body }`, sans `code` du tout).
+// ⚠ LIMITE CONNUE de ce simple test de présence : un `code` NON VIDE ne prouve pas toujours l'issue. Les codes de
+// connexion (SQLSTATE classe 08xxx, ou `PGRST000`-`PGRST002` côté PostgREST) signalent une connexion perdue ou
+// jamais établie avec Postgres — la transaction a pu être validée APRÈS la coupure, sans que PostgREST le sache
+// lui-même. Ce module ne les distingue pas des codes qui, eux, prouvent un refus.
+const PLANIFICATION_NON_CONFIRMEE = 'Erreur: non confirmé — vérifie l’agenda avant de réessayer.'
+const BIEN_ID_INVALIDE = 'Erreur: identifiant de bien invalide (l’id vient de get_matches).'
+const DEUX_BIENS = 'Erreur: property_id et market_listing_id désignent deux biens différents — lequel ?'
+const DATE_INVALIDE = 'Erreur: date/heure (scheduled_at, ISO 8601) requise.'
+const DATE_PASSEE = 'Erreur: cette date est passée ; donne une date à venir.'
+const HEURE_SAUTEE = 'Erreur: cette heure n’existe pas ce jour-là, passage à l’heure d’été ; choisis une autre heure.'
+
+/** Le genre d'un bien désigné par son identifiant : un mandat de l'agence, sinon une annonce du marché — RÉSOLU
+ *  (`bienDeMandat` / `bienDAnnonce`), pour son libellé (`libelleBien`) et son statut retiré (`BienWa.retire` : une
+ *  annonce `removed`, un mandat `sold` ou `archived` — la même règle que le reste du module, jamais une comparaison
+ *  en ligne). `'format'` : l'identifiant n'est même pas un UUID, aucune requête envoyée. */
+type GenreBien = { genre: 'mandat'; bien: BienWa } | { genre: 'annonce'; bien: BienWa }
+
+async function genreDuBien(ctx: ActionCtx, id: string): Promise<GenreBien | null | 'erreur' | 'format'> {
+  if (!UUID.test(id)) return 'format'
+  const { data: m, error } = await ctx.supabase
+    .from('properties').select(COLONNES_MANDAT).eq('id', id).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
+  if (error) return 'erreur'
+  if (m) return { genre: 'mandat', bien: bienDeMandat(m as LigneMandat) }
+  const { data: a, error: aErr } = await ctx.supabase.from('market_listings').select(COLONNES_ANNONCE).eq('id', id).maybeSingle()
+  if (aErr) return 'erreur'
+  return a ? { genre: 'annonce', bien: bienDAnnonce(a as LigneAnnonce) } : null
+}
+
+const SCHEDULED_AT_RE = /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d(?:\.\d+)?))?(Z|[+-]\d{2}:\d{2})?$/
+/** Les deux décalages que porte Genève selon la saison — voir `debutDe`, cas 2. */
+const DECALAGES_GENEVE = new Set(['+01:00', '+02:00'])
+
+/**
+ * L'instant d'un `scheduled_at`. Trois lectures, jamais celle du fuseau du PROCESS (l'Edge Function tourne sous
+ * UTC, où « 14:00 » lu tel quel — `new Date(...)` — planifierait à 16:00 l'été) :
+ * 1. SANS décalage : l'heure murale de GENÈVE (`wallTimeToInstant`, `onboarding-slots.ts`) — tolérée, forme
+ *    secondaire ; la forme enseignée au modèle (`agent-system-prompt.ts`, tous les outils datés) reste le décalage
+ *    explicite, et le schéma de l'outil (`whatsapp-tools.ts`) en donne l'exemple.
+ * 2. Un décalage qui vaut EXACTEMENT `+01:00` ou `+02:00` (`DECALAGES_GENEVE`) : lu comme la MÊME heure murale de
+ *    Genève, décalage recalculé pour la VRAIE saison de la date — le modèle sait viser Genève sans forcément savoir
+ *    si l'heure d'été y est en vigueur CE jour-là (la conversation a lieu à une autre date que la visite). Sans
+ *    cette règle, une visite de novembre écrite « +02:00 » (l'écart de septembre) tomberait une heure trop tôt.
+ * 3. Tout autre décalage (`Z`, `+05:45`, `-05:00`…) : lu tel quel, sans ambiguïté.
+ * `null` : hors du format ISO strict (date + `HH:MM`, secondes et fraction facultatives) — y compris une date qui
+ * n'existe PAS (le 31 septembre, le 29 février d'une année non bissextile…). Le jour est d'abord vérifié par
+ * aller-retour `Date.UTC` (année, mois, jour identiques), AVANT les trois lectures : sur le chemin littéral (3),
+ * `Date.parse` reporterait sinon un jour en trop plutôt que de refuser (mesuré : `2026-09-31T10:00Z` y devient le
+ * 1ᵉʳ octobre) ; sur le chemin heure murale (1 et 2), `wallTimeToInstant` refuse déjà une date impossible par son
+ * propre aller-retour, mais SANS ce contrôle en amont son `null` serait confondu avec une heure sautée — le rôle du
+ * contrôle ici n'est pas de détecter l'impossibilité (déjà faite), c'est d'éviter d'annoncer « heure sautée »
+ * (`'sautee'`) pour une date qui n'existe pas du tout.
+ * `'sautee'` : heure murale qui n'existe pas ce jour-là (bascule de printemps, ex. `2027-03-28T02:30`) — seule la
+ * lecture 3 y échappe, puisqu'elle ne passe jamais par l'heure murale. À la bascule d'automne (heure DOUBLÉE, ex.
+ * `2026-10-25T02:30`), `wallTimeToInstant` retient la SECONDE occurrence (heure standard, +1) — mesuré, non choisi
+ * par cette fonction.
+ * ⚠ LIMITE CONNUE : un décalage GENEVOIS EXPLICITE (2) sur une heure doublée perd sa précision. `2026-10-25T02:30
+ * +02:00` désigne, lu à la lettre, la PREMIÈRE occurrence (CEST, 00:30Z) — mais passe par la même heure murale que
+ * la forme sans décalage, et rend donc la SECONDE (01:30Z). Une nuit par an, la fenêtre 02:00-02:59.
+ */
+function debutDe(when: string): number | null | 'sautee' {
+  const m = SCHEDULED_AT_RE.exec(when)
+  if (!m) return null
+  const [, y, mo, d, hh, mi, ss, decalage] = m
+  const yN = Number(y), moN = Number(mo), dN = Number(d)
+  const jour = new Date(Date.UTC(yN, moN - 1, dN))
+  if (jour.getUTCFullYear() !== yN || jour.getUTCMonth() !== moN - 1 || jour.getUTCDate() !== dN) return null
+  if (decalage && !DECALAGES_GENEVE.has(decalage)) {
+    const t = Date.parse(when)
+    return Number.isFinite(t) ? t : null
+  }
+  const instant = wallTimeToInstant(`${y}-${mo}-${d}`, `${hh}:${mi}`, 'Europe/Zurich')
+  return instant == null ? 'sautee' : instant + (ss ? Number(ss) * 1000 : 0)
+}
+
+/** Une durée transmise par le modèle : un nombre, ou une chaîne de CHIFFRES SEULE (« 60 », « 30.5 ») — jamais une
+ *  chaîne que `Number()` lirait À TORT pour autre chose qu'une durée : « 0x10 » (hexadécimal, vaudrait 16) ou
+ *  « 1e2 » (notation scientifique, vaudrait 100). Une chaîne déjà invalide pour `Number()`, comme « 1h30 », tombait
+ *  déjà au défaut avant ce garde — ce garde ferme les deux lectures SILENCIEUSES, pas celle-là. Arrondie, bornée à
+ *  [5, 480], 45 par défaut (valeur absente, non numérique, ou non positive : « pas de durée donnée », pas « zéro
+ *  minute »). */
+const CHAINE_CHIFFRES = /^\d+(?:\.\d+)?$/
+function dureeDe(v: unknown): number {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && CHAINE_CHIFFRES.test(v.trim()) ? Number(v.trim()) : NaN
+  if (!Number.isFinite(n) || n <= 0) return 45
+  return Math.min(Math.max(Math.round(n), 5), 480)
+}
+
+/**
+ * Planifie une visite EN INTERNE (conception §5.4) : un mandat reçoit une visite, une annonce du marché un événement
+ * d'agenda ; un acheteur « intéressé » passe `visit_planned` et son deal avance. ⛔ Rien ne part au client : la base
+ * pose `reminder_sent` (`wa_matching_visite`).
+ */
+export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!aUneAgence(ctx)) return SANS_AGENCE
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
+  const propId = s(a.property_id)
+  const listingId = s(a.market_listing_id)
+  let bienId: string | null
+  // Comparés en minuscules : le même UUID en casses différentes n'est pas un conflit (Postgres compare un `uuid`
+  // de la même façon).
+  if (propId && listingId && propId.toLowerCase() !== listingId.toLowerCase()) {
+    const propValide = UUID.test(propId), listingValide = UUID.test(listingId)
+    if (propValide && !listingValide) bienId = propId
+    else if (listingValide && !propValide) bienId = listingId
+    else if (propValide && listingValide) return DEUX_BIENS
+    else return BIEN_ID_INVALIDE // ni l'un ni l'autre n'est un UUID : rien à départager, un seul refus possible
+  } else {
+    bienId = propId ?? listingId
+  }
+  if (!bienId) return 'Erreur: pour quel bien ? (property_id d’un mandat, ou market_listing_id d’une annonce, via get_matches — ou demande à l’agent).'
+  const when = s(a.scheduled_at)
+  if (!when) return DATE_INVALIDE
+  const debutMs = debutDe(when)
+  if (debutMs === 'sautee') return HEURE_SAUTEE
+  if (debutMs == null) return DATE_INVALIDE
+  if (debutMs < Date.now() - 3_600_000) return DATE_PASSEE
+  const contact = await contactDeLAgence(ctx, contactId)
+  if (!contact.ok) {
+    if (contact.motif === 'format') return CONTACT_ID_INVALIDE
+    if (contact.motif === 'erreur') return LECTURE_IMPOSSIBLE
+    return CONTACT_INTROUVABLE
+  }
+  const genre = await genreDuBien(ctx, bienId)
+  if (genre === 'format') return BIEN_ID_INVALIDE
+  if (genre === 'erreur') return LECTURE_IMPOSSIBLE
+  if (!genre) return 'Erreur: bien introuvable (ni mandat de ton agence, ni annonce du marché).'
+  const duree = dureeDe(a.duration_minutes)
+  const debut = new Date(debutMs).toISOString()
+  const videoDemande = s(a.visit_type) === 'video'
+  const { data, error } = await ctx.supabase.rpc('wa_matching_visite', {
+    p_agency: ctx.agencyId, p_profile: ctx.profileId, p_contact: contactId,
+    p_property: genre.genre === 'mandat' ? bienId : null, p_market_listing: genre.genre === 'annonce' ? bienId : null,
+    p_debut: debut, p_duree: duree, p_type: videoDemande ? 'video' : 'sur_place',
+  })
+  if (error) {
+    console.error('wa_matching_visite failed:', (error.message ?? 'error').slice(0, 120))
+    // Un `code` Postgres dit que la base a VU la requête et l'a tranchée (rejetée) : rien n'a été écrit, de bonne
+    // foi. Sans lui, la panne a pu survenir APRÈS l'écriture — sur le chemin retour seulement.
+    return error.code ? PLANIFICATION_ECHEC : PLANIFICATION_NON_CONFIRMEE
+  }
+  const r = (data ?? { ok: false }) as VisitePlanifiee
+  if (!r.ok) {
+    // Un retour anormal (pas de `raison`, ou une valeur que la base ne rend pas) ne dit rien de précis : jamais
+    // « bien introuvable », qui affirmerait une absence qu'on n'a pas vérifiée.
+    if (r.raison === 'contact') return CONTACT_INTROUVABLE
+    if (r.raison === 'profil') return PROFIL_HORS_AGENCE
+    if (r.raison === 'bien') return 'Erreur: bien introuvable.'
+    return PLANIFICATION_ECHEC
+  }
+  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', retourDeVisite(r))
+  // Le libellé (`libelleBien`, comme record_match_outcome) ajoute l'adresse au titre, TOUJOURS, sauf si le titre la
+  // contient déjà ; construit depuis les colonnes qu'on a lues nous-mêmes (`genre.bien`), pas depuis `r.titre` (la
+  // base), qu'un titre vide rendrait illisible.
+  const libelle = libelleBien(genre.bien)
+  // Outil AUTOMATIQUE (« /annuler » 30 s) : une annonce ne se refuse jamais, elle se signale — jamais de visio sur
+  // un événement d'agenda (`calendar_events` n'a pas ce champ), donc on le dit plutôt que de laisser croire à un lien.
+  const detailsAnnonce = r.genre === 'annonce'
+    ? videoDemande ? ' Annonce du marché : rendez-vous inscrit à l’agenda, sans visio.' : ' Annonce du marché : inscrite à l’agenda.'
+    : ''
+  // Même logique pour un bien qui n'est plus disponible (mandat vendu/archivé, annonce retirée) : la visite reste
+  // posée (l'agent avait une raison de la demander), et le fait est signalé plutôt que caché.
+  const retiree = genre.bien.retire ? ' ⚠ ce bien n’est plus disponible (retiré).' : ''
+  const suite = r.match_avant
+    ? ` ${contact.nom} passe en « visite planifiée » dans le Matching.`
+    : r.statut_match === 'sent'
+      ? ` L’intérêt de ${contact.nom} pour ce bien n’est pas consigné : demande à l’agent s’il faut le consigner (record_match_outcome).`
+      : ''
+  const texte = `Visite planifiée le ${frDateTime(debut)} (${duree} min) pour ${contact.nom} — « ${libelle} ».${detailsAnnonce}${retiree}${suite}`
+  return undoOk ? texte + undoHint(lang) : texte
+}
+
+/**
+ * « /annuler » d'une visite du copilote (whatsapp-webhook, `rollbackAutoAction`) : la visite ou l'événement, le match,
+ * l'étape du deal — d'un bloc, par la base, signé MEGGA AI. `true` si quelque chose a été défait.
+ */
+export async function annulerVisite(client: SupabaseClient, agencyId: string | null, profileId: string, retour: Record<string, unknown>): Promise<boolean> {
+  if (!agencyId) return false
+  const { data, error } = await client.rpc('wa_matching_visite_annuler', { p_agency: agencyId, p_profile: profileId, p_retour: retour })
+  if (error) {
+    console.error('undo schedule_visit failed:', (error.message ?? 'error').slice(0, 120))
+    return false
+  }
+  return (data as { ok?: boolean } | null)?.ok === true
 }
