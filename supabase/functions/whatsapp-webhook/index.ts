@@ -25,6 +25,7 @@ import { planConfirmation, resolveButtonDecision, parseConfirmReplyId, deliverCo
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 import { urlFonction } from '../_shared/function-url.ts'
 import { bienDansMessage, refusBienDansMessage } from '../_shared/message-sans-bien.ts'
+import { executeRecordMatchOutcome } from '../_shared/whatsapp-matching-outils.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1475,6 +1476,12 @@ async function executePending(
   if (pending.tool === 'update_pipeline') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return execUpdatePipeline(ctx, pending.args)
+  }
+  if (pending.tool === 'record_match_outcome') {
+    // Lot D2 : la réponse d'un acheteur, écrite d'un bloc par la base (`wa_matching_consigner`, signé MEGGA AI), qui
+    // revérifie le statut de départ. N'écrit jamais au client.
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeRecordMatchOutcome(ctx, pending.args)
   }
   if (pending.tool === 'record_offer') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }

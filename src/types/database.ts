@@ -11075,6 +11075,23 @@ export type Database = {
         }
         Returns: string
       }
+      wa_matching_biens_de_l_acheteur: {
+        Args: {
+          p_agency: string
+          p_contact: string
+          p_limite?: number
+          p_mots: string[]
+          p_statuts: string[]
+        }
+        Returns: {
+          adresse: string
+          genre: string
+          id: string
+          match_id: string
+          titre: string
+          ville: string
+        }[]
+      }
       wa_matching_biens_designes: {
         Args: { p_agency: string; p_limite?: number; p_mots: string[] }
         Returns: {

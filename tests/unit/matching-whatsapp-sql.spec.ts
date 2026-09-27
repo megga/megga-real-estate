@@ -11,6 +11,8 @@
  *     fonctions réelles importées (MOTIFS_REFUS, refBienInterne, refAnnonceMarche), jamais retapée ;
  *   · un verrou de ligne sur l'acheteur là où un verrou consultatif est requis (deux cycles d'interblocage
  *     établis à la lecture des déclencheurs, cf. le commentaire du SQL) ;
+ *   · une désignation en base qui ne serait plus un sur-ensemble de `candidats` (un cas numérique qui perdrait
+ *     l'attique « 4 p. »), ou qui lirait hors de l'agence, de l'acheteur ou des statuts passés ;
  *   · une migration qui passerait AVANT celle de D1 au redatage du jour de la fusion.
  */
 import { readdirSync, readFileSync } from 'node:fs'
@@ -18,7 +20,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { MOTIFS_REFUS } from '@/components/matching-fil/filBoucle'
 import { refAnnonceMarche, refBienInterne } from '@/hooks/useAtelierMatching'
-import { STATUTS_COMPATIBLES } from '../../supabase/functions/_shared/whatsapp-matching'
+import { LIMITE_ECHO, STATUTS_COMPATIBLES, STATUTS_DE_DEPART, STATUT_D_ARRIVEE } from '../../supabase/functions/_shared/whatsapp-matching'
 
 // Le hook n'est importé ici que pour ses deux fonctions PURES (refBienInterne, refAnnonceMarche) — ni l'une ni
 // l'autre ne touche `supabase`. Les mocks ne servent qu'à permettre le CHARGEMENT du module (mêmes noms que
@@ -133,6 +135,29 @@ describe('lot D2 — la migration : consigner une réponse', () => {
     // Le deal et la relance, revérifiés ici avec les deux nouveaux (le bien et le profil).
     expect(corps).toContain('t.agency_id = p_agency and t.contact_buyer_id = v_match.contact_id')
     expect(corps).toContain('r.agency_id = p_agency and r.contact_id = v_match.contact_id')
+  })
+
+  it('le statut de départ et le statut d’arrivée de chaque réponse (whatsapp-matching.ts) sont ceux que la fonction garde et écrit', () => {
+    // Deux copies du SQL côté copilote : `STATUTS_DE_DEPART` choisit les matchs où le bien se cherche,
+    // `STATUT_D_ARRIVEE` sépare « déjà consignée » de « a changé » quand la base n'écrit rien.
+    const corps = nu(fonction(d2.sql, 'wa_matching_consigner').corps)
+    const liste = (xs: readonly string[]) => xs.map((x) => `'${x}'`).join(', ')
+    expect(STATUTS_DE_DEPART.propose).toHaveLength(1)
+    expect(corps).toContain(
+      `update public.matches set status = '${STATUT_D_ARRIVEE.propose}', sent_via = 'agent', sent_at = now() where id = p_match and status = '${STATUTS_DE_DEPART.propose[0]}';`,
+    )
+    expect(STATUTS_DE_DEPART.interesse).toHaveLength(1)
+    expect(corps).toContain(
+      `update public.matches set status = '${STATUT_D_ARRIVEE.interesse}', reaction_motif = null, reaction_note = null, apprentissage_at = null where id = p_match and status = '${STATUTS_DE_DEPART.interesse[0]}';`,
+    )
+    expect(corps).toContain(`update public.matches set status = '${STATUT_D_ARRIVEE.pas_interesse}', reaction_motif = p_motif,`)
+    expect(corps).toContain(`where id = p_match and status in (${liste(STATUTS_DE_DEPART.pas_interesse)});`)
+    // « Pas encore » n'écrit aucun statut : sa garde est le seul endroit où il en lit un.
+    expect(STATUT_D_ARRIVEE.pas_encore).toBeNull()
+    expect(STATUTS_DE_DEPART.pas_encore).toHaveLength(1)
+    expect(corps).toContain(
+      `if v_match.status <> '${STATUTS_DE_DEPART.pas_encore[0]}' then return jsonb_build_object('ok', true, 'deja', true, 'statut', v_match.status); end if;`,
+    )
   })
 
   it('l’acheteur est sérialisé par un verrou CONSULTATIF, jamais par un verrou de ligne (deux cycles d’interblocage)', () => {
@@ -357,8 +382,9 @@ describe('lot D2 — la migration : calendar_events_journaliser signe MEGGA AI, 
 describe('lot D2 — la migration : désigner un bien par un texte, EN BASE', () => {
   const d2 = migration('_matching_whatsapp.sql')
 
-  it('security invoker, réservée au SEUL service_role — jamais authenticated (son seul appelant est le copilote)', () => {
+  it('une lecture stable, security invoker, réservée au SEUL service_role — jamais authenticated (son seul appelant est le copilote)', () => {
     const entete = fonction(d2.sql, 'wa_matching_biens_designes').entete
+    expect(entete).toMatch(/\bstable\b/)
     expect(entete).toMatch(/security invoker/)
     expect(entete).toMatch(/set search_path to 'public', 'pg_temp'/)
     expect(d2.sql).toMatch(
@@ -396,22 +422,112 @@ describe('lot D2 — la migration : désigner un bien par un texte, EN BASE', ()
 
   it('chaque mot se compare en lower(unaccent(x)), jamais unaccent(lower(x)) — sûr sous tout ctype ; % et _ neutralisés comme search_cities', () => {
     const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
-    // Deux branches (mandat, annonce), chacune avec 3 lower(unaccent(…)) : l'adresse seule (mot numérique), le texte
-    // complet (titre+adresse+ville), et le mot cherché.
-    expect(corps.match(/lower\(unaccent\(/g) ?? []).toHaveLength(6)
+    // Deux branches (mandat, annonce), chacune avec 2 lower(unaccent(…)) : le texte complet (titre+adresse+ville), et
+    // le mot cherché.
+    expect(corps.match(/lower\(unaccent\(/g) ?? []).toHaveLength(4)
     expect(corps).not.toMatch(/unaccent\(lower\(/)
+    expect(corps).toContain("lower(unaccent(concat_ws(' ', p.title, p.address, p.city)))")
+    expect(corps).toContain("lower(unaccent(concat_ws(' ', ml.title, ml.address, ml.city)))")
     // Comme 20260707140000_matching_city_filter.sql (search_cities) : % et _ neutralisés AVANT unaccent/lower,
     // jamais laissés filer dans le LIKE.
     expect(corps.match(/replace\(replace\(w, '%', ''\), '_', ''\)/g) ?? []).toHaveLength(2)
   })
 
-  it('un mot NUMÉRIQUE ne se compare qu’à l’ADRESSE (comme `candidats`), sur les deux branches', () => {
+  it('aucun cas NUMÉRIQUE dans le corps : un nombre se cherche dans titre + adresse + ville, comme tout mot', () => {
+    // `candidats` garde un bien dont le TITRE porte le nombre (« Attique 4 p. ») : un nombre cherché ici dans la seule
+    // adresse ferait de ce SQL un SOUS-ensemble, et perdrait en base ce bien avant que `candidats` ne puisse le
+    // garder. Mesuré le 25.09.2026 : 1 184 des 1 806 biens désignables de l'agence WhatsApp (ses mandats et les
+    // annonces qu'elle suit) portent un chiffre dans leur titre.
     const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
-    expect(corps.match(/when w ~ '\^\[0-9\]\+\$' then lower\(unaccent\(coalesce\((?:p|ml)\.address, ''\)\)\)/g) ?? []).toHaveLength(2)
+    expect(corps).not.toMatch(/~\*?\s*'/)
+    expect(corps).not.toMatch(/\[0-9\]|\\d/)
+    expect(corps).not.toMatch(/\bcase\b/)
   })
 
   it('la limite est bornée entre 1 et 200, 50 par défaut', () => {
     const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
     expect(corps).toContain('limit least(greatest(coalesce(p_limite, 50), 1), 200);')
+  })
+})
+
+/**
+ * `wa_matching_biens_de_l_acheteur` désigne un bien parmi ceux d'UN acheteur, au statut que sa réponse suppose : ce
+ * que `record_match_outcome` peut viser. Sous le rôle de service, la RLS ne borne rien — ses ancrages sur l'agence,
+ * l'acheteur et les statuts sont ses seules gardes, et le bien d'un match y est son MANDAT d'abord, comme `idBien`.
+ */
+describe('lot D2 — la migration : désigner un bien parmi ceux d’UN acheteur, EN BASE', () => {
+  const d2 = migration('_matching_whatsapp.sql')
+  const f = fonction(d2.sql, 'wa_matching_biens_de_l_acheteur')
+  const corps = nu(f.corps)
+
+  it('une lecture stable, security invoker, search_path fixé, réservée au SEUL service_role — jamais authenticated', () => {
+    expect(f.entete).toMatch(/language sql/)
+    // Sans volatilité déclarée, une fonction est VOLATILE : une lecture se déclare `stable`, comme §5.
+    expect(f.entete).toMatch(/\bstable\b/)
+    expect(f.entete).toMatch(/security invoker/)
+    expect(f.entete).toMatch(/set search_path to 'public', 'pg_temp'/)
+    expect(d2.sql).toMatch(
+      /revoke all on function public\.wa_matching_biens_de_l_acheteur\(uuid, uuid, text\[\], text\[\], integer\) from public, anon, authenticated;/,
+    )
+    expect(d2.sql).toMatch(
+      /grant execute on function public\.wa_matching_biens_de_l_acheteur\(uuid, uuid, text\[\], text\[\], integer\) to service_role;/,
+    )
+    expect(d2.sql).not.toMatch(
+      /grant execute on function public\.wa_matching_biens_de_l_acheteur\([^)]*\) to [^;]*\bauthenticated\b/,
+    )
+  })
+
+  it('rend, pour chaque bien, l’id de son match : la ligne que l’exécuteur lit', () => {
+    expect(nu(f.entete)).toContain('returns table ( match_id uuid, genre text, id uuid, titre text, adresse text, ville text )')
+  })
+
+  // Les clauses se comparent ENTIÈRES, jamais par sous-chaîne : un `or …` ajouté derrière la chaîne attendue rouvrirait
+  // toutes les agences sans rien retirer de ce qu'un `toContain` cherche. Un repère disparu donne un morceau faux, que
+  // les comparaisons ci-dessous refusent.
+  const entre = (de: string, a: string | null): string =>
+    corps.slice(corps.indexOf(de), a == null ? undefined : corps.indexOf(a, corps.indexOf(de) + de.length)).trim()
+  const projection = entre('select m.id as match_id', ' from public.matches m')
+  const jointures = entre('from public.matches m', ' cross join lateral (')
+  const lateral = entre('cross join lateral (', ' where m.agency_id')
+  const clauseWhere = entre('where m.agency_id', ' order by')
+  const fin = entre('order by', null)
+
+  it('le corps est exactement ses cinq clauses, bout à bout : rien ne s’y glisse entre elles', () => {
+    expect([projection, jointures, lateral, clauseWhere, fin].join(' ')).toBe(corps)
+    expect(projection).toBe('select m.id as match_id, b.genre, b.id, b.titre, b.adresse, b.ville')
+  })
+
+  it('le mandat est celui de l’agence, non supprimé ; l’annonce ne se joint qu’à un match SANS mandat', () => {
+    // Un match peut porter les deux ids : son bien est son mandat (`idBien`). Sans `m.property_id is null`, un
+    // mandat supprimé ou hors agence serait nommé par l'annonce qu'il porte aussi.
+    expect(jointures).toBe(
+      'from public.matches m left join public.properties p on p.id = m.property_id and p.agency_id = p_agency and p.deleted_at is null left join public.market_listings ml on m.property_id is null and ml.id = m.market_listing_id',
+    )
+  })
+
+  it('le bien d’un match, colonne par colonne : son mandat s’il se résout, sinon son annonce — jamais un mélange des deux', () => {
+    expect(lateral).toBe(
+      "cross join lateral ( select case when p.id is not null then 'mandat' else 'annonce' end as genre, coalesce(p.id, ml.id) as id, case when p.id is not null then p.title else ml.title end as titre, case when p.id is not null then p.address else ml.address end as adresse, case when p.id is not null then p.city else ml.city end as ville ) b",
+    )
+  })
+
+  it('la clause `where` entière : l’agence passée, CET acheteur, ses statuts, un bien résolu, au moins un mot, et chacun contenu', () => {
+    expect(clauseWhere).toBe(
+      "where m.agency_id = p_agency and m.contact_id = p_contact and m.status = any (p_statuts) and (p.id is not null or ml.id is not null) and coalesce(array_length(p_mots, 1), 0) > 0 and not exists ( select 1 from unnest(p_mots) as mot(w) where lower(unaccent(concat_ws(' ', b.titre, b.adresse, b.ville))) not like '%' || lower(unaccent(replace(replace(w, '%', ''), '_', ''))) || '%' )",
+    )
+  })
+
+  it('chaque mot en lower(unaccent(x)), jamais unaccent(lower(x)), % et _ neutralisés — et aucun cas numérique, comme §5', () => {
+    expect(corps.match(/lower\(unaccent\(/g) ?? []).toHaveLength(2)
+    expect(corps).not.toMatch(/unaccent\(lower\(/)
+    expect(corps).not.toMatch(/~\*?\s*'/)
+    expect(corps).not.toMatch(/\[0-9\]|\\d/)
+  })
+
+  it('le meilleur score d’abord, puis l’id du match ; la limite bornée entre 1 et LIMITE_ECHO + 1, 50 par défaut', () => {
+    // Les biens que l'exécuteur relit pour un écho (LIMITE_ECHO), et la ligne qui dit la coupe : plafonnée plus bas,
+    // une demande de LIMITE_ECHO + 1 rendrait LIMITE_ECHO lignes, et une lecture coupée passerait pour complète.
+    expect(f.entete).toMatch(/p_limite integer default 50/)
+    expect(fin).toBe(`order by m.score desc, m.id limit least(greatest(coalesce(p_limite, 50), 1), ${LIMITE_ECHO + 1});`)
   })
 })

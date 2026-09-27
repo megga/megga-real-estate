@@ -8,13 +8,17 @@
 -- 2. `wa_matching_consigner` — les quatre réponses de `record_match_outcome`, aux règles des gestes du fil.
 -- 3. `wa_matching_visite` et `wa_matching_visite_annuler` — la visite de `schedule_visit`, et son « /annuler ».
 -- 4. `calendar_events_journaliser` — REDÉFINIE, pas neuve : sous le rôle de service, `auth.uid()` est nul, et le
---    chemin ANNONCE de `wa_matching_visite` (1 818 matchs sur 1 828 au 24.09.2026) posait donc un `calendar_events`
---    journalisé `system`, jamais MEGGA AI.
+--    chemin ANNONCE de `wa_matching_visite` (au 24.09.2026, 1 818 des 1 828 matchs de la production visent une
+--    annonce du marché) posait donc un `calendar_events` journalisé `system`, jamais MEGGA AI.
 -- 5. `wa_matching_biens_designes(p_agency, p_mots, p_limite)` — la désignation d'un bien par un texte lit l'agence
 --    ENTIÈRE, jamais un échantillon : PostgREST plafonne à 1 000 lignes (`supabase/config.toml:18`), et une agence
 --    portait déjà 1 754 matchs le 21.09.2026. Elle rend les mandats de l'agence ET les annonces qu'un match
 --    compatible y suit, ENSEMBLE — jamais l'un puis l'autre à défaut, ce qui laisserait un mandat masquer SEUL une
---    annonce qui répond aussi (conception §3, principe 5 : le copilote ne devine pas).
+--    annonce qui répond aussi (conception §3, principe 5 : le copilote ne devine pas). Un SUR-ENSEMBLE de ce que
+--    `candidats` (whatsapp-matching.ts) garde : c'est lui qui affine.
+-- 6. `wa_matching_biens_de_l_acheteur(p_agency, p_contact, p_statuts, p_mots, p_limite)` — la même désignation,
+--    parmi les SEULS biens d'un acheteur au statut que sa réponse suppose, avec le match de chacun : ce que
+--    `record_match_outcome` peut viser, sans la page de ses matchs ni l'agence entière (§6 ci-dessous).
 --
 -- ⛔ MEGGA AI signe ce qu'il écrit : 2 et 3 posent `app.actor_kind = 'ai'` (et `via`, `profile_id`) pour la
 -- transaction, comme `wa_move_transaction_stage` ; les déclencheurs de la boucle (réponse datée, journal et motif,
@@ -23,11 +27,11 @@
 -- `system` : chaque requête est sa propre transaction, un réglage posé par l'une ne survit pas à l'autre.
 -- ⛔ Rien ne part vers l'acheteur : une visite du copilote naît avec `reminder_sent = true`, comme celle du fil.
 -- ⚠ Même signature et même type de retour pour `matching_actions_du_jour` et pour `calendar_events_journaliser` :
--- leurs CREATE OR REPLACE se rejouent sans erreur (date-guard). Cinq noms neufs : `matching_actions_agence`
--- (`security invoker`, ouverte à `authenticated` et `service_role`), `wa_matching_biens_designes` (`security
--- invoker` aussi — une LECTURE — mais réservée au SEUL `service_role`, §5 ci-dessous explique pourquoi) et trois
--- fonctions d'écriture, `security definer`, réservées au rôle de service — plus la redéfinition de
--- `calendar_events_journaliser` (20260915080300).
+-- leurs CREATE OR REPLACE se rejouent sans erreur (date-guard). Six noms neufs : `matching_actions_agence`
+-- (`security invoker`, ouverte à `authenticated` et `service_role`), `wa_matching_biens_designes` et
+-- `wa_matching_biens_de_l_acheteur` (`security invoker` aussi — des LECTURES — mais réservées au SEUL
+-- `service_role`, §5 ci-dessous explique pourquoi) et trois fonctions d'écriture, `security definer`, réservées au
+-- rôle de service — plus la redéfinition de `calendar_events_journaliser` (20260915080300).
 -- Pas besoin de recréer son déclencheur : il désigne la fonction par OID, que CREATE OR REPLACE conserve.
 -- ⚠ Au redatage du jour de la fusion, garder un suffixe POSTÉRIEUR à `…190000_matching_surfaces` : cette migration
 -- réécrit sa fonction, et lit les colonnes du lot B (`prix_propose`, `match_ids`, `sent_via = 'agent'`).
@@ -663,8 +667,9 @@ grant execute on function public.wa_matching_visite_annuler(uuid, uuid, jsonb) t
 
 -- `calendar_events_journaliser` (REDÉFINIE, pas neuve) : le chemin ANNONCE de `wa_matching_visite` ci-dessus pose un
 -- `calendar_events` sous le RÔLE DE SERVICE, où `auth.uid()` est nul.
--- La fonction du 15.09 (20260915080300_calendar_events.sql) ne lisait que `auth.uid()` : ce chemin — majoritaire,
--- 1 818 matchs de marché sur 1 828 — journalisait donc `system`, jamais MEGGA AI.
+-- La fonction du 15.09 (20260915080300_calendar_events.sql) ne lisait que `auth.uid()` : ce chemin — majoritaire, au
+-- 24.09.2026 1 818 des 1 828 matchs de la production visent une annonce du marché — journalisait donc `system`, jamais
+-- MEGGA AI.
 -- Corps du 15.09 À L'IDENTIQUE (garde, calcul des colonnes changées, forme de l'insertion), SAUF la détermination
 -- de l'acteur, qui reprend EXACTEMENT celle de `log_match_reaction` (20260921140000_matching_boucle.sql) : les
 -- trois réglages de transaction d'abord (`ai`/`system`/`user` explicite), sinon `system` sans jeton, sinon `user` ;
@@ -729,9 +734,13 @@ revoke all on function public.calendar_events_journaliser() from public, anon, a
 -- ── 5. Désigner un bien par un texte, EN BASE ────────────────────────────────
 -- `wa_matching_biens_designes(p_agency, p_mots, p_limite)` rend un SUR-ENSEMBLE de ce que `candidats` (pur,
 -- whatsapp-matching.ts) garde ensuite en TypeScript : chaque mot de `p_mots` (déjà nettoyé par `motsDe` — sans
--- accent, sans mot vide) doit être CONTENU dans le titre, l'adresse ou la ville — SAUF un mot NUMÉRIQUE (`^[0-9]+$`),
--- qui ne se compare qu'à l'ADRESSE, comme `candidats` : un « 2 » ne doit pas prendre tous les titres qui en portent
--- un (pièces, étage…), seulement une adresse qui le porte. `candidats` affine ensuite le mot exact ou son début.
+-- accent, sans mot vide, un nombre à séparateur réduit à sa partie entière : « 4.5 » envoie « 4 ») doit être CONTENU
+-- dans le titre, l'adresse ou la ville, un mot numérique compris.
+-- `candidats` affine : l'égalité exacte avec le libellé d'un bien (« titre · adresse ») quand le texte en porte le
+-- « · », puis le mot entier ou son début — un nombre, toujours entier, où qu'il soit (« 4 » ne désigne pas « 40 »).
+-- ⛔ Aucun cas numérique ici : un nombre cherché dans la SEULE adresse ferait de ce SQL un sous-ensemble, et perdrait
+-- l'attique « 4 p. » que `candidats` garde par le « 4 » de son titre. Mesuré le 25.09.2026 sur l'agence WhatsApp :
+-- 1 184 de ses 1 806 biens désignables (ses mandats et les annonces qu'elle suit) portent un chiffre dans leur titre.
 -- Rend les MANDATS non supprimés de l'agence et les ANNONCES qui ont un match COMPATIBLE dans l'agence (les statuts
 -- de `STATUTS_COMPATIBLES`, whatsapp-matching.ts — recopiés ici en dur, comme le CTE `mandats` de
 -- `matching_actions_agence` ci-dessus), ENSEMBLE, dans le même ordre stable (mandats d'abord, puis id) : jamais l'un
@@ -769,7 +778,7 @@ revoke all on function public.calendar_events_journaliser() from public, anon, a
 --     ATTENDU, mais NON vérifié ici (aucune base accessible depuis ce poste) : à confirmer par un EXPLAIN sur une
 --     base locale avant d'appliquer cette migration. W4 (tests/backend/matching-whatsapp.spec.ts) contrôle les
 --     RÉSULTATS de la fonction, jamais son plan. Le sous-select `distinct` qui isole les `market_listing_id` reste
---     sa propre étape du plan (son `distinct` l'empêche d'être
+--     sa propre étape d'exécution (son `distinct` l'empêche d'être
 --     simplement repliée dans la requête qui l'entoure), ce qui ne gêne en rien l'usage des deux index ci-dessus PAR
 --     CETTE ÉTAPE elle-même, avant de rejoindre `market_listings` par sa clé primaire — aucun index ne sert de toute
 --     façon le filtre par mots (`like '%…%'`, tête variable).
@@ -799,10 +808,7 @@ as $$
          and coalesce(array_length(p_mots, 1), 0) > 0
          and not exists (
            select 1 from unnest(p_mots) as mot(w)
-            where (case
-                     when w ~ '^[0-9]+$' then lower(unaccent(coalesce(p.address, '')))
-                     else lower(unaccent(concat_ws(' ', p.title, p.address, p.city)))
-                   end)
+            where lower(unaccent(concat_ws(' ', p.title, p.address, p.city)))
               not like '%' || lower(unaccent(replace(replace(w, '%', ''), '_', ''))) || '%'
          )
       union all
@@ -820,10 +826,7 @@ as $$
        where coalesce(array_length(p_mots, 1), 0) > 0
          and not exists (
            select 1 from unnest(p_mots) as mot(w)
-            where (case
-                     when w ~ '^[0-9]+$' then lower(unaccent(coalesce(ml.address, '')))
-                     else lower(unaccent(concat_ws(' ', ml.title, ml.address, ml.city)))
-                   end)
+            where lower(unaccent(concat_ws(' ', ml.title, ml.address, ml.city)))
               not like '%' || lower(unaccent(replace(replace(w, '%', ''), '_', ''))) || '%'
          )
     ) candidats
@@ -832,7 +835,96 @@ as $$
 $$;
 
 comment on function public.wa_matching_biens_designes(uuid, text[], integer) is
-  'Désigne EN BASE les biens dont titre/adresse/ville contiennent chaque mot de p_mots (un mot numérique ne se compare qu''à l''adresse ; unaccent, sur-ensemble affiné ensuite par candidats en TypeScript) — les mandats non supprimés de l''agence ET les annonces ayant un match compatible dans l''agence, ENSEMBLE, mandats en tête puis id, p_limite au plus (50 par défaut, 200 au plus). Lue par le copilote WhatsApp (designerBien) sous le rôle de service, le seul qui l''appelle.';
+  'Désigne EN BASE les biens dont titre/adresse/ville contiennent chaque mot de p_mots, nombres compris (unaccent) — un SUR-ENSEMBLE, que candidats affine en TypeScript (égalité exacte sur le libellé, mots entiers, un nombre n''est jamais pris pour le début d''un autre) — : les mandats non supprimés de l''agence ET les annonces ayant un match compatible dans l''agence, ENSEMBLE, mandats en tête puis id, p_limite au plus (50 par défaut, 200 au plus). Lue par le copilote WhatsApp (designerBien) sous le rôle de service, le seul qui l''appelle.';
 
 revoke all on function public.wa_matching_biens_designes(uuid, text[], integer) from public, anon, authenticated;
 grant execute on function public.wa_matching_biens_designes(uuid, text[], integer) to service_role;
+
+-- ── 6. Désigner un bien parmi ceux d'UN acheteur, EN BASE ────────────────────
+-- `wa_matching_biens_de_l_acheteur(p_agency, p_contact, p_statuts, p_mots, p_limite)` : les biens que
+-- `record_match_outcome` peut viser — les matchs de CET acheteur, au statut que sa réponse suppose (`p_statuts`,
+-- `STATUTS_DE_DEPART` de whatsapp-matching.ts) —, avec le match de chacun, désignés par les mots d'un texte.
+-- Pourquoi une fonction de plus, mesuré en production le 25.09.2026 (lecture seule) :
+--   · la page des matchs d'un acheteur ne prouve pas qu'un bien nommé en est absent : 4 acheteurs de l'agence
+--     WhatsApp ont des matchs `suggested`, 3 en ont plus de 100, jusqu'à 1 142 ;
+--   · la désignation sur l'agence entière (§5), coupée à 50 lignes, répond « trop large » dès le premier mot courant :
+--     sur les 1 806 biens désignables de l'agence WhatsApp (ses mandats et les annonces qu'elle suit), « appartement »
+--     en désigne 820, « genève » 565, « villa » 154 — quand « attique » (36) et « carouge » (35) passent encore sous
+--     la coupe.
+-- Ici le texte ne se compare qu'aux biens de l'acheteur, et la coupe ne mord que sur un texte vague pour LUI.
+--
+-- Même règle de mots que §5 — chaque mot CONTENU dans titre + adresse + ville, nombres compris, `lower(unaccent(x))`,
+-- `%` et `_` neutralisés — donc le même SUR-ENSEMBLE de `candidats`, qui affine (égalité exacte sur le libellé, mots
+-- entiers, un nombre n'est jamais pris pour le début d'un autre). Aucun mot : aucune ligne.
+-- Le bien d'un match est son MANDAT d'abord (`idBien`, whatsapp-matching-outils.ts) : un match peut porter
+-- `property_id` ET `market_listing_id` (`matches_target_check` n'en exige qu'un), et l'annonce ne se joint qu'à un
+-- match sans mandat. Un mandat supprimé ou d'une autre agence ne se résout pas : sa ligne est écartée, jamais
+-- nommée par l'annonce qu'elle porterait aussi — comme `lireBiens`. Ordre : le meilleur score d'abord, puis l'id du
+-- match — celui de la page que l'exécuteur lit sans texte (`matches.score` est `integer not null`).
+-- Plafond : 201 lignes, et non 200. L'exécuteur relit l'ÉCHO coupé d'un libellé jusqu'à 200 biens (`LIMITE_ECHO`,
+-- whatsapp-matching.ts), à 200+1 comme toute lecture : la 201ᵉ ligne est celle qui dit la coupe. Plafonnée à 200, la
+-- fonction rendrait 200 lignes à une demande de 201, et une lecture coupée passerait pour complète.
+-- `tests/unit/matching-whatsapp-sql.spec.ts` confronte ce plafond à `LIMITE_ECHO + 1`.
+--
+-- `security invoker`, réservée au SEUL `service_role`, pour la raison du §5 : son seul appelant, le copilote
+-- WhatsApp, lit par ce rôle ; sous un jeton, la RLS de `matches` et de `properties` bornerait de toute façon la
+-- lecture à SON agence.
+--
+-- Index : les lignes d'un acheteur sont bornées (1 142 matchs `suggested` au plus, mesuré le 25.09.2026) ;
+-- `uq_matches_contact_property` et `uq_matches_contact_market` (20260610_001_atelier_matching_loop.sql) mènent par
+-- `contact_id`, comme `idx_matches_contact_status (contact_id, status)` (baseline). Plan NON vérifié ici (aucune
+-- base accessible depuis ce poste) : à confirmer par un EXPLAIN sur une base locale avant d'appliquer cette
+-- migration, comme le §5. W5 (tests/backend/matching-whatsapp.spec.ts) contrôle les RÉSULTATS de la fonction, jamais
+-- son plan.
+create or replace function public.wa_matching_biens_de_l_acheteur(
+  p_agency uuid,
+  p_contact uuid,
+  p_statuts text[],
+  p_mots text[],
+  p_limite integer default 50
+)
+returns table (
+  match_id uuid,
+  genre text,
+  id uuid,
+  titre text,
+  adresse text,
+  ville text
+)
+language sql
+stable
+security invoker
+set search_path to 'public', 'pg_temp'
+as $$
+  select m.id as match_id, b.genre, b.id, b.titre, b.adresse, b.ville
+    from public.matches m
+    left join public.properties p
+      on p.id = m.property_id and p.agency_id = p_agency and p.deleted_at is null
+    left join public.market_listings ml
+      on m.property_id is null and ml.id = m.market_listing_id
+    cross join lateral (
+      select case when p.id is not null then 'mandat' else 'annonce' end as genre,
+             coalesce(p.id, ml.id) as id,
+             case when p.id is not null then p.title else ml.title end as titre,
+             case when p.id is not null then p.address else ml.address end as adresse,
+             case when p.id is not null then p.city else ml.city end as ville
+    ) b
+   where m.agency_id = p_agency
+     and m.contact_id = p_contact
+     and m.status = any (p_statuts)
+     and (p.id is not null or ml.id is not null)
+     and coalesce(array_length(p_mots, 1), 0) > 0
+     and not exists (
+       select 1 from unnest(p_mots) as mot(w)
+        where lower(unaccent(concat_ws(' ', b.titre, b.adresse, b.ville)))
+          not like '%' || lower(unaccent(replace(replace(w, '%', ''), '_', ''))) || '%'
+     )
+   order by m.score desc, m.id
+   limit least(greatest(coalesce(p_limite, 50), 1), 201);
+$$;
+
+comment on function public.wa_matching_biens_de_l_acheteur(uuid, uuid, text[], text[], integer) is
+  'Désigne EN BASE, parmi les matchs d''UN acheteur de l''agence aux statuts p_statuts, les biens dont titre/adresse/ville contiennent chaque mot de p_mots, nombres compris (unaccent) — un SUR-ENSEMBLE, que candidats affine en TypeScript — : son mandat d''abord (non supprimé, de l''agence), sinon l''annonce d''un match sans mandat, avec l''id du match ; par score décroissant puis id de match, p_limite au plus (50 par défaut, 201 au plus : les 200 biens d''un écho relu, et la ligne qui dit la coupe). Lue par le copilote WhatsApp (record_match_outcome) sous le rôle de service, le seul qui l''appelle.';
+
+revoke all on function public.wa_matching_biens_de_l_acheteur(uuid, uuid, text[], text[], integer) from public, anon, authenticated;
+grant execute on function public.wa_matching_biens_de_l_acheteur(uuid, uuid, text[], text[], integer) to service_role;

@@ -142,6 +142,24 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'record_match_outcome',
+      description: "Consigne la réponse d'un acheteur sur un bien, dite par l'agent : « J'ai proposé l'attique à Julie » (propose), « Julie est intéressée par l'attique » (interesse), « Julie refuse Florissant, trop cher » (pas_interesse + motif), « Julie n'a pas encore répondu » (pas_encore). N'écrit JAMAIS à l'acheteur : l'agent présente les biens par ses propres moyens. Appelle directement l'outil : le système montre ce qui sera écrit et demande lui-même la confirmation. contact_id via search_contacts ; le bien par son nom, son adresse ou sa ville, ou son id (get_matches).",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string' },
+          bien: { type: 'string', description: "Le bien : un nom, une adresse, une ville, ou son id. Peut rester vide si un seul bien attend la réponse de l'acheteur." },
+          reponse: { type: 'string', enum: ['propose', 'interesse', 'pas_interesse', 'pas_encore'] },
+          motif: { type: 'string', enum: ['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements', 'etat', 'autre'], description: 'Obligatoire pour pas_interesse : « trop cher » = prix, « trop petit » = surface…' },
+          note: { type: 'string', description: "Précision facultative d'un refus, dans les mots de l'agent." },
+        },
+        required: ['contact_id', 'reponse'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_daily_brief',
       description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ».",
       parameters: { type: 'object', properties: {} },

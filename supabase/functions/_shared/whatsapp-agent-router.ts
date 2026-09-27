@@ -79,6 +79,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // le 21.09.2026 : le matching reste chez l'agent. Hors registre, le nom retombe sur le défaut
   // 'confirm' SANS être dans CONFIRM_TOOLS : stashPending le refuse avant toute question.
   record_offer: 'confirm',
+  // record_match_outcome : consigne la réponse d'un acheteur (lot D2). Question [Oui] [Non] AVANT d'écrire
+  // (décision de Julien, 24.09.2026) : une réponse déclenche une chaîne qu'une annulation ne remettrait pas en
+  // l'état — journal, clôture de relance, deal et relance pour « proposé » —, et le bien est retrouvé d'après un texte.
+  record_match_outcome: 'confirm',
   // delete_contact : suppression DÉFINITIVE d'une fiche contact → confirm obligatoire
   // (destructif + irréversible, jamais dans la boucle). Le socle légal ne peut jamais
   // quitter confirm (canLeaveConfirm ne renvoie true que pour update_pipeline).

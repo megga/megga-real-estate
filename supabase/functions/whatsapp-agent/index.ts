@@ -32,7 +32,7 @@ import {
   findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
-import { execGetMatches, execGetBuyersForProperty } from '../_shared/whatsapp-matching-outils.ts'
+import { execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome } from '../_shared/whatsapp-matching-outils.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
@@ -625,6 +625,11 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'update_pipeline') {
     const p = await prepareUpdatePipeline(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'record_match_outcome') {
+    // Lot D2 : le bien se cherche parmi les matchs de l'acheteur ; aucun ou plusieurs, le refus les nomme au modèle.
+    const p = await prepareRecordMatchOutcome(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   }

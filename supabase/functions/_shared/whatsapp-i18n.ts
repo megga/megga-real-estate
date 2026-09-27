@@ -412,3 +412,229 @@ export function asyncFailed(lang: WaLang, kind: 'screening' | 'report'): string 
     ? "Le screening n'a pas pu aboutir — réessaie, ou vérifie le dossier dans le CRM."
     : "Le rapport KYC n'a pas pu être généré — réessaie dans un instant."
 }
+
+// ── Matching (lot D2) : `record_match_outcome` ──────────────────────────────
+// Rendus VERBATIM à l'agent : la question [Oui] [Non], puis le compte rendu de l'exécuteur. « pour Julie », jamais
+// « de Julie » : une interpolation ne sait pas élider (« d'Emma »). ⚠ Les comptes rendus commencent par « ✅ Consigné »
+// / « ✅ Recorded », que SEUL l'exécuteur écrit, après le « oui » : la garde des confirmations simulées
+// (whatsapp-phantom-action.ts) doit les tenir pour tels — un cerveau qui les écrit les recopie. Elle ne le fait pas
+// encore : au 25.09.2026, sa liste `EXECUTOR_ECHOES` ne porte que les comptes rendus d'un envoi au client (message,
+// sélection) et de la relance approuvée.
+
+/** Les motifs d'un refus, en toutes lettres — ceux du fil (`fil.motifs.*` de matching.json). */
+const MOTIFS: Record<WaLang, Record<string, string>> = {
+  fr: { prix: 'prix', quartier: 'quartier', surface: 'surface', pieces: 'pièces', type: 'type de bien', equipements: 'équipements', etat: 'état du bien', autre: 'autre' },
+  en: { prix: 'price', quartier: 'neighbourhood', surface: 'floor area', pieces: 'rooms', type: 'property type', equipements: 'features', etat: 'condition', autre: 'other' },
+}
+export function motifLabel(lang: WaLang, motif: string | null | undefined): string {
+  return (motif && MOTIFS[lang][motif]) || (lang === 'en' ? 'other' : 'autre')
+}
+
+/** Ce qui sera consigné : l'acheteur, le bien retrouvé, la réponse. */
+export interface Consignation {
+  reponse: 'propose' | 'interesse' | 'pas_interesse' | 'pas_encore'
+  nom: string
+  bien: string
+  motif?: string | null
+  note?: string | null
+}
+
+/** La question [Oui] [Non] : ce qui s'écrira, bien retrouvé compris — c'est là qu'un bien mal retrouvé se voit. */
+export function confirmConsigner(lang: WaLang, c: Consignation): string {
+  const note = c.note ? ` (« ${c.note} »)` : ''
+  if (lang === 'en') {
+    switch (c.reponse) {
+      case 'propose': return `I'll record that you proposed « ${c.bien} » to ${c.nom}, with a follow-up in 3 days. Confirm? ("yes" / "no")`
+      case 'interesse': return `I'll record for ${c.nom}: « ${c.bien} » — interested. Confirm? ("yes" / "no")`
+      case 'pas_interesse': return `I'll record for ${c.nom}: « ${c.bien} » — not interested, reason: ${motifLabel('en', c.motif)}${note}. Confirm? ("yes" / "no")`
+      case 'pas_encore': return `I'll record that ${c.nom} hasn't answered yet about « ${c.bien} »: the follow-up moves 3 days later. Confirm? ("yes" / "no")`
+    }
+  }
+  switch (c.reponse) {
+    case 'propose': return `Je note que tu as proposé « ${c.bien} » à ${c.nom}, avec une relance dans 3 jours. Tu confirmes ? (« oui » / « non »)`
+    case 'interesse': return `Je consigne pour ${c.nom} : « ${c.bien} » — intéressé·e. Tu confirmes ? (« oui » / « non »)`
+    case 'pas_interesse': return `Je consigne pour ${c.nom} : « ${c.bien} » — pas intéressé·e, motif ${motifLabel('fr', c.motif)}${note}. Tu confirmes ? (« oui » / « non »)`
+    case 'pas_encore': return `Je note que ${c.nom} n'a pas encore répondu pour « ${c.bien} » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)`
+  }
+}
+
+/** Le compte rendu, après le « oui » : ce qui A été écrit. */
+export function consigne(lang: WaLang, c: Consignation): string {
+  if (lang === 'en') {
+    switch (c.reponse) {
+      case 'propose': return `✅ Recorded: « ${c.bien} » proposed to ${c.nom}, follow-up in 3 days.`
+      case 'interesse': return `✅ Recorded for ${c.nom}: « ${c.bien} » — interested.`
+      case 'pas_interesse': return `✅ Recorded for ${c.nom}: « ${c.bien} » — not interested (${motifLabel('en', c.motif)}).`
+      case 'pas_encore': return `✅ Recorded: ${c.nom} hasn't answered about « ${c.bien} » yet — follow-up in 3 days.`
+    }
+  }
+  switch (c.reponse) {
+    case 'propose': return `✅ Consigné : « ${c.bien} » proposé à ${c.nom}, relance dans 3 jours.`
+    case 'interesse': return `✅ Consigné pour ${c.nom} : « ${c.bien} » — intéressé·e.`
+    case 'pas_interesse': return `✅ Consigné pour ${c.nom} : « ${c.bien} » — pas intéressé·e (${motifLabel('fr', c.motif)}).`
+    case 'pas_encore': return `✅ Consigné : ${c.nom} n'a pas encore répondu pour « ${c.bien} » — relance dans 3 jours.`
+  }
+}
+
+/** Un collègue a consigné entre le « oui » et l'écriture : rien n'est réécrit. */
+export function consignationDeja(lang: WaLang, nom: string, bien: string): string {
+  return lang === 'en'
+    ? `Nothing was written: ${nom}'s answer about « ${bien} » was already recorded in the meantime.`
+    : `Rien n'a été écrit : la réponse pour ${nom} sur « ${bien} » a déjà été consignée entre-temps.`
+}
+
+/**
+ * Entre la question et le « oui », le bien a quitté le statut que la réponse suppose SANS porter cette réponse (un
+ * proposé refusé, un intéressé revenu en arrière ; tout mouvement, pour « pas encore », qui n'écrit aucun statut) :
+ * rien n'est écrit, et « déjà consignée » serait faux.
+ */
+export function consignationChangee(lang: WaLang, nom: string, bien: string): string {
+  return lang === 'en'
+    ? `Nothing was written: « ${bien} » is no longer waiting for this answer from ${nom} — it changed in the meantime.`
+    : `Rien n'a été écrit : « ${bien} » n'attend plus cette réponse pour ${nom}, il a changé entre-temps.`
+}
+
+/** Le match n'est plus dans l'agence (supprimé, ou jamais le sien). */
+export function consignationImpossible(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Nothing was written: this property is no longer in your agency’s loop.'
+    : "Rien n'a été écrit : ce bien n'est plus dans la boucle de ton agence."
+}
+
+/** L'écriture a échoué : rien n'est écrit, l'agent peut réessayer. */
+export function consignationEchec(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Recording failed — nothing was written. Try again in a moment.'
+    : "La consignation a échoué — rien n'a été écrit. Réessaie dans un instant."
+}
+
+/** Un refus sans motif ne se consigne pas : le motif nourrit « Apprendre ». */
+export function consignerMotifManquant(lang: WaLang): string {
+  return lang === 'en'
+    ? 'To record "not interested", I need the reason: price, neighbourhood, floor area, rooms, property type, features, condition or other.'
+    : 'Pour « pas intéressé », il me faut le motif : prix, quartier, surface, pièces, type de bien, équipements, état du bien ou autre.'
+}
+
+/** La réponse manque, ou n'est pas l'une des quatre : rien ne se prépare. */
+export function consignerQuelleReponse(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Which answer? propose, interesse, pas_interesse or pas_encore.'
+    : 'Quelle réponse ? propose, interesse, pas_interesse ou pas_encore.'
+}
+
+/** L'acheteur n'est pas résolu (aucun identifiant, mal formé, hors de l'agence) : le modèle le retrouve d'abord. */
+export function consignerQuelAcheteur(lang: WaLang): string {
+  return lang === 'en'
+    ? 'Which buyer? Find them first with search_contacts.'
+    : 'Quel acheteur ? Retrouve-le d’abord avec search_contacts.'
+}
+
+/** Ce que la réponse suppose du bien, pour dire où on l'a cherché. */
+function ouCherche(lang: WaLang, reponse: Consignation['reponse']): string {
+  if (lang === 'en') return reponse === 'propose' ? 'to propose' : reponse === 'pas_interesse' ? 'proposed or interested' : 'proposed and awaiting an answer'
+  return reponse === 'propose' ? 'à proposer' : reponse === 'pas_interesse' ? 'proposé ou intéressé' : 'proposé en attente de réponse'
+}
+
+/** Les biens qu'un refus nomme, au plus : au-delà, « (5 sur N) » dit le reste. */
+const BIENS_NOMMES_MAX = 5
+
+const nommer = (titres: readonly string[]): string => titres.slice(0, BIENS_NOMMES_MAX).map((t) => `« ${t} »`).join(', ')
+
+/**
+ * Le total en clair d'une liste réduite à cinq. Lecture complète (`plancher` nul) : rien à cinq biens ou moins, sinon
+ * « (5 sur N) ». Lecture COUPÉE (`plancher` : les lignes qu'elle a gardées, un minimum de ce que l'acheteur a) :
+ * « (n sur plus de P) » TOUJOURS, même pour deux biens nommés — une liste courte tirée d'une page coupée passerait
+ * sinon pour tout ce qu'il a.
+ */
+function compteEnClair(lang: WaLang, nommes: number, plancher: number | null): string {
+  if (plancher != null) {
+    const n = Math.min(nommes, BIENS_NOMMES_MAX)
+    return lang === 'en' ? ` (${n} of over ${plancher})` : ` (${n} sur plus de ${plancher})`
+  }
+  if (nommes <= BIENS_NOMMES_MAX) return ''
+  return lang === 'en' ? ` (${BIENS_NOMMES_MAX} of ${nommes})` : ` (${BIENS_NOMMES_MAX} sur ${nommes})`
+}
+
+/**
+ * Aucun bien ne répond au texte : le copilote nomme ceux qu'il a regardés, sans rien écrire. `plancher` : la page lue
+ * pour les nommer avait elle-même mordu sa limite (`LIMITE_DEPART`) — `titres` n'en est qu'un extrait, jamais le
+ * compte réel de ce que l'acheteur a ; et une page coupée où rien ne se nommait ne prouve pas qu'il n'a « aucun
+ * bien ».
+ */
+export function consignerAucunBien(
+  lang: WaLang, reponse: Consignation['reponse'], nom: string, titres: readonly string[], plancher: number | null = null,
+): string {
+  const liste = nommer(titres)
+  const compte = compteEnClair(lang, titres.length, plancher)
+  const coupe = plancher != null
+  if (lang === 'en') {
+    if (titres.length) return `No property ${ouCherche('en', reponse)} for ${nom} matches. Those I found${compte}: ${liste}. Which one?`
+    return coupe ? `No property ${ouCherche('en', reponse)} for ${nom} matches.` : `${nom} has no property ${ouCherche('en', reponse)}.`
+  }
+  if (titres.length) return `Aucun bien ${ouCherche('fr', reponse)} pour ${nom} ne correspond. Ceux que je vois${compte} : ${liste}. Lequel ?`
+  return coupe ? `Aucun bien ${ouCherche('fr', reponse)} pour ${nom} ne correspond.` : `${nom} n'a aucun bien ${ouCherche('fr', reponse)}.`
+}
+
+/** Plusieurs biens répondent au texte (ou son absence) : le copilote ne choisit pas. `plancher` : voir `consignerAucunBien`. */
+export function consignerPlusieursBiens(lang: WaLang, nom: string, titres: readonly string[], plancher: number | null = null): string {
+  const liste = nommer(titres)
+  const compte = compteEnClair(lang, titres.length, plancher)
+  return lang === 'en'
+    ? `Several properties for ${nom} match${compte}: ${liste}. Which one?`
+    : `Plusieurs biens pour ${nom} correspondent${compte} : ${liste}. Lequel ?`
+}
+
+/**
+ * Sans texte, la page des matchs de l'acheteur a été coupée et aucun de ses biens ne se nomme (mandats supprimés,
+ * annonces retirées pour « propose ») : ni « aucun bien » (il y en a plus d'une page), ni une liste vide
+ * (« correspondent : . »). Le copilote demande lequel.
+ */
+export function consignerTropDeBiens(lang: WaLang, reponse: Consignation['reponse'], nom: string): string {
+  return lang === 'en'
+    ? `Which property ${ouCherche('en', reponse)} for ${nom}? There are too many for me to list: give its name, address or town, or its identifier (via get_matches).`
+    : `Quel bien ${ouCherche('fr', reponse)} pour ${nom} ? Il y en a trop pour que je les nomme : donne son nom, son adresse ou sa ville, ou son identifiant (via get_matches).`
+}
+
+/**
+ * La désignation par texte a mordu sur SA PROPRE limite (`wa_matching_biens_de_l_acheteur`, LIMITE_DESIGNES+1
+ * lignes) : un bien de l'acheteur répondant au texte peut exister au-delà de ce qu'elle a rendu — ni un bien seul, ni
+ * « aucun » ne seraient fondés. Sur le modèle de la « recherche trop large » de `execGetBuyersForProperty`, mais pour
+ * un acheteur : nomme aussi le texte cherché, pour qu'un « trop large » répété avec le même mot ne surprenne pas
+ * l'agent.
+ */
+export function consignerTropLarge(lang: WaLang, nom: string, texte: string): string {
+  return lang === 'en'
+    ? `For ${nom}, the search "${texte}" is too broad to settle: give the address, or the property's identifier (via get_matches).`
+    : `Pour ${nom}, la recherche « ${texte} » est trop large pour trancher : donne l'adresse, ou l'identifiant du bien (via get_matches).`
+}
+
+/**
+ * L'ÉCHO d'un libellé (le texte porte son « · ») : relue jusqu'au plafond de `wa_matching_biens_de_l_acheteur`, sa
+ * désignation reste coupée — la base ne reçoit que ses MOTS, et trop de biens de l'acheteur y répondent. Pas « donne
+ * l'adresse » : le texte EST déjà un libellé, et 252 des 1 800 annonces que suit l'agence WhatsApp n'ont pas
+ * d'adresse (mesuré le 25.09.2026). La réponse se consigne depuis le CRM.
+ */
+export function consignerEchoTropLarge(lang: WaLang, nom: string, texte: string): string {
+  return lang === 'en'
+    ? `Too many of ${nom}'s properties match the words of « ${texte} » for me to settle this over WhatsApp: record the answer from the CRM.`
+    : `Trop de biens de ${nom} répondent aux mots de « ${texte} » pour que je tranche par WhatsApp : consigne cette réponse depuis le CRM.`
+}
+
+/**
+ * `propose` sur une annonce RETIRÉE du marché consignerait un deal et une relance sur un bien parti : elle ne se
+ * propose plus, ni dans le fil ni selon `NOTE_MODELE` (whatsapp-matching.ts). Nomme ce qui a été écarté, cinq au
+ * plus ; rien n'est consigné. Les MANDATS n'ont pas cette règle : celle de leur `occasion` attend la décision 12 du
+ * lot D1 (Julien).
+ */
+export function consignerAnnonceRetiree(lang: WaLang, titres: readonly string[]): string {
+  const liste = nommer(titres) + compteEnClair(lang, titres.length, null)
+  const pluriel = titres.length > 1
+  if (lang === 'en') {
+    return pluriel
+      ? `${liste} are no longer on the market: they can't be proposed any more. Nothing recorded.`
+      : `${liste} is no longer on the market: it can't be proposed any more. Nothing recorded.`
+  }
+  return pluriel
+    ? `${liste} sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.`
+    : `${liste} est retirée du marché : elle ne se propose plus. Rien n'est consigné.`
+}

@@ -11,11 +11,23 @@
  * l'inverse de PostgREST (la première clé prime, les suivantes départagent). `fauxClient` accumule les clés posées
  * par `.order()` et ne trie qu'à la résolution (`.then()` / `.maybeSingle()`), `.limit()` coupant APRÈS ce tri — voir
  * `describe('fauxClient — …')` plus bas, qui l'éprouve directement. Tous les outils du matching partagent ce faux
- * client : garder son INTERFACE (`fauxClient(tables, rpc?, opts?)` → `{ client, appels, inserts }`).
+ * client : garder son INTERFACE (`fauxClient(tables, rpc?, opts?)` → `{ client, appels, inserts, lectures }`).
+ * `lectures` (le nom de chaque table lue, à chaque résolution) s'y est ajouté pour `record_match_outcome` : un texte
+ * s'y désigne EN BASE, sans lire la page des matchs de l'acheteur, et seul ce journal le montre. De même
+ * `opts.erreurSur` accepte `table#n` — la n-ième lecture de cette table seule en échec : un refus « aucun » relit la
+ * page de l'acheteur, dans la même table que la lecture qui a échoué avant elle, et une panne de TOUTES les lectures
+ * finirait en échec même si la première avait été lue comme une absence. Et `rpc#n`, le n-ième appel d'une fonction
+ * seul : l'écho d'un libellé relit `wa_matching_biens_de_l_acheteur` une seconde fois.
  */
 import { describe, it, expect } from 'vitest'
-import { execGetMatches, execGetBuyersForProperty } from './whatsapp-matching-outils'
-import type { ActionCtx } from './whatsapp-actions'
+import {
+  execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, executeRecordMatchOutcome,
+} from './whatsapp-matching-outils'
+import {
+  confirmConsigner, consigne, consignerAnnonceRetiree, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens,
+  consignerTropDeBiens, consignerTropLarge,
+} from './whatsapp-i18n'
+import type { ActionCtx, Prepared } from './whatsapp-actions'
 
 const A = 'a0000000-0000-4000-8000-00000000000a'
 const B = 'b0000000-0000-4000-8000-00000000000b'
@@ -61,8 +73,9 @@ function trier(lignes: readonly Ligne[], cles: readonly Cle[]): Ligne[] {
  * Un faux client supabase-js : `.eq` / `.in` / `.is` / `.gt` (numérique OU chaîne numérique) / `.not(… is null)`
  * filtrent ; `.order` ACCUMULE ses clés (première = primaire) sans trier immédiatement ; `.limit` mémorise sa coupe,
  * appliquée APRÈS le tri complet, à la résolution. `.maybeSingle()` sur PLUSIEURS lignes rend une ERREUR, comme
- * PostgREST. `opts.erreurSur` simule une lecture (une table nommée) OU un `rpc` (son nom) en ÉCHEC
- * (`{ data: null, error: {...} }`), pour éprouver le chemin `LECTURE_IMPOSSIBLE` sans dépendre d'un vrai réseau.
+ * PostgREST. `opts.erreurSur` simule une lecture (une table nommée, ou sa n-ième lecture seule : `table#n`) OU un
+ * `rpc` (son nom) en ÉCHEC (`{ data: null, error: {...} }`), pour éprouver le chemin `LECTURE_IMPOSSIBLE` sans
+ * dépendre d'un vrai réseau.
  * ⚠ `.select('a, b, c')` PROJETTE les lignes rendues sur CES colonnes SEULES, comme PostgREST : un test dont l'oracle
  * dépend d'une colonne absente du `select()` réel doit rougir — sans ça, un `select()` amputé en production (colonne
  * jamais lue, valant `undefined`) resterait invisible ici. `select('*')` (ou un appel sans argument) rend tout, sans
@@ -74,12 +87,18 @@ function trier(lignes: readonly Ligne[], cles: readonly Cle[]): Ligne[] {
 function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown> = {}, opts: { erreurSur?: ReadonlySet<string> } = {}) {
   const appels: Appel[] = []
   const inserts: { table: string; row: unknown }[] = []
+  const lectures: string[] = []
   const from = (table: string) => {
     let lignes = [...(tables[table] ?? [])]
     const cles: Cle[] = []
     let limite: number | null = null
     let colonnes: string[] | null = null
-    const enErreur = opts.erreurSur?.has(table) ?? false
+    /** Consigne la lecture, et dit si elle échoue : toutes celles de la table, ou sa n-ième seule (`table#n`). */
+    const lire = (): boolean => {
+      lectures.push(table)
+      const rang = lectures.filter((t) => t === table).length
+      return (opts.erreurSur?.has(table) ?? false) || (opts.erreurSur?.has(`${table}#${rang}`) ?? false)
+    }
     const projeter = (l: Ligne): Ligne =>
       colonnes ? Object.fromEntries(colonnes.map((c) => [c, l[c]])) : l
     const resoudre = (): Ligne[] => {
@@ -114,7 +133,7 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
     // PLUSIEURS lignes rendent une ERREUR, comme PostgREST/PGRST116 — jamais la première ligne prise en silence, qui
     // masquerait une donnée de test dupliquée par erreur.
     self.maybeSingle = async () => {
-      if (enErreur) return echec
+      if (lire()) return echec
       // La recherche de la ligne (et l'erreur « plusieurs trouvées ») ignore encore la projection : PostgREST, lui
       // aussi, décide de PGRST116 sur les lignes réelles, jamais sur ce que `select()` en laisse voir à l'appelant.
       const triees = trier(lignes, cles)
@@ -125,7 +144,7 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
     self.insert = (row: unknown) => { inserts.push({ table, row }); return { error: null } }
     // `touchHotContact` (le « contact chaud » de l'agent) : sans effet ici.
     self.upsert = () => Promise.resolve({ error: null })
-    self.then = (resolve: (r: unknown) => void) => resolve(enErreur ? echec : { data: resoudre(), error: null })
+    self.then = (resolve: (r: unknown) => void) => resolve(lire() ? echec : { data: resoudre(), error: null })
     return self
   }
   const client = {
@@ -134,7 +153,8 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
     // (`wa_matching_biens_designes`) et par ceux des fonctions d'écriture (`wa_matching_consigner`, `wa_matching_visite`).
     rpc: async (nom: string, args: Record<string, unknown>) => {
       appels.push({ rpc: nom, args })
-      if (opts.erreurSur?.has(nom)) return { data: null, error: { message: `erreur simulée sur rpc ${nom}` } }
+      const rang = appels.filter((a) => a.rpc === nom).length
+      if (opts.erreurSur?.has(nom) || opts.erreurSur?.has(`${nom}#${rang}`)) return { data: null, error: { message: `erreur simulée sur rpc ${nom}` } }
       const brut = rpc[nom]
       // `p_limite` coupe les lignes configurées comme le ferait le `limit` réel de la fonction : un appelant qui
       // demanderait la mauvaise limite reçoit un nombre de lignes différent, jamais les mêmes.
@@ -143,7 +163,7 @@ function fauxClient(tables: Record<string, Ligne[]>, rpc: Record<string, unknown
       return { data, error: null }
     },
   }
-  return { client, appels, inserts }
+  return { client, appels, inserts, lectures }
 }
 
 const ctx = (client: unknown, lang: 'fr' | 'en' = 'fr'): ActionCtx => ({ supabase: client as never, profileId: 'p-agent', agencyId: A, lang })
@@ -175,6 +195,23 @@ const m = (o: Ligne): Ligne => ({
   market_listing_id: null, snoozed_until: null, sent_at: null, response_at: null, reaction_motif: null, reaction_note: null,
   prix_propose: null, created_at: '2026-09-01T00:00:00Z', ...o,
 })
+
+/**
+ * `n` matchs de Julie (LIMITE_DEPART+1 par défaut ; `status`, `suggested` par défaut) sur autant d'annonces
+ * DISTINCTES et RÉSOLVABLES — de quoi couper la page de `prepareRecordMatchOutcome` (mesuré en production le
+ * 25.09.2026, jusqu'à 1 142 matchs `suggested` pour un seul acheteur), sans rapport avec le bien qu'un test désigne par
+ * ailleurs. Scores décroissants : le tri (score desc, puis id) reste déterministe.
+ */
+function pageDebordante(status = 'suggested', n = 101): { matches: Ligne[]; annonces: Ligne[] } {
+  const annonces: Ligne[] = []
+  const matches: Ligne[] = []
+  for (let i = 0; i < n; i++) {
+    const id = `d9000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    annonces.push({ id, title: `Bruit ${i}`, address: `Rue du Bruit ${i}`, city: 'Genève', price: 1_000_000, transaction_type: 'buy', status: 'active' })
+    matches.push(m({ id: `f9000000-0000-4000-8000-${String(i).padStart(12, '0')}`, market_listing_id: id, score: 1000 - i, status }))
+  }
+  return { matches, annonces }
+}
 
 describe('execGetMatches — les biens vivants d’un acheteur de l’agence', () => {
   it('rend les biens en cours puis à proposer, jamais un refusé ; la lecture est filtrée par agence', async () => {
@@ -411,7 +448,7 @@ describe('execGetMatches — « en cours » au-delà de 30 ne perd pas l’inté
  * et `tests/backend/matching-whatsapp.spec.ts`, W4, qui le prouvent) : il simule seulement ce que la fonction
  * RENDRAIT pour ces données, par son `rpc`, et ce fichier n'éprouve donc que ce que
  * `designerBien`/`execGetBuyersForProperty` en FONT (l'appel à limite+1 avec l'agence et les mots corrects,
- * `aLaLimite`, l'affinage `candidats`, la relecture en colonnes complètes, la propagation des pannes, et qu'une
+ * `aLaLimite`, l'affinage `candidats`, la seconde lecture en colonnes complètes, la propagation des pannes, et qu'une
  * lecture coupée ne rend jamais un bien seul comme LE bien). Un identifiant, lui, reste résolu en TypeScript (mandat
  * d'abord, annonce seulement à défaut — sans jamais interroger la base par texte).
  */
@@ -576,9 +613,9 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
       expect(r.bien).toMatchObject({ id: VILLA, genre: 'mandat' })
     })
 
-    it('défense en profondeur : même si la base désignait par erreur un mandat hors agence, la relecture complète (agency_id) l’écarte — jamais une fuite, une panne lue', async () => {
+    it('défense en profondeur : même si la base désignait par erreur un mandat hors agence, la lecture complète par id (agency_id) l’écarte — jamais une fuite, une panne lue', async () => {
       // Un id qui ressemble à un mandat de CETTE agence, mais dont la ligne réelle (properties) est hors scope :
-      // ne peut arriver que si wa_matching_biens_designes elle-même avait un défaut — la relecture par id, en TS,
+      // ne peut arriver que si wa_matching_biens_designes elle-même avait un défaut — la lecture par id, en TS,
       // reste le dernier rempart et ne doit jamais afficher ce qu'elle ne peut pas relire dans son propre périmètre.
       const HORS_AGENCE = 'e0000000-0000-4000-8000-000000000010'
       const { client } = fauxClient({
@@ -601,7 +638,7 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
       expect(raw).not.toContain(SUPPRIME)
     })
 
-    it('une panne de la relecture complète reste une panne même avec PLUSIEURS candidats désignés, jamais une liste vide', async () => {
+    it('une panne de la lecture complète reste une panne même avec PLUSIEURS candidats désignés, jamais une liste vide', async () => {
       const villaClassique = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000a2', title: 'Villa classique' }
       const { client } = fauxClient(
         { contacts, properties: [...mandats, villaClassique], market_listings: annonces, matches: [] },
@@ -659,11 +696,12 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
 
     it('une lecture coupée dont UN SEUL bien survit à l’affinage n’est jamais rendue comme LE bien, sans question', async () => {
       // La base coupe le sur-ensemble à LIMITE_DESIGNES+1, trié par genre puis id — SANS RAPPORT avec la pertinence
-      // du texte cherché. Cinquante annonces de bruit qu'un mot NUMÉRIQUE (« 2 ») écarte (il ne se compare qu'à
-      // l'adresse, comme `candidats`), plus UNE qui passe : d'autres, au-delà de la coupe, auraient pu passer aussi —
-      // la base ne les a pas rendues, et le silence sur leur existence ne doit pas se lire comme leur absence.
+      // du texte cherché. Cinquante annonces de bruit portent « rue », « lac » et un « 2 » CONTENU dans leur numéro
+      // (« 20 », « 21 »… : la base les rend), jamais le « 2 » entier que `candidats` exige — l'affinage ne garde que
+      // la vraie. D'autres, au-delà de la coupe, auraient pu passer aussi — la base ne les a pas rendues, et le
+      // silence sur leur existence ne doit pas se lire comme leur absence.
       const bruit = Array.from({ length: 50 }, (_, i) => ({
-        id: `d6000000-0000-4000-8000-${String(i).padStart(12, '0')}`, title: `Appartement 2 pièces ${i}`, address: `Rue du Lac ${i + 10}`,
+        id: `d6000000-0000-4000-8000-${String(i).padStart(12, '0')}`, title: 'Appartement lumineux', address: `Rue du Lac 2${i}`,
         city: 'Genève', price: 900_000, transaction_type: 'buy', status: 'active',
       }))
       const vraie = { id: 'd6000000-0000-4000-8000-999999999999', title: 'Studio', address: 'Rue du Lac 2', city: 'Genève', price: 450_000, transaction_type: 'buy', status: 'active' }
@@ -678,6 +716,17 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
       expect(r.total).toBe('1+')
       // Une question VIDE passerait les deux assertions ci-dessus : celle rendue à l'agent doit dire l'incertitude.
       expect(r.question).toMatch(/trop large/)
+    })
+
+    it('exactement 50 biens désignés : le total est EXACT, « 50 », sans « + » — la 51ᵉ ligne seule dit la coupe', async () => {
+      const lignes = Array.from({ length: 50 }, (_, i) => ({
+        id: `d7100000-0000-4000-8000-${String(i).padStart(12, '0')}`, title: `Appartement ${i}`, address: `Rue du Rhône ${i + 100}`,
+        city: 'Genève', price: 900_000, transaction_type: 'buy', status: 'active',
+      }))
+      const { client } = fauxClient({ contacts, properties: mandats, market_listings: lignes, matches: [] }, { wa_matching_biens_designes: lignes.map((l) => D('annonce', l)) })
+      const r = JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: 'appartement Rhône' }))
+      expect(r.total).toBe('50')
+      expect(r.question).toMatch(/^Plusieurs biens correspondent/)
     })
 
     it('lecture coupée et PLUSIEURS candidats affinés : le total porte déjà un « + »', async () => {
@@ -697,7 +746,7 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
         ['properties (identifiant → mandat)', new Set(['properties']), { bien: VILLA }],
         ['market_listings (identifiant → annonce, mandat absent)', new Set(['market_listings']), { bien: STUDIO }],
         ['wa_matching_biens_designes (texte)', new Set(['wa_matching_biens_designes']), { bien: 'la villa de Cologny' }],
-        ['properties (texte, relecture complète du candidat mandat)', new Set(['properties']), { bien: 'la villa de Cologny' }],
+        ['properties (texte, lecture complète du candidat mandat)', new Set(['properties']), { bien: 'la villa de Cologny' }],
         ['matches (compatibles)', new Set(['matches']), { bien: VILLA }],
         ['contacts (noms)', new Set(['contacts']), { bien: VILLA }],
       ]
@@ -708,7 +757,7 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
       }
     })
 
-    it('une panne sur la relecture complète d’une ANNONCE désignée par texte est aussi une panne, jamais une absence', async () => {
+    it('une panne sur la lecture complète d’une ANNONCE désignée par texte est aussi une panne, jamais une absence', async () => {
       const { client } = fauxClient(
         { contacts, properties: mandats, market_listings: annonces, matches: [] },
         { wa_matching_biens_designes: [D('annonce', annonces[0])] },
@@ -767,5 +816,804 @@ describe('execGetBuyersForProperty — qui pour ce bien', () => {
       expect(await execGetBuyersForProperty(ctx(client), {})).toMatch(/quel bien/)
       expect(appels).toEqual([]) // aucun rpc appelé
     })
+
+    it('un texte sans mot utile (« le bien ») ne désigne rien, sans appeler la base', async () => {
+      const { client, appels } = fauxClient(tables, rpcVilla)
+      expect(JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: 'le bien' }))).toMatchObject({ introuvable: true })
+      expect(appels).toEqual([])
+    })
+  })
+})
+
+// ── record_match_outcome ────────────────────────────────────────────────────
+
+const MARC = 'c0000000-0000-4000-8000-000000000003'
+const contactsAvecMarc: Ligne[] = [...contacts, { id: MARC, agency_id: A, first_name: 'Marc', last_name: 'Roux' }]
+/** Les libellés que le copilote montre de ces trois biens (`libelleBien`). */
+const ATT = 'Attique 4 p. · Route de Florissant 12'
+const STU = 'Studio · Rue du Lac 2'
+const VIL = 'Villa contemporaine · Chemin des Hauts 3'
+const ECHEC = "La consignation a échoué — rien n'a été écrit. Réessaie dans un instant."
+
+/**
+ * La ligne que `wa_matching_biens_de_l_acheteur` rendrait pour ce match et ce bien. Comme pour
+ * `wa_matching_biens_designes`, ce banc ne réimplémente pas le SQL (W5, tests/backend/matching-whatsapp.spec.ts) : il
+ * dit ce que la base RENDRAIT, et éprouve ce que l'exécuteur en fait.
+ */
+const LA = (match: Ligne, genre: 'mandat' | 'annonce', b: Ligne) => ({
+  match_id: match.id, genre, id: b.id, titre: b.title ?? null, adresse: b.address ?? null, ville: b.city ?? null,
+})
+const erreur = (p: Prepared): string => {
+  if (p.ok) throw new Error(`une question, là où un refus était attendu : ${p.prompt}`)
+  return p.error
+}
+
+describe('prepareRecordMatchOutcome — la question Oui / Non, ou un refus qui nomme les biens', () => {
+  const r1 = m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })
+  const r2 = m({ id: 'r2', status: 'sent', market_listing_id: STUDIO })
+  const tables = { contacts, market_listings: annonces, properties: mandats, matches: [r1, r2] }
+
+  it('un seul bien répond : la question dit tout ce qui s’écrira, la charge porte le match', async () => {
+    const { client, appels } = fauxClient(tables, { wa_matching_biens_de_l_acheteur: [LA(r1, 'annonce', annonces[0])] })
+    const p = await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'attique', reponse: 'pas_interesse', motif: 'prix', note: 'trop cher' })
+    // Le bien nommé est « titre · adresse » (libelleBien) : deux annonces au même titre restent distinguables.
+    expect(p).toEqual({
+      ok: true,
+      prompt: 'Je consigne pour Julie Martin : « Attique 4 p. · Route de Florissant 12 » — pas intéressé·e, motif prix (« trop cher »). Tu confirmes ? (« oui » / « non »)',
+      payload: { match_id: 'r1', reponse: 'pas_interesse', motif: 'prix', note: 'trop cher', nom: 'Julie Martin', bien: ATT },
+    })
+    expect(appels).toEqual([{
+      rpc: 'wa_matching_biens_de_l_acheteur',
+      args: { p_agency: A, p_contact: JULIE, p_statuts: ['sent', 'interested'], p_mots: ['attique'], p_limite: 51 },
+    }])
+  })
+
+  it('plusieurs biens, aucun bien : un refus qui les nomme, jamais une question', async () => {
+    const { client } = fauxClient(tables)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' })).toEqual({
+      ok: false,
+      error: `Plusieurs biens pour Julie Martin correspondent : « ${ATT} », « ${STU} ». Lequel ?`,
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'villa', reponse: 'interesse' })).toEqual({
+      ok: false,
+      error: `Aucun bien proposé en attente de réponse pour Julie Martin ne correspond. Ceux que je vois : « ${ATT} », « ${STU} ». Lequel ?`,
+    })
+  })
+
+  it('une réponse inconnue, un refus sans motif, un acheteur hors agence ou non résolu : un refus qui dit quoi faire, sans rien lire des biens', async () => {
+    const { client, appels, lectures } = fauxClient(tables)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'bof' }))
+      .toEqual({ ok: false, error: 'Quelle réponse ? propose, interesse, pas_interesse ou pas_encore.' })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'attique', reponse: 'pas_interesse' })).toEqual({
+      ok: false,
+      error: 'Pour « pas intéressé », il me faut le motif : prix, quartier, surface, pièces, type de bien, équipements, état du bien ou autre.',
+    })
+    for (const contact_id of [AUTRE, 'Julie Martin', undefined]) {
+      expect(await prepareRecordMatchOutcome(ctx(client), { contact_id, bien: 'attique', reponse: 'interesse' }), String(contact_id))
+        .toEqual({ ok: false, error: 'Quel acheteur ? Retrouve-le d’abord avec search_contacts.' })
+    }
+    expect(appels).toEqual([])
+    expect(lectures.filter((t) => t !== 'contacts')).toEqual([])
+  })
+})
+
+describe('prepareRecordMatchOutcome — le texte choisit la lecture', () => {
+  it('un IDENTIFIANT se revérifie exactement, sans rpc — celui d’un mandat comme celui d’une annonce, même au-delà de la page', async () => {
+    const { matches: bruit } = pageDebordante()
+    const { client, appels } = fauxClient({
+      contacts, market_listings: annonces, properties: mandats,
+      matches: [...bruit, m({ id: 'm-villa', property_id: VILLA, score: 1 }), m({ id: 'm-studio', market_listing_id: STUDIO, score: 1 })],
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: VILLA, reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'm-villa', bien: VIL } })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: STUDIO, reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'm-studio', bien: STU } })
+    expect(appels).toEqual([])
+  })
+
+  it('un match que les deux lectures d’un identifiant rendent ne donne qu’UNE question (dédoublonné par id de match)', async () => {
+    // Improbable — le même uuid dans `property_id` et dans `market_listing_id` —, mais les deux lectures rendraient
+    // alors le même match : sans le dédoublonnage, « plusieurs biens » nommerait deux fois le même bien.
+    const { client } = fauxClient({
+      contacts, market_listings: [{ ...annonces[0], id: VILLA }], properties: mandats,
+      matches: [m({ id: 'm-double', property_id: VILLA, market_listing_id: VILLA })],
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: VILLA, reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'm-double' } })
+  })
+
+  it.each([
+    ['propose', ['suggested']],
+    ['interesse', ['sent']],
+    ['pas_interesse', ['sent', 'interested']],
+    ['pas_encore', ['sent']],
+  ] as const)('des MOTS (« %s ») se désignent en base : l’agence de l’agent, CET acheteur, ses statuts de départ %j, les mots nettoyés, à LIMITE_DESIGNES+1', async (reponse, statuts) => {
+    const { client, appels } = fauxClient({ contacts, market_listings: annonces, properties: [], matches: [] }, { wa_matching_biens_de_l_acheteur: [] })
+    await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: "l'attique de Florissant", reponse, motif: 'prix' })
+    expect(appels).toEqual([{
+      rpc: 'wa_matching_biens_de_l_acheteur',
+      args: { p_agency: A, p_contact: JULIE, p_statuts: [...statuts], p_mots: ['attique', 'florissant'], p_limite: 51 },
+    }])
+  })
+
+  it('un texte se désigne TOUJOURS en base, jamais dans la seule page : le bien au-delà d’elle répond aussi, rien n’est choisi', async () => {
+    // La page (les cent meilleurs scores) ne voit que l'« Attique Nord » ; l'« Attique Sud », au-delà, répond aussi au
+    // texte. Une désignation dans la page seule poserait la question sur Nord.
+    const { matches: bruit, annonces: annoncesBruit } = pageDebordante()
+    const nord = { id: 'd1000000-0000-4000-8000-00000000000a', title: 'Attique Nord', address: 'Rue Nord 1', city: 'Genève', price: 1_000_000, transaction_type: 'buy', status: 'active' }
+    const sud = { id: 'd1000000-0000-4000-8000-00000000000b', title: 'Attique Sud', address: 'Rue Sud 2', city: 'Genève', price: 1_000_000, transaction_type: 'buy', status: 'active' }
+    const mNord = m({ id: 'nord', market_listing_id: nord.id, score: 2000 })
+    const mSud = m({ id: 'sud', market_listing_id: sud.id, score: 1 })
+    const { client, lectures } = fauxClient(
+      { contacts, properties: [], market_listings: [...annoncesBruit, nord, sud], matches: [...bruit, mNord, mSud] },
+      { wa_matching_biens_de_l_acheteur: [LA(mNord, 'annonce', nord), LA(mSud, 'annonce', sud)] },
+    )
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'attique', reponse: 'propose' })).toEqual({
+      ok: false,
+      error: 'Plusieurs biens pour Julie Martin correspondent : « Attique Nord · Rue Nord 1 », « Attique Sud · Rue Sud 2 ». Lequel ?',
+    })
+    // Les biens désignés se lisent ; la page des matchs, non.
+    expect(lectures).not.toContain('matches')
+  })
+
+  it('« le bien », « le », ou aucun texte ne disent rien du bien : la page, sans rpc — un seul bien qui attend s’y désigne de lui-même', async () => {
+    const { client, appels } = fauxClient({ contacts, market_listings: annonces, properties: [], matches: [m({ id: 'seul', status: 'sent', market_listing_id: ATTIQUE })] })
+    for (const bien of ['le bien', 'le', undefined]) {
+      expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien, reponse: 'interesse' }), String(bien))
+        .toMatchObject({ ok: true, payload: { match_id: 'seul', bien: ATT } })
+    }
+    expect(appels).toEqual([])
+  })
+})
+
+describe('prepareRecordMatchOutcome — l’agence, l’acheteur et le statut de départ bornent chaque lecture', () => {
+  it('la page ne lit que les matchs de CET acheteur : ceux de Marc, de la même agence, n’y entrent pas', async () => {
+    const { client } = fauxClient({
+      contacts: contactsAvecMarc, market_listings: annonces, properties: [],
+      matches: [m({ id: 'julie', status: 'sent', market_listing_id: ATTIQUE }), m({ id: 'marc', contact_id: MARC, status: 'sent', market_listing_id: STUDIO, score: 99 })],
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'julie' } })
+  })
+
+  it('un identifiant ne trouve que le match de CET acheteur : celui de Marc sur le même bien n’est pas le sien', async () => {
+    const { client } = fauxClient({
+      contacts: contactsAvecMarc, market_listings: annonces, properties: [],
+      matches: [m({ id: 'marc', contact_id: MARC, status: 'sent', market_listing_id: ATTIQUE })],
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ATTIQUE, reponse: 'interesse' }))
+      .toEqual({ ok: false, error: "Julie Martin n'a aucun bien proposé en attente de réponse." })
+  })
+
+  it.each([
+    ['propose', 'suggested', 'sent'],
+    ['interesse', 'sent', 'interested'],
+    ['pas_interesse', 'interested', 'suggested'],
+    ['pas_encore', 'sent', 'rejected'],
+  ] as const)('« %s » ne voit que ses matchs au statut de départ (%s), jamais un autre (%s) — par la page comme par l’identifiant', async (reponse, garde, ecarte) => {
+    const { client } = fauxClient({
+      contacts, market_listings: annonces, properties: [],
+      matches: [m({ id: 'garde', status: garde, market_listing_id: ATTIQUE, score: 10 }), m({ id: 'ecarte', status: ecarte, market_listing_id: STUDIO, score: 90 })],
+    })
+    const args = { contact_id: JULIE, reponse, motif: 'prix' }
+    expect(await prepareRecordMatchOutcome(ctx(client), args)).toMatchObject({ ok: true, payload: { match_id: 'garde' } })
+    expect(await prepareRecordMatchOutcome(ctx(client), { ...args, bien: ATTIQUE })).toMatchObject({ ok: true, payload: { match_id: 'garde' } })
+    expect((await prepareRecordMatchOutcome(ctx(client), { ...args, bien: STUDIO })).ok).toBe(false)
+  })
+
+  it('un match de Julie porté par une AUTRE agence n’est trouvé ni par la page, ni par son identifiant ; la désignation en base reçoit l’agence de l’agent', async () => {
+    const fuite = m({ id: 'fuite', agency_id: B, status: 'sent', market_listing_id: STUDIO, score: 99 })
+    const { client, appels } = fauxClient({ contacts, market_listings: annonces, properties: [], matches: [m({ id: 'ok', status: 'sent', market_listing_id: ATTIQUE }), fuite] })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'ok' } })
+    expect((await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: STUDIO, reponse: 'interesse' })).ok).toBe(false)
+    await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'studio', reponse: 'interesse' })
+    expect(appels.map((x) => x.args.p_agency)).toEqual([A])
+  })
+})
+
+describe('prepareRecordMatchOutcome — les frontières des lectures', () => {
+  const cinqPremiers = [0, 1, 2, 3, 4].map((i) => `« Bruit ${i} · Rue du Bruit ${i} »`).join(', ')
+
+  it('la page : 100 matchs, elle est complète (« 5 sur 100 ») ; 101, elle est coupée (« 5 sur plus de 100 »)', async () => {
+    for (const [n, compte] of [[100, '(5 sur 100)'], [101, '(5 sur plus de 100)']] as const) {
+      const { matches, annonces: marche } = pageDebordante('sent', n)
+      const { client } = fauxClient({ contacts, market_listings: marche, properties: [], matches })
+      expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' }), String(n)).toEqual({
+        ok: false, error: `Plusieurs biens pour Julie Martin correspondent ${compte} : ${cinqPremiers}. Lequel ?`,
+      })
+    }
+  })
+
+  it('un texte qui ne désigne rien, une page coupée : « Ceux que je vois (5 sur plus de 100) »', async () => {
+    const { matches, annonces: marche } = pageDebordante()
+    const { client } = fauxClient({ contacts, market_listings: marche, properties: [], matches }, { wa_matching_biens_de_l_acheteur: [] })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'chalet', reponse: 'propose' })).toEqual({
+      ok: false,
+      error: `Aucun bien à proposer pour Julie Martin ne correspond. Ceux que je vois (5 sur plus de 100) : ${cinqPremiers}. Lequel ?`,
+    })
+  })
+
+  it('la désignation : 50 lignes, elle tranche (« 5 sur 50 ») ; 51, « trop large » — ni un bien seul, ni « aucun »', async () => {
+    const duplex = Array.from({ length: 51 }, (_, i) => ({
+      id: `d3000000-0000-4000-8000-${String(i).padStart(12, '0')}`, title: `Duplex ${i}`, address: `Rue du Rhône ${i + 1}`,
+      city: 'Genève', price: 1_000_000, transaction_type: 'buy', status: 'active',
+    }))
+    const matchs = duplex.map((d, i) => m({ id: `f3000000-0000-4000-8000-${String(i).padStart(12, '0')}`, market_listing_id: d.id, status: 'sent', score: 90 - i }))
+    const lignes = duplex.map((d, i) => LA(matchs[i], 'annonce', d))
+    const tablesDuplex = { contacts, properties: [], market_listings: duplex, matches: matchs }
+    const { client: c50 } = fauxClient(tablesDuplex, { wa_matching_biens_de_l_acheteur: lignes.slice(0, 50) })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(c50), { contact_id: JULIE, bien: 'duplex', reponse: 'interesse' })))
+      .toMatch(/^Plusieurs biens pour Julie Martin correspondent \(5 sur 50\) : « Duplex 0 · Rue du Rhône 1 »/)
+    const { client: c51 } = fauxClient(tablesDuplex, { wa_matching_biens_de_l_acheteur: lignes })
+    expect(await prepareRecordMatchOutcome(ctx(c51), { contact_id: JULIE, bien: 'duplex', reponse: 'interesse' })).toEqual({
+      ok: false, error: "Pour Julie Martin, la recherche « duplex » est trop large pour trancher : donne l'adresse, ou l'identifiant du bien (via get_matches).",
+    })
+  })
+
+  it('la page se lit par score décroissant, puis par id (`matches.score` est `integer not null`)', async () => {
+    const LOFT = 'd0000000-0000-4000-8000-0000000000e1'
+    const { client } = fauxClient({
+      contacts, properties: mandats,
+      market_listings: [...annonces, { id: LOFT, title: 'Loft', address: 'Rue Verte 1', city: 'Genève', status: 'active' }],
+      matches: [
+        m({ id: 'z-10', status: 'sent', market_listing_id: LOFT, score: 10 }),
+        m({ id: 'b-50', status: 'sent', market_listing_id: STUDIO, score: 50 }),
+        m({ id: 'a-50', status: 'sent', market_listing_id: ATTIQUE, score: 50 }),
+        m({ id: 'c-90', status: 'sent', property_id: VILLA, score: 90 }),
+      ],
+    })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' })))
+      .toBe(`Plusieurs biens pour Julie Martin correspondent : « ${VIL} », « ${ATT} », « ${STU} », « Loft · Rue Verte 1 ». Lequel ?`)
+  })
+})
+
+describe('prepareRecordMatchOutcome — « propose » ne vise jamais une annonce retirée', () => {
+  const retiree = { id: 'd0000000-0000-4000-8000-000000000099', title: 'Loft Retiré Rhône', address: 'Rue du Rhône 5', city: 'Genève', price: 800_000, transaction_type: 'buy', status: 'removed' }
+  const retiree2 = { id: 'd0000000-0000-4000-8000-000000000098', title: 'Duplex Retiré Rhône', address: 'Rue du Rhône 9', city: 'Genève', price: 700_000, transaction_type: 'buy', status: 'removed' }
+  const vivante = { id: 'd0000000-0000-4000-8000-000000000097', title: 'Loft Vivant Rhône', address: 'Rue du Rhône 7', city: 'Genève', price: 900_000, transaction_type: 'buy', status: 'active' }
+  const vivante2 = { id: 'd0000000-0000-4000-8000-000000000096', title: 'Studio Vivant Rhône', address: 'Rue du Rhône 11', city: 'Genève', price: 600_000, transaction_type: 'buy', status: 'active' }
+  const RET = 'Loft Retiré Rhône · Rue du Rhône 5'
+  const RE2 = 'Duplex Retiré Rhône · Rue du Rhône 9'
+  const VIV = 'Loft Vivant Rhône · Rue du Rhône 7'
+  const VI2 = 'Studio Vivant Rhône · Rue du Rhône 11'
+  const mR = m({ id: 'rt1', market_listing_id: retiree.id, score: 90 })
+  const mR2 = m({ id: 'rt2', market_listing_id: retiree2.id, score: 85 })
+  const mV = m({ id: 'rt3', market_listing_id: vivante.id, score: 20 })
+  const mV2 = m({ id: 'rt4', market_listing_id: vivante2.id, score: 10 })
+  const marche = [...annonces, retiree, retiree2, vivante, vivante2]
+  const preparer = (matches: Ligne[], designes: Ligne[] | null, bien?: string) => {
+    const { client } = fauxClient({ contacts, market_listings: marche, properties: [], matches }, designes ? { wa_matching_biens_de_l_acheteur: designes } : {})
+    return prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien, reponse: 'propose' })
+  }
+
+  it('une retirée seule : le refus la nomme, au singulier — rien de consigné', async () => {
+    expect(await preparer([mR], [LA(mR, 'annonce', retiree)], 'Rhône')).toEqual({
+      ok: false, error: `« ${RET} » est retirée du marché : elle ne se propose plus. Rien n'est consigné.`,
+    })
+  })
+
+  it('deux retirées : au pluriel', async () => {
+    expect(erreur(await preparer([mR, mR2], [LA(mR, 'annonce', retiree), LA(mR2, 'annonce', retiree2)], 'Rhône')))
+      .toBe(`« ${RET} », « ${RE2} » sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.`)
+  })
+
+  it('retirée ET vivante mêlées : la vivante seule, et la question', async () => {
+    const p = await preparer([mR, mV], [LA(mR, 'annonce', retiree), LA(mV, 'annonce', vivante)], 'Rhône')
+    expect(p).toMatchObject({ ok: true, payload: { match_id: 'rt3', bien: VIV } })
+  })
+
+  it('« plusieurs » ne nomme que les vivantes', async () => {
+    const p = await preparer([mR, mV, mV2], [LA(mR, 'annonce', retiree), LA(mV, 'annonce', vivante), LA(mV2, 'annonce', vivante2)], 'Rhône')
+    expect(erreur(p)).toBe(`Plusieurs biens pour Julie Martin correspondent : « ${VIV} », « ${VI2} ». Lequel ?`)
+  })
+
+  it('« Ceux que je vois » ne nomme aucune retirée', async () => {
+    expect(erreur(await preparer([mR, mV], [], 'duplex')))
+      .toBe(`Aucun bien à proposer pour Julie Martin ne correspond. Ceux que je vois : « ${VIV} ». Lequel ?`)
+  })
+
+  it('sans texte : la seule vivante se désigne d’elle-même ; que des retirées, le refus qui les nomme', async () => {
+    expect(await preparer([mR, mV], null)).toMatchObject({ ok: true, payload: { match_id: 'rt3', bien: VIV } })
+    expect(erreur(await preparer([mR, mR2], null)))
+      .toBe(`« ${RET} », « ${RE2} » sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.`)
+  })
+
+  it('« interesse » reste consignable sur une annonce retirée : la règle ne vaut que pour « propose »', async () => {
+    const mS = m({ id: 'rt5', market_listing_id: retiree.id, status: 'sent' })
+    const { client } = fauxClient({ contacts, market_listings: marche, properties: [], matches: [mS] }, { wa_matching_biens_de_l_acheteur: [LA(mS, 'annonce', retiree)] })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'Rhône', reponse: 'interesse' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'rt5', bien: RET } })
+  })
+
+  it('un MANDAT vendu se propose encore, comme dans le fil : la règle `occasion` des mandats attend la décision 12 du lot D1', async () => {
+    const vendu = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000d1', status: 'sold' }
+    const mS = m({ id: 'rt6', property_id: vendu.id })
+    const { client } = fauxClient({ contacts, market_listings: [], properties: [vendu], matches: [mS] }, { wa_matching_biens_de_l_acheteur: [LA(mS, 'mandat', vendu)] })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'villa', reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'rt6', bien: VIL } })
+  })
+})
+
+describe('prepareRecordMatchOutcome — une page coupée où rien ne se nomme', () => {
+  const supprimes = Array.from({ length: 101 }, (_, i) => ({
+    id: `e7000000-0000-4000-8000-${String(i).padStart(12, '0')}`, agency_id: A, deleted_at: '2026-09-01T00:00:00Z',
+    title: `Supprimé ${i}`, address: `Rue ${i}`, city: 'Genève', status: 'active',
+  }))
+  const surSupprimes = supprimes.map((p, i) => m({ id: `x${String(i).padStart(3, '0')}`, property_id: p.id }))
+
+  it('sans texte, 101 matchs sur des mandats supprimés : ni « aucun bien », ni une liste vide — le copilote demande lequel', async () => {
+    const { client } = fauxClient({ contacts, properties: supprimes, market_listings: [], matches: surSupprimes })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'propose' })).toEqual({
+      ok: false,
+      error: 'Quel bien à proposer pour Julie Martin ? Il y en a trop pour que je les nomme : donne son nom, son adresse ou sa ville, ou son identifiant (via get_matches).',
+    })
+  })
+
+  it('sans texte, une page coupée de retirées : pas « retirées » — d’autres attendent peut-être au-delà —, la même question', async () => {
+    const { matches, annonces: marche } = pageDebordante()
+    const { client } = fauxClient({ contacts, properties: [], market_listings: marche.map((a) => ({ ...a, status: 'removed' })), matches })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'propose' }))).toMatch(/^Quel bien à proposer pour Julie Martin \?/)
+  })
+
+  it('sans texte, une page coupée où UN seul bien se nomme : « plusieurs (1 sur plus de 100) », jamais la question — d’autres attendent au-delà', async () => {
+    const { client } = fauxClient({
+      contacts, properties: supprimes, market_listings: annonces,
+      matches: [...surSupprimes.slice(0, 100), m({ id: 'lisible', market_listing_id: ATTIQUE, score: 90 })],
+    })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'propose' })).toEqual({
+      ok: false, error: `Plusieurs biens pour Julie Martin correspondent (1 sur plus de 100) : « ${ATT} ». Lequel ?`,
+    })
+  })
+
+  it('sans texte, une page coupée où DEUX biens se nomment : « (2 sur plus de 100) » — jamais une liste courte qui passe pour entière', async () => {
+    const annonce2 = { id: 'd0000000-0000-4000-8000-0000000000f2', title: 'Duplex', address: 'Rue Verte 2', city: 'Genève', status: 'active' }
+    const { client } = fauxClient({
+      contacts, properties: supprimes, market_listings: [...annonces, annonce2],
+      matches: [...surSupprimes.slice(0, 99), m({ id: 'a', market_listing_id: ATTIQUE, score: 95 }), m({ id: 'd', market_listing_id: annonce2.id, score: 94 })],
+    })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'propose' })))
+      .toBe(`Plusieurs biens pour Julie Martin correspondent (2 sur plus de 100) : « ${ATT} », « Duplex · Rue Verte 2 ». Lequel ?`)
+  })
+
+  it('un identifiant qui ne désigne rien, une page coupée où rien ne se nomme : « aucun ne correspond », jamais « n’a aucun bien »', async () => {
+    const { client } = fauxClient({ contacts, properties: supprimes, market_listings: annonces, matches: surSupprimes })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ATTIQUE, reponse: 'propose' }))
+      .toEqual({ ok: false, error: 'Aucun bien à proposer pour Julie Martin ne correspond.' })
+  })
+})
+
+describe('prepareRecordMatchOutcome — un match qui porte un mandat ET une annonce est nommé par son mandat', () => {
+  it('sans texte, par l’identifiant de son annonce, par la ligne que la base rend : la question nomme la villa', async () => {
+    const double = m({ id: 'm-double', status: 'sent', property_id: VILLA, market_listing_id: ATTIQUE })
+    const { client } = fauxClient(
+      { contacts, properties: mandats, market_listings: annonces, matches: [double] },
+      { wa_matching_biens_de_l_acheteur: [LA(double, 'mandat', mandats[0])] },
+    )
+    for (const bien of [undefined, ATTIQUE, 'villa']) {
+      expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien, reponse: 'interesse' }), String(bien))
+        .toMatchObject({ ok: true, payload: { match_id: 'm-double', bien: VIL } })
+    }
+  })
+})
+
+describe('prepareRecordMatchOutcome — l’écho de ce que le copilote a montré désigne son bien', () => {
+  // Une attique au n° 40 : la base la rend avec les autres (« attique » et « 4 », contenu dans « 40 »), `candidats`
+  // l'écarte (un nombre est un mot entier).
+  const attique40 = { id: 'd0000000-0000-4000-8000-0000000000b3', title: 'Attique 3 p.', address: 'Route de Florissant 40', city: 'Genève', price: 1_300_000, transaction_type: 'buy', status: 'active' }
+  const jumeau = { id: 'd0000000-0000-4000-8000-0000000000b2', title: 'Attique 4 p. duplex', address: 'Route de Florissant 12', city: 'Genève', price: 1_700_000, transaction_type: 'buy', status: 'active' }
+  const mA = m({ id: 'm-attique', status: 'sent', market_listing_id: ATTIQUE })
+  const m40 = m({ id: 'm-attique40', status: 'sent', market_listing_id: attique40.id })
+  const mJ = m({ id: 'm-jumeau', status: 'sent', market_listing_id: jumeau.id })
+  const tables = { contacts, properties: [], market_listings: [...annonces, attique40, jumeau], matches: [mA, m40, mJ] }
+
+  it('le TITRE nu à chiffres que get_matches a montré (« Attique 4 p. ») : retrouvé par les mots — son « 4 » entier, pas le « 40 » de l’autre', async () => {
+    const { client } = fauxClient(tables, { wa_matching_biens_de_l_acheteur: [LA(m40, 'annonce', attique40), LA(mA, 'annonce', annonces[0])] })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'Attique 4 p.', reponse: 'interesse' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'm-attique', bien: ATT } })
+  })
+
+  it('le titre nu avec un leurre qui porte « attique » et le « 4 » dans son adresse : les DEUX, le copilote demande', async () => {
+    const leurre = { id: 'd0000000-0000-4000-8000-0000000000b4', title: 'Attique 3 p.', address: 'Rue du Stand 4', city: 'Genève', price: 1_200_000, transaction_type: 'buy', status: 'active' }
+    const mLe = m({ id: 'm-leurre', status: 'sent', market_listing_id: leurre.id })
+    const { client } = fauxClient(
+      { ...tables, market_listings: [...tables.market_listings, leurre], matches: [...tables.matches, mLe] },
+      { wa_matching_biens_de_l_acheteur: [LA(mLe, 'annonce', leurre), LA(mA, 'annonce', annonces[0])] },
+    )
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'Attique 4 p.', reponse: 'interesse' })))
+      .toBe(`Plusieurs biens pour Julie Martin correspondent : « Attique 3 p. · Rue du Stand 4 », « ${ATT} ». Lequel ?`)
+  })
+
+  it('le titre nu, avec un jumeau à la même adresse : les deux — c’est le LIBELLÉ qu’un refus a nommé qui désigne l’attique seule', async () => {
+    const { client } = fauxClient(tables, { wa_matching_biens_de_l_acheteur: [LA(mJ, 'annonce', jumeau), LA(mA, 'annonce', annonces[0])] })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'Attique 4 p.', reponse: 'interesse' })))
+      .toBe(`Plusieurs biens pour Julie Martin correspondent : « Attique 4 p. duplex · Route de Florissant 12 », « ${ATT} ». Lequel ?`)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ATT, reponse: 'interesse' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'm-attique', bien: ATT } })
+  })
+})
+
+describe('prepareRecordMatchOutcome — un refus est une phrase pour l’agent', () => {
+  it('ni identifiant ni seconde ligne : au second refus d’un échange, whatsapp-agent le lui rend tel quel', async () => {
+    const r1 = m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })
+    const r2 = m({ id: 'r2', status: 'sent', market_listing_id: STUDIO })
+    const retiree = { id: 'd0000000-0000-4000-8000-000000000099', title: 'Loft Retiré', address: 'Rue du Rhône 5', city: 'Genève', status: 'removed' }
+    const mR = m({ id: 'rt', market_listing_id: retiree.id })
+    const { client } = fauxClient(
+      { contacts, market_listings: [...annonces, retiree], properties: [], matches: [r1, r2, mR] },
+      { wa_matching_biens_de_l_acheteur: [LA(mR, 'annonce', retiree)] },
+    )
+    const refus = [
+      await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' }),
+      await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'villa', reponse: 'interesse' }),
+      await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'loft', reponse: 'propose' }),
+    ].map(erreur)
+    expect(refus.map((r) => r.slice(0, 12))).toEqual(['Plusieurs bi', 'Aucun bien p', '« Loft Retir'])
+    for (const r of refus) {
+      expect(r).not.toContain('\n')
+      expect(r).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-/i)
+    }
+  })
+})
+
+describe('prepareRecordMatchOutcome — l’ÉCHO d’un libellé sur une désignation coupée', () => {
+  // Une annonce SANS adresse : son libellé est « titre · ville », et « donne l'adresse » n'y aurait pas de réponse.
+  const cible = { id: 'd1000000-0000-4000-8000-000000000001', title: 'Appartement 4.5 pièces', address: null, city: 'Genève', price: 1_000_000, transaction_type: 'buy', status: 'active' }
+  const ECHO = 'Appartement 4.5 pièces · Genève'
+  /** La cible et `n` voisins aux mêmes mots, dans l'ordre où la base les rendrait ; la cible en tête. */
+  const monter = (n: number) => {
+    const voisins = Array.from({ length: n }, (_, i) => ({
+      id: `d2000000-0000-4000-8000-${String(i).padStart(12, '0')}`, title: `Appartement ${i % 3 + 3}.5 pièces`, address: `Rue ${i + 40}`,
+      city: 'Genève', price: 900_000, transaction_type: 'buy', status: 'active',
+    }))
+    const biens = [cible, ...voisins]
+    const matchs = biens.map((b, i) => m({ id: `e${String(i).padStart(3, '0')}`, market_listing_id: b.id }))
+    return {
+      tables: { contacts, properties: [], market_listings: biens, matches: matchs },
+      rpc: { wa_matching_biens_de_l_acheteur: biens.map((b, i) => LA(matchs[i], 'annonce', b)) },
+    }
+  }
+
+  it('coupée à 50 : l’écho se relit jusqu’à 200 (demande de 201), et le libellé désigne son bien', async () => {
+    const { tables, rpc } = monter(50)
+    const { client, appels } = fauxClient(tables, rpc)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ECHO, reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'e000', bien: ECHO } })
+    expect(appels.map((a) => a.args.p_limite)).toEqual([51, 201])
+  })
+
+  it('toujours coupée à 200 : un refus qui ne demande PAS l’adresse — la réponse se consigne depuis le CRM', async () => {
+    const { tables, rpc } = monter(201)
+    const { client } = fauxClient(tables, rpc)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ECHO, reponse: 'propose' })).toEqual({
+      ok: false, error: `Trop de biens de Julie Martin répondent aux mots de « ${ECHO} » pour que je tranche par WhatsApp : consigne cette réponse depuis le CRM.`,
+    })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client, 'en'), { contact_id: JULIE, bien: ECHO, reponse: 'propose' })))
+      .toBe(`Too many of Julie Martin's properties match the words of « ${ECHO} » for me to settle this over WhatsApp: record the answer from the CRM.`)
+  })
+
+  it('exactement 200 à la seconde lecture : complète, le libellé désigne son bien — la 201ᵉ ligne seule dit la coupe', async () => {
+    const { tables, rpc } = monter(199)
+    const { client } = fauxClient(tables, rpc)
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ECHO, reponse: 'propose' }))
+      .toMatchObject({ ok: true, payload: { match_id: 'e000' } })
+  })
+
+  it('sans « · », pas d’écho : une désignation coupée reste « trop large », sans seconde lecture', async () => {
+    const { tables, rpc } = monter(50)
+    const { client, appels } = fauxClient(tables, rpc)
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'appartement 4.5 pièces genève', reponse: 'propose' })))
+      .toBe("Pour Julie Martin, la recherche « appartement 4.5 pièces genève » est trop large pour trancher : donne l'adresse, ou l'identifiant du bien (via get_matches).")
+    expect(appels).toHaveLength(1)
+  })
+
+  it('la seconde lecture en panne : l’échec — ni la première lecture gardée, ni « trop large »', async () => {
+    const { tables, rpc } = monter(50)
+    const { client } = fauxClient(tables, rpc, { erreurSur: new Set(['wa_matching_biens_de_l_acheteur#2']) })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: ECHO, reponse: 'propose' })).toEqual({ ok: false, error: ECHEC })
+  })
+})
+
+describe('prepareRecordMatchOutcome — une panne n’est jamais une absence', () => {
+  const r1 = m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })
+  const tables = { contacts, market_listings: annonces, properties: [], matches: [r1] }
+  const cas: [string, ReadonlySet<string>, Record<string, unknown>, Record<string, unknown>][] = [
+    ['la page des matchs (sans texte)', new Set(['matches']), { reponse: 'interesse' }, {}],
+    ['les biens de la page (sans texte)', new Set(['market_listings']), { reponse: 'interesse' }, {}],
+    ['la désignation en base (des mots)', new Set(['wa_matching_biens_de_l_acheteur']), { reponse: 'interesse', bien: 'attique' }, {}],
+    ['les biens désignés (des mots)', new Set(['market_listings']), { reponse: 'interesse', bien: 'attique' }, { wa_matching_biens_de_l_acheteur: [LA(r1, 'annonce', annonces[0])] }],
+    ['les matchs du bien (un identifiant)', new Set(['matches']), { reponse: 'interesse', bien: ATTIQUE }, {}],
+    ['les biens du match (un identifiant)', new Set(['market_listings']), { reponse: 'interesse', bien: ATTIQUE }, {}],
+    ['la page qui nomme « ceux que je vois »', new Set(['market_listings']), { reponse: 'interesse', bien: 'villa' }, { wa_matching_biens_de_l_acheteur: [] }],
+    // La première lecture seule en panne : la page que relirait un refus « aucun », elle, se lirait — une panne lue
+    // comme une absence rendrait alors « Ceux que je vois », jamais l'échec.
+    ['les biens désignés seuls (des mots)', new Set(['market_listings#1']), { reponse: 'interesse', bien: 'attique' }, { wa_matching_biens_de_l_acheteur: [LA(r1, 'annonce', annonces[0])] }],
+    ['les matchs du bien seuls (un identifiant)', new Set(['matches#1']), { reponse: 'interesse', bien: ATTIQUE }, {}],
+    ['les biens du match seuls (un identifiant)', new Set(['market_listings#1']), { reponse: 'interesse', bien: ATTIQUE }, {}],
+  ]
+
+  it.each(cas)('%s en panne : l’échec, jamais « aucun » ni une question', async (_, erreurSur, args, rpc) => {
+    const { client } = fauxClient(tables, rpc, { erreurSur })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, ...args })).toEqual({ ok: false, error: ECHEC })
+  })
+
+  it('panne à la lecture du contact : LECTURE_IMPOSSIBLE, jamais « introuvable »', async () => {
+    const { client } = fauxClient({ contacts, matches: [] }, {}, { erreurSur: new Set(['contacts']) })
+    const p = await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, reponse: 'interesse' })
+    expect(p.ok).toBe(false)
+    if (!p.ok) expect(p.error).toMatch(/momentanément impossible/)
+  })
+
+  it('un `contact_id` qui n’est pas un UUID : « Quel acheteur ? » SANS lecture, même les contacts en panne', async () => {
+    const { client } = fauxClient({ contacts, matches: [] }, {}, { erreurSur: new Set(['contacts']) })
+    const p = await prepareRecordMatchOutcome(ctx(client), { contact_id: 'Julie Martin', reponse: 'interesse' })
+    expect(p.ok).toBe(false)
+    if (!p.ok) {
+      expect(p.error).toMatch(/Quel acheteur/)
+      expect(p.error).not.toMatch(/momentanément impossible/)
+    }
+  })
+})
+
+describe('prepareRecordMatchOutcome — la note d’un refus', () => {
+  const r1 = m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })
+  const rpc = { wa_matching_biens_de_l_acheteur: [LA(r1, 'annonce', annonces[0])] }
+  const tables = { contacts, market_listings: annonces, properties: [], matches: [r1] }
+
+  it('300 POINTS DE CODE au plus : un émoji à la frontière reste entier, jamais la moitié d’une paire', async () => {
+    const { client } = fauxClient(tables, rpc)
+    const p = await prepareRecordMatchOutcome(ctx(client), {
+      contact_id: JULIE, bien: 'attique', reponse: 'pas_interesse', motif: 'prix', note: `${'é'.repeat(299)}😀 et la suite`,
+    })
+    if (!p.ok) throw new Error(p.error)
+    const note = p.payload.note as string
+    expect(note).toBe(`${'é'.repeat(299)}😀`)
+    expect(Array.from(note)).toHaveLength(300)
+    expect(p.prompt).toContain(`(« ${note} »)`)
+  })
+
+  it('une note ne vaut que pour « pas intéressé »', async () => {
+    const { client } = fauxClient(tables, rpc)
+    const p = await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'attique', reponse: 'interesse', note: 'adore la vue' })
+    expect(p).toMatchObject({ ok: true, payload: { note: null } })
+  })
+})
+
+describe('executeRecordMatchOutcome — l’écriture d’un bloc, par la base', () => {
+  const payload = { match_id: 'r1', reponse: 'interesse', motif: null, note: null, nom: 'Julie Martin', bien: 'Attique 4 p.' }
+
+  it('envoie l’agence et l’agent de la session, puis rend le compte rendu', async () => {
+    const { client, appels } = fauxClient({}, { wa_matching_consigner: { ok: true, deja: false } })
+    expect(await executeRecordMatchOutcome(ctx(client), payload)).toBe('✅ Consigné pour Julie Martin : « Attique 4 p. » — intéressé·e.')
+    expect(appels).toEqual([{ rpc: 'wa_matching_consigner', args: { p_agency: A, p_profile: 'p-agent', p_match: 'r1', p_reponse: 'interesse', p_motif: null, p_note: null } }])
+  })
+
+  it.each([
+    ['propose', 'sent', 'interested'],
+    ['interesse', 'interested', 'rejected'],
+    ['pas_interesse', 'rejected', 'suggested'],
+  ] as const)('« %s » que la base n’écrit pas : « déjà consignée » si le match porte %s, « a changé » s’il porte %s ; hors agence, un troisième message', async (reponse, arrivee, autre) => {
+    const charge = { ...payload, reponse, motif: 'prix' }
+    const lire = (data: unknown) => executeRecordMatchOutcome(ctx(fauxClient({}, { wa_matching_consigner: data }).client), charge)
+    const messages = [
+      await lire({ ok: true, deja: true, statut: arrivee }),
+      await lire({ ok: true, deja: true, statut: autre }),
+      await lire({ ok: false }),
+    ]
+    expect(messages).toEqual([
+      "Rien n'a été écrit : la réponse pour Julie Martin sur « Attique 4 p. » a déjà été consignée entre-temps.",
+      "Rien n'a été écrit : « Attique 4 p. » n'attend plus cette réponse pour Julie Martin, il a changé entre-temps.",
+      "Rien n'a été écrit : ce bien n'est plus dans la boucle de ton agence.",
+    ])
+  })
+
+  it('« pas encore » n’écrit aucun statut : la base qui n’a rien écrit dit toujours que le bien a changé, jamais « déjà consignée »', async () => {
+    for (const statut of ['interested', 'rejected', null, undefined]) {
+      const { client } = fauxClient({}, { wa_matching_consigner: { ok: true, deja: true, statut } })
+      expect(await executeRecordMatchOutcome(ctx(client), { ...payload, reponse: 'pas_encore' }), String(statut))
+        .toBe("Rien n'a été écrit : « Attique 4 p. » n'attend plus cette réponse pour Julie Martin, il a changé entre-temps.")
+    }
+  })
+
+  it('une charge illisible — réponse inconnue, match absent — ne va jamais jusqu’à la base', async () => {
+    const { client, appels } = fauxClient({}, { wa_matching_consigner: { ok: true, deja: false } })
+    expect(await executeRecordMatchOutcome(ctx(client), { ...payload, reponse: 'bof' })).toBe(ECHEC)
+    expect(await executeRecordMatchOutcome(ctx(client), { ...payload, match_id: undefined })).toBe(ECHEC)
+    expect(await executeRecordMatchOutcome(ctx(client), { ...payload, match_id: '   ' })).toBe(ECHEC)
+    expect(appels).toEqual([])
+  })
+
+  it('le rpc en panne rend un échec, jamais une exception', async () => {
+    const { client } = fauxClient({}, {}, { erreurSur: new Set(['wa_matching_consigner']) })
+    await expect(executeRecordMatchOutcome(ctx(client), payload)).resolves.toBe(ECHEC)
+  })
+
+  it('« pas intéressé » transmet le motif ET la note à `wa_matching_consigner`', async () => {
+    const { client, appels } = fauxClient({}, { wa_matching_consigner: { ok: true, deja: false } })
+    const refus = { match_id: 'r2', reponse: 'pas_interesse', motif: 'prix', note: 'trop cher', nom: 'Julie Martin', bien: 'Attique 4 p.' }
+    await executeRecordMatchOutcome(ctx(client), refus)
+    expect(appels).toEqual([{ rpc: 'wa_matching_consigner', args: { p_agency: A, p_profile: 'p-agent', p_match: 'r2', p_reponse: 'pas_interesse', p_motif: 'prix', p_note: 'trop cher' } }])
+  })
+
+  it('sans agence, ni la préparation ni l’écriture ne lisent ni n’écrivent rien', async () => {
+    const { client, appels, lectures } = fauxClient({ contacts, matches: [m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })] }, { wa_matching_consigner: { ok: true, deja: false } })
+    const sansAgence: ActionCtx = { supabase: client as never, profileId: 'p-agent', agencyId: null, lang: 'fr' }
+    const refus = 'Erreur: ton compte n’est rattaché à aucune agence. Contacte un administrateur.'
+    expect(await prepareRecordMatchOutcome(sansAgence, { contact_id: JULIE, reponse: 'interesse' })).toEqual({ ok: false, error: refus })
+    expect(await executeRecordMatchOutcome(sansAgence, payload)).toBe(refus)
+    expect(appels).toEqual([])
+    expect(lectures).toEqual([])
+  })
+})
+
+describe('record_match_outcome — en anglais, de bout en bout', () => {
+  const r1 = m({ id: 'r1', status: 'sent', market_listing_id: ATTIQUE })
+  const r2 = m({ id: 'r2', status: 'sent', market_listing_id: STUDIO })
+  const tables = { contacts, market_listings: annonces, properties: [], matches: [r1, r2] }
+
+  it('la question, puis le compte rendu', async () => {
+    const { client } = fauxClient(tables, { wa_matching_biens_de_l_acheteur: [LA(r1, 'annonce', annonces[0])], wa_matching_consigner: { ok: true, deja: false } })
+    const p = await prepareRecordMatchOutcome(ctx(client, 'en'), { contact_id: JULIE, bien: 'attique', reponse: 'pas_interesse', motif: 'prix', note: 'too expensive' })
+    if (!p.ok) throw new Error(p.error)
+    expect(p.prompt).toBe(`I'll record for Julie Martin: « ${ATT} » — not interested, reason: price (« too expensive »). Confirm? ("yes" / "no")`)
+    expect(await executeRecordMatchOutcome(ctx(client, 'en'), p.payload)).toBe(`✅ Recorded for Julie Martin: « ${ATT} » — not interested (price).`)
+  })
+
+  it('les refus de la préparation', async () => {
+    const { client } = fauxClient(tables)
+    const en = (args: Record<string, unknown>) => prepareRecordMatchOutcome(ctx(client, 'en'), { contact_id: JULIE, ...args })
+    expect(erreur(await en({ reponse: 'interesse' }))).toBe(`Several properties for Julie Martin match: « ${ATT} », « ${STU} ». Which one?`)
+    expect(erreur(await en({ reponse: 'interesse', bien: 'villa' })))
+      .toBe(`No property proposed and awaiting an answer for Julie Martin matches. Those I found: « ${ATT} », « ${STU} ». Which one?`)
+    expect(erreur(await en({ reponse: 'bof' }))).toBe('Which answer? propose, interesse, pas_interesse or pas_encore.')
+    expect(erreur(await en({ reponse: 'pas_interesse', bien: 'attique' })))
+      .toBe('To record "not interested", I need the reason: price, neighbourhood, floor area, rooms, property type, features, condition or other.')
+    expect(erreur(await en({ contact_id: AUTRE, reponse: 'interesse' }))).toBe('Which buyer? Find them first with search_contacts.')
+    const { client: large } = fauxClient(tables, { wa_matching_biens_de_l_acheteur: Array.from({ length: 51 }, (_, i) => LA(m({ id: `l${i}` }), 'annonce', { id: `z${i}`, title: `Loft ${i}` })) })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(large, 'en'), { contact_id: JULIE, bien: 'loft', reponse: 'interesse' })))
+      .toBe(`For Julie Martin, the search "loft" is too broad to settle: give the address, or the property's identifier (via get_matches).`)
+  })
+
+  it('un acheteur sans nom : « this contact » en anglais, « ce contact » en français — le repli suit la langue', async () => {
+    const SANS_NOM = 'c0000000-0000-4000-8000-000000000009'
+    const { client } = fauxClient({
+      contacts: [...contacts, { id: SANS_NOM, agency_id: A, first_name: null, last_name: ' ' }], market_listings: annonces, properties: [],
+      matches: [m({ id: 'x', contact_id: SANS_NOM, status: 'sent', market_listing_id: ATTIQUE })],
+    })
+    const en = await prepareRecordMatchOutcome(ctx(client, 'en'), { contact_id: SANS_NOM, reponse: 'interesse' })
+    expect(en).toMatchObject({ ok: true, payload: { nom: 'this contact' }, prompt: `I'll record for this contact: « ${ATT} » — interested. Confirm? ("yes" / "no")` })
+    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: SANS_NOM, reponse: 'interesse' })).toMatchObject({ ok: true, payload: { nom: 'ce contact' } })
+  })
+
+  it('les trois issues d’une écriture que la base refuse', async () => {
+    const lire = (data: unknown) => executeRecordMatchOutcome(ctx(fauxClient({}, { wa_matching_consigner: data }).client, 'en'), {
+      match_id: 'r1', reponse: 'interesse', nom: 'Julie Martin', bien: 'Attique 4 p.',
+    })
+    expect(await lire({ ok: true, deja: true, statut: 'interested' })).toBe("Nothing was written: Julie Martin's answer about « Attique 4 p. » was already recorded in the meantime.")
+    expect(await lire({ ok: true, deja: true, statut: 'rejected' })).toBe('Nothing was written: « Attique 4 p. » is no longer waiting for this answer from Julie Martin — it changed in the meantime.')
+    expect(await lire({ ok: false })).toBe('Nothing was written: this property is no longer in your agency’s loop.')
+  })
+})
+
+describe('execGetBuyersForProperty — l’écho de ce que le copilote a montré désigne son bien', () => {
+  const attique40 = { id: 'd0000000-0000-4000-8000-0000000000b3', title: 'Attique 3 p.', address: 'Route de Florissant 40', city: 'Genève', price: 1_300_000, transaction_type: 'buy', status: 'active' }
+  const jumeau = { id: 'd0000000-0000-4000-8000-0000000000b2', title: 'Attique 4 p. duplex', address: 'Route de Florissant 12', city: 'Genève', price: 1_700_000, transaction_type: 'buy', status: 'active' }
+  const D = (b: Ligne) => ({ genre: 'annonce', id: b.id, titre: b.title, adresse: b.address, ville: b.city })
+  const tables = { contacts, properties: mandats, market_listings: [...annonces, attique40, jumeau], matches: [m({ id: 'e1', status: 'sent', market_listing_id: ATTIQUE })] }
+  const julie = [{ contact_id: JULIE, nom: 'Julie Martin', score: 80, etat: { code: 'propose', le: null } }]
+
+  it('le TITRE nu à chiffres (« Attique 4 p. ») : retrouvé par les mots — son « 4 » entier, pas le « 40 » de l’autre — et ses acheteurs', async () => {
+    const { client } = fauxClient(tables, { wa_matching_biens_designes: [D(annonces[0]), D(attique40)] })
+    const r = JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: 'Attique 4 p.' }))
+    expect(r.bien).toMatchObject({ id: ATTIQUE })
+    expect(r.acheteurs).toEqual(julie)
+  })
+
+  it('le titre nu avec un leurre au « 4 » dans son adresse : les DEUX candidats et une question — jamais le leurre seul, avec ses acheteurs', async () => {
+    const leurre = { id: 'd0000000-0000-4000-8000-0000000000b4', title: 'Attique 3 p.', address: 'Rue du Stand 4', city: 'Genève', price: 1_200_000, transaction_type: 'buy', status: 'active' }
+    const { client } = fauxClient(
+      { ...tables, market_listings: [...tables.market_listings, leurre] },
+      { wa_matching_biens_designes: [D(leurre), D(annonces[0])] },
+    )
+    const r = JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: 'Attique 4 p.' }))
+    expect(r.acheteurs).toBeUndefined()
+    expect(r.candidats.map((c: { id: string }) => c.id)).toEqual([leurre.id, ATTIQUE])
+    expect(r.question).toMatch(/^Plusieurs biens correspondent/)
+  })
+
+  it('le LIBELLÉ (« Attique 4 p. · Route de Florissant 12 ») : l’attique, pas son jumeau à la même adresse — que le titre nu ne départage pas', async () => {
+    const { client } = fauxClient(tables, { wa_matching_biens_designes: [D(annonces[0]), D(jumeau)] })
+    const r = JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: ATT }))
+    expect(r.bien).toMatchObject({ id: ATTIQUE })
+    expect(r.acheteurs).toEqual(julie)
+    const nu = JSON.parse(await execGetBuyersForProperty(ctx(client), { bien: 'Attique 4 p.' }))
+    expect(nu.candidats.map((c: { id: string }) => c.id)).toEqual([ATTIQUE, jumeau.id])
+  })
+})
+
+describe('whatsapp-i18n — les refus de record_match_outcome, à l’égalité exacte', () => {
+  const six = Array.from({ length: 6 }, (_, i) => `Bien ${i}`)
+  const cinqNommes = '« Bien 0 », « Bien 1 », « Bien 2 », « Bien 3 », « Bien 4 »'
+
+  it('trop large : le texte cherché, en français et en anglais', () => {
+    expect(consignerTropLarge('fr', 'Julie', 'appartement')).toBe("Pour Julie, la recherche « appartement » est trop large pour trancher : donne l'adresse, ou l'identifiant du bien (via get_matches).")
+    expect(consignerTropLarge('en', 'Julie', 'flat')).toBe(`For Julie, the search "flat" is too broad to settle: give the address, or the property's identifier (via get_matches).`)
+  })
+
+  it('retirée : singulier, pluriel, et au-delà de cinq « (5 sur N) » — en français et en anglais', () => {
+    expect(consignerAnnonceRetiree('fr', ['A'])).toBe("« A » est retirée du marché : elle ne se propose plus. Rien n'est consigné.")
+    expect(consignerAnnonceRetiree('fr', ['A', 'B'])).toBe("« A », « B » sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.")
+    expect(consignerAnnonceRetiree('fr', six)).toBe(`${cinqNommes} (5 sur 6) sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.`)
+    expect(consignerAnnonceRetiree('en', ['A'])).toBe("« A » is no longer on the market: it can't be proposed any more. Nothing recorded.")
+    expect(consignerAnnonceRetiree('en', ['A', 'B'])).toBe("« A », « B » are no longer on the market: they can't be proposed any more. Nothing recorded.")
+    expect(consignerAnnonceRetiree('en', six)).toBe(`${cinqNommes} (5 of 6) are no longer on the market: they can't be proposed any more. Nothing recorded.`)
+  })
+
+  it('cinq biens nommés au plus : à cinq, aucun compte ; à six, « (5 sur 6) » et cinq noms seulement', () => {
+    expect(consignerPlusieursBiens('fr', 'Julie', six.slice(0, 5))).toBe(`Plusieurs biens pour Julie correspondent : ${cinqNommes}. Lequel ?`)
+    expect(consignerPlusieursBiens('fr', 'Julie', six)).toBe(`Plusieurs biens pour Julie correspondent (5 sur 6) : ${cinqNommes}. Lequel ?`)
+    expect(consignerAucunBien('en', 'propose', 'Julie', six, 100)).toBe(`No property to propose for Julie matches. Those I found (5 of over 100): ${cinqNommes}. Which one?`)
+  })
+
+  it('une lecture coupée dit TOUJOURS son plancher, même pour deux biens nommés : « (2 sur plus de 100) »', () => {
+    expect(consignerPlusieursBiens('fr', 'Julie', ['A', 'B'], 100)).toBe('Plusieurs biens pour Julie correspondent (2 sur plus de 100) : « A », « B ». Lequel ?')
+    expect(consignerPlusieursBiens('en', 'Julie', ['A', 'B'], 100)).toBe('Several properties for Julie match (2 of over 100): « A », « B ». Which one?')
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', ['A'], 100))
+      .toBe('Aucun bien proposé en attente de réponse pour Julie ne correspond. Ceux que je vois (1 sur plus de 100) : « A ». Lequel ?')
+  })
+
+  it('aucun : une page complète vide dit « n’a aucun bien » ; une page coupée où rien ne se nommait, seulement que rien ne correspond', () => {
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', [])).toBe("Julie n'a aucun bien proposé en attente de réponse.")
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', [], 100)).toBe('Aucun bien proposé en attente de réponse pour Julie ne correspond.')
+    expect(consignerAucunBien('en', 'pas_interesse', 'Julie', [])).toBe('Julie has no property proposed or interested.')
+    expect(consignerAucunBien('en', 'pas_interesse', 'Julie', [], 100)).toBe('No property proposed or interested for Julie matches.')
+  })
+
+  it('trop de biens à nommer : la question, en français et en anglais', () => {
+    expect(consignerTropDeBiens('fr', 'pas_encore', 'Julie')).toBe('Quel bien proposé en attente de réponse pour Julie ? Il y en a trop pour que je les nomme : donne son nom, son adresse ou sa ville, ou son identifiant (via get_matches).')
+    expect(consignerTropDeBiens('en', 'propose', 'Julie')).toBe('Which property to propose for Julie? There are too many for me to list: give its name, address or town, or its identifier (via get_matches).')
+  })
+
+  it('l’écho trop large : ce sont les MOTS du libellé qui répondent — ni « donne l’adresse » ni l’identifiant, le CRM', () => {
+    expect(consignerEchoTropLarge('fr', 'Julie', 'Studio · Genève'))
+      .toBe('Trop de biens de Julie répondent aux mots de « Studio · Genève » pour que je tranche par WhatsApp : consigne cette réponse depuis le CRM.')
+    expect(consignerEchoTropLarge('en', 'Julie', 'Studio · Genève'))
+      .toBe("Too many of Julie's properties match the words of « Studio · Genève » for me to settle this over WhatsApp: record the answer from the CRM.")
+  })
+
+  it('les phrases de « pas encore » et de « propose », à l’égalité : la question, puis le compte rendu', () => {
+    const c = { nom: 'Julie Martin', bien: 'Attique 4 p. · Route de Florissant 12' }
+    expect(confirmConsigner('fr', { ...c, reponse: 'pas_encore' }))
+      .toBe("Je note que Julie Martin n'a pas encore répondu pour « Attique 4 p. · Route de Florissant 12 » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)")
+    expect(consigne('fr', { ...c, reponse: 'pas_encore' }))
+      .toBe("✅ Consigné : Julie Martin n'a pas encore répondu pour « Attique 4 p. · Route de Florissant 12 » — relance dans 3 jours.")
+    expect(confirmConsigner('en', { ...c, reponse: 'propose' }))
+      .toBe('I\'ll record that you proposed « Attique 4 p. · Route de Florissant 12 » to Julie Martin, with a follow-up in 3 days. Confirm? ("yes" / "no")')
+    expect(consigne('en', { ...c, reponse: 'propose' }))
+      .toBe('✅ Recorded: « Attique 4 p. · Route de Florissant 12 » proposed to Julie Martin, follow-up in 3 days.')
+  })
+})
+
+describe('whatsapp-i18n — le total tu par consignerAucunBien/consignerPlusieursBiens au-delà de cinq', () => {
+  const dix = Array.from({ length: 10 }, (_, i) => `Bien ${i}`)
+
+  it('cinq ou moins : la sortie ne bouge pas (aucun total ajouté)', () => {
+    expect(consignerPlusieursBiens('fr', 'Julie', ['A', 'B'])).toBe('Plusieurs biens pour Julie correspondent : « A », « B ». Lequel ?')
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', ['A', 'B']))
+      .toBe('Aucun bien proposé en attente de réponse pour Julie ne correspond. Ceux que je vois : « A », « B ». Lequel ?')
+  })
+
+  it('plus de cinq, lecture EXACTE (non coupée) : « 5 sur N » / « 5 of N »', () => {
+    expect(consignerPlusieursBiens('fr', 'Julie', dix)).toContain('(5 sur 10)')
+    expect(consignerPlusieursBiens('en', 'Julie', dix)).toContain('(5 of 10)')
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', dix)).toContain('(5 sur 10)')
+    expect(consignerAucunBien('en', 'interesse', 'Julie', dix)).toContain('(5 of 10)')
+  })
+
+  it('plus de cinq, lecture COUPÉE : « 5 sur plus de N » / « 5 of over N », N le plancher de la lecture', () => {
+    expect(consignerPlusieursBiens('fr', 'Julie', dix, 100)).toContain('(5 sur plus de 100)')
+    expect(consignerPlusieursBiens('en', 'Julie', dix, 100)).toContain('(5 of over 100)')
+    expect(consignerAucunBien('fr', 'interesse', 'Julie', dix, 100)).toContain('(5 sur plus de 100)')
+    expect(consignerAucunBien('en', 'interesse', 'Julie', dix, 100)).toContain('(5 of over 100)')
   })
 })

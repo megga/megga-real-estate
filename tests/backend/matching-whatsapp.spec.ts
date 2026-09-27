@@ -28,13 +28,21 @@
 //   W4  `wa_matching_biens_designes` : un mandat et une annonce suivie désignés par un mot SANS accent, majuscule
 //       accentuée (« Écublens ») ou ligature (« Vandœuvres ») comprises — `lower(unaccent(x))` traite les trois ;
 //       absents — un mandat d'une autre agence, un mandat supprimé, une annonce SANS match compatible dans l'agence ;
-//       un utilisateur authentifié rejeté de DROIT (42501, même oracle que W3).
+//       un NOMBRE du titre désigne comme celui de l'adresse ; un utilisateur authentifié rejeté de DROIT (42501, même
+//       oracle que W3).
+//   W5  `wa_matching_biens_de_l_acheteur` : le mandat et l'annonce d'UN acheteur désignés par un mot sans accent,
+//       avec l'id de leur match, par score décroissant, `p_limite` respectée, 201 lignes au plus ; absents — le match
+//       d'un AUTRE acheteur, un statut hors `p_statuts`, une autre agence (son match, ou son mandat cité par un match
+//       d'ici), un mandat supprimé ; un match qui porte un mandat ET une annonce rend le mandat (`genre = 'mandat'`),
+//       et ne se désigne pas par le texte de l'annonce ; un NOMBRE du titre désigne ; un « 4½ pièces » est gardé par
+//       les mots que `motsDe` envoie pour « 4.5 pièces » ; un utilisateur authentifié rejeté de DROIT (42501).
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés — et les crochets aussi : ils
 // sont au niveau du module, pour que chaque bloc du fichier ajoute le sien sans dupliquer la mise en place.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { anonClient, serviceRoleClient } from './helpers/supabase'
+import { motsDe } from '../../supabase/functions/_shared/whatsapp-matching'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const JOUR = 86_400_000
@@ -573,8 +581,138 @@ describe.skipIf(!HAS_KEYS)('W4 — désigner un bien par un texte, en base', () 
     expect((await svc.from('market_listings').select('id').eq('id', sansMatch)).data).toHaveLength(1)
   })
 
+  it('un NOMBRE du TITRE désigne (« Attique 7 pièces ») : il se compare au titre comme à l’adresse, plus à l’adresse seule', async () => {
+    // Un repère fait de LETTRES : le tampon du jeu d'essai porte des chiffres, qui répondraient eux aussi au nombre.
+    const repere = `w${s.stamp.replace(/\d/g, (d) => 'abcdefghij'[Number(d)]).replace(/[^a-z]/g, '')}nombre`
+    const bien = await mkBien(s.agencyAId, 'w4nombre')
+    await svc.from('properties').update({ title: 'Attique 7 pièces', address: 'Chemin des Oliviers', city: repere }).eq('id', bien)
+    // Le « 7 » n'est que dans le titre : comparé à la seule adresse, il ne rendrait rien.
+    expect((await designer(s.agencyAId, [repere, '7'])).map((r) => r.id)).toEqual([bien])
+    expect(await designer(s.agencyAId, [repere, '9'])).toEqual([])
+  })
+
   it('un utilisateur authentifié ne peut pas appeler la fonction (42501, même oracle que W3)', async () => {
     const { error } = await s.clientA.rpc('wa_matching_biens_designes', { p_agency: s.agencyAId, p_mots: ['x'] })
+    expect(error?.code).toBe('42501')
+  })
+})
+
+const biensDeLAcheteur = async (agency: string, contact: string, statuts: string[], mots: string[], limite = 50) => {
+  const { data, error } = await svc.rpc('wa_matching_biens_de_l_acheteur', {
+    p_agency: agency, p_contact: contact, p_statuts: statuts, p_mots: mots, p_limite: limite,
+  })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as { match_id: string; genre: string; id: string; titre: string | null; adresse: string | null; ville: string | null }[]
+}
+
+describe.skipIf(!HAS_KEYS)('W5 — désigner un bien parmi ceux d’UN acheteur, en base', () => {
+  it('le mandat et les annonces de l’acheteur, désignés par un mot SANS accent, avec l’id de leur match — le meilleur score d’abord, p_limite respectée', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W5Acheteur')
+    const lieu = `Vésenaz-w5a-${s.stamp}`
+    const mot = `vesenaz-w5a-${s.stamp}`
+    const mandat = await mkBien(s.agencyAId, 'w5a-mandat')
+    await svc.from('properties').update({ city: lieu }).eq('id', mandat)
+    const annonce = await mkAnnonce('w5a-annonce', { city: lieu })
+    const annonce2 = await mkAnnonce('w5a-annonce2', { city: lieu })
+    const mMandat = await mkMatch(s.agencyAId, acheteur, { bien: mandat }, { status: 'sent', sent_at: ilYA(3), score: 70 })
+    const mAnnonce = await mkMatch(s.agencyAId, acheteur, { annonce }, { status: 'sent', sent_at: ilYA(3), score: 90 })
+    const mAnnonce2 = await mkMatch(s.agencyAId, acheteur, { annonce: annonce2 }, { status: 'sent', sent_at: ilYA(3), score: 40 })
+
+    const lignes = await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [mot])
+    expect(lignes.map((r) => [r.genre, r.id, r.match_id])).toEqual([
+      ['annonce', annonce, mAnnonce], ['mandat', mandat, mMandat], ['annonce', annonce2, mAnnonce2],
+    ])
+    // La ligne porte le texte du bien lui-même : `candidats` l'affine ensuite, en TypeScript.
+    expect(lignes[0]).toMatchObject({ titre: `D2 w5a-annonce ${s.stamp}`, adresse: 'Rue w5a-annonce 1', ville: lieu })
+    expect((await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [mot], 1)).map((r) => r.match_id)).toEqual([mAnnonce])
+    // Aucun mot : aucune ligne.
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [])).toEqual([])
+  })
+
+  it('absents : le match d’un AUTRE acheteur, un statut hors p_statuts, une autre agence (son match, ou son mandat cité ici), un mandat supprimé', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W5Seul')
+    const autre = await mkContact(s.agencyAId, 'W5Autre')
+    const lieu = `Carouge-w5b-${s.stamp}`
+    const mot = `carouge-w5b-${s.stamp}`
+    const annonceIci = (tag: string) => mkAnnonce(tag, { city: lieu })
+    // Le seul qui doit sortir.
+    const garde = await mkMatch(s.agencyAId, acheteur, { annonce: await annonceIci('w5b-garde') }, { status: 'sent', sent_at: ilYA(2) })
+    // Un autre acheteur de la MÊME agence, sur un bien qui porte le même mot.
+    await mkMatch(s.agencyAId, autre, { annonce: await annonceIci('w5b-autre') }, { status: 'sent', sent_at: ilYA(2) })
+    // Le bon acheteur, à un statut que la réponse ne suppose pas.
+    await mkMatch(s.agencyAId, acheteur, { annonce: await annonceIci('w5b-statut') }, { status: 'suggested' })
+    // Un match de l'agence B sur ce même acheteur : `matches_insert` (RLS) ne vérifie que agency_id.
+    await mkMatch(s.agencyBId, acheteur, { annonce: await annonceIci('w5b-agenceb') }, { status: 'sent', sent_at: ilYA(2) })
+    // Un match d'ici qui cite le mandat de l'agence B.
+    const mandatB = await mkBien(s.agencyBId, 'w5b-mandatb')
+    await svc.from('properties').update({ city: lieu }).eq('id', mandatB)
+    await mkMatch(s.agencyAId, acheteur, { bien: mandatB }, { status: 'sent', sent_at: ilYA(2) })
+    // Un mandat supprimé de l'agence.
+    const supprime = await mkBien(s.agencyAId, 'w5b-supprime')
+    await svc.from('properties').update({ city: lieu, deleted_at: new Date().toISOString() }).eq('id', supprime)
+    await mkMatch(s.agencyAId, acheteur, { bien: supprime }, { status: 'sent', sent_at: ilYA(2) })
+
+    expect((await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [mot])).map((r) => r.match_id)).toEqual([garde])
+    // Le statut écarté revient dès qu'on le demande : `p_statuts` seul l'écartait.
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent', 'suggested'], [mot])).toHaveLength(2)
+  })
+
+  it('un match qui porte un mandat ET une annonce rend le MANDAT, et ne se désigne pas par le texte de l’annonce', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W5Double')
+    const mandat = await mkBien(s.agencyAId, 'w5c-mandat')
+    await svc.from('properties').update({ city: `Cologny-w5c-${s.stamp}` }).eq('id', mandat)
+    const annonce = await mkAnnonce('w5c-annonce', { city: `Chêne-w5c-${s.stamp}` })
+    const m = await mkMatch(s.agencyAId, acheteur, { bien: mandat, annonce }, { status: 'sent', sent_at: ilYA(2) })
+
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [`cologny-w5c-${s.stamp}`])).toEqual([{
+      match_id: m, genre: 'mandat', id: mandat, titre: `D2 w5c-mandat ${s.stamp}`, adresse: 'Chemin w5c-mandat 2', ville: `Cologny-w5c-${s.stamp}`,
+    }])
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], [`chene-w5c-${s.stamp}`])).toEqual([])
+  })
+
+  it('un NOMBRE du TITRE désigne (« Attique 7 pièces »), comme au §5 : plus seulement celui de l’adresse', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W5Nombre')
+    const bien = await mkBien(s.agencyAId, 'w5nombre')
+    await svc.from('properties').update({ title: 'Attique 7 pièces', address: 'Chemin des Oliviers', city: 'Carouge' }).eq('id', bien)
+    const m = await mkMatch(s.agencyAId, acheteur, { bien }, { status: 'sent', sent_at: ilYA(2) })
+    // Le « 7 » n'est que dans le titre : comparé à la seule adresse, il ne rendrait rien.
+    expect((await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], ['attique', '7'])).map((r) => r.match_id)).toEqual([m])
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], ['attique', '9'])).toEqual([])
+  })
+
+  it('un « 4½ pièces » est gardé par les mots que `motsDe` envoie pour « 4.5 pièces » : la partie entière seule, sous le vrai `unaccent`', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W5Demi')
+    const bien = await mkBien(s.agencyAId, 'w5demi')
+    await svc.from('properties').update({ title: 'Appartement 4½ pièces', address: 'Rue des Moulins', city: 'Carouge' }).eq('id', bien)
+    const m = await mkMatch(s.agencyAId, acheteur, { bien }, { status: 'sent', sent_at: ilYA(2) })
+    expect(motsDe('4.5 pièces')).toEqual(['4', 'pieces'])
+    expect((await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], motsDe('4.5 pièces'))).map((r) => r.match_id)).toEqual([m])
+  })
+
+  it('le plafond est 201 : les 200 biens d’un écho relu, et la ligne qui dit la coupe — jamais plus', async () => {
+    // Plafonnée à 200, une demande de 201 rendrait 200 lignes : l'exécuteur lirait complète une lecture coupée.
+    const acheteur = await mkContact(s.agencyAId, 'W5Plafond')
+    const { data: lues, error: eA } = await svc.from('market_listings').insert(Array.from({ length: 202 }, (_, i) => ({
+      source_id: `d2-w5plafond-${i}-${s.stamp}`, source_portal: 'flatfox', title: `D2 w5plafond ${i} ${s.stamp}`, address: `Rue w5plafond ${i}`,
+      city: 'Genève', canton: 'GE', type: 'apartment', transaction_type: 'buy', quality_score: 70, status: 'active',
+      price: 1_200_000, current_price: 1_200_000, price_at_first_seen: 1_200_000, first_seen_at: ilYA(60),
+    }))).select('id')
+    if (eA) throw new Error(`market_listings w5plafond: ${eA.message}`)
+    const ids = (lues ?? []).map((r) => r.id as string)
+    annonces.push(...ids)
+    const { data: poses, error: eM } = await svc.from('matches').insert(ids.map((id) => ({
+      agency_id: s.agencyAId, contact_id: acheteur, score: 80, status: 'sent', sent_at: ilYA(2), source: 'market', market_listing_id: id,
+    }))).select('id')
+    if (eM) throw new Error(`matches w5plafond: ${eM.message}`)
+    matchs.push(...(poses ?? []).map((r) => r.id as string))
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], ['w5plafond'], 201)).toHaveLength(201)
+    expect(await biensDeLAcheteur(s.agencyAId, acheteur, ['sent'], ['w5plafond'], 1000)).toHaveLength(201)
+  })
+
+  it('un utilisateur authentifié ne peut pas appeler la fonction (42501, même oracle que W3)', async () => {
+    const { error } = await s.clientA.rpc('wa_matching_biens_de_l_acheteur', {
+      p_agency: s.agencyAId, p_contact: julie, p_statuts: ['sent'], p_mots: ['x'],
+    })
     expect(error?.code).toBe('42501')
   })
 })

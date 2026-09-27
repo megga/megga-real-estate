@@ -41,6 +41,17 @@ export const STATUTS_DE_DEPART: Readonly<Record<Reponse, readonly string[]>> = {
   pas_interesse: ['sent', 'interested'],
   pas_encore: ['sent'],
 }
+/**
+ * Le statut que chaque réponse ÉCRIT sur le match (`wa_matching_consigner`) ; « pas encore » n'en écrit aucun, il
+ * repousse la relance. Quand la base n'écrit rien (`deja`), il sépare « déjà consignée » (le match porte ce statut)
+ * de « le bien a changé entre-temps » (un autre).
+ */
+export const STATUT_D_ARRIVEE: Readonly<Record<Reponse, string | null>> = {
+  propose: 'sent',
+  interesse: 'interested',
+  pas_interesse: 'rejected',
+  pas_encore: null,
+}
 
 export const estReponse = (v: unknown): v is Reponse => typeof v === 'string' && (REPONSES as readonly string[]).includes(v)
 export const estMotif = (v: unknown): v is MotifRefus => typeof v === 'string' && (MOTIFS_REFUS as readonly string[]).includes(v)
@@ -196,10 +207,20 @@ const plusRecente = (a: string | null, b: string | null): string | null => {
   return Date.parse(a) >= Date.parse(b) ? a : b
 }
 
+/**
+ * Le titre qu'un bien affiche : son titre rogné, sinon son adresse, sinon sa ville ; `null` s'il n'a aucun des trois.
+ * `bienDeMandat` et `bienDAnnonce` y ajoutent leur générique (« Bien », « Annonce ») pour l'affichage ; `candidats`
+ * bâtit sur ce titre SANS générique le libellé auquel il compare un texte — aucun texte ne doit désigner un bien
+ * sans nom.
+ */
+export function titreAffiche(b: { titre: string | null; adresse: string | null; ville: string | null }): string | null {
+  return b.titre?.trim() || b.adresse?.trim() || b.ville?.trim() || null
+}
+
 /** Un mandat, dans la forme du copilote — la règle de `versBien` (useMatchingFil.ts). */
 export function bienDeMandat(l: LigneMandat): BienWa {
   return {
-    id: l.id, genre: 'mandat', titre: l.title?.trim() || l.address?.trim() || l.city?.trim() || 'Bien',
+    id: l.id, genre: 'mandat', titre: titreAffiche({ titre: l.title, adresse: l.address, ville: l.city }) ?? 'Bien',
     prix: nombreOuNull(l.price), location: l.transaction_type === 'rent', type: l.type,
     pieces: nombreOuNull(l.rooms), surface: nombreOuNull(l.surface_m2), chambres: nombreOuNull(l.bedrooms),
     ville: l.city, canton: l.canton, adresse: l.address, equipements: listeEquipements(l.features),
@@ -224,7 +245,7 @@ export function bienDeMandat(l: LigneMandat): BienWa {
 /** Une annonce du marché, dans la forme du copilote — la règle de `versBienMarche` (useMatchingFil.ts). */
 export function bienDAnnonce(l: LigneAnnonce): BienWa {
   return {
-    id: l.id, genre: 'annonce', titre: l.title?.trim() || l.address?.trim() || l.city?.trim() || 'Annonce',
+    id: l.id, genre: 'annonce', titre: titreAffiche({ titre: l.title, adresse: l.address, ville: l.city }) ?? 'Annonce',
     prix: nombreOuNull(l.current_price) ?? nombreOuNull(l.price), location: l.transaction_type === 'rent', type: l.type,
     pieces: nombreOuNull(l.rooms), surface: nombreOuNull(l.surface_m2), chambres: nombreOuNull(l.bedrooms),
     ville: l.city, canton: l.canton, adresse: l.address, equipements: listeEquipements(l.features),
@@ -291,8 +312,12 @@ const MOTS_VIDES = new Set([
   'le', 'la', 'les', 'un', 'une', 'des', 'de', 'du', 'au', 'aux', 'en', 'et', 'ou', 'pour', 'sur', 'avec', 'chez',
   'the', 'an', 'of', 'in', 'at', 'on', 'for', 'with', 'to', 'bien', 'biens', 'property', 'properties',
 ])
-/** Un mot NUMÉRIQUE d'un texte : un numéro de rue, jamais un nombre de pièces ou un étage — voir `candidats`. */
-const NUMERIQUE = /^\d+$/
+/**
+ * Un mot NUMÉRIQUE d'un texte — un entier, ou un décimal que `jetonsFins` a gardé d'un bloc (« 4.5 ») : il ne se
+ * compare qu'en mot ENTIER, où qu'il soit — un numéro de rue dans l'adresse, des pièces ou un étage dans le titre ; il
+ * n'est jamais pris pour le début d'un autre (« 4 » ne désigne pas le n° 40) : voir `candidats`.
+ */
+const NUMERIQUE = /^\d+(?:\.\d+)*$/
 
 /**
  * Les ligatures dépliées avant `slugify`, comme `plier` du fil (filModele.ts) : « Vandœuvres » se retrouve en
@@ -303,36 +328,168 @@ const plierLigatures = (s: string): string =>
   s.replace(/œ/g, 'oe').replace(/Œ/g, 'OE').replace(/æ/g, 'ae').replace(/Æ/g, 'AE')
 
 /**
- * Les mots qui désignent un bien dans un message : sans accents, sans mots vides. Un chiffre compte quelle que soit
- * sa longueur — « Florissant 4 » ne doit pas désigner « Route de Florissant 40 » — un mot de plus ne peut que
- * resserrer, jamais élargir, ce qu'un texte désigne.
+ * La fraction d'une taille écrite en décimal, derrière son chiffre : « 4½ » et « 4 ½ » deviennent « 4.5 », comme
+ * « ¼ » « .25 » et « ¾ » « .75 » — sans quoi « 4½ pièces » et « 4.5 pièces » seraient deux tailles. Une fraction
+ * isolée reste un séparateur : elle n'a pas de partie entière que la base retrouverait (`motsDe`).
  */
-export function motsDe(texte: string): string[] {
-  return slugify(plierLigatures(texte)).split('-').filter((m) => (m.length >= 2 || NUMERIQUE.test(m)) && !MOTS_VIDES.has(m))
-}
+const FRACTIONS: Readonly<Record<string, string>> = { '½': '.5', '¼': '.25', '¾': '.75' }
+const plierFractions = (s: string): string =>
+  s.replace(/(\d)\s*([½¼¾])/g, (_, chiffre: string, fraction: string) => `${chiffre}${FRACTIONS[fraction]}`)
 
-/** Ce qu'un message peut dire d'un bien. */
-export interface Designable { id: string; titre: string; adresse: string | null; ville: string | null }
+/** Un texte plié comme les mots d'un bien : ligatures dépliées, puis `slugify` (sans accents, minuscules, tirets). */
+const plie = (s: string): string => slugify(plierLigatures(s))
+/** Un mot qui désigne : deux signes au moins, ou un nombre ; jamais un mot vide. */
+const utile = (m: string): boolean => (m.length >= 2 || NUMERIQUE.test(m)) && !MOTS_VIDES.has(m)
 
 /**
- * Les biens qu'un texte désigne. Un identifiant désigne son bien seul ; sinon TOUS les mots du texte doivent se
- * retrouver — entiers, ou en début de mot à partir de quatre lettres (« attiq » pour « attique »). ⚠ Un mot
- * NUMÉRIQUE (« 4 », « 40 ») ne se compare QU'À L'ADRESSE, jamais au titre ni à la ville : un nombre y dit autre
- * chose (pièces, étage) — « Florissant 4 » ne doit pas désigner l'attique « 4 p. », qui est au n° 12. Aucun mot
- * utile : aucun bien. Le copilote ne choisit jamais entre plusieurs (conception §3).
+ * Les jetons d'un texte, tels que `candidats` les compare DES DEUX CÔTÉS (le message et le bien) : ligatures et
+ * fractions dépliées, sans accents, en minuscules, coupés à tout ce qui n'est ni lettre ni chiffre — sauf un NOMBRE à
+ * séparateur (« 4.5 », « 3,5 », « 4½ », « 1.200.000 »), qui reste UN jeton, écrit au point. Découpé, « le 4.5 pièces
+ * de Carouge » désignerait un « 5.5 pièces » au n° 4, et « 4 pièces » un « 4.5 pièces ».
+ */
+const jetonsFins = (s: string): string[] =>
+  (plierFractions(plierLigatures(s)).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').match(/\d+(?:[.,]\d+)+|[a-z0-9]+/g) ?? [])
+    .map((j) => j.replace(/,/g, '.'))
+
+/**
+ * Les mots qui désignent un bien dans un message, tels que la BASE les reçoit : ceux que `candidats` compare
+ * (`jetonsFins`, sans mot vide), un nombre à séparateur réduit à sa partie ENTIÈRE — « 4.5 » n'envoie que « 4 », que
+ * « 4.5 », « 4,5 » et « 4½ » contiennent tous, quand « 5 » manquerait à « 4½ ». La base garde un bien dont le texte
+ * — titre, adresse et ville bout à bout — CONTIENT chacun de ces mots : tout bien que `candidats` garde les contient,
+ * et elle en rend donc un sur-ensemble. Un chiffre compte quelle que soit sa longueur ; un mot de plus ne peut que
+ * resserrer ce qu'un texte désigne.
+ */
+export function motsDe(texte: string): string[] {
+  return jetonsFins(texte).filter(utile).map((m) => (NUMERIQUE.test(m) ? m.split('.')[0] : m))
+}
+
+/**
+ * Un texte plié sans ses mots vides ni ses lettres isolées DE TÊTE (« l-attique-4-p… » devient « attique-4-p… ») :
+ * un article devant l'écho d'un libellé ne le rend pas méconnaissable. Retirés des deux côtés, pour qu'un titre qui
+ * commence lui-même par un article (« Le Clos des Vignes ») reste égal à son écho.
+ */
+function sansTete(texte: string): string {
+  const j = texte.split('-')
+  let i = 0
+  while (i < j.length && (MOTS_VIDES.has(j[i]) || /^[a-z]$/.test(j[i]))) i++
+  return j.slice(i).join('-')
+}
+
+/**
+ * Les jetons de `partie` se suivent, tous, dans `tout` : « Rue de la Paix 3 » est dans « Attique Rue de la Paix 3 »,
+ * pas dans « … Rue de la Paix 32 ». Une partie sans jeton n'ajoute rien à `tout`.
+ */
+function dansLaSuite(tout: readonly string[], partie: readonly string[]): boolean {
+  if (partie.length === 0) return true
+  for (let i = 0; i + partie.length <= tout.length; i++) {
+    if (partie.every((j, k) => tout[i + k] === j)) return true
+  }
+  return false
+}
+
+/** Le séparateur d'un libellé (« titre · adresse ») : c'est lui qui fait d'un texte l'ÉCHO d'un libellé (`estEcho`). */
+const SEPARATEUR = '·'
+
+/**
+ * Un bien nommé à l'agent, jamais par son seul titre : deux annonces « Appartement 4 p. » sont indiscernables sans
+ * lui, et l'agent pourrait confirmer le mauvais bien sans le voir. L'adresse qualifie le titre, sauf s'il la porte
+ * déjà, jeton pour jeton et à la suite (`dansLaSuite`) — jamais par sous-chaîne : « Rue de la Paix 3 » ne se perd pas
+ * derrière un titre « … Rue de la Paix 32 ». Sans adresse, la ville, sauf si le titre EST la ville (une annonce sans
+ * titre ni adresse s'affiche par sa ville : « Genève », jamais « Genève · Genève ») ; un titre qui la CONTIENT la
+ * garde — « Villa de Cologny · Cologny » est l'écho qui la distingue de « Villa de Cologny avec piscine · Cologny »,
+ * et « Sion » ne disparaît pas dans « vision ». Une adresse ou une ville vide, faite d'espaces ou de ponctuation
+ * seule, n'existe pas : elle écrirait « Studio ·    » ou « Studio · — ».
+ */
+export function libelleBien(b: Pick<BienWa, 'titre' | 'adresse' | 'ville'>): string {
+  const titre = b.titre.trim()
+  const adresse = b.adresse?.trim() || null
+  const ville = b.ville?.trim() || null
+  if (adresse && !dansLaSuite(jetonsFins(titre), jetonsFins(adresse))) return `${titre} ${SEPARATEUR} ${adresse}`
+  if (ville && plie(ville) && plie(ville) !== plie(titre)) return `${titre} ${SEPARATEUR} ${ville}`
+  return titre
+}
+
+/**
+ * Un ÉCHO : un texte qui porte le séparateur d'un libellé — le modèle recopie ce que le copilote a nommé. Seul un
+ * écho se compare au libellé entier (`candidats`) : « studio rue du Lac 2 », tapé ou reformulé, se plie comme le
+ * libellé « Studio · Rue du Lac 2 », mais ses mots désignent aussi « Studio lumineux · Rue du Lac 2 ».
+ * ⚠ Le « · » est un INDICE, pas une preuve : un titre peut le porter lui-même. Mesuré en production le 25.09.2026 :
+ * 98 annonces du marché ont un « · » dans leur titre (31 encore en ligne), aucune n'est suivie par un match, et aucun
+ * mandat n'en a. Recopié, un tel titre peut égaler le libellé d'un AUTRE bien — « Attique · Route de Florissant 12 »,
+ * titre de l'un, est le libellé de l'« Attique » voisine : `candidats` n'applique donc pas l'égalité quand le texte
+ * est aussi le titre d'un bien qu'elle écarterait.
+ */
+export const estEcho = (texte: string): boolean => texte.includes(SEPARATEUR)
+
+/**
+ * Le plafond d'un ÉCHO relu par `record_match_outcome` (whatsapp-matching-outils.ts) : sa désignation, coupée à 50
+ * biens, est relue jusqu'à 200 biens de l'acheteur, à LIMITE+1 comme toute lecture — 201 lignes, exactement le
+ * plafond de `wa_matching_biens_de_l_acheteur` (migration `…_matching_whatsapp.sql`, §6), que
+ * `tests/unit/matching-whatsapp-sql.spec.ts` confronte à cette constante. Un écho se désigne par l'égalité exacte,
+ * mais la base n'en reçoit que les mots (`motsDe`) : chez un acheteur qui a 1 142 matchs `suggested` (mesuré le
+ * 25.09.2026), un libellé fait de mots courants peut en désigner plus de 50. « Donne l'adresse » n'y aurait pas de
+ * réponse : le texte EST un libellé, 252 des 1 800 annonces que suit l'agence WhatsApp n'ont pas d'adresse, et 410 de
+ * ces 1 800 (23 %) partagent leur libellé avec une autre (mesuré le même jour).
+ */
+export const LIMITE_ECHO = 200
+
+/**
+ * Ce qu'un message peut dire d'un bien, tel que la base le rend (`wa_matching_biens_designes`,
+ * `wa_matching_biens_de_l_acheteur`) : un titre peut y être NULL ou fait d'espaces. ⚠ Un `BienWa` s'y range par sa
+ * forme, mais son titre porte déjà le générique de l'affichage (« Bien », « Annonce »), que `candidats` ne doit pas
+ * voir : ce sont les colonnes de la base qu'on lui passe.
+ */
+export interface Designable { id: string; titre: string | null; adresse: string | null; ville: string | null }
+
+/**
+ * Les biens qu'un texte désigne, dans cet ordre — le copilote ne choisit jamais entre plusieurs (conception §3) :
+ * 1. un identifiant désigne son bien seul ;
+ * 2. un ÉCHO (`estEcho` : le texte porte le « · » d'un libellé) ÉGAL au LIBELLÉ d'un bien — `libelleBien` bâti sur
+ *    son titre affiché (`titreAffiche`), plié des deux côtés, sans mot vide ni lettre isolée de tête (`sansTete` :
+ *    « l'Attique 4 p. · … ») — désigne ce bien, et tous ceux qui portent le même. C'est ce que le copilote nomme dans
+ *    ses questions et ses refus, et que le modèle lui redonne au tour suivant : l'adresse y départage deux biens au
+ *    même titre. ⛔ Sans « · », pas d'égalité : « studio rue du Lac 2 » se plie comme le libellé « Studio · Rue du
+ *    Lac 2 », mais ses mots désignent aussi « Studio lumineux · Rue du Lac 2 » ; et jamais le titre nu, qu'un titre
+ *    générique (« Studio ») ferait choisir parmi « Studio » et « Studio lumineux ». ⛔ Ni quand le texte est AUSSI le
+ *    titre affiché, plié de même, d'un bien que l'égalité écarterait : un titre qui porte son propre « · » (`estEcho`)
+ *    désignerait seul, recopié, le bien voisin dont c'est le libellé — les mots, alors, et le copilote demande.
+ *    ⚠ Risque ACCEPTÉ : le modèle peut écrire à la manière du copilote un libellé qu'il n'a jamais lu (« Studio ·
+ *    Carouge » pour « le studio de Carouge ») ; un bien dont c'est exactement le libellé est alors désigné seul, là
+ *    où les mots en rendraient plusieurs ;
+ * 3. sinon TOUS les mots du texte (`jetonsFins`, sans mots vides), dans le titre, l'adresse ou la ville : un mot est
+ *    entier, ou le début d'un mot à partir de quatre lettres (« attiq » pour « attique ») ; un mot NUMÉRIQUE est
+ *    toujours entier, jamais pris pour le début d'un autre (« 4 » ne désigne pas « 40 », ni « 4.5 »), où qu'il soit.
+ *    L'écho nu d'un titre à chiffres (« Attique 4 p. ») se retrouve ainsi, comme « le 4.5 pièces de Carouge ».
+ *    Mesuré le 25.09.2026 sur l'agence WhatsApp : 1 184 de ses 1 806 biens désignables (ses mandats et les annonces
+ *    qu'elle suit) portent un chiffre dans leur titre, et 22 seulement se retrouveraient par leur propre titre si un
+ *    nombre ne se comparait qu'à l'adresse.
+ *    « Florissant 4 », avec un bien au n° 4 et l'« Attique 4 p. » au n° 12, les rend tous deux, et le copilote
+ *    demande ; sans bien au n° 4, l'attique seule, nommée par son libellé — la question [Oui] [Non] de
+ *    `record_match_outcome` et la réponse de `get_buyers_for_property` montrent son adresse. C'est voulu : une
+ *    désignation qui en rend plusieurs demande, elle ne choisit jamais.
+ * Aucun mot utile : aucun bien.
  */
 export function candidats<T extends Designable>(biens: readonly T[], texte: string): T[] {
   const t = texte.trim()
   if (UUID.test(t)) return biens.filter((b) => b.id.toLowerCase() === t.toLowerCase())
-  const mots = motsDe(t)
+  const cherche = estEcho(t) ? sansTete(plie(t)) : ''
+  if (cherche) {
+    const egaux = biens.filter((b) => {
+      const titre = titreAffiche(b)
+      return titre != null && sansTete(plie(libelleBien({ titre, adresse: b.adresse, ville: b.ville }))) === cherche
+    })
+    const retenus = new Set<T>(egaux)
+    const titreDUnEcarte = biens.some((b) => {
+      const titre = titreAffiche(b)
+      return !retenus.has(b) && titre != null && sansTete(plie(titre)) === cherche
+    })
+    if (egaux.length > 0 && !titreDUnEcarte) return egaux
+  }
+  const mots = jetonsFins(t).filter(utile)
   if (mots.length === 0) return []
   return biens.filter((b) => {
-    const siensAdresse = slugify(plierLigatures(b.adresse ?? '')).split('-').filter(Boolean)
-    const siensTout = slugify(plierLigatures([b.titre, b.adresse, b.ville].filter(Boolean).join(' '))).split('-').filter(Boolean)
-    return mots.every((m) => {
-      const siens = NUMERIQUE.test(m) ? siensAdresse : siensTout
-      return siens.some((s) => s === m || (m.length >= 4 && s.startsWith(m)))
-    })
+    const siens = jetonsFins([b.titre, b.adresse, b.ville].filter(Boolean).join(' '))
+    return mots.every((m) => siens.some((s) => s === m || (!NUMERIQUE.test(m) && m.length >= 4 && s.startsWith(m))))
   })
 }
 

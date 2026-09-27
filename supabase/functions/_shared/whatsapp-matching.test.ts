@@ -8,9 +8,9 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  bienDAnnonce, bienDeMandat, bienEnClair, candidats, etatMatch, expliquer, motsDe, retourDeVisite, signalEnClair,
-  signalMatch, vueAcheteurs, vueGetMatches, MAX_BIENS, MAX_ACHETEURS, type BienWa, type LigneAnnonce, type LigneMandat,
-  type LigneMatch,
+  bienDAnnonce, bienDeMandat, bienEnClair, candidats, etatMatch, expliquer, libelleBien, motsDe, retourDeVisite,
+  signalEnClair, signalMatch, titreAffiche, vueAcheteurs, vueGetMatches, MAX_BIENS, MAX_ACHETEURS, STATUTS_DE_DEPART,
+  STATUT_D_ARRIVEE, type BienWa, type LigneAnnonce, type LigneMandat, type LigneMatch,
 } from './whatsapp-matching'
 
 const MAINTENANT = Date.parse('2026-09-24T08:00:00Z')
@@ -54,6 +54,13 @@ describe('etatMatch — où en est un acheteur', () => {
   })
 })
 
+describe('STATUTS_DE_DEPART / STATUT_D_ARRIVEE — où chaque réponse cherche son bien, ce qu’elle écrit', () => {
+  it('épinglés réponse par réponse ; `matching-whatsapp-sql.spec.ts` les confronte au SQL de wa_matching_consigner', () => {
+    expect(STATUTS_DE_DEPART).toEqual({ propose: ['suggested'], interesse: ['sent'], pas_interesse: ['sent', 'interested'], pas_encore: ['sent'] })
+    expect(STATUT_D_ARRIVEE).toEqual({ propose: 'sent', interesse: 'interested', pas_interesse: 'rejected', pas_encore: null })
+  })
+})
+
 describe('candidats — le copilote ne choisit jamais entre plusieurs biens', () => {
   const biens = [
     { id: '11111111-1111-4111-8111-111111111111', titre: 'Attique 4 p.', adresse: 'Route de Florissant 12', ville: 'Genève' },
@@ -65,6 +72,16 @@ describe('candidats — le copilote ne choisit jamais entre plusieurs biens', ()
     expect(candidats(biens, "l'attique de Florissant").map((b) => b.titre)).toEqual(['Attique 4 p.'])
     expect(candidats(biens, 'la villa de COLOGNY').map((b) => b.titre)).toEqual(['Villa contemporaine'])
     expect(candidats(biens, 'attiq').map((b) => b.titre)).toEqual(['Attique 4 p.'])
+    // Trois lettres ne suffisent pas : « flo » serait le début de trop de mots pour désigner quoi que ce soit.
+    expect(candidats(biens, 'flo')).toEqual([])
+    expect(candidats(biens, 'flor')).toHaveLength(2)
+  })
+
+  it('les accents se plient à l’affinage, des deux côtés : « appartement geneve » trouve « Genève », et l’inverse', () => {
+    const g = { id: 'g', titre: 'Appartement 4.5 pièces', adresse: 'Rue de Chêne-Bougeries 3', ville: 'Genève' }
+    expect(candidats([g], 'appartement geneve').map((b) => b.id)).toEqual(['g'])
+    expect(candidats([g], 'chene bougeries 3').map((b) => b.id)).toEqual(['g'])
+    expect(candidats([{ ...g, ville: 'Geneve' }], 'Appartement Genève').map((b) => b.id)).toEqual(['g'])
   })
 
   it('plusieurs biens répondent : tous sont rendus, aucun n’est choisi', () => {
@@ -77,15 +94,221 @@ describe('candidats — le copilote ne choisit jamais entre plusieurs biens', ()
     expect(motsDe("L'attique de la Route")).toEqual(['attique', 'route'])
   })
 
-  it('un chiffre ne se compare qu’à l’ADRESSE : « Florissant 4 » ne désigne plus rien (le « 4 » du titre ne compte pas), « Florissant 12 » et « Florissant 40 » désignent chacun le bon numéro', () => {
-    expect(candidats(biens, 'Florissant 4')).toEqual([])
+  it('un nombre est un mot ENTIER, jamais un début : « Florissant 12 » et « Florissant 40 » désignent chacun leur numéro, « Florissant 1 » aucun', () => {
     expect(candidats(biens, 'Florissant 12').map((b) => b.titre)).toEqual(['Attique 4 p.'])
     expect(candidats(biens, 'Florissant 40').map((b) => b.titre)).toEqual(['Appartement 3 p.'])
+    // « 1 » n'est ni « 12 » ni « 40 » : un nombre ne se prend jamais pour le début d'un autre — même de quatre
+    // chiffres, où un mot de lettres, lui, vaudrait déjà début de mot.
+    expect(candidats(biens, 'Florissant 1')).toEqual([])
+    expect(candidats([{ id: 'n1', titre: 'Dépôt', adresse: 'Chemin du Stand 12065', ville: 'Genève' }], 'Stand 1206')).toEqual([])
   })
 
-  it('« vandoeuvres » trouve « Vandœuvres », par le pliage des ligatures (comme `plier` du fil)', () => {
+  it('« Florissant 4 », avec un bien au n° 4 ET l’attique « 4 p. » au n° 12 : les deux, le copilote demande ; sans le n° 4, l’attique seule', () => {
+    const numero4 = { id: '44444444-4444-4444-8444-444444444444', titre: 'Duplex', adresse: 'Route de Florissant 4', ville: 'Genève' }
+    expect(candidats([...biens, numero4], 'Florissant 4').map((b) => b.titre)).toEqual(['Attique 4 p.', 'Duplex'])
+    // Le « 40 » de l'appartement n'est pas « 4 » : il n'entre dans aucune des deux listes.
+    expect(candidats(biens, 'Florissant 4').map((b) => b.titre)).toEqual(['Attique 4 p.'])
+  })
+
+  it('un DÉCIMAL est UN mot : « le 4.5 pièces de Carouge » désigne le 4.5, ni le 3.5, ni un 5.5 au n° 4 ; la base, elle, n’en reçoit que la partie entière', () => {
+    expect(motsDe('le 4.5 pièces de Carouge')).toEqual(['4', 'pieces', 'carouge'])
+    // Collé à ses lettres, le décimal reste un nombre : « 4.5p » n'envoie plus « 5p », qu'aucun « 4.5 pièces » ne contient.
+    expect(motsDe('attique 4.5p')).toEqual(['attique', '4'])
+    expect(motsDe('3,5pces')).toEqual(['3', 'pces'])
+    const carouge = [
+      { id: 'c45', titre: 'Appartement 4.5 pièces', adresse: 'Rue Jacques-Dalphin 8', ville: 'Carouge' },
+      { id: 'c35', titre: 'Appartement 3.5 pièces', adresse: 'Rue Ancienne 15', ville: 'Carouge' },
+      { id: 'c55', titre: 'Appartement 5.5 pièces', adresse: 'Rue du Four 4', ville: 'Carouge' },
+    ]
+    expect(candidats(carouge, 'le 4.5 pièces de Carouge').map((b) => b.id)).toEqual(['c45'])
+    // La virgule suisse vaut le point, des deux côtés.
+    expect(candidats(carouge, '4,5 pièces Carouge').map((b) => b.id)).toEqual(['c45'])
+    expect(candidats([{ id: 'v', titre: 'Appartement 4,5 pièces', adresse: 'Rue Vautier 1', ville: 'Carouge' }], '4.5 pièces').map((b) => b.id)).toEqual(['v'])
+    // Ni l'inverse : un « 4 » ou un « 5 » isolés ne se retrouvent pas dans « 4.5 ».
+    expect(candidats(carouge.slice(0, 2), '4 pièces Carouge')).toEqual([])
+    expect(candidats(carouge.slice(0, 2), '5 pièces Carouge')).toEqual([])
+    // Un décimal est un nombre : jamais pris pour le début d'un autre, même de quatre signes.
+    expect(candidats([{ id: 'l', titre: 'Loft 12.55 m²', adresse: 'Rue Vautier 3', ville: 'Carouge' }], 'Loft 12.5')).toEqual([])
+    // Un nombre à plusieurs séparateurs (un prix, une date) reste UN nombre : sa première tranche ne le désigne pas.
+    expect(candidats([{ id: 'd', titre: 'Loft libre dès le 01.10.2026', adresse: 'Rue Vautier 5', ville: 'Carouge' }], 'Loft 01.10')).toEqual([])
+  })
+
+  it('« 4½ pièces » et « 4.5 pièces » sont la même taille, des deux côtés — et la base, qui ne reçoit que « 4 », garde bien le « 4½ »', () => {
+    const demi = { id: 'demi', titre: 'Appartement 4½ pièces', adresse: 'Rue Ancienne 1', ville: 'Carouge' }
+    const quatre = { id: 'quatre', titre: 'Appartement 4 pièces', adresse: 'Rue Ancienne 3', ville: 'Carouge' }
+    expect(candidats([demi, quatre], '4.5 pièces').map((b) => b.id)).toEqual(['demi'])
+    expect(candidats([demi, quatre], '4,5 pièces').map((b) => b.id)).toEqual(['demi'])
+    expect(candidats([{ ...demi, titre: 'Appartement 4.5 pièces' }], '4½ pièces').map((b) => b.id)).toEqual(['demi'])
+    expect(candidats([{ ...demi, titre: 'Appartement 4 ½ pièces' }], '4.5 pièces').map((b) => b.id)).toEqual(['demi'])
+    // La base (`lower(unaccent(concat_ws(' ', titre, adresse, ville)))`, `like '%mot%'`) garde le « 4½ » : chaque mot
+    // qu'elle reçoit y est CONTENU. Elle est un sur-ensemble ; le « 4 pièces » voisin, que `candidats` écarte, y passe.
+    const enBase = (b: { titre: string; adresse: string; ville: string }): string =>
+      [b.titre, b.adresse, b.ville].join(' ').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    expect(motsDe('4.5 pièces')).toEqual(['4', 'pieces'])
+    expect(motsDe('4.5 pièces').every((w) => enBase(demi).includes(w))).toBe(true)
+    expect(motsDe('4.5 pièces').every((w) => enBase(quatre).includes(w))).toBe(true)
+    // Le quart et les trois quarts, de même ; une fraction isolée n'a pas de partie entière, elle ne compte pas.
+    expect(candidats([{ ...demi, titre: 'Studio 1¼ pièce' }], '1.25 pièce').map((b) => b.id)).toEqual(['demi'])
+    expect(candidats([{ ...demi, titre: 'Duplex 5¾ pièces' }], '5.75 pièces').map((b) => b.id)).toEqual(['demi'])
+    expect(motsDe('½ pièce')).toEqual(['piece'])
+  })
+
+  it('« studio » ne départage pas « Studio » et « Studio lumineux » : les deux — le titre nu n’est pas un libellé ; le libellé de l’un le désigne seul', () => {
+    const studios = [
+      { id: 's1', titre: 'Studio', adresse: 'Rue du Lac 2', ville: 'Genève' },
+      { id: 's2', titre: 'Studio lumineux', adresse: 'Rue du Lac 2', ville: 'Genève' },
+    ]
+    expect(candidats(studios, 'studio').map((b) => b.id)).toEqual(['s1', 's2'])
+    expect(candidats(studios, 'Studio').map((b) => b.id)).toEqual(['s1', 's2'])
+    // À la même adresse, les mots rendraient les deux : seul le libellé exact tranche.
+    expect(candidats(studios, 'Studio · Rue du Lac 2').map((b) => b.id)).toEqual(['s1'])
+    expect(candidats(studios, 'Studio lumineux · Rue du Lac 2').map((b) => b.id)).toEqual(['s2'])
+  })
+
+  it('sans « · », pas d’écho : « studio rue du Lac 2 » se plie comme le libellé du studio, mais ses mots désignent les deux', () => {
+    const studios = [
+      { id: 's1', titre: 'Studio', adresse: 'Rue du Lac 2', ville: 'Genève' },
+      { id: 's2', titre: 'Studio lumineux', adresse: 'Rue du Lac 2', ville: 'Genève' },
+    ]
+    expect(candidats(studios, 'studio rue du Lac 2').map((b) => b.id)).toEqual(['s1', 's2'])
+    expect(candidats(studios, 'studio, rue du lac, 2').map((b) => b.id)).toEqual(['s1', 's2'])
+    expect(candidats(studios, 'le studio rue du Lac 2').map((b) => b.id)).toEqual(['s1', 's2'])
+  })
+
+  it('un article DE TÊTE ne fait pas perdre l’écho, d’un côté comme de l’autre', () => {
+    const deux = [
+      { id: 'a', titre: 'Attique 4 p.', adresse: 'Route de Florissant 12', ville: 'Genève' },
+      { id: 'j', titre: 'Attique 4 p. duplex', adresse: 'Route de Florissant 12', ville: 'Genève' },
+    ]
+    expect(candidats(deux, "l'Attique 4 p. · Route de Florissant 12").map((b) => b.id)).toEqual(['a'])
+    expect(candidats(deux, 'le Attique 4 p. · Route de Florissant 12').map((b) => b.id)).toEqual(['a'])
+    // Un titre qui commence lui-même par un article reste égal à son écho, avec ou sans l'article.
+    const clos = [
+      { id: 'c', titre: 'Le Clos des Vignes', adresse: 'Chemin du Clos 3', ville: 'Satigny' },
+      { id: 'k', titre: 'Le Clos des Vignes, lot B', adresse: 'Chemin du Clos 3', ville: 'Satigny' },
+    ]
+    expect(candidats(clos, 'Le Clos des Vignes · Chemin du Clos 3').map((b) => b.id)).toEqual(['c'])
+    expect(candidats(clos, 'Clos des Vignes · Chemin du Clos 3').map((b) => b.id)).toEqual(['c'])
+    // Une LETTRE isolée, pas un chiffre : « 4 pièces » et « 5 pièces » ne se confondent pas une fois la tête ôtée.
+    const pieces = [
+      { id: 'p4', titre: '4 pièces', adresse: 'Rue du Four 2', ville: 'Carouge' },
+      { id: 'p5', titre: '5 pièces', adresse: 'Rue du Four 2', ville: 'Carouge' },
+    ]
+    expect(candidats(pieces, '4 pièces · Rue du Four 2').map((b) => b.id)).toEqual(['p4'])
+  })
+
+  it('« Attique 4 p. » nu, tel que get_matches l’a montré : retrouvé par les mots — le « 4 » de son titre, entier ; le « 40 » voisin ne l’est pas', () => {
+    expect(candidats(biens, 'Attique 4 p.').map((b) => b.titre)).toEqual(['Attique 4 p.'])
+    expect(candidats(biens, '  attique 4 P.  ').map((b) => b.titre)).toEqual(['Attique 4 p.'])
+  })
+
+  it('deux « Attique 4 p. » à deux adresses : le titre nu les rend tous deux, le libellé de l’un le désigne seul', () => {
+    const deux = [
+      { id: 'a12', titre: 'Attique 4 p.', adresse: 'Route de Florissant 12', ville: 'Genève' },
+      { id: 'a8', titre: 'Attique 4 p.', adresse: 'Chemin des Crêts 8', ville: 'Genève' },
+    ]
+    expect(candidats(deux, 'Attique 4 p.').map((b) => b.id)).toEqual(['a12', 'a8'])
+    expect(candidats(deux, 'Attique 4 p. · Chemin des Crêts 8').map((b) => b.id)).toEqual(['a8'])
+    expect(candidats(deux, 'Attique 4 p. · Route de Florissant 12').map((b) => b.id)).toEqual(['a12'])
+  })
+
+  it('l’ÉCHO d’un libellé (« titre · adresse », ou « titre · ville » sans adresse) désigne ce bien seul', () => {
+    // Même adresse, titres voisins : les mots désigneraient les deux ; seul le libellé exact tranche.
+    const jumeau = { id: 'j1', titre: 'Attique 4 p. duplex', adresse: 'Route de Florissant 12', ville: 'Genève' }
+    expect(candidats([jumeau, ...biens], 'Attique 4 p. · Route de Florissant 12').map((b) => b.id)).toEqual([biens[0].id])
+    // La ponctuation ne compte pas dans l'écho, qui se compare plié ; mais sans « · » il n'y a pas d'écho : la virgule
+    // laisse les mots seuls, qui rendent les deux.
+    expect(candidats([jumeau, ...biens], 'Attique 4 p.  ·  Route de Florissant, 12').map((b) => b.id)).toEqual([biens[0].id])
+    expect(candidats([jumeau, ...biens], 'Attique 4 p., Route de Florissant 12').map((b) => b.id)).toEqual([jumeau.id, biens[0].id])
+    const sansAdresse = [{ id: 's1', titre: 'Loft 2 p.', adresse: null, ville: 'Carouge' }, { id: 's2', titre: 'Loft 2 p. terrasse', adresse: null, ville: 'Carouge' }]
+    expect(candidats(sansAdresse, 'Loft 2 p. · Carouge').map((b) => b.id)).toEqual(['s1'])
+  })
+
+  it('un bien sans adresse ni ville a son titre pour libellé, sans « · » : son titre nu n’est pas un écho — les mots, les deux studios', () => {
+    const nus = [{ id: 'n1', titre: 'Studio', adresse: null, ville: null }, { id: 'n2', titre: 'Studio lumineux', adresse: null, ville: null }]
+    expect(candidats(nus, 'Studio').map((b) => b.id)).toEqual(['n1', 'n2'])
+  })
+
+  it('deux biens au même libellé (la même annonce vue deux fois) : les deux, jamais un choix', () => {
+    const doubles = [
+      { id: 'a', titre: 'Studio', adresse: 'Rue du Lac 2', ville: 'Genève' },
+      { id: 'b', titre: 'Studio', adresse: 'Rue du Lac 2', ville: 'Genève' },
+    ]
+    expect(candidats(doubles, 'Studio · Rue du Lac 2').map((b) => b.id)).toEqual(['a', 'b'])
+    expect(candidats(doubles, 'Studio').map((b) => b.id)).toEqual(['a', 'b'])
+  })
+
+  it('l’écho nu « Attique 4 p. » avec un leurre (« Attique 3 p. · Rue du Stand 4 ») : les DEUX, le copilote demande ; le libellé de l’une la désigne seule', () => {
+    // Le « 4 » est dans le titre de l'une, dans l'adresse de l'autre : un nombre compte où qu'il soit, et aucun des
+    // deux n'est préféré — une désignation qui en rend plusieurs demande, elle ne choisit jamais.
+    const leurre = { id: 'l1', titre: 'Attique 3 p.', adresse: 'Rue du Stand 4', ville: 'Genève' }
+    expect(candidats([leurre, ...biens], 'Attique 4 p.').map((b) => b.id)).toEqual(['l1', biens[0].id])
+    expect(candidats([leurre, ...biens], 'Attique 4 p. · Route de Florissant 12').map((b) => b.id)).toEqual([biens[0].id])
+    expect(candidats([leurre, ...biens], 'Attique 3 p. · Rue du Stand 4').map((b) => b.id)).toEqual(['l1'])
+  })
+
+  it('un titre NULL : le bien s’affiche par son adresse, et se désigne par elle ; aucun titre générique ne le nomme', () => {
+    const sansTitre = [{ id: 'n1', titre: null, adresse: 'Route de Chêne 20', ville: 'Chêne-Bougeries' }]
+    expect(candidats(sansTitre, 'Route de Chêne 20').map((b) => b.id)).toEqual(['n1'])
+    expect(candidats(sansTitre, 'Route de Chêne 20 · Chêne-Bougeries').map((b) => b.id)).toEqual(['n1'])
+    const sansRien = [{ id: 'x1', titre: null, adresse: null, ville: null }, { id: 'x2', titre: '  ', adresse: ' ', ville: '' }]
+    expect(candidats(sansRien, 'Annonce')).toEqual([])
+    expect(candidats(sansRien, 'Bien')).toEqual([])
+    // Ni en forme d'écho : le générique n'entre pas non plus dans l'égalité au libellé.
+    expect(candidats(sansRien, 'Annonce ·')).toEqual([])
+  })
+
+  it('une adresse blanche n’entre pas dans le libellé comparé : « Studio · Genève » désigne le studio', () => {
+    const blanche = [{ id: 'w1', titre: 'Studio', adresse: '   ', ville: 'Genève' }, { id: 'w2', titre: 'Studio', adresse: 'Rue du Lac 2', ville: 'Genève' }]
+    expect(candidats(blanche, 'Studio · Genève').map((b) => b.id)).toEqual(['w1'])
+  })
+
+  it('un TITRE qui porte lui-même un « · », recopié, ne désigne pas seul le bien voisin dont c’est le libellé : les mots, les deux ; le libellé entier de l’un le désigne seul', () => {
+    const deux = [
+      { id: 't1', titre: 'Attique · Route de Florissant 12', adresse: 'Route de Florissant 12', ville: 'Genève' },
+      { id: 't2', titre: 'Attique', adresse: 'Route de Florissant 12', ville: 'Genève' },
+    ]
+    expect(deux.map((b) => libelleBien(b))).toEqual(['Attique · Route de Florissant 12 · Genève', 'Attique · Route de Florissant 12'])
+    // Le titre de t1, tel que get_matches le montre, est mot pour mot le libellé de t2 : ni l'un ni l'autre seul.
+    expect(candidats(deux, 'Attique · Route de Florissant 12').map((b) => b.id)).toEqual(['t1', 't2'])
+    expect(candidats(deux, "l'Attique · Route de Florissant 12").map((b) => b.id)).toEqual(['t1', 't2'])
+    expect(candidats(deux, 'Attique · Route de Florissant 12 · Genève').map((b) => b.id)).toEqual(['t1'])
+    // Ce sont bien les MOTS qui répondent alors, pas les deux seuls biens égaux : le duplex à la même adresse aussi.
+    const duplex = { id: 't3', titre: 'Attique duplex', adresse: 'Route de Florissant 12', ville: 'Genève' }
+    expect(candidats([...deux, duplex], 'Attique · Route de Florissant 12').map((b) => b.id)).toEqual(['t1', 't2', 't3'])
+    // Un titre qui commence par un article se compare, lui aussi, sans sa tête.
+    const article = { ...deux[0], id: 't1b', titre: "L'Attique · Route de Florissant 12" }
+    expect(candidats([article, deux[1]], 'Attique · Route de Florissant 12').map((b) => b.id)).toEqual(['t1b', 't2'])
+    // Sans voisin dont ce texte soit le titre, l'égalité tient : t2 seul, par son libellé.
+    expect(candidats([deux[1], duplex], 'Attique · Route de Florissant 12').map((b) => b.id)).toEqual(['t2'])
+    // Le bien dont ce texte est À LA FOIS le titre et le libellé n'écarte que lui-même : il reste désigné seul.
+    const seul = { id: 't4', titre: 'Attique · Carouge', adresse: null, ville: null }
+    const voisin = { id: 't5', titre: 'Attique', adresse: 'Rue Vautier 3', ville: 'Carouge' }
+    expect(candidats([seul, voisin], 'Attique · Carouge').map((b) => b.id)).toEqual(['t4'])
+  })
+
+  it('« Villa de Cologny » sans adresse garde sa ville dans son libellé : son écho la désigne seule face à « Villa de Cologny avec piscine »', () => {
+    const villas = [
+      { id: 'v1', titre: 'Villa de Cologny', adresse: null, ville: 'Cologny' },
+      { id: 'v2', titre: 'Villa de Cologny avec piscine', adresse: null, ville: 'Cologny' },
+    ]
+    expect(candidats(villas, 'Villa de Cologny · Cologny').map((b) => b.id)).toEqual(['v1'])
+    expect(candidats(villas, 'Villa de Cologny avec piscine · Cologny').map((b) => b.id)).toEqual(['v2'])
+    // Sans son « · », le titre nu désigne les deux.
+    expect(candidats(villas, 'Villa de Cologny').map((b) => b.id)).toEqual(['v1', 'v2'])
+  })
+
+  it('« vandoeuvres » trouve « Vandœuvres », par le pliage des ligatures (comme `plier` du fil) — des deux côtés, écho compris', () => {
     const b = [{ id: 'v1', titre: 'Maison', adresse: 'Chemin de la Côte 2', ville: 'Vandœuvres' }]
     expect(candidats(b, 'vandoeuvres').map((x) => x.id)).toEqual(['v1'])
+    // La base reçoit le mot plié, comme `unaccent` plie le bien : jamais « vand » et « uvres ».
+    expect(motsDe('Maison à Vandœuvres')).toEqual(['maison', 'vandoeuvres'])
+    // L'écho d'un libellé à ligature, retapé sans elle, reste égal à ce libellé : les mots rendraient les deux villas.
+    const villas = [
+      { id: 'v2', titre: 'Villa', adresse: null, ville: 'Vandœuvres' },
+      { id: 'v3', titre: 'Villa avec piscine', adresse: null, ville: 'Vandœuvres' },
+    ]
+    expect(candidats(villas, 'Villa · Vandoeuvres').map((x) => x.id)).toEqual(['v2'])
   })
 })
 
@@ -116,6 +339,61 @@ describe('bienEnClair — dire qu’un bien n’est pas une occasion', () => {
     const actif = bienEnClair(bienDeMandat(mandat({ status: 'active' })))
     expect('occasion' in actif).toBe(false)
     expect('statut' in actif).toBe(false)
+  })
+})
+
+describe('libelleBien — nommer un bien à l’agent sans ambiguïté', () => {
+  it('titre · adresse quand elle existe et n’est pas déjà dans le titre', () => {
+    expect(libelleBien({ titre: 'Attique 4 p.', adresse: 'Route de Florissant 12', ville: 'Genève' })).toBe('Attique 4 p. · Route de Florissant 12')
+  })
+
+  it('titre · ville quand il n’y a pas d’adresse, ou que l’adresse est déjà dans le titre', () => {
+    expect(libelleBien({ titre: 'Attique 4 p.', adresse: null, ville: 'Genève' })).toBe('Attique 4 p. · Genève')
+    expect(libelleBien({ titre: 'Route de Florissant 12', adresse: 'Route de Florissant 12', ville: 'Genève' })).toBe('Route de Florissant 12 · Genève')
+  })
+
+  it('le titre seul : ni adresse ni ville connues', () => {
+    expect(libelleBien({ titre: 'Attique 4 p.', adresse: null, ville: null })).toBe('Attique 4 p.')
+    expect(libelleBien({ titre: 'Route de Florissant 12', adresse: 'Route de Florissant 12', ville: null })).toBe('Route de Florissant 12')
+  })
+
+  it('une adresse ou une ville vide ou faite d’espaces n’existe pas, et ce qui reste est rogné', () => {
+    expect(libelleBien({ titre: 'Studio', adresse: '   ', ville: 'Genève' })).toBe('Studio · Genève')
+    expect(libelleBien({ titre: 'Studio', adresse: '', ville: '  ' })).toBe('Studio')
+    expect(libelleBien({ titre: ' Studio ', adresse: ' Rue du Lac 2 ', ville: null })).toBe('Studio · Rue du Lac 2')
+    expect(libelleBien({ titre: 'Studio', adresse: null, ville: ' Genève ' })).toBe('Studio · Genève')
+    // Faite de ponctuation seule, elle n'existe pas davantage.
+    expect(libelleBien({ titre: 'Studio', adresse: '—', ville: 'Genève' })).toBe('Studio · Genève')
+    expect(libelleBien({ titre: 'Studio', adresse: null, ville: '-' })).toBe('Studio')
+  })
+
+  it('la ville ne se tait que si le titre EST la ville : une annonce sans titre ni adresse s’affiche « Genève », jamais « Genève · Genève » ; un titre qui la contient la garde', () => {
+    expect(libelleBien(bienDAnnonce(annonce({ title: null, address: null, city: 'Genève' })))).toBe('Genève')
+    expect(libelleBien({ titre: 'GENEVE', adresse: null, ville: 'Genève' })).toBe('GENEVE')
+    expect(libelleBien({ titre: 'Villa de Cologny', adresse: null, ville: 'Cologny' })).toBe('Villa de Cologny · Cologny')
+  })
+
+  it('l’adresse et la ville se comparent au titre par jetons, jamais par sous-chaîne', () => {
+    // L'adresse, jeton pour jeton et à la suite : « 3 » n'est pas « 32 ».
+    expect(libelleBien({ titre: 'Attique Rue de la Paix 32', adresse: 'Rue de la Paix 3', ville: 'Genève' })).toBe('Attique Rue de la Paix 32 · Rue de la Paix 3')
+    expect(libelleBien({ titre: 'Attique, rue de la Paix 3', adresse: 'Rue de la Paix 3', ville: 'Genève' })).toBe('Attique, rue de la Paix 3 · Genève')
+    // Tous ses jetons dans le titre, mais pas à la suite : le « 3 » y compte les pièces, l'adresse reste.
+    expect(libelleBien({ titre: 'Appartement 3 pièces rue de la Paix', adresse: 'Rue de la Paix 3', ville: 'Genève' }))
+      .toBe('Appartement 3 pièces rue de la Paix · Rue de la Paix 3')
+    // Une ville ne disparaît pas dans un mot du titre qui la contient.
+    expect(libelleBien({ titre: 'Appartement avec vision panoramique', adresse: null, ville: 'Sion' })).toBe('Appartement avec vision panoramique · Sion')
+    expect(libelleBien({ titre: 'Studio solaire', adresse: null, ville: 'Aire' })).toBe('Studio solaire · Aire')
+  })
+})
+
+describe('titreAffiche — ce qu’un bien affiche pour se nommer, sans générique', () => {
+  it('le titre rogné, sinon l’adresse, sinon la ville ; rien des trois : null — l’affichage, lui, garde son générique', () => {
+    expect(titreAffiche({ titre: '  Attique  ', adresse: 'Rue 1', ville: 'Genève' })).toBe('Attique')
+    expect(titreAffiche({ titre: ' ', adresse: ' Rue 1 ', ville: 'Genève' })).toBe('Rue 1')
+    expect(titreAffiche({ titre: null, adresse: null, ville: ' Genève ' })).toBe('Genève')
+    expect(titreAffiche({ titre: null, adresse: '  ', ville: null })).toBeNull()
+    expect(bienDeMandat(mandat({ title: null, address: null, city: null })).titre).toBe('Bien')
+    expect(bienDAnnonce(annonce({ title: '', address: ' ', city: null })).titre).toBe('Annonce')
   })
 })
 
