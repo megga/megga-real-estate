@@ -36,7 +36,7 @@ export const SHARED_READ_TOOLS = [
 // (21.09.2026) — la garder aurait fait deux copies d'un même texte, prêtes à diverger.
 // get_matches (lot D2) : la description WhatsApp renvoie vers schedule_visit et get_buyers_for_property, absents du
 // catalogue web (ni SHARED_READ_TOOLS ni SHARED_WRITE_TOOLS) — même défaut que search_listings/send_listings
-// ci-dessus (relecture qualité, 25.09.2026). DÉRIVÉE de la description WhatsApp (jamais recopiée à la main : la
+// ci-dessus. DÉRIVÉE de la description WhatsApp (jamais recopiée à la main : la
 // mise en garde ci-dessus, pour search_listings, vaut ici aussi — deux copies d'un même texte, prêtes à diverger) en
 // retirant la seule phrase qui invite à un outil absent. ⛔ Jamais d'exception ici : levée au chargement du module,
 // elle ferait tomber le copilote web entier pour une retouche de texte. Si la phrase a changé, le web garde le texte

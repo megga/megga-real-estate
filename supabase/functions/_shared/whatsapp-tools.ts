@@ -130,6 +130,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'get_buyers_for_property',
+      description: "Matching INVERSÉ : les acheteurs compatibles d'un bien — un mandat de l'agence ou une annonce du marché suivie —, par score, avec l'état de chacun (à proposer, proposé, intéressé, visite). Pour « qui pour la villa de Cologny ? », « quels acheteurs pour ce bien ? ». Le bien : son nom, son adresse ou sa ville, ou son id (via get_matches). Si plusieurs biens correspondent, l'outil les liste : demande à l'agent lequel. Lecture seule, n'écrit à personne.",
+      parameters: {
+        type: 'object',
+        properties: { bien: { type: 'string', description: 'Le bien : un nom, une adresse, une ville, ou son id.' } },
+        required: ['bien'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_daily_brief',
       description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ».",
       parameters: { type: 'object', properties: {} },

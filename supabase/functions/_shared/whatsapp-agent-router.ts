@@ -27,6 +27,8 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   get_contact_brief: 'read',
   list_followups: 'read',
   get_matches: 'read',
+  // get_buyers_for_property : lecture seule (lot D2) — le matching inversé d'un bien, rendu à l'agent seul.
+  get_buyers_for_property: 'read',
   get_daily_brief: 'read',
   search_listings: 'read',
   get_kyc_status: 'read',

@@ -10,8 +10,9 @@
 import type { ActionCtx } from './whatsapp-actions.ts'
 import { touchHotContact } from './contact-memory.ts'
 import {
-  COLONNES_MATCH, COLONNES_MANDAT, COLONNES_ANNONCE, STATUTS_EN_COURS, bienDeMandat, bienDAnnonce, vueGetMatches,
-  type BienWa, type Criteres, type EntreeMatch, type LigneAnnonce, type LigneMandat, type LigneMatch,
+  COLONNES_MATCH, COLONNES_MANDAT, COLONNES_ANNONCE, STATUTS_COMPATIBLES, STATUTS_EN_COURS, bienDeMandat, bienDAnnonce,
+  candidats, motsDe, vueAcheteurs, vueCandidats, vueGetMatches,
+  type BienWa, type Criteres, type Designable, type EntreeMatch, type LigneAcheteur, type LigneAnnonce, type LigneMandat, type LigneMatch,
 } from './whatsapp-matching.ts'
 
 type Args = Record<string, unknown>
@@ -159,7 +160,7 @@ export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
   const aProposer = aLaLimite(aProposerBrut.data as LigneMatch[] | null, LIMITE_A_PROPOSER)
   const revenus = aLaLimite(revenusBrut.data as LigneMatch[] | null, LIMITE_REVENUS)
   const enCoursALaLimite = prioritaire.mord || propose.mord
-  // ⛔ PAS `|| revenus.mord` (relecture qualité, 25.09.2026, H7) : les revenus sont un SOUS-ENSEMBLE des matchs
+  // ⛔ PAS `|| revenus.mord` : les revenus sont un SOUS-ENSEMBLE des matchs
   // « suggested » que la lecture ci-dessus a DÉJÀ tous vus dès lors qu'elle-même n'a pas mordu — sa propre limite,
   // bien plus basse (LIMITE_REVENUS), peut mordre alors que le total réel est déjà exact et connu en entier :
   // onze revenus sur onze matchs à proposer rendraient « 11+ » au lieu de « 11 ».
@@ -183,4 +184,132 @@ export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
     return bien ? [{ match: m, bien, criteres: m.client_search_id ? criteres.get(m.client_search_id) ?? null : null }] : []
   })
   return JSON.stringify({ contact: c.nom, ...vueGetMatches(entrees, Date.now(), aProposerALaLimite, enCoursALaLimite) })
+}
+
+// ── get_buyers_for_property ─────────────────────────────────────────────────
+
+/**
+ * Le plafond d'une recherche par TEXTE : bien au-delà de ce qu'un agent tape (un nom, une adresse, une ville), et
+ * bien en dessous du plafond de `wa_matching_biens_designes` elle-même (200) et de celui de PostgREST (1 000,
+ * `supabase/config.toml:18`).
+ */
+const LIMITE_DESIGNES = 50
+/** Les compatibles d'un bien, lus d'un bloc — comme `useQuiPourCeBien` (le CRM), qui borne pareillement à 200. */
+const LIMITE_COMPATIBLES = 200
+
+const decouper = <T>(xs: readonly T[], n: number): T[][] => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n))
+
+/** Une ligne de `wa_matching_biens_designes` : un `Designable` (whatsapp-matching.ts), plus son genre. */
+interface LigneDesignee extends Designable { genre: 'mandat' | 'annonce' }
+
+/**
+ * Ce que `designerBien` rend : `biens` — jusqu'à 5 biens PLEINEMENT résolus (un seul si `total === 1`) — et `total`,
+ * le nombre RÉEL de candidats affinés, qui peut dépasser 5 (`vueCandidats` s'en sert pour dire « 5 sur N »). `coupe` :
+ * la lecture en BASE (LIMITE_DESIGNES+1) a mordu — `total` n'est alors qu'un plancher.
+ */
+interface Designation { biens: BienWa[]; total: number; coupe: boolean }
+
+/**
+ * Le bien qu'un texte — ou un identifiant — désigne. Par IDENTIFIANT : le mandat de l'agence d'abord, l'annonce
+ * SEULEMENT s'il est absent — une panne sur les annonces ne fait pas échouer une réponse que le mandat, lui, a déjà
+ * résolue. Par TEXTE : EN BASE, par `wa_matching_biens_designes` (migration
+ * `…_matching_whatsapp.sql`, §5) — les mandats de l'agence ET les annonces qu'un match compatible y suit, ENSEMBLE,
+ * jamais l'un puis l'autre à défaut (un mandat ne masque jamais SEUL une annonce qui répond aussi — conception
+ * §3, principe 5 : le copilote ne devine pas). Lus à LIMITE+1, recoupés par `aLaLimite`, affinés par `candidats`
+ * (pur) ; seuls les 5 premiers affinés sont relus en colonnes complètes. `null` : une lecture a échoué.
+ */
+async function designerBien(ctx: ActionCtx, texte: string): Promise<Designation | null> {
+  if (UUID.test(texte)) {
+    const m = await ctx.supabase
+      .from('properties').select(COLONNES_MANDAT).eq('id', texte).eq('agency_id', ctx.agencyId).is('deleted_at', null).maybeSingle()
+    if (m.error) return null
+    if (m.data) return { biens: [bienDeMandat(m.data as LigneMandat)], total: 1, coupe: false }
+    const a = await ctx.supabase.from('market_listings').select(COLONNES_ANNONCE).eq('id', texte).maybeSingle()
+    if (a.error) return null
+    return a.data
+      ? { biens: [bienDAnnonce(a.data as LigneAnnonce)], total: 1, coupe: false }
+      : { biens: [], total: 0, coupe: false }
+  }
+  const mots = motsDe(texte)
+  // Aucun mot utile (un « le », un « à » seuls) : aucun bien, comme `candidats` — sans appeler la base pour rien.
+  if (!mots.length) return { biens: [], total: 0, coupe: false }
+  const { data, error } = await ctx.supabase.rpc('wa_matching_biens_designes', {
+    p_agency: ctx.agencyId, p_mots: mots, p_limite: LIMITE_DESIGNES + 1,
+  })
+  if (error) return null
+  const { lignes, mord } = aLaLimite(data as LigneDesignee[] | null, LIMITE_DESIGNES)
+  const affines = candidats(lignes, texte)
+  if (!affines.length) return { biens: [], total: 0, coupe: mord }
+  const tete = affines.slice(0, 5)
+  const idsMandats = tete.filter((b) => b.genre === 'mandat').map((b) => b.id)
+  const idsAnnonces = tete.filter((b) => b.genre === 'annonce').map((b) => b.id)
+  const [m, a] = await Promise.all([
+    idsMandats.length
+      ? ctx.supabase.from('properties').select(COLONNES_MANDAT).in('id', idsMandats).eq('agency_id', ctx.agencyId).is('deleted_at', null)
+      : Promise.resolve({ data: [], error: null }),
+    idsAnnonces.length
+      ? ctx.supabase.from('market_listings').select(COLONNES_ANNONCE).in('id', idsAnnonces)
+      : Promise.resolve({ data: [], error: null }),
+  ])
+  if (m.error || a.error) return null
+  const parId = new Map<string, BienWa>()
+  for (const l of (m.data ?? []) as LigneMandat[]) parId.set(l.id, bienDeMandat(l))
+  for (const l of (a.data ?? []) as LigneAnnonce[]) parId.set(l.id, bienDAnnonce(l))
+  // L'ordre de `tete` (celui que la base a déjà rendu : mandats, puis id) — jamais celui des deux lectures
+  // ci-dessus, séparées par genre et donc muettes sur l'ordre d'origine.
+  const biens = tete.flatMap((b) => { const v = parId.get(b.id); return v ? [v] : [] })
+  return { biens, total: affines.length, coupe: mord }
+}
+
+/** « Qui pour la villa de Cologny ? » — les acquéreurs compatibles d'un bien (conception §5.2). */
+export async function execGetBuyersForProperty(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!aUneAgence(ctx)) return SANS_AGENCE
+  const texte = s(a.bien)
+  if (!texte) return 'Erreur: quel bien ? Son nom, son adresse ou sa ville — ou son identifiant, via get_matches.'
+  const designation = await designerBien(ctx, texte)
+  if (designation === null) return LECTURE_IMPOSSIBLE
+  const { biens, total, coupe } = designation
+  if (total === 0) {
+    // La lecture en base a mordu et l'affinage n'a rien gardé parmi ce qu'elle a pu voir : un bien plus loin dans
+    // l'ordre aurait peut-être matché — « introuvable » l'affirmerait à tort. Jamais le cas par identifiant, qui ne
+    // balaie rien (`coupe` y est toujours `false`).
+    if (coupe) return 'Erreur: la recherche est trop large pour être tranchée. Précise l’adresse, ou donne l’identifiant du bien (via get_matches).'
+    return JSON.stringify({ introuvable: true, note: `Aucun mandat de l’agence ni aucune annonce suivie ne correspond à « ${texte} ».` })
+  }
+  if (total > 1 || coupe) {
+    // Une lecture coupée ne rend jamais un bien comme LE bien : le sur-ensemble en base est trié par genre puis id,
+    // sans rapport avec la pertinence du texte — celui qui survit seul à l'affinage n'est pas forcément le seul qui
+    // aurait matché au-delà de la coupe. Une coupe demande donc TOUJOURS, même si l'affinage n'en garde qu'un.
+    const question = coupe
+      ? 'La recherche est trop large pour être sûre qu’il n’y en a qu’un : demande à l’agent de préciser (adresse ou identifiant), sans choisir.'
+      : 'Plusieurs biens correspondent : demande à l’agent lequel, sans choisir.'
+    return JSON.stringify({ ...vueCandidats(biens, total, coupe), question })
+  }
+  const bien = biens[0]
+  if (!bien) return LECTURE_IMPOSSIBLE
+  const { data, error } = await ctx.supabase
+    .from('matches').select('id, contact_id, status, score, snoozed_until, sent_at, reaction_motif, prix_propose')
+    .eq('agency_id', ctx.agencyId).eq(bien.genre === 'mandat' ? 'property_id' : 'market_listing_id', bien.id)
+    .in('status', [...STATUTS_COMPATIBLES]).order('score', { ascending: false }).order('id').limit(LIMITE_COMPATIBLES + 1)
+  if (error) return LECTURE_IMPOSSIBLE
+  // Lu à LIMITE+1, recoupé par `aLaLimite` : la ligne surnuméraire dit si le total est exact — jamais
+  // `lignes.length >= limite`, qui confondrait « exactement N » et « la lecture s'est arrêtée à N ».
+  const { lignes, mord } = aLaLimite(data as Omit<LigneAcheteur, 'nom'>[] | null, LIMITE_COMPATIBLES)
+  // Les fiches de TOUS les compatibles (200 au plus), en deux lots de 100 comme le CRM : ceux que le SQL rend en
+  // premier et ceux que `vueAcheteurs` affiche n'ont pas besoin de coïncider.
+  const idsContacts = [...new Set(lignes.map((l) => l.contact_id))]
+  const lots = idsContacts.length
+    ? await Promise.all(decouper(idsContacts, 100).map((lot) =>
+        ctx.supabase.from('contacts').select('id, first_name, last_name').in('id', lot).eq('agency_id', ctx.agencyId)))
+    : []
+  if (lots.some((r) => r.error)) return LECTURE_IMPOSSIBLE
+  const noms = new Map(lots.flatMap((r) => (r.data ?? []) as { id: string; first_name: string | null; last_name: string | null }[])
+    .map((c) => [c.id, `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || '—']))
+  // Une ligne SANS fiche résolue (hors agence, id disparu) est écartée AVANT de compter — comme `versCompatible`
+  // (filQuiPour.ts) : le total s'aligne ainsi sur ce que montre la fiche du CRM, jamais sur une ligne fantôme.
+  const acheteurs: LigneAcheteur[] = lignes.flatMap((l) => {
+    const nom = noms.get(l.contact_id)
+    return nom ? [{ ...l, nom }] : []
+  })
+  return JSON.stringify(vueAcheteurs(bien, acheteurs, Date.now(), mord))
 }

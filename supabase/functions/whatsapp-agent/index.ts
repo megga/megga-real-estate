@@ -32,7 +32,7 @@ import {
   findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
-import { execGetMatches } from '../_shared/whatsapp-matching-outils.ts'
+import { execGetMatches, execGetBuyersForProperty } from '../_shared/whatsapp-matching-outils.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
@@ -533,6 +533,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'get_contact_brief': return execGetContactBrief(ctx, args)
     case 'list_followups': return execListFollowups(ctx, args)
     case 'get_matches': return execGetMatches(ctx, args)
+    case 'get_buyers_for_property': return execGetBuyersForProperty(ctx, args)
     case 'get_daily_brief': return execGetDailyBrief(ctx, args)
     case 'search_listings': return execSearchListings(ctx, args)
     case 'get_kyc_status': return execGetKycStatus(ctx, args)

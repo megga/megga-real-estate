@@ -8,6 +8,9 @@
 // la spec rougit au premier écart.
 //
 // ⛔ Rien ici n'écrit à l'acheteur : ces fonctions rangent, désignent et décrivent ce que l'agent consigne.
+// ⚠ Les annonces du marché (`market_listings`) sont PUBLIQUES — un marché national partagé par toutes les agences,
+// jamais scopées par `agency_id` (contrairement aux mandats, `properties`). Une annonce se lit donc par son id SEUL ;
+// ce qui la rattache à UNE agence, c'est un match compatible qui la cite — jamais une colonne sur la ligne elle-même.
 
 import { ETATS_BIEN, etatDuBien, slugify, type EtatBien } from './matching-normalize.ts'
 import { fmtCHF } from './morning-brief.ts'
@@ -546,7 +549,7 @@ function presenterCriteres(lignes: CritereExplique[], location: boolean): Criter
 
 /** Partagée par `vueGetMatches` et `vueAcheteurs` (CLAUDE.md §5 : un score IA se présente comme une estimation). */
 const NOTE_MODELE =
-  "Le score est une estimation du moteur de matching : présente-le comme tel. Un critère à tenu: null n'a pas été évalué : ne dis pas qu'il est tenu, ni qu'il ne l'est pas. Un bien à occasion: false ne se propose pas : son statut dit pourquoi (sous offre, brouillon, vendu)."
+  "Le score est une estimation du moteur de matching : présente-le comme tel. Un critère à tenu: null n'a pas été évalué : ne dis pas qu'il est tenu, ni qu'il ne l'est pas. Un bien à occasion: false ne se propose pas : son statut dit pourquoi (sous offre, brouillon, vendu). Un bien à retire: true (annonce retirée du marché) ne se propose plus non plus à ses acquéreurs."
 
 /**
  * La réponse de `get_matches` : les biens EN COURS d'abord — intéressé, visite, puis proposé —, puis les meilleurs
@@ -635,8 +638,16 @@ export function vueAcheteurs(bien: BienWa, lignes: readonly LigneAcheteur[], mai
   }
 }
 
-/** Les candidats d'un texte ambigu, cinq au plus : le copilote demande lequel. */
-export const vueCandidats = (biens: readonly BienWa[]) => biens.slice(0, 5).map(bienEnClair)
+/**
+ * Les candidats d'un texte ambigu : `biens` déjà réduit à cinq au plus par l'appelant (les seuls relus en colonnes
+ * complètes), `total` le nombre RÉEL de candidats affinés — qui peut dépasser 5, ce que dit « N+ » si la lecture en
+ * base (LIMITE+1) a été coupée avant l'affinage, comme `vueGetMatches`/`vueAcheteurs` : jamais un total nu qui
+ * prétendrait à une exactitude que la lecture ne garantit plus. Ordre STABLE : celui que la base rend déjà (mandats
+ * d'abord, puis id) — cette fonction ne trie ni ne coupe rien elle-même.
+ */
+export function vueCandidats(biens: readonly BienWa[], total: number, coupe: boolean) {
+  return { candidats: biens.map(bienEnClair), total: coupe ? `${total}+` : String(total) }
+}
 
 /** Ce que `wa_matching_visite` rend. */
 export interface VisitePlanifiee {

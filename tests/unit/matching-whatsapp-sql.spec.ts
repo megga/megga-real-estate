@@ -18,6 +18,7 @@ import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { MOTIFS_REFUS } from '@/components/matching-fil/filBoucle'
 import { refAnnonceMarche, refBienInterne } from '@/hooks/useAtelierMatching'
+import { STATUTS_COMPATIBLES } from '../../supabase/functions/_shared/whatsapp-matching'
 
 // Le hook n'est importé ici que pour ses deux fonctions PURES (refBienInterne, refAnnonceMarche) — ni l'une ni
 // l'autre ne touche `supabase`. Les mocks ne servent qu'à permettre le CHARGEMENT du module (mêmes noms que
@@ -98,7 +99,7 @@ function signeeEtReservee(sql: string, nom: string): void {
   const corps = nu(f.corps)
   expect(f.entete).toMatch(/security definer/)
   expect(f.entete).toMatch(/set search_path to 'public', 'pg_temp'/)
-  // Cherchés dans le corps NORMALISÉ (nu) : les fonctions de la tâche 3 posent aussi ces trois réglages, avec
+  // Cherchés dans le corps NORMALISÉ (nu) : les autres fonctions d'écriture posent aussi ces trois réglages, avec
   // leurs propres commentaires et retours à la ligne autour — la forme brute ne doit pas y être sensible.
   expect(corps).toContain(`perform set_config('app.actor_kind', 'ai', true);`)
   expect(corps).toContain(`perform set_config('app.actor_via', 'whatsapp', true);`)
@@ -129,7 +130,7 @@ describe('lot D2 — la migration : consigner une réponse', () => {
     )
     // Le profil (avant toute écriture).
     expect(corps).toContain('pr.id = p_profile and pr.agency_id = p_agency')
-    // Le deal et la relance (déjà ancrés depuis la tâche 2, revérifiés ici avec les deux nouveaux).
+    // Le deal et la relance, revérifiés ici avec les deux nouveaux (le bien et le profil).
     expect(corps).toContain('t.agency_id = p_agency and t.contact_buyer_id = v_match.contact_id')
     expect(corps).toContain('r.agency_id = p_agency and r.contact_id = v_match.contact_id')
   })
@@ -140,7 +141,7 @@ describe('lot D2 — la migration : consigner une réponse', () => {
     const lectureContact = corps.match(/from public\.contacts c where [^;]+;/)
     expect(lectureContact, 'lecture du contact introuvable').not.toBeNull()
     expect(lectureContact![0]).not.toMatch(/\bfor (no key update|update|share|key share)\b/)
-    // Le verrou consultatif qui la remplace, clé neutre (la tâche 3 la reprend à l'identique).
+    // Le verrou consultatif qui la remplace, clé neutre (`wa_matching_visite` la reprend à l'identique).
     expect(corps).toContain(
       `perform pg_advisory_xact_lock(hashtextextended('wa_matching_acheteur:' || v_match.contact_id::text, 0));`,
     )
@@ -248,10 +249,10 @@ describe('lot D2 — la migration : la visite du copilote', () => {
 })
 
 /**
- * Relecture de conformité (tâche 3) : le chemin ANNONCE de `wa_matching_visite` pose un `calendar_events` sous le
- * rôle de service, où `auth.uid()` est nul — la fonction du 15.09 signait alors `system`, jamais MEGGA AI. La
- * redéfinition doit garder tout ce qui ne parle pas de l'acteur (confronté au corps du 15.09) et déterminer
- * l'acteur EXACTEMENT comme `log_match_reaction` (confronté à son corps réel, pas à une attente réécrite ici).
+ * Le chemin ANNONCE de `wa_matching_visite` pose un `calendar_events` sous le rôle de service, où `auth.uid()` est
+ * nul — sans redéfinition, la fonction du 15.09 signerait `system`, jamais MEGGA AI. La redéfinition doit garder
+ * tout ce qui ne parle pas de l'acteur (confronté au corps du 15.09) et déterminer l'acteur EXACTEMENT comme
+ * `log_match_reaction` (confronté à son corps réel, pas à une attente réécrite ici).
  */
 describe('lot D2 — la migration : calendar_events_journaliser signe MEGGA AI, jamais system sous le rôle de service', () => {
   const d2 = migration('_matching_whatsapp.sql')
@@ -319,7 +320,7 @@ describe('lot D2 — la migration : calendar_events_journaliser signe MEGGA AI, 
     // effacerait la signature MEGGA AI en silence : les tests ci-dessus ne comparent qu'à `quinze` et `d2`, tous
     // deux figés au moment où ce fichier est écrit — ils ne verraient jamais un TROISIÈME fichier plus récent.
     //
-    // Deux angles morts, éprouvés par mutation HORS DÉPÔT (scratchpad, jamais ces fichiers) avant d'écrire ce test :
+    // Deux angles morts que ce test ferme :
     //   (a) un marqueur sensible à la casse et fermé aux guillemets manquerait une redéfinition future en
     //       MAJUSCULES non citées (`CREATE OR REPLACE FUNCTION PUBLIC.CALENDAR_EVENTS_JOURNALISER(`, que PostgreSQL
     //       replie en minuscules), au style pg_dump (`"public"."calendar_events_journaliser"`) ou sans `or replace`
@@ -345,5 +346,72 @@ describe('lot D2 — la migration : calendar_events_journaliser signe MEGGA AI, 
     expect(corps, `${dernier} : le corps de la dernière redéfinition ne lit plus app.actor_kind`).toContain(
       "current_setting('app.actor_kind'",
     )
+  })
+})
+
+/**
+ * `wa_matching_biens_designes` fait tourner la désignation par texte EN BASE, sur l'agence ENTIÈRE (jamais un
+ * échantillon TS) : mandats et annonces ENSEMBLE, jamais l'un puis l'autre à défaut — un mandat ne masque jamais SEUL
+ * une annonce qui répond aussi (conception §3, principe 5).
+ */
+describe('lot D2 — la migration : désigner un bien par un texte, EN BASE', () => {
+  const d2 = migration('_matching_whatsapp.sql')
+
+  it('security invoker, réservée au SEUL service_role — jamais authenticated (son seul appelant est le copilote)', () => {
+    const entete = fonction(d2.sql, 'wa_matching_biens_designes').entete
+    expect(entete).toMatch(/security invoker/)
+    expect(entete).toMatch(/set search_path to 'public', 'pg_temp'/)
+    expect(d2.sql).toMatch(
+      /revoke all on function public\.wa_matching_biens_designes\([^)]*\) from public, anon, authenticated;/,
+    )
+    expect(d2.sql).toMatch(
+      /grant execute on function public\.wa_matching_biens_designes\([^)]*\) to service_role;/,
+    )
+    // Jamais accordée à `authenticated`, contrairement à `matching_actions_agence` : pas par nécessité de sécurité
+    // (sous un jeton, la RLS de properties/matches bornerait de toute façon la lecture à SON agence) mais parce que
+    // son seul appelant réel, le copilote WhatsApp, lit toujours par le rôle de service.
+    expect(d2.sql).not.toMatch(
+      /grant execute on function public\.wa_matching_biens_designes\([^)]*\) to [^;]*\bauthenticated\b/,
+    )
+  })
+
+  it('les deux branches s’ancrent sur p_agency : le mandat (properties) ET l’annonce, par ses matchs', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    expect(corps).toContain('p.agency_id = p_agency')
+    expect(corps).toContain('m.agency_id = p_agency')
+  })
+
+  it('un mandat SUPPRIMÉ (deleted_at posé) est écarté', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    expect(corps).toContain('p.deleted_at is null')
+  })
+
+  it('seuls les statuts COMPATIBLES désignent une annonce — exactement STATUTS_COMPATIBLES (whatsapp-matching.ts), en deux branches OR pour utiliser deux index partiels', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    const m = corps.match(/m\.status = '([a-z_]+)' or m\.status in \(([^)]+)\)/)
+    expect(m, 'les deux branches de statuts introuvables dans le SQL').not.toBeNull()
+    const reste = m![2].split(',').map((s) => s.trim().replace(/^'|'$/g, ''))
+    expect([m![1], ...reste]).toEqual([...STATUTS_COMPATIBLES])
+  })
+
+  it('chaque mot se compare en lower(unaccent(x)), jamais unaccent(lower(x)) — sûr sous tout ctype ; % et _ neutralisés comme search_cities', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    // Deux branches (mandat, annonce), chacune avec 3 lower(unaccent(…)) : l'adresse seule (mot numérique), le texte
+    // complet (titre+adresse+ville), et le mot cherché.
+    expect(corps.match(/lower\(unaccent\(/g) ?? []).toHaveLength(6)
+    expect(corps).not.toMatch(/unaccent\(lower\(/)
+    // Comme 20260707140000_matching_city_filter.sql (search_cities) : % et _ neutralisés AVANT unaccent/lower,
+    // jamais laissés filer dans le LIKE.
+    expect(corps.match(/replace\(replace\(w, '%', ''\), '_', ''\)/g) ?? []).toHaveLength(2)
+  })
+
+  it('un mot NUMÉRIQUE ne se compare qu’à l’ADRESSE (comme `candidats`), sur les deux branches', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    expect(corps.match(/when w ~ '\^\[0-9\]\+\$' then lower\(unaccent\(coalesce\((?:p|ml)\.address, ''\)\)\)/g) ?? []).toHaveLength(2)
+  })
+
+  it('la limite est bornée entre 1 et 200, 50 par défaut', () => {
+    const corps = nu(fonction(d2.sql, 'wa_matching_biens_designes').corps)
+    expect(corps).toContain('limit least(greatest(coalesce(p_limite, 50), 1), 200);')
   })
 })

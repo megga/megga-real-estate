@@ -69,9 +69,9 @@ describe.skipIf(!HAS_KEYS)('anti-fabrication LOT 1 — enrichissement get_matche
     // Bien de l'AGENCE B, ACTIF : FK matches_property_id_fkey satisfaite (la property existe), mais
     // lireBiens (whatsapp-matching-outils.ts) filtre properties par .eq('agency_id', agencyA) → ce
     // bien n'est JAMAIS résolu pour un match de l'agence A. C'est l'orphelin réel (branche non
-    // résolue de lireBiens). ⚠ ACTIF, pas `draft` (relecture qualité, 25.09.2026, H4) : un mandat
-    // `draft` est déjà écarté par vueGetMatches côté RÈGLE D'OCCASION, MÊME SI le filtre d'agence
-    // était retiré par erreur — E2 passerait alors à vide sans rien prouver sur la garde de tenant.
+    // résolue de lireBiens). ⚠ ACTIF, pas `draft` : un mandat `draft` est déjà écarté par
+    // vueGetMatches côté RÈGLE D'OCCASION, MÊME SI le filtre d'agence était retiré par erreur — E2
+    // passerait alors à vide sans rien prouver sur la garde de tenant.
     const { data: propB, error: pbe } = await svc.from('properties').insert({
       agency_id: setup.agencyBId, title: `Bien AUTRE AGENCE ${setup.stamp}`,
       type: 'apartment', status: 'active', transaction_type: 'buy', price: 999000, city: 'Lausanne',

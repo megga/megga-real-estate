@@ -25,8 +25,12 @@
 //       la ligne reste) ; sa propre garde de profil refuse elle aussi AVANT toute écriture (`ok:false`, la visite
 //       reste). Le chemin CRM (jeton utilisateur, sans ces réglages) est couvert par `tests/backend/mail-rls.spec.ts`
 //       — non-régression.
+//   W4  `wa_matching_biens_designes` : un mandat et une annonce suivie désignés par un mot SANS accent, majuscule
+//       accentuée (« Écublens ») ou ligature (« Vandœuvres ») comprises — `lower(unaccent(x))` traite les trois ;
+//       absents — un mandat d'une autre agence, un mandat supprimé, une annonce SANS match compatible dans l'agence ;
+//       un utilisateur authentifié rejeté de DROIT (42501, même oracle que W3).
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés — et les crochets aussi : ils
-// sont au niveau du module, pour que chaque tâche du lot ajoute son bloc sans dupliquer la mise en place.
+// sont au niveau du module, pour que chaque bloc du fichier ajoute le sien sans dupliquer la mise en place.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
@@ -404,7 +408,7 @@ describe.skipIf(!HAS_KEYS)('W3 — la visite du copilote', () => {
     expect(e).toEqual({ type: 'visite', contact_id: marc, location: `Rue w3a 1, Genève` })
     expect(await statutMatch(m)).toBe('sent')
     // Sous le rôle de service, auth.uid() est nul : sans les trois réglages lus par calendar_events_journaliser,
-    // ce chemin (majoritaire, une annonce du marché) signerait `system` au lieu de MEGGA AI (relecture tâche 3).
+    // ce chemin (majoritaire, une annonce du marché) signerait `system` au lieu de MEGGA AI.
     expect(await journal(marc, 'calendar_event_created')).toEqual([expect.objectContaining({
       actor_kind: 'ai', actor_id: null, metadata: expect.objectContaining({ via: 'whatsapp', event_id: r.evenement_id }),
     })])
@@ -521,5 +525,56 @@ describe.skipIf(!HAS_KEYS)('W3 — la visite du copilote', () => {
 
     const mandatB = await mkBien(s.agencyBId, 'w3bien-agenceB')
     expect(await planifier(acheteur, { bien: mandatB }, dans(3))).toEqual({ ok: false, raison: 'bien' })
+  })
+})
+
+const designer = async (agency: string | null, mots: string[], limite = 50) => {
+  const { data, error } = await svc.rpc('wa_matching_biens_designes', { p_agency: agency, p_mots: mots, p_limite: limite })
+  if (error) throw new Error(error.message)
+  return (data ?? []) as { genre: string; id: string; titre: string | null; adresse: string | null; ville: string | null }[]
+}
+
+describe.skipIf(!HAS_KEYS)('W4 — désigner un bien par un texte, en base', () => {
+  it('un mandat et une annonce suivie sont désignés par un mot SANS accent (unaccent)', async () => {
+    const bien = await mkBien(s.agencyAId, 'w4mandat')
+    await svc.from('properties').update({ city: `Vésenaz-${s.stamp}` }).eq('id', bien)
+    const annonce = await mkAnnonce('w4annonce')
+    await svc.from('market_listings').update({ city: `Genève-${s.stamp}` }).eq('id', annonce)
+    await mkMatch(s.agencyAId, julie, { annonce })
+
+    expect((await designer(s.agencyAId, [`vesenaz-${s.stamp}`])).map((r) => [r.genre, r.id])).toEqual([['mandat', bien]])
+    expect((await designer(s.agencyAId, [`geneve-${s.stamp}`])).map((r) => [r.genre, r.id])).toEqual([['annonce', annonce]])
+  })
+
+  it('une MAJUSCULE accentuée (« Écublens ») et une LIGATURE (« Vandœuvres ») se retrouvent par un mot sans accent ni ligature', async () => {
+    const ecublens = await mkBien(s.agencyAId, 'w4ecublens')
+    await svc.from('properties').update({ city: `Écublens-${s.stamp}` }).eq('id', ecublens)
+    const vandoeuvres = await mkBien(s.agencyAId, 'w4vandoeuvres')
+    await svc.from('properties').update({ city: `Vandœuvres-${s.stamp}` }).eq('id', vandoeuvres)
+
+    expect((await designer(s.agencyAId, [`ecublens-${s.stamp}`])).map((r) => r.id)).toEqual([ecublens])
+    expect((await designer(s.agencyAId, [`vandoeuvres-${s.stamp}`])).map((r) => r.id)).toEqual([vandoeuvres])
+  })
+
+  it('absents : un mandat d’une AUTRE agence, un mandat SUPPRIMÉ, une annonce SANS match compatible dans l’agence', async () => {
+    const mandatB = await mkBien(s.agencyBId, 'w4horsagence')
+    expect(await designer(s.agencyAId, ['w4horsagence'])).toEqual([])
+    // Le mandat existe bien, chez SA propre agence — la fonction ne le cache pas, elle ne le rend simplement pas à A.
+    expect(await designer(s.agencyBId, ['w4horsagence'])).toEqual([{ genre: 'mandat', id: mandatB, titre: expect.any(String), adresse: expect.any(String), ville: null }])
+
+    const supprime = await mkBien(s.agencyAId, 'w4supprime')
+    await svc.from('properties').update({ deleted_at: new Date().toISOString() }).eq('id', supprime)
+    expect(await designer(s.agencyAId, ['w4supprime'])).toEqual([])
+
+    // Existe, suivie par PERSONNE dans l'agence (aucun match) : un titre à elle seul ne « suit » pas une annonce.
+    const sansMatch = await mkAnnonce('w4sansmatch')
+    expect(await designer(s.agencyAId, ['w4sansmatch'])).toEqual([])
+    // Elle existe pourtant bel et bien dans le marché (source de vérité indépendante de la fonction).
+    expect((await svc.from('market_listings').select('id').eq('id', sansMatch)).data).toHaveLength(1)
+  })
+
+  it('un utilisateur authentifié ne peut pas appeler la fonction (42501, même oracle que W3)', async () => {
+    const { error } = await s.clientA.rpc('wa_matching_biens_designes', { p_agency: s.agencyAId, p_mots: ['x'] })
+    expect(error?.code).toBe('42501')
   })
 })
