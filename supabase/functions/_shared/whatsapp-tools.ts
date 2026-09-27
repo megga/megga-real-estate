@@ -161,7 +161,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_daily_brief',
-      description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ».",
+      description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, actions de matching (retours à consigner, baisses de prix, nouveaux mandats, nouveaux biens, intéressés sans visite), leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ». Rends les lignes du matching telles quelles.",
       parameters: { type: 'object', properties: {} },
     },
   },

@@ -36,6 +36,11 @@
 //       d'ici), un mandat supprimé ; un match qui porte un mandat ET une annonce rend le mandat (`genre = 'mandat'`),
 //       et ne se désigne pas par le texte de l'annonce ; un NOMBRE du titre désigne ; un « 4½ pièces » est gardé par
 //       les mots que `motsDe` envoie pour « 4.5 pièces » ; un utilisateur authentifié rejeté de DROIT (42501).
+//   W6  `loadAgencyData` (point du matin, `morning-brief-data.ts`) contre une vraie base : la SEULE preuve que la
+//       chaîne du `.or` des relances est une syntaxe PostgREST valide, que l'alias embarqué `contact.agency_id`
+//       vide le contact sans écarter la relance, et que l'exclusion d'une relance-retour correspond à ce que la
+//       RPC elle-même compte comme un retour pour le même acheteur — rien qu'un faux client ne peut prouver, lui
+//       qui n'applique ni le schéma ni `!inner`. À garder VERTE en CI avant toute fusion de ce lot.
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés — et les crochets aussi : ils
 // sont au niveau du module, pour que chaque bloc du fichier ajoute le sien sans dupliquer la mise en place.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
@@ -43,6 +48,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { anonClient, serviceRoleClient } from './helpers/supabase'
 import { motsDe } from '../../supabase/functions/_shared/whatsapp-matching'
+import { loadAgencyData } from '../../supabase/functions/_shared/morning-brief-data.ts'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const JOUR = 86_400_000
@@ -714,5 +720,61 @@ describe.skipIf(!HAS_KEYS)('W5 — désigner un bien parmi ceux d’UN acheteur,
       p_agency: s.agencyAId, p_contact: julie, p_statuts: ['sent'], p_mots: ['x'],
     })
     expect(error?.code).toBe('42501')
+  })
+})
+
+describe.skipIf(!HAS_KEYS)('W6 — loadAgencyData contre une vraie base', () => {
+  // DOIT être verte en CI avant toute fusion de ce lot : un faux client n'applique ni le schéma ni `!inner`, donc
+  // une faute dans la chaîne du `.or` (ex. une colonne mal orthographiée) ou un alias embarqué invalide y restent
+  // verts alors qu'un vrai PostgREST les rendrait en 400 — et un `loadAgencyData` qui échoue rend `null`, donc plus
+  // aucun point du matin, pour aucune agence.
+  it('la relance-retour échue est exclue et son acheteur est dans les actions « retour » de la RPC ; une relance chaude sans match, une relance sans acheteur et une relance d’un acheteur d’une autre agence restent toutes lues', async () => {
+    const now = new Date()
+    const startIso = new Date(now.getTime() - JOUR).toISOString()
+    const endIso = new Date(now.getTime() + JOUR).toISOString()
+    const avant = await loadAgencyData(svc, s.agencyAId, startIso, endIso, now)
+    expect(avant).not.toBeNull()
+
+    const w6r = await mkContact(s.agencyAId, 'W6Retour')
+    const m = await mkMatch(s.agencyAId, w6r, { annonce: await mkAnnonce('w6-retour') }, { status: 'sent', sent_at: ilYA(5) })
+    await mkRelance(s.agencyAId, w6r, [m], ilYA(1))
+
+    const w6c = await mkContact(s.agencyAId, 'W6Chaud')
+    const { data: chaud, error: eC } = await svc.from('reminders').insert({
+      agency_id: s.agencyAId, contact_id: w6c, type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3,
+      trigger_at: ilYA(1), status: 'pending', channel: 'task', match_id: null, match_ids: null, message_template: 'W6 chaud (spec D2)',
+    }).select('id').single()
+    if (eC) throw new Error(`reminders w6 chaud: ${eC.message}`)
+    relances.push(chaud!.id as string)
+
+    const { data: sansContact, error: eS } = await svc.from('reminders').insert({
+      agency_id: s.agencyAId, contact_id: null, type: 'custom', trigger_rule: 'manual', trigger_days: 3,
+      trigger_at: ilYA(1), status: 'pending', channel: 'task', message_template: 'W6 rappeler le notaire (spec D2)',
+    }).select('id').single()
+    if (eS) throw new Error(`reminders w6 sans contact: ${eS.message}`)
+    relances.push(sansContact!.id as string)
+
+    const { data: autreAgence, error: eA } = await svc.from('reminders').insert({
+      agency_id: s.agencyAId, contact_id: chezB, type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3,
+      trigger_at: ilYA(1), status: 'pending', channel: 'task', match_id: null, match_ids: null, message_template: 'W6 étranger (spec D2)',
+    }).select('id').single()
+    if (eA) throw new Error(`reminders w6 autre agence: ${eA.message}`)
+    relances.push(autreAgence!.id as string)
+
+    const apres = await loadAgencyData(svc, s.agencyAId, startIso, endIso, now)
+    expect(apres).not.toBeNull()
+
+    // Trois relances de plus dans la lecture UTILE — la quatrième (le retour) n'y entre jamais.
+    expect(apres!.reminders.length - avant!.reminders.length).toBe(3)
+    expect(apres!.reminders.some((r) => r.who?.startsWith('W6Chaud'))).toBe(true)
+    expect(apres!.reminders.some((r) => r.who?.startsWith('W6Retour'))).toBe(false)
+    // Sans acheteur, et acheteur d'une autre agence : deux `who: null` de plus (le nom disparaît, la ligne reste).
+    const nullsAvant = avant!.reminders.filter((r) => r.who == null).length
+    const nullsApres = apres!.reminders.filter((r) => r.who == null).length
+    expect(nullsApres - nullsAvant).toBe(2)
+
+    // Équivalence avec la RPC : elle voit le même acheteur comme un retour.
+    const actions = await actionsAgence(s.agencyAId)
+    expect(actions.some((x) => x.genre === 'retour' && x.contact_id === w6r)).toBe(true)
   })
 })

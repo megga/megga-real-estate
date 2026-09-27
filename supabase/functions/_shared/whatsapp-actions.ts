@@ -388,10 +388,11 @@ async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]
 }
 
 /**
- * Point du jour : les MÊMES cinq sections que le push de 07h30 (visites, rendez-vous du
- * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs), lues par le même
- * `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du jour », que
- * le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
+ * Point du jour : les MÊMES six sections que le push de 07h30 (visites, rendez-vous du
+ * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs, actions de matching),
+ * lues par le même `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du
+ * jour », que le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit
+ * s'y retrouver.
  */
 export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY

@@ -6,12 +6,10 @@
  * ⚠ Aucun littéral de rayon, d'espacement ni de taille de texte : le cliquet de `megga-x-grammar.spec.ts` compte ceux
  * de `crm/today`.
  */
-import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
-import { montant } from '@/components/matching-fil/filAffichage'
 import { TK } from './tk'
 import { RXIcon } from './kit'
-import type { ActionMatching, GenreAction } from './matchingDuJour'
+import { ecrire, type ActionMatching, type GenreAction } from './matchingDuJour'
 
 // ⚠ `arrow-down` pour la baisse, pas `trending-down` : MEIcon ne trace pas ce dernier, il retombe sur l'histogramme
 // plein de la fonte, qui ne dit pas « baisse ». Le catalogue du même cockpit marque déjà une baisse de prix ainsi.
@@ -19,19 +17,6 @@ const ICONE: Record<GenreAction, string> = { retour: 'clock', prix: 'arrow-down'
 const CTA: Record<GenreAction, string> = {
   retour: 'today.h.matching.ctaRetour', prix: 'today.h.matching.ctaPrix',
   mandat: 'today.h.matching.ctaMandat', marche: 'today.h.matching.ctaMarche',
-}
-
-/** Le texte d'une action : ses valeurs, le montant écrit en CHF, et, au marché à plusieurs annonces, la liste comptée. */
-function ecrire(a: ActionMatching, t: TFunction, tm: TFunction): string {
-  const v = a.texte.valeurs
-  if (a.texte.cle === 'today.h.matching.marchePlusieurs') {
-    const liste = [
-      Number(v.nouveaux) > 0 ? t('today.h.matching.nouveaux', { count: Number(v.nouveaux) }) : null,
-      Number(v.baisses) > 0 ? t('today.h.matching.baisses', { count: Number(v.baisses) }) : null,
-    ].filter(Boolean).join(', ')
-    return t(a.texte.cle, { prenom: v.prenom, liste })
-  }
-  return t(a.texte.cle, a.montant != null ? { ...v, montant: montant(a.location, a.montant, tm) } : v)
 }
 
 function HlActionLigne({ a, premiere, onAction }: { a: ActionMatching; premiere: boolean; onAction: (a: ActionMatching) => void }) {

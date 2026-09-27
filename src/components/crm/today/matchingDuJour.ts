@@ -1,15 +1,19 @@
 /**
  * « Aujourd'hui » — le segment Matching (lot D1, conception `2026-09-23-matching-lot-d1-surfaces-design.md` §5) :
- * modèle de vue PUR des lignes de `matching_actions_du_jour()`. Ni React, ni Supabase, ni traduction.
+ * modèle de vue PUR des lignes de `matching_actions_du_jour()`, et le texte qu'elles écrivent. Ni composant React,
+ * ni Supabase : le traducteur est REÇU en argument, jamais importé ici.
  *
- * La RPC classe et coupe (cinq au plus) ; ce module dit OÙ chaque action mène et avec quels MOTS — une clé et ses
- * valeurs, que l'écran traduit. Une ligne mal formée (sorte inconnue, identifiant manquant) est écartée : une action
- * sans destination serait un bouton mort.
+ * La RPC classe et coupe (cinq au plus) ; `versAction` dit OÙ chaque action mène et avec quels MOTS — une clé et
+ * ses valeurs —, `ecrire` les traduit en une phrase (liste du marché à plusieurs annonces et montant compris). Une
+ * ligne mal formée (sorte inconnue, identifiant manquant) est écartée : une action sans destination serait un bouton
+ * mort.
  *
  * ⚠ Une baisse de prix mène à la PLACE du match dans le fil (`lienPlace`) : « Retours de … » s'il attend une réponse,
  * sa ligne s'il est revenu à proposer — la ligne « Marché » de l'acheteur pour une annonce du marché.
  */
+import type { TFunction } from 'i18next'
 import { lienFil, lienPlace } from '@/components/matching-fil/filLiens'
+import { montant } from '@/components/matching-fil/filAffichage'
 import { cleSelection } from '@/components/matching-fil/filModele'
 
 /** Le plafond du segment (§5.1) : au-delà, « Voir tout » ouvre le fil. */
@@ -116,4 +120,23 @@ export function versAction(l: LigneAction): ActionMatching | null {
     default:
       return null
   }
+}
+
+/**
+ * Le texte d'une action : ses valeurs, le montant écrit en CHF, et, au marché à plusieurs annonces, la
+ * liste comptée. Un `.ts` PUR (pas `HlMatching.tsx`, qui l'affiche) : `react-refresh` n'admet, dans un
+ * fichier de composant, que des exports de composants — et tests/unit/whatsapp-matching-fil.spec.ts doit
+ * pouvoir l'importer sans le reste de l'écran. Le point du matin (`ligneMatching`, morning-brief.ts, lot D2)
+ * confronte ses propres phrases à CETTE fonction, jamais à une recopie.
+ */
+export function ecrire(a: ActionMatching, t: TFunction, tm: TFunction): string {
+  const v = a.texte.valeurs
+  if (a.texte.cle === 'today.h.matching.marchePlusieurs') {
+    const liste = [
+      Number(v.nouveaux) > 0 ? t('today.h.matching.nouveaux', { count: Number(v.nouveaux) }) : null,
+      Number(v.baisses) > 0 ? t('today.h.matching.baisses', { count: Number(v.baisses) }) : null,
+    ].filter(Boolean).join(', ')
+    return t(a.texte.cle, { prenom: v.prenom, liste })
+  }
+  return t(a.texte.cle, a.montant != null ? { ...v, montant: montant(a.location, a.montant, tm) } : v)
 }

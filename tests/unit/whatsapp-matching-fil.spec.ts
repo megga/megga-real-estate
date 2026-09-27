@@ -5,23 +5,43 @@
  * RECOPIE neuf règles du CRM — les statuts « compatibles », les motifs de refus, les seuils des signaux (en jours),
  * la FORME du bien elle-même (`versBien`/`versBienMarche`, champ par champ), l'état d'un acheteur, l'explication du
  * score, le signal « pourquoi maintenant », l'ordre « à proposer » et l'ordre des acheteurs compatibles d'un bien —
- * rien de plus n'est confronté ici. Recopiées, elles dérivent en silence : le copilote dirait « intéressée » là où
- * la fiche dit « revenu », un prix de mandat à `null` là où le fil en affiche un, ou classerait un bien avant un
- * autre alors que le fil ferait l'inverse. Cette spec rougit au premier écart — la CHARGE UTILE comprise, pas
- * seulement le genre du résultat.
+ * rien de plus n'est confronté ici pour ce module. Recopiées, elles dérivent en silence : le copilote dirait
+ * « intéressée » là où la fiche dit « revenu », un prix de mandat à `null` là où le fil en affiche un, ou classerait
+ * un bien avant un autre alors que le fil ferait l'inverse. Cette spec rougit au premier écart — la CHARGE UTILE
+ * comprise, pas seulement le genre du résultat.
+ *
+ * Une seconde copie, plus bas, rejoint cette confrontation : `lireMatching` (`morning-brief-data.ts`, la sixième
+ * source du point du matin) recopie la règle de rejet du segment Matching d'« Aujourd'hui » (`versAction`,
+ * `src/components/crm/today/matchingDuJour.ts`) — une ligne mal formée y est écartée pour ne pas écrire une phrase
+ * fausse ou sans raison, et les deux doivent écarter EXACTEMENT les mêmes lignes.
+ *
  * Conception : docs/superpowers/specs/2026-09-24-matching-lot-d2-whatsapp-design.md, §3 (« une règle, une source »).
+ *
+ * Une troisième confrontation, tout en bas : `ligneMatching` + `lireMatching` (le point du matin) contre
+ * `ecrire` + `versAction` (l'écran d'« Aujourd'hui », `HlMatching.tsx`/`matchingDuJour.ts`) — PARTIES DE LA
+ * MÊME ligne brute, en fr et en en, montant d'une location (« / mois ») compris via la fonction réelle
+ * `montant()` de filAffichage.ts. Passer par les fonctions de production des deux côtés (jamais par une clé
+ * de traduction choisie à la main) fait rougir une clé inversée côté écran (ville/sans-ville, proposé/refusé)
+ * aussi bien qu'une régression côté copilote.
  */
 import { describe, it, expect, vi } from 'vitest'
+import i18next from 'i18next'
 import type { SearchCriteria } from '@/types/contact'
+import frDashboard from '@/i18n/locales/fr/dashboard.json'
+import enDashboard from '@/i18n/locales/en/dashboard.json'
+import frMatching from '@/i18n/locales/fr/matching.json'
+import enMatching from '@/i18n/locales/en/matching.json'
 import {
   STATUTS_COMPATIBLES as COMPATIBLES_FIL, etatCompatible, trierCompatibles, versCompatible, type LigneCompatible,
 } from '@/components/matching-fil/filQuiPour'
 import { MOTIFS_REFUS as MOTIFS_FIL, signalPrix } from '@/components/matching-fil/filBoucle'
 import { aUnSignal, JOURS_BAISSE as BAISSE_FIL, JOURS_MANDAT as MANDAT_FIL, JOURS_NOUVEAU as NOUVEAU_FIL, signalBien } from '@/components/matching-fil/filSignaux'
 import { construireFil, lignesCriteres, type FilBien, type FilMatch, type RaisonsMoteur } from '@/components/matching-fil/filModele'
-import { fmtCHF } from '../../supabase/functions/_shared/morning-brief'
+import { fmtCHF, ligneMatching } from '../../supabase/functions/_shared/morning-brief'
 import * as wa from '../../supabase/functions/_shared/whatsapp-matching'
 import { versBien, versBienMarche, type LigneAnnonce, type LigneBien } from '@/hooks/useMatchingFil'
+import { versAction, ecrire, type LigneAction } from '@/components/crm/today/matchingDuJour'
+import { lireMatching } from '../../supabase/functions/_shared/morning-brief-data'
 // La forme du fil vient des fonctions de PRODUCTION ci-dessus (jamais d'une troisième copie écrite à la main) :
 // quatre mocks suffisent à charger `useMatchingFil.ts` sans toucher Supabase ni React Query — mêmes noms que
 // tests/unit/matching-whatsapp-sql.spec.ts et matching-fil-gestes.spec.ts, qui l'importent déjà sous Vitest.
@@ -415,5 +435,131 @@ describe('les équipements d’un bien en objet ou par inclusion', () => {
     const presentsFil = lignesCriteres(filMatch(fil, c, r), MAINTENANT).flatMap((l) => (l.cle === 'equipements' ? l.presents : []))
     const presentsCopie = wa.expliquer(c as wa.Criteres, r, copie, MAINTENANT).flatMap((l) => (l.critere === 'equipements' && l.bien ? l.bien.split(', ') : []))
     expect(presentsCopie).toEqual(presentsFil)
+  })
+})
+
+describe('le point du matin : `lireMatching` écarte les mêmes lignes que « Aujourd’hui » (`versAction`)', () => {
+  const ligne = (o: Partial<LigneAction>): LigneAction => ({
+    genre: 'retour', contact_id: null, prenom: null, nom: null, match_id: null, property_id: null, market_listing_id: null,
+    statut: null, titre: null, ville: null, nombre: 0, nouveaux: 0, baisses: 0, montant: null, location: false, quand: null,
+    total: 1, ...o,
+  })
+  // Chaque genre, chaque cause de rejet listée par `versAction` (src/components/crm/today/matchingDuJour.ts), plus
+  // un genre inconnu — une ligne à la fois, pour que rougir désigne la CONDITION fautive plutôt qu'un lot entier.
+  const CAS: [string, LigneAction][] = [
+    ['retour, avec acheteur', ligne({ genre: 'retour', contact_id: 'c1' })],
+    ['retour, sans acheteur', ligne({ genre: 'retour' })],
+    ['prix, proposé, complet', ligne({ genre: 'prix', contact_id: 'c2', match_id: 'm2', montant: 100, statut: 'sent' })],
+    ['prix, refusé pour le prix, revenu', ligne({ genre: 'prix', contact_id: 'c3', match_id: 'm3', montant: 200, statut: 'suggested' })],
+    ['prix, sans acheteur', ligne({ genre: 'prix', match_id: 'm4', montant: 100, statut: 'sent' })],
+    ['prix, sans match', ligne({ genre: 'prix', contact_id: 'c5', montant: 100, statut: 'sent' })],
+    ['prix, montant nul', ligne({ genre: 'prix', contact_id: 'c6', match_id: 'm6', statut: 'sent' })],
+    ['prix, montant à zéro', ligne({ genre: 'prix', contact_id: 'c7', match_id: 'm7', montant: 0, statut: 'sent' })],
+    ['prix, montant négatif', ligne({ genre: 'prix', contact_id: 'c7b', match_id: 'm7b', montant: -50, statut: 'sent' })],
+    ['prix, statut « intéressé »', ligne({ genre: 'prix', contact_id: 'c8', match_id: 'm8', montant: 300, statut: 'interested' })],
+    ['prix, sans statut', ligne({ genre: 'prix', contact_id: 'c9', match_id: 'm9', montant: 300 })],
+    // Sur une ANNONCE du marché (`market_listing_id` posé) : 1 818 des 1 828 matchs de production en sont là — un
+    // cas non couvert par les précédents, tous sur un mandat implicite (`market_listing_id` nul).
+    ['prix, annonce, montant en chaîne', ligne({ genre: 'prix', contact_id: 'c13', match_id: 'm13', market_listing_id: 'ml13', montant: '250000', statut: 'sent' })],
+    ['prix, annonce, montant non fini (Infinity)', ligne({ genre: 'prix', contact_id: 'c14', match_id: 'm14', market_listing_id: 'ml14', montant: Infinity, statut: 'sent' })],
+    ['prix, annonce, montant non fini (chaîne "Infinity")', ligne({ genre: 'prix', contact_id: 'c15', match_id: 'm15', market_listing_id: 'ml15', montant: 'Infinity', statut: 'sent' })],
+    ['prix, annonce, montant hors bornes flottantes (chaîne)', ligne({ genre: 'prix', contact_id: 'c16', match_id: 'm16', market_listing_id: 'ml16', montant: '1e400', statut: 'sent' })],
+    ['mandat, avec bien', ligne({ genre: 'mandat', property_id: 'p1', titre: 'Mandat A' })],
+    ['mandat, sans bien', ligne({ genre: 'mandat' })],
+    ['marché, une nouveauté', ligne({ genre: 'marche', contact_id: 'c10', nouveaux: 1 })],
+    ['marché, une baisse', ligne({ genre: 'marche', contact_id: 'c11', baisses: 2 })],
+    ['marché, ni nouveauté ni baisse', ligne({ genre: 'marche', contact_id: 'c12' })],
+    ['marché, sans acheteur', ligne({ genre: 'marche', nouveaux: 1 })],
+    ['genre inconnu', ligne({ genre: 'autre' })],
+  ]
+
+  it.each(CAS)('%s', (_nom, l) => {
+    const gardeeParAujourdhui = versAction(l) !== null
+    const gardeeParLePointDuMatin = lireMatching([l], []).actions.length === 1
+    expect(gardeeParLePointDuMatin).toBe(gardeeParAujourdhui)
+  })
+
+  // L'identité d'une ligne gardée : `contactId` pour retour/prix/marché (unique par cas ci-dessus) ; `titre` pour
+  // mandat, le seul genre où `contactId` est TOUJOURS nul des deux côtés. Comparer CETTE liste, dans l'ORDRE
+  // d'entrée, prouve laquelle des lignes survit — pas seulement combien : deux erreurs qui se compensent en
+  // nombre (une gardée à tort, une écartée à tort) ne se verraient pas sur une simple longueur.
+  const identite = (genre: string, contactId: string | null, titre: string | null) =>
+    `${genre}:${genre === 'mandat' ? titre : contactId}`
+
+  it('un même lot de lignes variées : la copie garde exactement les MÊMES lignes que « Aujourd’hui », dans le même ordre', () => {
+    const lignes = CAS.map(([, l]) => l)
+    const attendu = lignes.filter((l) => versAction(l) !== null).map((l) => identite(l.genre, l.contact_id, l.titre))
+    const obtenu = lireMatching(lignes, []).actions.map((a) => identite(a.genre, a.contactId, a.titre))
+    expect(obtenu).toEqual(attendu)
+  })
+})
+
+describe('le point du matin : `lireMatching` + `ligneMatching` confrontés à `versAction` + `ecrire` (l’écran d’« Aujourd’hui »), à partir de LA MÊME ligne brute', () => {
+  const iFr = i18next.createInstance()
+  void iFr.init({
+    lng: 'fr', resources: { fr: { dashboard: frDashboard, matching: frMatching } }, ns: ['dashboard', 'matching'],
+    defaultNS: 'dashboard', initImmediate: false, interpolation: { escapeValue: false },
+  })
+  const tFr = iFr.getFixedT('fr', 'dashboard')
+  const tmFr = iFr.getFixedT('fr', 'matching')
+
+  const iEn = i18next.createInstance()
+  void iEn.init({
+    lng: 'en', resources: { en: { dashboard: enDashboard, matching: enMatching } }, ns: ['dashboard', 'matching'],
+    defaultNS: 'dashboard', initImmediate: false, interpolation: { escapeValue: false },
+  })
+  const tEn = iEn.getFixedT('en', 'dashboard')
+  const tmEn = iEn.getFixedT('en', 'matching')
+
+  // Titre NUL des deux côtés, à dessein : le copilote l'ajoute en suffixe (« · titre », `avecBien`), l'écran
+  // le rend à PART (`ActionMatching.detail`, une seconde ligne sous le texte) — un titre le ferait diverger
+  // sur un détail hors de portée de cette confrontation, qui ne vérifie que la PHRASE.
+  const ligne = (o: Partial<LigneAction>): LigneAction => ({
+    genre: 'retour', contact_id: 'c1', prenom: 'Julie', nom: null, match_id: null, property_id: null,
+    market_listing_id: null, statut: null, titre: null, ville: null, nombre: 0, nouveaux: 0, baisses: 0,
+    montant: null, location: false, quand: null, total: 1, ...o,
+  })
+
+  function texteEcran(l: LigneAction, fr: boolean): string {
+    const a = versAction(l)
+    if (!a) throw new Error('versAction a rendu null pour une ligne de ce cas — fixture à revoir, pas la confrontation')
+    return ecrire(a, fr ? tFr : tEn, fr ? tmFr : tmEn)
+  }
+  function texteCopilote(l: LigneAction, fr: boolean): string {
+    const m = lireMatching([l], [])
+    if (m.actions.length !== 1) throw new Error('lireMatching a écarté une ligne de ce cas — fixture à revoir, pas la confrontation')
+    return ligneMatching(m.actions[0]!, fr)
+  }
+
+  const CAS: [string, Partial<LigneAction>][] = [
+    ['retour, 0 bien (fr range 0 dans « one », en dans « other »)', { genre: 'retour', nombre: 0 }],
+    ['retour, 1 bien', { genre: 'retour', nombre: 1 }],
+    ['retour, 2 biens', { genre: 'retour', nombre: 2 }],
+    ['prix, proposé (sent)', { genre: 'prix', match_id: 'm1', statut: 'sent', montant: 900_000 }],
+    ['prix, refusé pour le prix, revenu (suggested)', { genre: 'prix', match_id: 'm1', statut: 'suggested', montant: 50_000 }],
+    // Une LOCATION : le montant doit porter « / mois »/« / month », comme `montant()` de filAffichage.ts.
+    ['prix, une LOCATION proposée', { genre: 'prix', match_id: 'm1', statut: 'sent', montant: 150, location: true }],
+    ['prix, une LOCATION refusée, revenue', { genre: 'prix', match_id: 'm1', statut: 'suggested', montant: 150, location: true }],
+    ['mandat, 0 acquéreur compatible', { genre: 'mandat', contact_id: null, property_id: 'p1', nombre: 0 }],
+    ['mandat, 1 acquéreur compatible', { genre: 'mandat', contact_id: null, property_id: 'p1', nombre: 1 }],
+    ['mandat, 4 acquéreurs compatibles', { genre: 'mandat', contact_id: null, property_id: 'p1', nombre: 4 }],
+    ['marché, une nouveauté, avec ville', { genre: 'marche', nouveaux: 1, baisses: 0, ville: 'Carouge' }],
+    ['marché, une nouveauté, sans ville', { genre: 'marche', nouveaux: 1, baisses: 0, ville: null }],
+    ['marché, une baisse, avec ville', { genre: 'marche', nouveaux: 0, baisses: 1, ville: 'Carouge' }],
+    ['marché, une baisse, sans ville', { genre: 'marche', nouveaux: 0, baisses: 1, ville: null }],
+    ['marché, plusieurs (2 nouveautés, 0 baisse)', { genre: 'marche', nouveaux: 2, baisses: 0 }],
+    ['marché, plusieurs (0 nouveauté, 2 baisses)', { genre: 'marche', nouveaux: 0, baisses: 2 }],
+    ['marché, plusieurs (1 nouveauté, 2 baisses)', { genre: 'marche', nouveaux: 1, baisses: 2 }],
+    // UNE baisse dans la liste : seul cas où « price drop » reste au singulier en anglais.
+    ['marché, plusieurs (2 nouveautés, 1 baisse)', { genre: 'marche', nouveaux: 2, baisses: 1 }],
+  ]
+
+  it.each(CAS)('%s, fr', (_nom, o) => {
+    const l = ligne(o)
+    expect(texteCopilote(l, true)).toBe(texteEcran(l, true))
+  })
+  it.each(CAS)('%s, en', (_nom, o) => {
+    const l = ligne(o)
+    expect(texteCopilote(l, false)).toBe(texteEcran(l, false))
   })
 })
