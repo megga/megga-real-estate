@@ -1607,7 +1607,7 @@ describe('whatsapp-i18n — les refus de record_match_outcome, à l’égalité 
   it('les phrases de « pas encore » et de « propose », à l’égalité : la question, puis le compte rendu', () => {
     const c = { nom: 'Julie Martin', bien: 'Attique 4 p. · Route de Florissant 12' }
     expect(confirmConsigner('fr', { ...c, reponse: 'pas_encore' }))
-      .toBe("Je note que Julie Martin n'a pas encore répondu pour « Attique 4 p. · Route de Florissant 12 » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)")
+      .toBe("Je consigne que Julie Martin n'a pas encore répondu pour « Attique 4 p. · Route de Florissant 12 » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)")
     expect(consigne('fr', { ...c, reponse: 'pas_encore' }))
       .toBe("✅ Consigné : Julie Martin n'a pas encore répondu pour « Attique 4 p. · Route de Florissant 12 » — relance dans 3 jours.")
     expect(confirmConsigner('en', { ...c, reponse: 'propose' }))

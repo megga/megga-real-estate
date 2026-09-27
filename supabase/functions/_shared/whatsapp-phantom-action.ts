@@ -15,8 +15,8 @@
 // construction, n'a stocké aucune action à confirmer (le stockage rend la main aussitôt) :
 //   · `confirm_request` : la réponse demande à l'agent de CONFIRMER (« confirme quand tu veux »,
 //     « tu confirmes ? », « réponds oui »…) ET parle d'une action à conséquence (supprimer, envoyer,
-//     publier, retirer, offre, KYC, invitation) — ou recopie le suffixe « (« oui » / « non ») » des
-//     questions du SYSTÈME, lu dans la mémoire de conversation ;
+//     publier, retirer, offre, KYC, invitation, consigner une réponse d'acheteur) — ou recopie le
+//     suffixe « (« oui » / « non ») » des questions du SYSTÈME, lu dans la mémoire de conversation ;
 //   · `action_claim` : la réponse annonce ou revendique une action qui n'existe QU'APRÈS
 //     confirmation (« je lance la suppression », « je supprime la fiche », « j'envoie le message »,
 //     « j'ai supprimé »), ou recopie un compte rendu que seul l'exécuteur écrit, après le « oui »
@@ -61,7 +61,24 @@ function sentences(text: string): string[] {
 /** Une action à conséquence, de celles qui passent par une confirmation (FR/EN, radicaux). */
 // ⚠ `suppr` et non `supprim` : « suppression » ne contient pas « supprim » (suppr-ession).
 // ⚠ `publi` sauf « public(s) » / « publique » : « la version publique » n'est pas une publication.
-const ACTION_WORD = /(suppr|effac|envo[iy]|publi(?!que|cs?\b)|retir|retrait|offre|kyc|invit|delet|remov|\bsend|\bsent\b|withdr|\boffer)/
+// `consign` et `record` (lot D2) : consigner la réponse d'un acheteur passe aussi par une confirmation (record_match_outcome).
+// ⚠ `consign(?!es?\b)` exclut le mot complet « consigne »/« consignes » — jamais « consignation »/« consigner » : la
+// négation porte sur un « e » (+ « s » optionnel) suivi d'une frontière, absent des deux (consignat-ion, consign-er).
+// Elle exclut AUSSI le participe masculin non accentué « consigné(s) » : normalize() retire l'accent, donc
+// « consigné » (8 lettres) devient l'exact « consigne » que cette négation écarte — le féminin « consignée(s) » y
+// échappe (9 lettres). C'est pour ce participe, jamais couvert par « je … consigne » (il ne suit pas « je » : « son
+// refus sera consigné »), que `detectPhantomAction` relit le texte BRUT ci-dessous.
+// ⚠ Le nom « consigne » (une instruction) n'est une action QUE quand c'est le COPILOTE qui dit « je » :
+// `je (le|la|les|l')? consigne`. Toute autre forme passe — avec ou sans déterminant, singulier ou pluriel (« ta
+// consigne », « cette consigne », « tes consignes », « Consigne reçue » sans déterminant du tout) : un blocage par
+// liste de déterminants les PRENAIT À TORT — « Consigne reçue » (aucun déterminant devant) et « tes consignes » (le
+// pluriel échappait à la liste) — exiger « je » devant élimine la classe entière d'un coup.
+// ⚠ `\brecord` ne prend plus le NOM (la fiche, whatsapp-i18n.ts ~l.125/189/229/312/515) : le VERBE au gérondif/
+// infinitif avec un objet (« recording that/her/his/it/this »), ou au futur proche (« I'll/to/shall I record »),
+// jamais quand un déterminant ou un possessif précède immédiatement « record » (« the/a/her/his/their/your/my/its/
+// on/of/off/this/that/no/any/track/new record », « Julie's record ») — c'est ce qui distingue le nom de son
+// homophone verbal, y compris devant « this »/« that » (« I updated the record this morning »).
+const ACTION_WORD = /(suppr|effac|envo[iy]|publi(?!que|cs?\b)|retir|retrait|offre|kyc|invit|delet|remov|\bsend|\bsent\b|withdr|\boffer|consign(?!es?\b)|\bje (?:te |le |la |les |l')?consigne\b|(?<!\b(?:the|a|her|his|their|your|my|its|on|of|off|this|that|no|any|track|new) )(?<!'s )\brecord(?:ing)? (?:that|her|his|their|it|this)\b|\b(?:i'll|i will|to|shall i|should i|i'm going to) record\b)/
 
 /**
  * Ce qui précède une demande ADRESSÉE à l'agent : un début de phrase ou de proposition (impératif),
@@ -92,6 +109,12 @@ const CONFIRM_MARKERS: RegExp[] = [
   // « je le supprime dès que tu confirmes », « dès que tu me dis go », « je le lance dès ton ok »
   /\bdes que tu (?:confirmes|valides|(?:me )?dis (?:oui|go|ok))\b/,
   /\bdes ton (?:ok|feu vert|accord|go)\b/,
+  // Lot D2 : compagnons d'OFFER_CLAUSE (« dis-moi » / « donne-moi » y comptent comme offre) — sans ceux-ci,
+  // « Dis-moi go et je le supprime. » ou « Donne-moi ton feu vert et je le supprime. » passeraient aussi, alors
+  // que ce sont des demandes de confirmation, pas des offres. Guillemets permis (« Dis-moi « go » et… ») et
+  // « accord » comme ailleurs dans ce tableau.
+  /\bdis(?:-| )moi [«"“]?\s*(?:go|ok)\b/,
+  /\bdonne-moi (?:ton (?:ok|feu vert|accord|go)|le (?:go|feu vert))\b/,
   // EN : « Confirm? », « confirm when you're ready », « please confirm the deletion » — jamais
   // « I (can) confirm », qui est un constat.
   /(?<!\bi (?:can |could |will )?)(?<!\bi'll )\bconfirm[*_]?\s*(?:[?!.:;,\n]|$|when\b|and i\b|and i'll\b|to (?:proceed|go ahead)\b|if you\b|before i\b)/,
@@ -114,13 +137,24 @@ const BARE_YES_NO = /\b(?:oui|yes)\s*\/\s*(?:non|no)\b/
  * Comptes rendus que SEUL l'exécuteur écrit, après le « oui » (whatsapp-i18n.ts : `clientMsgSent`,
  * `templateSent`). Le cerveau ne peut les produire qu'en les recopiant. Celui de l'envoi d'une
  * sélection de biens reste lu alors que l'outil est retiré (21.09.2026, le matching reste chez
- * l'agent) : plus aucun exécuteur ne l'écrit, donc le cerveau qui l'écrit ment à coup sûr.
+ * l'agent) : plus aucun exécuteur ne l'écrit, donc le cerveau qui l'écrit ment à coup sûr. Celui de
+ * `consigne()` (record_match_outcome, lot D2) n'y figure PAS : sa forme se recoupe trop avec un
+ * relais ordinaire (add_note, une note libre) pour un simple préfixe — voir `CONSIGNE_ECHO`.
  */
 const EXECUTOR_ECHOES = [
   '✅ message envoye au client', '✅ message sent to the client',
   '✅ selection envoyee au client', '✅ selection sent to the client',
   '✅ relance approuvee (template) envoyee', '✅ approved re-engagement template sent',
 ]
+
+/**
+ * Lot D2 : la FORME exacte des quatre gabarits de `consigne()` (whatsapp-i18n.ts), dans les deux langues. Un
+ * simple préfixe `✅ consigne`/`✅ recorded` prenait aussi un relais d'add_note ou d'une note libre portant le
+ * même préfixe (« ✅ Consigné dans la fiche de Julie : … », « ✅ Recorded in Julie's timeline: … »). `«[^»\n]*»`
+ * plutôt que `«.*»` : une citation longue est déjà réduite à « » par `unquoted` avant ce test, donc borner au
+ * sein de la même paire de guillemets évite de déborder sur la phrase suivante.
+ */
+const CONSIGNE_ECHO = /✅ consigne(?: pour [^:\n]+ : «[^»\n]*» —| : «[^»\n]*» propose a | : [^\n]+ n'a pas encore repondu pour «)|✅ recorded(?: for [^:\n]+: «[^»\n]*» —|: «[^»\n]*» proposed to |: [^\n]+ hasn't answered about «)/
 
 /** L'objet est un morceau de TEXTE (retouche d'un brouillon), pas une fiche : « j'ai supprimé la mention du prix ». */
 const TEXT_PART = String.raw`(?!\s*(?:(?:la|le|les|cette|ce|cet|ces|ta|ton|tes|ma|mon|mes|sa|son|ses|the|that|this|its) |l')?(?:\S+ )?(?:mention|phrase|ligne|paragraphe|passage|adresse|formule|signature|emoji|mot|prix|chiffre|detail|partie|question|brouillon|version|texte|titre|line|sentence|paragraph|address|wording|price|part|word|draft|text|title)s?\b)`
@@ -162,6 +196,20 @@ const PRESENT_CLAIMS: RegExp[] = [
   /\bi(?:'m| am) (?:now )?sending (?:(?:the|this|your) (?:message|draft|email|e-mail|link|selection|invitation)\b|(?:it|them) to (?!you\b))/,
   new RegExp(String.raw`\bi(?:'ve| have) just (?:deleted|removed)\b` + TEXT_PART + NOT_PIPELINE),
   /\bi(?:'ve| have) just (?:published|withdrawn|sent (?!you\b))/,
+  // Lot D2 : « je consigne son refus » sans outil — la consignation passe par record_match_outcome et son « oui ».
+  // `te` (rare) : « je TE consigne ça pour Julie » — un pronom complément indirect devant le verbe, à la place qu'y prennent le|la|les|l'.
+  new RegExp(NOT_OFFER + String.raw`\bje (?:te |le |la |les |l')?consigne\b`),
+  // Lot D2 : « je vais/viens de/m'apprête à consigner », parallèles des « je vais/viens de supprimer » déjà gardés.
+  new RegExp(String.raw`\bje (?:vais|m'apprete a|viens de) (?:le |la |les |l')?consigner\b`),
+  // Lot D2 : objet exigé (« her/his/their/the/your/Julie's answer/feedback/… », ou « her/him/them/Julie as
+  // (not) interested ») — un « it » nu ne suffit pas : le récit AUTO d'un « schedule_visit » en cours dit
+  // « I'm recording it in the CRM now » sans que ce soit une consignation de réponse.
+  /\bi(?:'m| am) (?:now )?recording (?:(?:(?:her|his|their|the|your|\S+'s) )?(?:answer|feedback|reply|response|refusal|interest)\b|(?:her|him|them|\S+) as (?:not )?interested\b)/,
+  // Lot D2 : futur/« going to » — symétrique du passé ci-dessous. « that »/« it » comptent comme objet (sans quoi
+  // « Confirm the address? I'll record it. » resterait un faux négatif, alors qu'il ANNONCE l'action) ; un nom
+  // possessif (Julie's) et « … as (not) interested » couvrent « I'll record Julie's answer. »/« … her as not
+  // interested. ».
+  /\bi(?:'ll| will|'m going to| am going to) (?:now )?record (?:that\b|it\b|(?:(?:her|his|their|the|your|\S+'s) )?(?:answer|feedback|reply|response|refusal|interest)\b|(?:her|him|them|\S+) as (?:not )?interested\b)/,
 ]
 
 /** Revendications au passé : seules à pouvoir rapporter un échange antérieur (« hier », « déjà »…). */
@@ -171,6 +219,14 @@ const PAST_CLAIMS: RegExp[] = [
   new RegExp(String.raw`\b(?:j'ai|je (?:lui|leur) ai) (?:bien )?(?:envoye|transmis) (?:a \S+ )?` + SENT_OBJECT),
   new RegExp(String.raw`\bi(?:'ve| have) (?:deleted|removed)\b` + TEXT_PART + NOT_PIPELINE),
   /\bi(?:'ve| have) (?:published|withdrawn|sent (?!you\b))/,
+  // Lot D2 : objet restreint, comme l'anglais — « J'ai consigné TA NOTE dans la fiche de Julie » (le relais
+  // d'add_note) n'est pas une consignation de réponse. `:` / `que` / `qu'` (élision) / `pour` (la forme même du
+  // gabarit, « J'ai consigné POUR Julie Martin : … ») couvrent « j'ai consigné : … ».
+  /\bj'ai (?:bien )?consigne (?:(?:son|sa|ses|leur|le|la|les|l') ?)?(?:refus|interet|reponse|retour|avis)\b|\bj'ai (?:bien )?consigne (?:que\b|qu'|:|pour\b)/,
+  // Lot D2 : « just », un nom possessif (Julie's) et « … as (not) interested » comme objet, « that » seulement si
+  // un mot de réponse suit dans la phrase (sinon un relais AUTO réel — « I've recorded it in the calendar. » —
+  // serait pris) ; plus de « it » nu, qui ne distinguait pas ce relais d'une vraie consignation.
+  /\bi(?:'ve| have) (?:just )?recorded (?:(?:her|his|their|the|your|\S+'s) )?(?:answer|feedback|reply|response|refusal|interest)\b|\bi(?:'ve| have) (?:just )?recorded that\b(?=[^.!?\n]*\b(?:interested|answer|repl|refus|declin|propos))|\bi(?:'ve| have) (?:just )?recorded (?:her|him|them|\S+) as (?:not )?interested\b/,
 ]
 
 /** Un échange antérieur nommé comme tel. Il n'excuse qu'une revendication au PASSÉ, et dans SA phrase. */
@@ -180,7 +236,14 @@ const HISTORY_MARKER = /\b(?:hier|avant-hier|deja|tout a l'heure|plus tot|ce mat
  * l'envoie », « let me know and I'll send it ». Pas « dès que tu me dis oui » : ça, c'est demander
  * l'accord (CONFIRM_MARKERS).
  */
-const OFFER_CLAUSE = /\bsi (?:tu (?:le |l')?(?:veux|souhaites|preferes)|tu es d'accord|oui|besoin)\b|\bsi (?:ca|cela) te (?:va|convient)\b|\bquand tu (?:le )?(?:veux|voudras|souhaites)\b|\bdes que (?:tu (?:me )?(?:donnes|as|envoies|ecris)|j'ai)\b|\bif you (?:want|like|prefer|wish|'d like)\b|\blet me know\b|\bonce you\b/
+// Lot D2 : une offre est une demande d'INFORMATION qui PRÉCÈDE « et je … »/« and I'll … », jamais une demande
+// D'ACCORD (« ton ok », « si c'est bon », « ton avis », « tu en penses »…) ni un DÉLAI (« une seconde », « two
+// minutes ») — exclus par la négation, sans quoi la phrase entière saute du contrôle par sentence et une
+// revendication qui la précède passe avec elle : c'est une VARIANTE de l'incident d'origine du module (qui disait
+// « Confirme quand tu veux », pas « dis-moi quand c'est bon »). `[^.!?\n]*` reste dans LA phrase (borné par la
+// ponctuation finale et `\n`, comme `sentences()` la découpe). `ce qu(?:e|')` : l'élision n'est pas la seule forme
+// (« dis-moi ce que Julie a répondu »).
+const OFFER_CLAUSE = /\bsi (?:tu (?:le |l')?(?:veux|souhaites|preferes)|tu es d'accord|oui|besoin)\b|\bsi (?:ca|cela) te (?:va|convient)\b|\bquand tu (?:le )?(?:veux|voudras|souhaites)\b|\bdes que (?:tu (?:me )?(?:donnes|as|envoies|ecris|(?:le |la |les |l')?dis)|j'ai)\b|\bif you (?:want|like|prefer|wish|'d like)\b|\blet me know\b|\bonce you\b|\b(?:(?:donne|precise|indique)-(?:le-|la-|les-)?moi|dis-(?:le|la|les)-moi|dis-moi (?:ce qu(?:e|')|quel|lequel|laquelle|pourquoi|combien))\b(?![^.!?\n]*\b(?:ton (?:ok|accord|feu vert|go)|le (?:go|feu vert)|si c'est bon|si ca te (?:va|convient)|quand (?:c'est bon|tu es pret)|tu en penses|ton avis|(?:une?|deux|trois|quelques|\d+) (?:seconde|instant|minute|moment)s?))[^.!?\n]*\b(?:et |, ?)je\b|\b(?:tell|give) me (?!when\b|if\b)(?![^.!?\n]*\b(?:go-ahead|green light|your ok|when you're ready|if (?:it's|that's) (?:ok|fine|good)|what you think|your thoughts|(?:a|one|two|a few|\d+) (?:second|sec|moment|minute|min)s?))[^.!?\n]*\band i(?:'ll| will)\b/
 /** Une question est une offre ou une clarification, jamais une annonce. */
 const QUESTION = /\?[^\p{L}\p{N}]*$/u
 /** Vouvoiement : un texte destiné au CLIENT (brouillon), pas la voix de MEGGA à l'agent. */
@@ -197,12 +260,15 @@ export function detectPhantomAction(reply: string | null | undefined): PhantomKi
   if (SYSTEM_CONFIRM_SUFFIX.test(s)) return 'confirm_request'
   // Une citation longue n'est pas la voix de MEGGA ; une courte (« oui ») reste, les marqueurs en ont besoin.
   const unquoted = s.replace(/«[^»]{20,}»|“[^”]{20,}”|"[^"]{20,}"/g, '« »')
-  if (EXECUTOR_ECHOES.some((echo) => unquoted.includes(echo))) return 'action_claim'
+  if (EXECUTOR_ECHOES.some((echo) => unquoted.includes(echo)) || CONSIGNE_ECHO.test(unquoted)) return 'action_claim'
   const voice = sentences(unquoted).filter((x) => !VOUS.test(x))
   const voiceText = voice.join('\n')
   // Le mot d'action se cherche dans TOUTE la réponse : un brouillon suivi de « Tu confirmes ? »
   // demande bien de confirmer un envoi, même si le verbe n'est que dans le brouillon.
-  if (ACTION_WORD.test(s) && (BARE_YES_NO.test(voiceText) || CONFIRM_MARKERS.some((re) => re.test(voiceText)))) {
+  // Lot D2 : `/consigné/` sur le texte BRUT (NFC, accent intact) — normalize() rend le participe masculin
+  // « consigné » identique au nom « consigne » (l'accent disparaît), qu'ACTION_WORD écarte alors à tort
+  // (« son refus SERA CONSIGNÉ » ne suit pas « je »). Le féminin « consignée » y échappe déjà (9 lettres).
+  if ((ACTION_WORD.test(s) || /consigné/iu.test(reply.normalize('NFC'))) && (BARE_YES_NO.test(voiceText) || CONFIRM_MARKERS.some((re) => re.test(voiceText)))) {
     return 'confirm_request'
   }
   for (const sentence of voice) {

@@ -417,9 +417,10 @@ export function asyncFailed(lang: WaLang, kind: 'screening' | 'report'): string 
 // Rendus VERBATIM à l'agent : la question [Oui] [Non], puis le compte rendu de l'exécuteur. « pour Julie », jamais
 // « de Julie » : une interpolation ne sait pas élider (« d'Emma »). ⚠ Les comptes rendus commencent par « ✅ Consigné »
 // / « ✅ Recorded », que SEUL l'exécuteur écrit, après le « oui » : la garde des confirmations simulées
-// (whatsapp-phantom-action.ts) doit les tenir pour tels — un cerveau qui les écrit les recopie. Elle ne le fait pas
-// encore : au 25.09.2026, sa liste `EXECUTOR_ECHOES` ne porte que les comptes rendus d'un envoi au client (message,
-// sélection) et de la relance approuvée.
+// (whatsapp-phantom-action.ts) les reconnaît à leur FORME exacte (`CONSIGNE_ECHO`), pas à un simple préfixe — un
+// préfixe prenait aussi un relais d'add_note portant le même « ✅ Consigné ». Les questions `confirmConsigner` de
+// « propose » et « pas_encore » disent « Je consigne que » et non « Je note que » pour la même raison : sans mot
+// d'action, leur imitation SANS le suffixe « (« oui » / « non ») » passait la garde.
 
 /** Les motifs d'un refus, en toutes lettres — ceux du fil (`fil.motifs.*` de matching.json). */
 const MOTIFS: Record<WaLang, Record<string, string>> = {
@@ -451,10 +452,13 @@ export function confirmConsigner(lang: WaLang, c: Consignation): string {
     }
   }
   switch (c.reponse) {
-    case 'propose': return `Je note que tu as proposé « ${c.bien} » à ${c.nom}, avec une relance dans 3 jours. Tu confirmes ? (« oui » / « non »)`
+    // Lot D2 : « Je consigne que » et non « Je note que » — sans mot d'action, une imitation de cette question SANS
+    // le suffixe « (« oui » / « non ») » (relu dans la mémoire de conversation) passait la garde des confirmations
+    // simulées. L'anglais n'a pas ce défaut : ses quatre gabarits disent déjà « I'll record … ».
+    case 'propose': return `Je consigne que tu as proposé « ${c.bien} » à ${c.nom}, avec une relance dans 3 jours. Tu confirmes ? (« oui » / « non »)`
     case 'interesse': return `Je consigne pour ${c.nom} : « ${c.bien} » — intéressé·e. Tu confirmes ? (« oui » / « non »)`
     case 'pas_interesse': return `Je consigne pour ${c.nom} : « ${c.bien} » — pas intéressé·e, motif ${motifLabel('fr', c.motif)}${note}. Tu confirmes ? (« oui » / « non »)`
-    case 'pas_encore': return `Je note que ${c.nom} n'a pas encore répondu pour « ${c.bien} » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)`
+    case 'pas_encore': return `Je consigne que ${c.nom} n'a pas encore répondu pour « ${c.bien} » : la relance est repoussée de 3 jours. Tu confirmes ? (« oui » / « non »)`
   }
 }
 
