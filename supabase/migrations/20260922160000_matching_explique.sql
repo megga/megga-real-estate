@@ -59,7 +59,7 @@ begin
           and cs.criteria->>'off_market_only' = 'true'
      );
   perform net.http_post(
-    url := base_url || '/functions/v1/matching-engine',
+    url := base_url || '/functions/v1/matching-engine?forceFunctionRegion=eu-west-1',
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || svc_key),
     body := jsonb_build_object('mode', 'match-property', 'property_id', NEW.id, 'agency_id', NEW.agency_id)
   );

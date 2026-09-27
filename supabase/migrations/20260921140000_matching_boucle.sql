@@ -142,7 +142,8 @@ create trigger trg_market_listing_retour_prix
   execute function public.match_retour_prix_annonce();
 
 -- ── 10. Le prix d'un mandat change : le moteur le renote, sans effacer l'historique ──
--- Corps de la baseline (trigger `on_property_price_change`, inchangé), plus deux gardes.
+-- Corps EN SERVICE (trigger `on_property_price_change`, inchangé), plus deux gardes — pas celui de la
+-- baseline, qui n'a pas l'épingle de région de 20260914080000.
 create or replace function public.trigger_matching_on_price_change()
 returns trigger
 language plpgsql
@@ -170,7 +171,7 @@ begin
        and m.status = 'suggested'
        and m.sent_at is null;
     perform net.http_post(
-      url := base_url || '/functions/v1/matching-engine',
+      url := base_url || '/functions/v1/matching-engine?forceFunctionRegion=eu-west-1',
       headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || svc_key),
       body := jsonb_build_object('mode', 'match-property', 'property_id', NEW.id, 'agency_id', NEW.agency_id)
     );
