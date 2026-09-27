@@ -554,9 +554,12 @@ const NOTE_MODELE =
  * et écartés ne sont pas lus. Un bien qui n'est PLUS UNE OCCASION (`BienWa.occasion`) sort d'« à proposer » (ci-
  * dessous), mais reste EN COURS s'il y est déjà — l'agent doit savoir où en est sa démarche, même sur un bien parti.
  * `aProposerALaLimite` : la lecture des matchs à proposer (et des reportés, la même lecture) a atteint sa limite,
- * leur total réel est inconnu (« N+ »).
+ * leur total réel est inconnu (« N+ »). `enCoursALaLimite` (par défaut `false`, pour les appelants existants) : même
+ * drapeau côté « en cours » — l'exécuteur y lit deux statuts à part (intéressé/visite, puis proposé), chacun borné.
  */
-export function vueGetMatches(entrees: readonly EntreeMatch[], maintenant: number, aProposerALaLimite: boolean) {
+export function vueGetMatches(
+  entrees: readonly EntreeMatch[], maintenant: number, aProposerALaLimite: boolean, enCoursALaLimite = false,
+) {
   const vus = entrees.map((e) => ({
     e, etat: etatMatch(e.match, maintenant), signal: signalMatch(e.match, e.bien, maintenant), score: nombreOuNull(e.match.score) ?? 0,
   }))
@@ -584,7 +587,10 @@ export function vueGetMatches(entrees: readonly EntreeMatch[], maintenant: numbe
   const reportes = vivants.filter((v) => v.etat.code === 'reporte').length
   return {
     total: {
-      en_cours: enCours.length,
+      // Même forme que `a_proposer` (chaîne, « + » possible) : l'exécuteur lit « en cours » en deux bornes séparées
+      // (intéressé/visite, puis proposé) depuis le lot D2, et l'une des deux peut avoir atteint sa limite sans que
+      // l'autre l'ait atteinte — un nombre nu prétendrait à une exactitude que la lecture ne garantit plus.
+      en_cours: enCoursALaLimite ? `${enCours.length}+` : String(enCours.length),
       // Reportés et à proposer viennent de la même lecture plafonnée (les matchs `suggested`) : le même drapeau dit
       // si leur total réel est inconnu.
       a_proposer: aProposerALaLimite ? `${aProposer.length}+` : String(aProposer.length),

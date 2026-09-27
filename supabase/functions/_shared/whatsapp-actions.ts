@@ -356,7 +356,8 @@ export async function execListFollowups(ctx: ActionCtx, _a: Args): Promise<strin
 
 // Résout titre/montant/ville/pièces d'une liste de matches en 2 requêtes BATCH (pas de N+1),
 // via le projecteur PUR projectMatchListing (champ absent → omis, jamais inventé). Property
-// prioritaire sur market_listing. Partagé par execGetMatches ET execPrepareMeeting.
+// prioritaire sur market_listing. Sert execPrepareMeeting ; `get_matches` a son propre exécuteur depuis le
+// lot D2 (`whatsapp-matching-outils.ts`), qui lit aussi l'état et l'explication de chaque bien.
 async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]): Promise<ResolvedMatchView[]> {
   const propIds = [...new Set(matches.map((m) => m.property_id).filter((x): x is string => !!x))]
   const mlIds = [...new Set(matches.map((m) => m.market_listing_id).filter((x): x is string => !!x))]
@@ -384,24 +385,6 @@ async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]
       m.market_listing_id ? mlMap.get(m.market_listing_id) ?? null : null,
     ),
   )
-}
-
-/** Biens correspondant à un contact (moteur de matching). */
-export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id)
-  if (!contactId) return 'Erreur: contact_id requis.'
-  const { data, error } = await ctx.supabase
-    .from('matches').select('score, status, market_listing_id, property_id')
-    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
-    .order('score', { ascending: false }).limit(5)
-  if (error) return `Erreur: ${error.message}`
-  if (!data?.length) return 'Aucun bien correspondant (recherche peut-être pas encore lancée).'
-  // Enrichi (titre/montant/ville/pièces réels) : l'id reste l'UUID du bien (clé pour schedule_visit),
-  // mais il n'est plus SEUL — accompagné des vraies données, le modèle n'a plus à inventer un bien.
-  // Un bien non résolu ne porte que id/score/statut (jamais de titre/ville inventés).
-  const biens = await resolveMatchListings(ctx, data as MatchListingInput[])
-  return JSON.stringify({ biens })
 }
 
 /**
@@ -2438,7 +2421,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
 // prepare_meeting (read-tier, agent-facing) : pour UN contact, MEGGA rend une synthèse de
 // préparation de RDV — fiche + où on en est + biens correspondants + visite à venir + 3 points
 // concrets à aborder. Agrégation des MÊMES requêtes que execGetContactBrief (fiche + recherches
-// actives + timeline + compréhension), execGetMatches (biens) et execGetDailyBrief (table visits),
+// actives + timeline + compréhension), l'ancien execGetMatches (biens) et execGetDailyBrief (table visits),
 // puis une petite couche DeepSeek pour les 3 points (ancrés UNIQUEMENT sur le contexte fourni).
 // Rien n'est envoyé : le résultat revient à l'agent dans son 1:1. Accès DB scopé agence → garde
 // hasAgency. NE DOIT JAMAIS throw : runTool n'a pas de try/catch → toute erreur renvoie une chaîne
@@ -2507,7 +2490,7 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
-  // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
+  // 3. Biens correspondants (matches top 5) — la requête de l'ancien execGetMatches (avant le lot D2), enrichis
   //    best-effort des titres/prix via properties / market_listings (champ absent → omis).
   const { data: matchRows } = await ctx.supabase
     .from('matches').select('score, status, market_listing_id, property_id')

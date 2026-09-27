@@ -184,7 +184,7 @@ describe('vueGetMatches — les biens vivants d’un acheteur', () => {
     ], MAINTENANT, false)
     expect(vue.biens.map((b) => b.etat.code)).toEqual(['interesse', 'propose', 'a_proposer'])
     // Reportés et à proposer viennent de la même lecture plafonnée : même notation (chaîne, « + » possible).
-    expect(vue.total).toEqual({ en_cours: 2, a_proposer: '1', reportes: '1' })
+    expect(vue.total).toEqual({ en_cours: '2', a_proposer: '1', reportes: '1' })
   })
 
   it('en cours, à même état, le plus récemment PROPOSÉ passe devant — comme « Sa boucle » et « Retours de … » (sent_at décroissant), même si son id trie après', () => {
@@ -202,7 +202,7 @@ describe('vueGetMatches — les biens vivants d’un acheteur', () => {
   it('un match refusé n’apparaît jamais (l’en-tête du fichier le promet)', () => {
     const vue = vueGetMatches([entree({ id: 'm-x', status: 'rejected', reaction_motif: 'prix' })], MAINTENANT, false)
     expect(vue.biens).toEqual([])
-    expect(vue.total).toEqual({ en_cours: 0, a_proposer: '0', reportes: '0' })
+    expect(vue.total).toEqual({ en_cours: '0', a_proposer: '0', reportes: '0' })
   })
 
   it('à score égal, un signal passe devant ; huit au plus ; « N+ » quand la lecture a atteint sa limite', () => {
@@ -235,7 +235,7 @@ describe('vueGetMatches — les biens vivants d’un acheteur', () => {
     ], MAINTENANT, false)
     expect(vue.biens).toHaveLength(1)
     expect(vue.biens[0]).toMatchObject({ id: 'a3', retire: true, etat: { code: 'interesse' } })
-    expect(vue.total).toEqual({ en_cours: 1, a_proposer: '0', reportes: '0' })
+    expect(vue.total).toEqual({ en_cours: '1', a_proposer: '0', reportes: '0' })
   })
 
   it('un mandat « reserved » est hors « à proposer » (pas une occasion) sans être étiqueté retiré — règle du point du matin, à confirmer (décision 12, lot D1)', () => {
@@ -243,7 +243,7 @@ describe('vueGetMatches — les biens vivants d’un acheteur', () => {
     expect(reserve.retire).toBe(false)
     const vue = vueGetMatches([entree({ id: 'm-res' }, reserve)], MAINTENANT, false)
     expect(vue.biens).toEqual([])
-    expect(vue.total).toEqual({ en_cours: 0, a_proposer: '0', reportes: '0' })
+    expect(vue.total).toEqual({ en_cours: '0', a_proposer: '0', reportes: '0' })
   })
 
   it('les critères et le signal d’un match, réels, traversent jusqu’à la vue', () => {

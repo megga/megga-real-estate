@@ -123,7 +123,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_matches',
-      description: "Biens correspondant à un contact (moteur de matching). Pour « quels biens pour Sarah ? ». contact_id via search_contacts.",
+      description: "Biens VIVANTS d'un acheteur (moteur de matching) : en cours d'abord (intéressé, visite, proposé), puis les meilleurs à proposer ; pour chacun son état, son score — une ESTIMATION, à présenter comme telle — expliqué critère par critère, et son signal (nouveau, prix baissé). Refusés et écartés exclus. Pour « quels biens pour Sarah ? ». contact_id via search_contacts. L'id de chaque bien sert à schedule_visit (property_id d'un mandat, market_listing_id d'une annonce) et à get_buyers_for_property. N'envoie jamais un bien au client.",
       parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
     },
   },

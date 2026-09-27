@@ -45,7 +45,7 @@ import {
 } from '../_shared/copilot-actions.ts'
 import {
   execGetMyAgenda, execSearchContacts, execGetContactBrief, execListFollowups,
-  execGetMatches, execGetDailyBrief, execSearchListings, execGetKycStatus,
+  execGetDailyBrief, execSearchListings, execGetKycStatus,
   execGetPublicationStatus, execPrepareMeeting,
   execCreateProperty, execUpdateProperty, execDraftListingCopy, execWebAttachPropertyPhotos,
   preparePublishToPortals, prepareWithdrawFromPortals,
@@ -53,6 +53,8 @@ import {
   prepareDeleteContact, executeDeleteContact,
   type ActionCtx, type Prepared,
 } from '../_shared/whatsapp-actions.ts'
+// `get_matches` (lot D2) : les biens vivants, leur état et leur score expliqué — partagé avec le copilote WhatsApp.
+import { execGetMatches } from '../_shared/whatsapp-matching-outils.ts'
 import { fetchHotContactBlock, distillCrmTurn } from '../_shared/contact-memory.ts'
 
 const corsHeaders = {
