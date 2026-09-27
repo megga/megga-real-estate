@@ -3,12 +3,15 @@
 // Realistic Swiss real-estate context: Genève / Lausanne / Vaud, CHF, FR-CH naming.
 
 import type { StageId } from './tokens'
+import type { RoleContact } from '@/lib/contactRoles'
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
 export interface CrmContact {
   id: string
   type: 'buyer' | 'seller' | 'tenant' | 'landlord' | 'mixed'
+  /** Étape 3 : les rôles, source de vérité. `type` reste le repli des écrans non repris. */
+  roles: RoleContact[]
   firstName: string
   lastName: string
   email: string
@@ -103,7 +106,7 @@ export interface CrmDeal {
 // ─── Agent + team ────────────────────────────────────────────────────────
 // ─── Contacts ────────────────────────────────────────────────────────────
 export const CRM_CONTACTS: CrmContact[] = [
-  { id: 'c-001', type: 'buyer',  firstName: 'Marie',     lastName: 'Bertrand',  email: 'm.bertrand@bluewin.ch',  phone: '+41 79 412 88 02', lang: 'fr',
+  { id: 'c-001', type: 'buyer',  roles: ['buyer'],  firstName: 'Marie',     lastName: 'Bertrand',  email: 'm.bertrand@bluewin.ch',  phone: '+41 79 412 88 02', lang: 'fr',
     status: 'active', score: 84, source: 'website', assignedTo: 'agt-1',
     createdAt: '2026-04-02T09:00:00', lastActivityAt: '2026-04-29T15:32:00',
     kyc: { status: 'verified', riskLevel: 'low',  expiresAt: '2027-04-02' },
@@ -111,7 +114,10 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['famille', 'priorité haute'], notes: "Recherche un 4-5p pour la rentrée scolaire. Décision d'achat en couple, mari basé à Lausanne en semaine.",
     avatarBg: '#0041D9' },
 
-  { id: 'c-002', type: 'buyer',  firstName: 'Pierre',    lastName: 'Vionnet',   email: 'pvionnet@gmail.com',     phone: '+41 78 211 04 91', lang: 'fr',
+  // Deux rôles — le SEUL du jeu, donc le seul qui rende le « +1 » de la pastille et les
+  // comptes qui se chevauchent. `investor` était déjà dans son tag et dans sa note ; il
+  // ne change pas son type (`typeDeRoles` rend `buyer`, premier rôle de transaction).
+  { id: 'c-002', type: 'buyer',  roles: ['buyer', 'investor'], firstName: 'Pierre',    lastName: 'Vionnet',   email: 'pvionnet@gmail.com',     phone: '+41 78 211 04 91', lang: 'fr',
     status: 'active', score: 71, source: 'referral', assignedTo: 'agt-1',
     createdAt: '2026-03-18T11:30:00', lastActivityAt: '2026-04-21T10:11:00',
     kyc: { status: 'pending', riskLevel: 'medium' },
@@ -119,7 +125,7 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['investisseur'], notes: "Cherche à investir, profite de la vente de son entreprise. Pas pressé.",
     avatarBg: '#8B5CF6' },
 
-  { id: 'c-003', type: 'buyer',  firstName: 'Élodie',    lastName: 'Schmidt',   email: 'elodie.s@protonmail.com', phone: '+41 79 808 12 24', lang: 'fr',
+  { id: 'c-003', type: 'buyer',  roles: ['buyer'],  firstName: 'Élodie',    lastName: 'Schmidt',   email: 'elodie.s@protonmail.com', phone: '+41 79 808 12 24', lang: 'fr',
     status: 'active', score: 92, source: 'AI', assignedTo: 'agt-1',
     createdAt: '2026-04-25T14:20:00', lastActivityAt: '2026-04-30T08:45:00',
     kyc: { status: 'none' },
@@ -127,7 +133,7 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['primo-accédant', 'urgent'], notes: "Lead extrait d'un email transféré. Pré-qualifié par MEGGA AI.",
     avatarBg: '#10B981' },
 
-  { id: 'c-004', type: 'seller', firstName: 'Jean-Marc', lastName: 'Aebischer', email: 'jm.aebischer@gmail.com', phone: '+41 79 222 14 87', lang: 'fr',
+  { id: 'c-004', type: 'seller', roles: ['seller'], firstName: 'Jean-Marc', lastName: 'Aebischer', email: 'jm.aebischer@gmail.com', phone: '+41 79 222 14 87', lang: 'fr',
     status: 'active', score: 68, source: 'call', assignedTo: 'agt-1',
     createdAt: '2026-02-11T08:00:00', lastActivityAt: '2026-04-28T17:00:00',
     kyc: { status: 'verified', riskLevel: 'low', expiresAt: '2027-02-11' },
@@ -135,7 +141,9 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['mandat exclusif'],
     avatarBg: '#F59E0B' },
 
-  { id: 'c-005', type: 'buyer',  firstName: 'Camille',   lastName: 'Rougier',   email: 'crougier@swissquote.ch', phone: '+41 78 332 99 11', lang: 'fr',
+  // Locataire : ses critères sont en location et sa note le dit. Le `type` disait
+  // « buyer » et contredisait ses propres données — accordé aux rôles (étape 3).
+  { id: 'c-005', type: 'tenant', roles: ['tenant'], firstName: 'Camille',   lastName: 'Rougier',   email: 'crougier@swissquote.ch', phone: '+41 78 332 99 11', lang: 'fr',
     status: 'active', score: 55, source: 'walk-in', assignedTo: 'agt-1',
     createdAt: '2026-04-14T16:30:00', lastActivityAt: '2026-04-22T09:00:00',
     kyc: { status: 'none' },
@@ -143,7 +151,7 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['location'], notes: 'Locataire, expat US, arrive en juillet.',
     avatarBg: '#06B6D4' },
 
-  { id: 'c-006', type: 'seller', firstName: 'Catherine', lastName: 'Loreau',    email: 'c.loreau@hotmail.fr',   phone: '+41 79 605 11 03', lang: 'fr',
+  { id: 'c-006', type: 'seller', roles: ['seller'], firstName: 'Catherine', lastName: 'Loreau',    email: 'c.loreau@hotmail.fr',   phone: '+41 79 605 11 03', lang: 'fr',
     status: 'qualified', score: 48, source: 'website', assignedTo: 'agt-1',
     createdAt: '2026-04-26T10:00:00', lastActivityAt: '2026-04-26T10:00:00',
     kyc: { status: 'none' },
@@ -151,7 +159,7 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['nouveau', 'succession'],
     avatarBg: '#E53935' },
 
-  { id: 'c-007', type: 'buyer',  firstName: 'Antoine',   lastName: 'Picard',    email: 'a.picard@bluewin.ch',   phone: '+41 76 414 22 18', lang: 'fr',
+  { id: 'c-007', type: 'buyer',  roles: ['buyer'],  firstName: 'Antoine',   lastName: 'Picard',    email: 'a.picard@bluewin.ch',   phone: '+41 76 414 22 18', lang: 'fr',
     status: 'active', score: 78, source: 'website', assignedTo: 'agt-1',
     createdAt: '2026-03-30T13:00:00', lastActivityAt: '2026-04-27T14:40:00',
     kyc: { status: 'verified', riskLevel: 'low', expiresAt: '2027-03-30' },
@@ -159,7 +167,12 @@ export const CRM_CONTACTS: CrmContact[] = [
     tags: ['haute valeur', 'famille'], notes: 'Famille 4 enfants, vit actuellement à Cologny en location.',
     avatarBg: '#0041D9' },
 
-  { id: 'c-008', type: 'buyer',  firstName: 'Linda',     lastName: 'Okafor',    email: 'l.okafor@gmail.com',    phone: '+41 78 909 33 12', lang: 'en',
+  // Importée d'un CSV, pas encore qualifiée : AUCUN rôle. `type` reste 'buyer' parce que
+  // c'est ce que l'adaptateur rend d'un lead (`mapContactType('lead')`), les deux restent
+  // donc d'accord. SEULE fixture à exercer le chemin « sans rôle » : la liste rend un
+  // TIRET en encre sourde à la place de la pastille, et elle n'apparaît sous aucune
+  // entrée de rôle.
+  { id: 'c-008', type: 'buyer',  roles: [],         firstName: 'Linda',     lastName: 'Okafor',    email: 'l.okafor@gmail.com',    phone: '+41 78 909 33 12', lang: 'en',
     status: 'lead', score: 32, source: 'csv', assignedTo: 'agt-1',
     createdAt: '2026-04-29T17:00:00', lastActivityAt: '2026-04-29T17:00:00',
     kyc: { status: 'none' },

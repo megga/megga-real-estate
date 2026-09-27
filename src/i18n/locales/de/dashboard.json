@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Neu",
-        "sent": "Dossier gesendet",
+        "sent": "Objekt vorgeschlagen",
         "visitPlanned": "Besichtigung geplant",
         "interested": "Interessiert"
       },
+      "proposeError": "Der Vorschlag konnte nicht gespeichert werden. Bitte erneut versuchen.",
       "why": {
         "fallback": "Neues Match, erster Kontakt herzustellen."
       },
@@ -318,8 +319,8 @@
         "toRefine": "zu verfeinern"
       },
       "action": {
-        "addToFile": "In das Dossier von {{name}} legen",
-        "added": "Zum Dossier von {{name}} hinzugefügt",
+        "addToFile": "Ich habe es {{name}} vorgeschlagen",
+        "added": "{{name}} vorgeschlagen",
         "openInMatching": "In Matching öffnen"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Heute kein schlafender Kontakt zum Nachfassen. Ihre Follow-ups erscheinen hier, sobald ein Kontakt abkühlt."
       },
       "sendError": "Der Versand ist fehlgeschlagen, versuchen Sie es erneut oder kopieren Sie die Nachricht.",
+      "sendErrorBien": "Nichts wurde gesendet: Diese Nachricht enthält ein Objekt (Inseratelink oder Referenz MG-…). Das Matching bleibt bei Ihnen: Stellen Sie das Objekt selbst vor und erfassen Sie danach «Ich habe es vorgeschlagen» im Matching.",
       "draft": {
         "to": "An",
         "emailMissing": "(E-Mail fehlt)",
@@ -420,7 +422,8 @@
       "freeWindow": "{{duration}} frei · Nachfass-Session",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Inserate"
+        "listings": "Inserate",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} heiss",
       "hotCount_other": "{{count}} heisse",
@@ -453,16 +456,18 @@
         "markAll": "Alle als gesehen markieren",
         "count_one": "{{count}} Signal",
         "count_other": "{{count}} Signale",
-        "groupBuyers": "Käuferrückmeldungen",
+        "groupBuyers": "Erfasste Rückmeldungen",
         "groupReminders": "Erinnerungen",
-        "liked": "mag {{subject}}",
-        "skipped": "hat {{subject}} abgelehnt",
         "reminderDue": "Dossier {{subject}} wieder aufnehmen",
         "ctaProposeVisit": "Besichtigung vorschlagen",
         "ctaRecalibrate": "Neu justieren",
         "ctaResume": "Aufnehmen",
         "unknownContact": "Kontakt",
-        "unknownProperty": "ein Objekt"
+        "unknownProperty": "ein Objekt",
+        "interesse": "interessiert an {{subject}}",
+        "pasInteresse": "nicht interessiert an {{subject}}",
+        "retourAttendu_one": "Rückmeldung zu {{count}} vorgeschlagenen Objekt fällig",
+        "retourAttendu_other": "Rückmeldung zu {{count}} vorgeschlagenen Objekten fällig"
       },
       "toast": {
         "allUpToDate": "Alles aktuell",
@@ -523,10 +528,37 @@
         "ctaKyc": "KYC öffnen",
         "ctaSign": "Vorbereiten",
         "ctaOffer": "Angebot ansehen",
-        "ctaMatch": "Matches ansehen",
         "ctaVisit": "Besichtigung ansehen",
         "ctaSeller": "Öffnen",
         "ctaListing": "Objekt ansehen"
+      },
+      "matching": {
+        "compte_one": "{{count}} Aktion",
+        "compte_other": "{{count}} Aktionen",
+        "retour_one": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekt",
+        "retour_other": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekte",
+        "prixPropose": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} vorgeschlagen wurde",
+        "prixRefuse": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} abgelehnt hat",
+        "mandat_one": "Neues Mandat · {{count}} passender Käufer",
+        "mandat_other": "Neues Mandat · {{count}} passende Käufer",
+        "marcheNouveau": "Neues Objekt in {{ville}} für {{prenom}}",
+        "marcheNouveauSansVille": "Neues Objekt für {{prenom}}",
+        "marcheBaisse": "Preissenkung in {{ville}} für {{prenom}}",
+        "marcheBaisseSansVille": "Preissenkung für {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} neues Objekt",
+        "nouveaux_other": "{{count}} neue Objekte",
+        "baisses_one": "{{count}} Preissenkung",
+        "baisses_other": "{{count}} Preissenkungen",
+        "ctaRetour": "Erfassen",
+        "ctaPrix": "Öffnen",
+        "ctaMandat": "Wer passt",
+        "ctaMarche": "Objekte ansehen",
+        "voirTout": "Alles im Matching ansehen",
+        "voirToutCompte_one": "Die Aktion im Matching ansehen",
+        "voirToutCompte_other": "Alle {{count}} Aktionen im Matching ansehen",
+        "vide": "Heute keine Matching-Aktion.",
+        "erreur": "Matching-Aktionen nicht verfügbar: Laden fehlgeschlagen."
       }
     }
   },

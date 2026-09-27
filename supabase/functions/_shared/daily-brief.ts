@@ -43,7 +43,7 @@ function stripNameBearing(agg: Record<string, unknown> | null | undefined): Reco
 // TYPE fixe, name-free par construction. Le LLM sait qu'il y a un suivi de tel
 // genre, sans aucune PII.
 const REMINDER_LABELS: Record<string, string> = {
-  follow_up_sent_property: 'relance après un bien envoyé',
+  follow_up_sent_property: 'retour à obtenir sur un bien proposé',
   post_visit_feedback: 'feedback de visite à récupérer',
   dormant_lead: 'lead dormant à réveiller',
   missing_document: 'document KYC en attente',

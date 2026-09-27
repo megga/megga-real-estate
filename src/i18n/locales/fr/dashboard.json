@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Nouveau",
-        "sent": "Dossier envoyé",
+        "sent": "Bien proposé",
         "visitPlanned": "Visite prévue",
         "interested": "Intéressé"
       },
+      "proposeError": "La proposition n'a pas pu être consignée. Réessayez.",
       "why": {
         "fallback": "Nouveau match, premier contact à initier."
       },
@@ -318,8 +319,8 @@
         "toRefine": "à affiner"
       },
       "action": {
-        "addToFile": "Mettre dans le dossier de {{name}}",
-        "added": "Ajouté au dossier de {{name}}",
+        "addToFile": "Je l'ai proposé à {{name}}",
+        "added": "Proposé à {{name}}",
         "openInMatching": "Ouvrir dans Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Aucun contact dormant à relancer aujourd'hui. Vos relances apparaîtront ici dès qu'un contact se refroidira."
       },
       "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
+      "sendErrorBien": "Rien n'est parti : ce message contient un bien (lien d'annonce ou référence MG-…). Le matching reste chez vous : présentez le bien vous-même, puis consignez « Je l'ai proposé » dans le matching.",
       "draft": {
         "to": "À",
         "emailMissing": "(email manquant)",
@@ -420,7 +422,8 @@
       "freeWindow": "{{duration}} libres · session relances",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Annonces"
+        "listings": "Annonces",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} chaud",
       "hotCount_other": "{{count}} chauds",
@@ -453,16 +456,18 @@
         "markAll": "Tout marquer comme vu",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signaux",
-        "groupBuyers": "Retours acheteurs",
+        "groupBuyers": "Retours consignés",
         "groupReminders": "Rappels",
-        "liked": "a aimé {{subject}}",
-        "skipped": "a écarté {{subject}}",
         "reminderDue": "dossier {{subject}} à reprendre",
         "ctaProposeVisit": "Proposer la visite",
         "ctaRecalibrate": "Recalibrer",
         "ctaResume": "Reprendre",
         "unknownContact": "Contact",
-        "unknownProperty": "un bien"
+        "unknownProperty": "un bien",
+        "interesse": "intéressé·e par {{subject}}",
+        "pasInteresse": "pas intéressé·e par {{subject}}",
+        "retourAttendu_one": "retour attendu sur {{count}} bien proposé",
+        "retourAttendu_other": "retour attendu sur {{count}} biens proposés"
       },
       "toast": {
         "allUpToDate": "Tout est à jour",
@@ -523,10 +528,37 @@
         "ctaKyc": "Ouvrir le KYC",
         "ctaSign": "Préparer",
         "ctaOffer": "Voir l’offre",
-        "ctaMatch": "Voir les matchs",
         "ctaVisit": "Voir la visite",
         "ctaSeller": "Ouvrir",
         "ctaListing": "Voir le bien"
+      },
+      "matching": {
+        "compte_one": "{{count}} action",
+        "compte_other": "{{count}} actions",
+        "retour_one": "Retour à consigner pour {{prenom}} · {{count}} bien",
+        "retour_other": "Retour à consigner pour {{prenom}} · {{count}} biens",
+        "prixPropose": "Prix baissé de {{montant}} sur le bien proposé à {{prenom}}",
+        "prixRefuse": "Prix baissé de {{montant}} sur le bien refusé par {{prenom}}",
+        "mandat_one": "Nouveau mandat · {{count}} acquéreur compatible",
+        "mandat_other": "Nouveau mandat · {{count}} acquéreurs compatibles",
+        "marcheNouveau": "Nouveau bien à {{ville}} pour {{prenom}}",
+        "marcheNouveauSansVille": "Nouveau bien pour {{prenom}}",
+        "marcheBaisse": "Bien en baisse à {{ville}} pour {{prenom}}",
+        "marcheBaisseSansVille": "Bien en baisse pour {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nouveau bien",
+        "nouveaux_other": "{{count}} nouveaux biens",
+        "baisses_one": "{{count}} en baisse",
+        "baisses_other": "{{count}} en baisse",
+        "ctaRetour": "Consigner",
+        "ctaPrix": "Ouvrir",
+        "ctaMandat": "Voir qui",
+        "ctaMarche": "Voir les biens",
+        "voirTout": "Voir tout dans le Matching",
+        "voirToutCompte_one": "Voir l'action dans le Matching",
+        "voirToutCompte_other": "Voir les {{count}} actions dans le Matching",
+        "vide": "Aucune action de matching aujourd'hui.",
+        "erreur": "Actions de matching indisponibles : le chargement a échoué."
       }
     }
   },

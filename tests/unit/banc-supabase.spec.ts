@@ -27,7 +27,7 @@
  * La garde exige donc les DEUX notations. Une seule aurait laissé passer celle
  * que le dépôt emploie réellement.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { installerBanc, desinstallerBanc, reglerBanc } from '@/pages/dev/bancSupabase'
 
@@ -179,5 +179,207 @@ describe('bancSupabase — le tri sur plusieurs colonnes et les pages', () => {
     expect(await ids(`${ordre}&offset=2&limit=2`)).toEqual(['b', 'd'])
     expect(await ids(`${ordre}&offset=4&limit=2`)).toEqual(['e'])
     expect(await ids(`${ordre}&offset=6&limit=2`)).toEqual([])
+  })
+})
+
+/**
+ * La sélection du marché (21.09.2026) se lit `order=score.desc,created_at.desc.nullslast,id.asc`. Le
+ * banc comparait les scores comme des CHAÎNES : « 100 » < « 97 », et le seul bien à 100 d'une sélection
+ * s'affichait après les 97 — un ordre que la production ne rend jamais.
+ */
+describe('bancSupabase — deux nombres se rangent comme des nombres', () => {
+  const SCORES = [
+    { id: 'm8', score: 97, created_at: '2026-09-13T00:00:00Z' },
+    { id: 'm9', score: 100, created_at: '2026-09-11T00:00:00Z' },
+    { id: 'm10', score: 90, created_at: null },
+    { id: 'm11', score: 100, created_at: null },
+  ]
+  beforeAll(() => { reglerBanc({ etat: 'nominal', tables: { essais: LIGNES, scores: SCORES } }) })
+
+  const ids = async (requete: string) => ((await lire(`scores?select=*&${requete}`)) as { id: string }[]).map((l) => l.id)
+
+  it('100 avant 97, dans les deux sens', async () => {
+    expect(await ids('order=score.desc')).toEqual(['m9', 'm11', 'm8', 'm10'])
+    expect(await ids('order=score.asc')).toEqual(['m10', 'm8', 'm9', 'm11'])
+  })
+
+  it('une valeur absente suit `nullslast` / `nullsfirst`, quel que soit le sens', async () => {
+    expect(await ids('order=score.desc,created_at.desc.nullslast,id.asc')).toEqual(['m9', 'm11', 'm8', 'm10'])
+    expect(await ids('order=score.desc,created_at.desc.nullsfirst,id.asc')).toEqual(['m11', 'm9', 'm8', 'm10'])
+    expect(await ids('order=created_at.asc.nullslast,id.asc')).toEqual(['m9', 'm8', 'm10', 'm11'])
+  })
+
+  /**
+   * ⛔ Sur une colonne MIXTE, comparer deux nombres en nombres et le reste en chaînes formait un cycle :
+   * 97 < 100, 100 < '50' (« 100 » < « 50 »), '50' < 97. `sort` rendait alors un ordre qui dépendait de
+   * l'ordre d'ENTRÉE. D'où deux entrées permutées, qui doivent rendre la même chose : l'absent, les
+   * nombres, puis les chaînes.
+   */
+  it('une colonne mixte se range de la même façon quel que soit l’ordre d’entrée', async () => {
+    const x1 = { id: 'x1', v: 100 }, x2 = { id: 'x2', v: '50' }, x3 = { id: 'x3', v: 97 }
+    const x4 = { id: 'x4', v: null }, x5 = { id: 'x5', v: 'abc' }
+    for (const entree of [[x1, x2, x3, x4, x5], [x5, x4, x3, x2, x1], [x2, x4, x1, x5, x3], [x3, x2, x1, x5, x4]]) {
+      reglerBanc({ tables: { essais: LIGNES, mixte: entree } })
+      const lus = async (ordre: string) => ((await lire(`mixte?select=*&order=${ordre}`)) as { id: string }[]).map((l) => l.id)
+      expect(await lus('v.asc')).toEqual(['x4', 'x3', 'x1', 'x2', 'x5'])
+      expect(await lus('v.desc')).toEqual(['x5', 'x2', 'x1', 'x3', 'x4'])
+    }
+  })
+})
+
+describe('bancSupabase — une écriture suivie de `.single()`', () => {
+  /**
+   * ⛔ `postgrest-js` pose le même `Accept` sur `.insert(…).select().single()` que sur une lecture.
+   * Le banc rendait un TABLEAU après toute écriture : `created.id` valait `undefined` et le deal
+   * créé par « Proposer » n'avait pas d'identifiant, sans rien dans la console.
+   */
+  it('POST rend un OBJET quand l’en-tête le demande, un tableau sinon', async () => {
+    reglerBanc({ etat: 'nominal', tables: { essais: [...LIGNES] }, ecrivables: ['essais'] })
+    const objet = await window.fetch(`${REST}essais?select=id`, {
+      method: 'POST', headers: new Headers({ Accept: OBJET_SEUL }), body: JSON.stringify({ nom: 'Charlie' }),
+    }).then((r) => r.json()) as Record<string, unknown>
+    expect(Array.isArray(objet)).toBe(false)
+    expect(objet).toMatchObject({ nom: 'Charlie' })
+
+    const tableau = await window.fetch(`${REST}essais`, { method: 'POST', body: JSON.stringify({ nom: 'Delta' }) }).then((r) => r.json())
+    expect(Array.isArray(tableau)).toBe(true)
+    reglerBanc({ tables: { essais: LIGNES }, ecrivables: [] })
+  })
+})
+
+/**
+ * Le chevauchement de tableaux (`ov`), l'opérateur des RÔLES MULTIPLES (étape 3,
+ * 22.09.2026) — et le repli qui l'avait laissé passer.
+ *
+ * ⛔ CE FILTRE TOMBAIT DANS LE `default: return true`. `useContacts` interroge
+ * `contacts?roles=ov.{private_banker}` ; le banc rendait les contacts de la fixture
+ * ENTIÈRE, dans le même ordre, sans rien dire. L'écran de démonstration répondait
+ * donc « Private banker » par tout le portefeuille — et le mode d'échec est le pire
+ * qui soit pour un banc : une liste PLEINE se lit comme une liste qui marche, alors
+ * qu'une liste vide aurait fait ouvrir le code. C'est la variante (e) des pièges de
+ * sonde, celle que l'en-tête de `filtrer()` nomme lui-même.
+ *
+ * ⚠ Les DEUX clôtures sont éprouvées. `postgrest-js` écrit `ov.{a,b}` (le littéral
+ * d'un `text[]`) et `in.(a,b)` : une garde qui n'en connaîtrait qu'une rouvrirait
+ * l'autre moitié le jour où un appel emploie l'autre notation — c'est exactement la
+ * forme du défaut d'en-tête `Accept` gardé plus haut dans ce fichier.
+ */
+describe('bancSupabase — `ov`, le chevauchement de tableaux', () => {
+  const FICHES = [
+    { id: 'c2', roles: ['seller', 'referrer', 'trustee'] },
+    { id: 'c6', roles: ['buyer', 'seller'] },
+    { id: 'c8', roles: [] },
+    { id: 'c14', roles: ['private_banker'] },
+    // ⚠ La colonne ABSENTE, pas vide : une fixture écrite avant l'étape 3. En base
+    // `roles` est un tableau, et `NULL && ARRAY[…]` vaut NULL — la ligne sort.
+    { id: 'c99' },
+  ]
+  beforeAll(() => { reglerBanc({ etat: 'nominal', tables: { essais: LIGNES, fiches: FICHES } }) })
+
+  const ids = async (requete: string) => ((await lire(`fiches?select=*&${requete}`)) as { id: string }[]).map((l) => l.id)
+
+  it('un seul rôle demandé ne rend QUE ceux qui le portent', async () => {
+    expect(
+      await ids('roles=ov.{private_banker}'),
+      'toute la fixture est rendue : `ov` retombe dans le repli « opérateur inconnu »',
+    ).toEqual(['c14'])
+    expect(await ids('roles=ov.{seller}')).toEqual(['c2', 'c6'])
+  })
+
+  it('plusieurs rôles demandés rendent leur UNION, chaque ligne une seule fois', async () => {
+    expect(await ids('roles=ov.{private_banker,buyer}')).toEqual(['c6', 'c14'])
+    expect(await ids('roles=ov.{trustee,referrer}')).toEqual(['c2'])
+  })
+
+  it('la clôture parenthésée dit la même chose que les accolades', async () => {
+    expect(await ids('roles=ov.(seller)')).toEqual(['c2', 'c6'])
+    expect(await ids('roles=ov.(private_banker,buyer)')).toEqual(['c6', 'c14'])
+  })
+
+  /**
+   * ⛔ Les deux façons de ne rien porter : le tableau VIDE (`c8`, un lead) et la
+   * colonne absente (`c99`). Aucune ne chevauche, et la liste vide ne chevauche
+   * personne — un `ov.{}` qui rendrait tout le monde serait le défaut d'origine
+   * déguisé en cas limite.
+   */
+  it('ce qui ne porte rien ne chevauche rien, et la liste vide ne rend personne', async () => {
+    expect(await ids('roles=ov.{}')).toEqual([])
+    expect(await ids('roles=ov.{buyer}')).not.toContain('c8')
+    expect(await ids('roles=ov.{buyer}')).not.toContain('c99')
+  })
+
+  it('`ov` filtre AUSSI les cibles d’une écriture, comme la lecture', async () => {
+    reglerBanc({ tables: { essais: LIGNES, fiches: [...FICHES] }, ecrivables: ['fiches'] })
+    const touchees = await window.fetch(`${REST}fiches?roles=ov.{private_banker}`, {
+      method: 'PATCH', body: JSON.stringify({ score: 'hot' }),
+    }).then((r) => r.json()) as { id: string }[]
+    expect(touchees.map((l) => l.id), 'un PATCH a touché plus de lignes que son prédicat').toEqual(['c14'])
+    reglerBanc({ tables: { essais: LIGNES, fiches: FICHES }, ecrivables: [] })
+  })
+})
+
+/**
+ * Le repli « opérateur inconnu » PARLE désormais.
+ *
+ * ⛔ IL ÉTAIT MUET, ET C'EST CE SILENCE QUI A COÛTÉ `ov`. Un filtre non implémenté
+ * laisse passer toutes les lignes — choix assumé, mieux vaut un écran trop plein
+ * qu'un vide qu'on lirait comme un bogue de la page — mais rien ne distinguait « ce
+ * filtre n'existe pas ici » de « ce filtre ne retire rien ». Le repli reste
+ * permissif ; il n'est plus silencieux.
+ *
+ * ⚠ UNE FOIS CHACUN, et la clause le vérifie : le prédicat tourne par LIGNE et
+ * `filtrer` par REQUÊTE, donc sans dédoublonnage une liste de contacts rafraîchie
+ * noierait la console — on la filtrerait au lieu de la lire, ce qui revient au
+ * silence d'avant en plus bruyant.
+ */
+describe('bancSupabase — un filtre non implémenté le DIT, une fois', () => {
+  beforeAll(() => { reglerBanc({ etat: 'nominal', tables: { essais: LIGNES } }) })
+
+  it('un opérateur inconnu laisse passer les lignes ET avertit, sans se répéter', async () => {
+    const dit = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await lire('essais?select=*&statut=zorglub.match')).toHaveLength(2)
+      expect(dit, 'le repli est resté muet').toHaveBeenCalledTimes(1)
+      expect(String(dit.mock.calls[0]?.[0])).toContain('statut=zorglub')
+      await lire('essais?select=*&statut=zorglub.clear')
+      expect(dit, 'le même filtre est redit : la console se noiera').toHaveBeenCalledTimes(1)
+    } finally { dit.mockRestore() }
+  })
+
+  /**
+   * ⛔ `or=(…)` N'EST TOUJOURS PAS LU, et c'est écrit plutôt que caché : la recherche
+   * par nom rend donc TOUTES les lignes sur le banc. L'implémenter est une décision à
+   * part. Ce qui change ici, c'est qu'on le sait en regardant l'écran.
+   *
+   * ⚠ Il est signalé sous le nom `or`, pas sous l'« opérateur » `(first_name` que le
+   * découpage au premier point en tire — un nom qu'on chercherait en vain dans la
+   * doc PostgREST, et qui donnerait une ligne par forme de recherche au lieu d'une.
+   */
+  it('`or=(…)` est nommé pour ce qu’il est, et laisse tout passer', async () => {
+    const dit = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const q = 'or=(nom.ilike.*Alp*,nom.ilike.*Bra*)'
+      expect(await lire(`essais?select=*&${q}`)).toHaveLength(2)
+      expect(dit).toHaveBeenCalledTimes(1)
+      const message = String(dit.mock.calls[0]?.[0])
+      expect(message).toContain('or=(…)')
+      expect(message, 'signalé sous un opérateur PostgREST inventé').not.toContain('(nom')
+      // Une autre disjonction, sur d'autres colonnes : toujours une seule ligne dite.
+      await lire('essais?select=*&or=(statut.eq.match,id.eq.b)')
+      expect(dit).toHaveBeenCalledTimes(1)
+    } finally { dit.mockRestore() }
+  })
+
+  /** Le pendant : un opérateur IMPLÉMENTÉ ne dit rien — sinon l'avertissement ne vaut plus rien. */
+  it('les opérateurs implémentés restent silencieux', async () => {
+    const dit = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await lire('essais?select=*&id=eq.a')
+      await lire('essais?select=*&statut=in.(match,clear)')
+      await lire('essais?select=*&nom=is.null')
+      reglerBanc({ tables: { essais: LIGNES, roles: [{ id: 'r', roles: ['buyer'] }] } })
+      await lire('roles?select=*&roles=ov.{buyer}')
+      expect(dit, `un opérateur implémenté a été signalé : ${JSON.stringify(dit.mock.calls)}`).not.toHaveBeenCalled()
+    } finally { dit.mockRestore(); reglerBanc({ tables: { essais: LIGNES } }) }
   })
 })

@@ -19,6 +19,12 @@
 //  · Carte plein écran et lightbox sont PORTÉES dans `document.body` : la fiche
 //    vit sous le track translaté du pager, où `position: fixed` deviendrait un
 //    cadre local (même correctif que AtlOverlayHost côté atelier).
+//  · L'historique du prix (pige, 21.09.2026) est la section qui suit les équipements : `MrhHistoriquePrix`,
+//    le même composant que la fiche autonome. L'écart de l'affiche (« −X % » près du prix barré) prend
+//    le même arrondi que lui (`ecartPct`, une décimale).
+//  · ⛔ Une annonce RETIRÉE (ouverte depuis « Retirés ») n'a PAS de bouton « Ajouter à la sélection » :
+//    on ne propose pas à un acheteur un bien qui n'est plus en vente. Une pastille « Retirée le … »
+//    prend sa place en tête de fiche.
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -36,6 +42,8 @@ import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from
 import { MRH_PRICE_DROP } from './mrhCtx'
 import type { MrhSurf } from './mrhCtx'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import MrhHistoriquePrix from './MrhHistoriquePrix'
+import { ecartPct, formaterPct, type PointPrix } from './pige'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
 const MrhMapbox = lazy(() => import('./MrhMapbox'))
@@ -87,10 +95,12 @@ interface Props {
    * dense du plus gros fichier du périmètre.
    */
   detailDemo?: MrhBienDetail
+  /** Banc : l'historique du prix fourni au lieu d'être lu (`historiqueDuBanc`). */
+  historiqueDemo?: PointPrix[]
 }
 
-export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose, detailDemo }: Props) {
-  const { t } = useTranslation('matching')
+export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose, detailDemo, historiqueDemo }: Props) {
+  const { t, i18n } = useTranslation('matching')
   // `isPending`/`isError` ne sont pas décoratifs : la description s'insère AU-DESSUS
   // des caractéristiques, donc sans place réservée toute la fiche saute quand la
   // requête revient. Et un échec rendu comme une absence ferait affirmer à l'écran
@@ -129,8 +139,9 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const subBg = dark ? 'rgba(255,255,255,.045)' : '#F7F8FA'
   const ppm2 = bien.price_per_m2 || (price && bien.area ? Math.round(price / bien.area) : null)
   const priceOrig = bien.price_original
-  const dropPct = priceOrig && price && priceOrig > price ? Math.round((1 - price / priceOrig) * 100) : null
+  const ecartAffiche = priceOrig && price && priceOrig > price ? ecartPct(priceOrig, price) : null
   const priceLabel = price ? formatCHF(price) : t('recherche.detail.priceOnRequest')
+  const retiree = bien.status === 'removed'
   const agencyName = bien.agency || '—'
   const agencyInit = agencyName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
   const mapBg = dark ? '#12151B' : '#E7ECF2'
@@ -187,7 +198,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
     return out
   }, [bien, detail, isRent, ppm2, onMarket, t])
 
-  const selectBtn = (block?: boolean) => buyer ? (
+  const selectBtn = (block?: boolean) => buyer && !retiree ? (
     <button onClick={onToggle}
       style={{ marginTop: block ? 10 : 0, width: block ? '100%' : undefined, height: block ? 46 : 44, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: on ? chipBg : 'transparent', color: sp.ink, boxShadow: on ? 'none' : 'inset 0 0 0 1px ' + sp.solidBorder, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
       <RechIcon name={on ? 'check' : 'plus'} size={15} stroke={sp.ink} />
@@ -259,9 +270,10 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         {/* ⚠ LA SEULE ENTRÉE VERS LA FICHE AUTONOME, et c'est ce qui la rend
             atteignable : réparée le 05.09.2026, elle n'avait plus aucun lien entrant
             depuis le 18.05.2026. Cette surcouche montre l'annonce, mais elle ne sait
-            NI annoter, NI envoyer au client, NI importer au portefeuille — trois
-            capacités que seule la page porte. D'où « ouvrir en grand » plutôt qu'un
-            doublon d'affordances ici.
+            NI annoter, NI importer au portefeuille — deux capacités que seule la page
+            porte (l'envoi au client en était une troisième, retirée le 21.09.2026 : le
+            matching reste chez l'agent). D'où « ouvrir en grand » plutôt qu'un doublon
+            d'affordances ici.
             ⚠ Un vrai `<Link>` et non un `onClick` : ⌘-clic doit pouvoir l'ouvrir dans
             un onglet du navigateur, et la barre d'onglets du CRM lui donne le sien. */}
         <Link
@@ -275,7 +287,13 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         >
           <RechIcon name="arrowR" size={17} stroke={sp.ink} />
         </Link>
-        {selectBtn(false)}
+        {retiree ? (
+          // Un fait, pas un geste : pastille neutre, à la place du bouton de sélection. Sans date quand le
+          // retrait précède la pige (removed_at NULL : on ne reconstitue pas le passé).
+          <span style={{ display: 'inline-flex', alignItems: 'center', height: 44, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', background: chipBg, color: sp.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+            {bien.retireeLe ? t('recherche.detail.retireeLe', { date: formatDate(bien.retireeLe) }) : t('recherche.detail.retiree')}
+          </span>
+        ) : selectBtn(false)}
       </div>
 
       <div className="mrh-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '6px 30px 34px' }}>
@@ -326,7 +344,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                   {isRent && price ? <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>{t('recherche.detail.perMonthLong')}</span> : null}
                   {priceOrig ? <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, textDecoration: 'line-through' }}>{formatCHF(priceOrig)}</span> : null}
-                  {dropPct ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{'−' + dropPct + ' %'}</span> : null}
+                  {ecartAffiche != null && ecartAffiche < 0 ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{formaterPct(ecartAffiche, i18n.language)}</span> : null}
                 </div>
               </div>
             </div>
@@ -378,6 +396,10 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                     </div>
                   </>
                 )}
+                {/* L'historique du prix (pige) — la même lecture que la fiche autonome. */}
+                {rule}
+                {eyebrow(t('recherche.historique.titre'))}
+                <MrhHistoriquePrix bien={bien} sp={sp} dark={dark} pointsDemo={historiqueDemo} />
               </div>
 
               {/* sticky : la colonne de gauche fait jusqu'à ~9 300 signes de
@@ -435,9 +457,12 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                     <RechIcon name="phone" size={15} stroke={sp.ink} /> {bien.agency_phone}
                   </a>
                 ) : null}
-                <button onClick={openPortal} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  {t('recherche.detail.openOn', { portal: portalLabel })} <RechIcon name="arrowR" size={15} stroke={ONACC} />
-                </button>
+                {/* Une annonce retirée n'existe plus sur son portail : le lien mènerait à une page morte. */}
+                {!retiree ? (
+                  <button onClick={openPortal} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    {t('recherche.detail.openOn', { portal: portalLabel })} <RechIcon name="arrowR" size={15} stroke={ONACC} />
+                  </button>
+                ) : null}
                 {selectBtn(true)}
               </div>
             </div>

@@ -9,11 +9,15 @@
  *   sur la rangée de la file (COL 1), l'afficher deux fois volait la place au nom.
  * - Le sceau « vérifié » est un glyphe tracé localement (coche détourée en evenodd)
  *   plutôt qu'une icône du set MEIcon : aucun équivalent bicolore n'y existe.
- * - Triage : deux ronds ghost (écarter / plus tard) + primaire pleine largeur.
+ * - Triage : deux ronds ghost (écarter / plus tard) + primaire pleine largeur, « Je l'ai
+ *   proposé », pour un match à proposer SEULEMENT (même règle que la touche `e`).
  *   La maquette a retiré d'ici la carte MEGGA AI, la carte KYC et les boutons
- *   Intéressé / Pas intéressé / Visite. Aucune capacité perdue : `i`, `v` et `r`
- *   restent des raccourcis clavier (AtelierStage), et la pastille KYC est devenue
- *   cliquable pour garder le seul accès contextuel au parcours KYC.
+ *   Intéressé / Pas intéressé / Visite. Intéressé et Pas intéressé REVIENNENT pour
+ *   un bien proposé sans retour : depuis le 21.09.2026 la réponse de l'acheteur
+ *   n'arrive plus par une page à lui, c'est l'agent qui la consigne — un geste
+ *   joignable au seul clavier (`i`, `n`) ne se découvrirait pas. `v` et `r` restent
+ *   des raccourcis (AtelierStage), et la pastille KYC est devenue cliquable pour
+ *   garder le seul accès contextuel au parcours KYC.
  */
 
 import { useTranslation } from 'react-i18next'
@@ -73,11 +77,13 @@ interface AtlWhyProps {
   onSkip: () => void
   onLater: () => void
   onRelance: () => void
+  onInterested: () => void
+  onNotInterested: () => void
   onPivot: () => void
   onStartKyc: () => void
 }
 
-export default function AtlWhy({ b, poolCount, onSend, onSkip, onLater, onRelance, onPivot, onStartKyc }: AtlWhyProps) {
+export default function AtlWhy({ b, poolCount, onSend, onSkip, onLater, onRelance, onInterested, onNotInterested, onPivot, onStartKyc }: AtlWhyProps) {
   const { t } = useTranslation('matching')
   const kyc = ATL_KYC[b.kyc]
   const verified = b.kyc === 'verified'
@@ -107,7 +113,7 @@ export default function AtlWhy({ b, poolCount, onSend, onSkip, onLater, onRelanc
               que ce signal. On rend donc la pastille cliquable : rendu identique à la
               maquette, mais l'atelier conserve son seul accès contextuel au KYC du
               contact (sans elle, `onStartKyc` n'aurait plus aucun point d'entrée —
-              contrairement à Visite/Intéressé/Relance, couverts par `v`/`i`/`r`). */}
+              contrairement à Visite et Relance, couverts par `v`/`r`). */}
           {!verified && (
             <button
               type="button"
@@ -143,9 +149,19 @@ export default function AtlWhy({ b, poolCount, onSend, onSkip, onLater, onRelanc
 
       <div className="atl-triage">
         {b.status === 'no-reply' && (
-          <button className="btn btn-ghost" onClick={onRelance}>
-            <AtlIcon d="refresh" size={15} /> {t('atelier.followUpOtherChannel')}
-          </button>
+          <>
+            <button className="btn btn-ghost" onClick={onRelance}>
+              <AtlIcon d="refresh" size={15} /> {t('atelier.followedUp')}
+            </button>
+            <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
+              <button className="btn btn-ghost" style={{ flex: 1, minWidth: 0 }} onClick={onInterested}>
+                <AtlIcon d="check" size={15} /> {t('atelier.interested')}
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1, minWidth: 0 }} onClick={onNotInterested}>
+                <AtlIcon d="close" size={15} /> {t('atelier.notInterested')}
+              </button>
+            </div>
+          </>
         )}
         <div className="btns btns-icon">
           <button className="btn circle atl-ghostact atl-danger" title={t('atelier.dismiss')} aria-label={t('atelier.dismiss')} onClick={onSkip}>
@@ -154,9 +170,13 @@ export default function AtlWhy({ b, poolCount, onSend, onSkip, onLater, onRelanc
           <button className="btn circle atl-ghostact" title={t('atelier.later')} aria-label={t('atelier.later')} onClick={onLater}>
             <AtlIcon d="clock" size={17} />
           </button>
-          <button className="btn btn-primary" onClick={onSend}>
-            {t('atelier.sendDossier')}
-          </button>
+          {/* « Je l'ai proposé » ne s'offre que pour un match À PROPOSER : un bien déjà
+              proposé attend une réponse (au-dessus), pas une seconde proposition. */}
+          {b.status === 'to-send' && (
+            <button className="btn btn-primary" onClick={onSend}>
+              {t('atelier.sendDossier')}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -19,6 +19,7 @@ import { useCreateContact } from '@/hooks/useContacts'
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useExtractLead } from '@/hooks/useExtractLead'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
+import { porteDemande } from '@/lib/contactRoles'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal, {
@@ -79,15 +80,22 @@ export default function ContactsPage() {
   // pour que la modale reste sur le formulaire (l'écran héros n'apparaît qu'au succès).
   const handleCreate = async (data: NewContactData): Promise<void> => {
     setCreateError(null)
-    const buyerSide = data.type === 'buyer' || data.type === 'tenant'
-    const criteria = buyerSide && data.criteria ? buildSearchCriteria(data.criteria) : null
+    // Étape 3 : la MÊME règle que la fiche — un rôle de DEMANDE (acquéreur, locataire,
+    // investisseur) écrit des critères de recherche, donc du matching.
+    //
+    // ⚠ `|| roles.length === 0` : le MÊME repli que la modale, qui montre le bloc de
+    // demande à un contact sans rôle. Sans lui, les critères qu'elle vient de faire saisir
+    // ne partiraient nulle part — ni `search_criteria`, ni `form_data.offer`. Les deux
+    // lignes tombent ensemble le jour où la colonne aura son état vide.
+    const demande = porteDemande(data.roles) || data.roles.length === 0
+    const criteria = demande && data.criteria ? buildSearchCriteria(data.criteria) : null
     // Vendeur/Bailleur : le bien proposé n'est PAS un critère de recherche (aucun
     // matching). Il se range dans form_data.offer, la clé que la fiche relit
     // (ContactDetailPage « crit »). L'écrire sous `linked_bien` le rendait
     // invisible : personne ne lisait cette clé.
-    const offer: CriteriaInput | null = !buyerSide && data.linkedBien
+    const offer: CriteriaInput | null = !demande && data.linkedBien
       ? {
-          transaction: data.type === 'landlord' ? 'location' : 'vente',
+          transaction: data.roles.includes('landlord') ? 'location' : 'vente',
           types: [data.linkedBien.propType],
           cantons: [],
           cities: data.linkedBien.address ? [data.linkedBien.address] : [],
@@ -101,7 +109,8 @@ export default function ContactsPage() {
         // lirait comme une adresse renseignée.
         email: data.email || null,
         phone: data.phone || undefined,
-        type: data.type,
+        // `type` n'est plus écrit ici : le déclencheur le dérive des rôles.
+        roles: data.roles,
         source: 'manual',
         score: 'warm',
         tags: [],

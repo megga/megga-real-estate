@@ -31,7 +31,7 @@
     <script>
       // Aucun mouchard sur les routes à lien tokenisé : une balise d'audience envoie
       // `document.location.href` à son éditeur, c'est-à-dire le token lui-même —
-      // dans le chemin (/kyc, /kyc-report, /reception, /rendez-vous) ou dans la query (?token= des
+      // dans le chemin (/kyc, /kyc-report, /rendez-vous) ou dans la query (?token= des
       // pages de visite). Un capability token remis à un tiers est un token compromis.
       //
       // ⚠ Cette garde n'a plus AUCUN lecteur dans ce fichier depuis le 16.08.2026 :
@@ -60,7 +60,7 @@
       // deux runtimes, aucun import possible entre eux. `tests/unit/token-routes.spec.ts`
       // les compare caractère par caractère : étendre l'une sans l'autre rougit.
       window.MEGGA_ROUTE_TOKENISEE =
-        /^\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
+        /^\/(kyc-report|kyc|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
     </script>
     <!-- Aucune balise d'audience ici — ni GA4, ni conteneur GTM (retirés le
          16.08.2026 : G-W8QK7C0NB1 et GTM-TFVCHXFJ). app.getmegga.com est un espace de

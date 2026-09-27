@@ -11,6 +11,7 @@ import { formatCHF } from '@/lib/utils'
 import type { MrhBien } from './types'
 import { mrhPriceDropInk } from './mrhCtx'
 import type { MrhCtx } from './mrhCtx'
+import { ecartPct, formaterPct } from './pige'
 
 interface Props {
   bien: MrhBien
@@ -23,7 +24,7 @@ interface Props {
 }
 
 export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }: Props) {
-  const { t } = useTranslation('matching')
+  const { t, i18n } = useTranslation('matching')
   const { sp, surf, dark, ACC, ONACC, line, chipBg, sel, buyer, toggleSel, onOpen, onAskAi, animate } = ctx
   // L'entrée « sgFadeUp » ne se joue qu'au 1er affichage (capture au montage), et
   // seulement sur les premières cartes : le délai plafonne à `index 8`, donc au-delà
@@ -39,8 +40,10 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
   const price = isRent ? bien.rent : bien.price
   // Signal « prix baissé » (trigger ra_price_status) — même seuil anti-bruit ≥2%
   // que le bonus de scoring ; la fiche détail affiche le prix barré + le chip.
-  const dropPct = bien.price_original && price && bien.price_original > price
-    ? Math.round((1 - price / bien.price_original) * 100)
+  // Même écart, même arrondi (une décimale) que l'affiche et l'historique de la
+  // fiche : `ecartPct`, sinon la carte dirait « −10 % » et la fiche « −9,5 % ».
+  const ecart = bien.price_original && price && bien.price_original > price
+    ? ecartPct(bien.price_original, price)
     : null
   const on = sel.includes(bien.id)
 
@@ -101,9 +104,9 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
             <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.6, lineHeight: 1, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
               {price ? formatCHF(price) : t('recherche.card.estimate')}
               {isRent && price ? <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600 }}> {t('recherche.card.perMonth')}</span> : null}
-              {dropPct != null && dropPct >= 2 ? (
+              {ecart != null && ecart <= -2 ? (
                 <span title={t('recherche.card.priceDrop')} style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: mrhPriceDropInk(dark), marginLeft: 7, letterSpacing: 0 }}>
-                  {'−' + dropPct + ' %'}
+                  {formaterPct(ecart, i18n.language)}
                 </span>
               ) : null}
             </div>

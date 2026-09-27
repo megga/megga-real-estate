@@ -25,6 +25,7 @@ const MAP: Record<string, AtlIconName> = {
   info: 'info',
   send: 'send',
   mapPin: 'location',
+  trendDown: 'trend-down',
 }
 
 export type RechIconName = keyof typeof MAP

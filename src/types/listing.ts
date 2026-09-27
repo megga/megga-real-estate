@@ -65,5 +65,7 @@ export interface Property {
   partner_agency?: string | null
   created_at: string
   published_at: string | null
+  /** Mandat off-market : proposé aux seuls acheteurs de l'agence, jamais diffusé (lot C). */
+  off_market?: boolean
   updated_at?: string
 }

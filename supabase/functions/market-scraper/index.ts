@@ -152,10 +152,8 @@ serve(async (req) => {
         }
         const oldPrice = Number(existing.current_price) || 0
         if (oldPrice > 0 && salePrice > 0 && oldPrice !== salePrice) {
-          await supabase.from('market_price_history').insert({
-            market_listing_id: existing.id, old_price: oldPrice, new_price: salePrice,
-            change_pct: Math.round(((salePrice - oldPrice) / oldPrice) * 10000) / 100,
-          })
+          // L'historique s'écrit par déclencheur sur market_listings (ml_historique_prix, 21.09.2026) :
+          // l'écrire ici aussi doublerait chaque changement.
           updates.current_price = salePrice
           updates.price = salePrice
           updates.status = salePrice < oldPrice ? 'price_reduced' : 'active'

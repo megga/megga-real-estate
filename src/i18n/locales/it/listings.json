@@ -74,17 +74,10 @@
     "aggregator": "Aggregatore",
     "matchFor": "Match per",
     "actions": "Azioni",
-    "emailSentSuccess": "Email inviata con successo",
-    "sendByEmail": "Invia per email",
-    "clientEmail": "Email del cliente",
-    "customMessage": "Messaggio personalizzato (opzionale)",
-    "sending": "Invio...",
-    "send": "Invia",
     "importToPortfolio": "Importa nel mio portafoglio",
     "viewOriginal": "Vedi annuncio originale",
     "copied": "Copiato",
     "copyLink": "Copia link",
-    "sendHistory": "Cronologia invii",
     "location": "Posizione",
     "canton": "Cantone",
     "postalCode": "CAP",
@@ -111,8 +104,6 @@
     },
     "photoAlt": "Immobile",
     "aggregatorValue": "RealAdvisor ({{count}} portali)",
-    "channelEmail": "Email",
-    "channelMessaging": "Messaggistica",
     "loading": "Caricamento dell'annuncio…",
     "loadError": "Impossibile caricare l'annuncio."
   },
@@ -738,8 +729,6 @@
       "title": "Acquirenti attivi",
       "pipeline": "Pipeline",
       "buyerFallback": "Acquirente",
-      "matchAffinity": "Match MEGGA AI · {{score}}% di affinità",
-      "propose": "Proponi",
       "kycNotice": "<0>KYC da completare</0> per un acquirente, facoltativo in questa fase, obbligatorio prima della firma.",
       "startKyc": "Avvia"
     },
@@ -804,7 +793,11 @@
       "publishedTitle": "Annuncio pubblicato",
       "updatedTitle": "Annuncio aggiornato",
       "statusActive": "Stato impostato su attivo",
-      "auditAdded": "Voce aggiunta al registro di audit nLPD"
+      "auditAdded": "Voce aggiunta al registro di audit nLPD",
+      "offMarketTitle": "Immobile passato a off-market",
+      "publicTitle": "Immobile reso pubblico",
+      "renote": "I match di questo immobile vengono ricalcolati",
+      "offMarketErreur": "Non è stato possibile cambiare la visibilità. Riprovi."
     },
     "c2paAlert": {
       "title": "Foto senza certificazione di autenticità",
@@ -1778,7 +1771,10 @@
       "publicPreview": "Vedi l'annuncio pubblico",
       "previewToastTitle": "Anteprima pubblica",
       "previewOnlineLine": "L'annuncio è pubblicato su immobilier.ch.",
-      "previewOfflineLine": "L'annuncio non è ancora stato pubblicato."
+      "previewOfflineLine": "L'annuncio non è ancora stato pubblicato.",
+      "offMarketLigne": "Proposto solo ai Suoi acquirenti, mai pubblicizzato",
+      "passerOffMarket": "Passa a off-market",
+      "rendrePublic": "Rendi pubblico"
     },
     "back": "Torna a I miei immobili",
     "cta": {
@@ -1789,10 +1785,6 @@
       "mandateExpires_other": "Mandato {{type}} · scade tra {{count}} giorni",
       "mandateOverdue_one": "Mandato {{type}} · scaduto da {{count}} giorno",
       "mandateOverdue_other": "Mandato {{type}} · scaduto da {{count}} giorni"
-    },
-    "suggestions": {
-      "title": "Suggerimenti MEGGA AI",
-      "affinity": "{{score}} % di affinità stimata"
     },
     "photos": {
       "none": "Nessuna foto",
@@ -1885,7 +1877,7 @@
     "modifier": "Modifica",
     "continuer": "Continua",
     "retour": "Indietro",
-    "garder": "Salva senza pubblicare",
+    "garder": "Salva come bozza",
     "publier": "Pubblica l’annuncio",
     "enCours": "Salvataggio…",
     "adresseAvant": "Aggiunga prima un indirizzo.",
@@ -2012,12 +2004,23 @@
     },
     "fini": {
       "publie": "Annuncio pubblicato",
-      "garde": "Immobile salvato",
+      "garde": "Bozza salvata",
       "publieAide": "«{{titre}}» è online in I miei immobili.",
-      "gardeAide": "«{{titre}}» è salvato Off-market. Lo pubblichi dalla sua scheda quando è pronto.",
+      "gardeAide": "«{{titre}}» è salvato come bozza. Lo pubblichi dalla sua scheda quando è pronto.",
       "ouvrir": "Apri la scheda",
       "autre": "Crea un altro immobile",
-      "retour": "Torna a I miei immobili"
-    }
+      "retour": "Torna a I miei immobili",
+      "offMarket": "Immobile off-market",
+      "offMarketAide": "«{{titre}}» è attivo: è proposto ai Suoi acquirenti, mai pubblicizzato.",
+      "acquereurs": {
+        "recherche": "Ricerca degli acquirenti compatibili…",
+        "trouves_one": "{{count}} acquirente compatibile",
+        "trouves_other": "{{count}} acquirenti compatibili",
+        "aucun": "Nessun acquirente compatibile per ora",
+        "erreur": "Gli acquirenti compatibili sono sulla sua scheda.",
+        "voir": "Vedi chi"
+      }
+    },
+    "proposerOffMarket": "Proponi off-market"
   }
 }

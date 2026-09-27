@@ -54,14 +54,14 @@ export interface Reminder {
 
 // ── Label mappings ─────────────────────────────────────────────────────────
 const REMINDER_TYPE_TITLES: Record<string, string> = {
-  follow_up_sent_property: 'Relance envoi de bien',
+  follow_up_sent_property: 'Retour sur un bien proposé',
   post_visit_feedback: 'Feedback post-visite',
   dormant_lead: 'Lead dormant',
   missing_document: 'Document manquant',
   price_change: 'Changement de prix',
   custom: 'Relance personnalisée',
   deal_stagnant: 'Dossier à faire avancer',
-  match_ignored: 'Correspondance à envoyer',
+  match_ignored: 'Correspondance à proposer',
 }
 
 // ── DB row types ───────────────────────────────────────────────────────────

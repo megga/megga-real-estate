@@ -61,7 +61,7 @@ export interface PoolMatchVM {
   transaction: 'Vente' | 'Location'
   score: number
   coverUrl: string | null
-  /** dossier déjà transmis ? (initialise l'état « Envoyé » du focus) */
+  /** bien déjà proposé ? (initialise l'état « Proposé » du focus) */
   alreadySent: boolean
 }
 

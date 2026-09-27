@@ -16,7 +16,7 @@
 // avant l'upsert RealAdvisor : ici on filtre l'absurdité SÉMANTIQUE, à l'affichage,
 // et sur les deux sources (RealAdvisor ET Flatfox).
 
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import {
   plausible,
   plausibleDate,
@@ -183,5 +183,32 @@ describe('mapListingRow — année de construction', () => {
     expect(row(19).year).toBeNull()
     expect(row(2101).year).toBeNull()
     expect(row(null).year).toBeNull()
+  })
+})
+
+describe('mapListingRow — l’âge de l’annonce vient de first_seen_at', () => {
+  // ⚠ RealAdvisor n'écrit jamais `days_on_market` : 0 sur les 48 078 ventes vivantes au 21.09.2026,
+  // si bien que toute vente s'affichait « aujourd'hui ». `first_seen_at` est gelé à la publication.
+  afterEach(() => { vi.useRealTimers() })
+
+  it('une vente RealAdvisor à days_on_market = 0 a bien 147 jours', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-21T12:00:00.000Z'))
+    const b = mapListingRow({ id: 'x', transaction_type: 'buy', days_on_market: 0, first_seen_at: '2026-04-27T12:00:00.000Z', removed_at: null })
+    expect(b.days_on_market).toBe(147)
+    expect(b.enLigneDepuis).toBe('2026-04-27T12:00:00.000Z')
+    expect(b.retireeLe).toBeNull()
+  })
+
+  it('une annonce retirée arrête de vieillir à son retrait', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-09-21T12:00:00.000Z'))
+    const b = mapListingRow({ id: 'x', transaction_type: 'rent', first_seen_at: '2026-09-01T12:00:00.000Z', removed_at: '2026-09-11T12:00:00.000Z' })
+    expect(b.days_on_market).toBe(10)
+    expect(b.retireeLe).toBe('2026-09-11T12:00:00.000Z')
+  })
+
+  it('sans first_seen_at, la colonne reste le repli', () => {
+    expect(mapListingRow({ id: 'x', transaction_type: 'rent', days_on_market: 12 }).days_on_market).toBe(12)
   })
 })

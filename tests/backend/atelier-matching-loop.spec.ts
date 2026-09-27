@@ -8,16 +8,17 @@
 //      NOT NULL violé silencieusement, 0 match marché créé depuis l'origine)
 //   2. CHECK matches_target_check       → refuse un match sans aucune cible
 //   3. index uniques (contact, bien)    → dédup dure du moteur
-//   4. Envoyer : match→sent + deal new_lead + activity_events (la policy
-//      INSERT agence est NOUVELLE — avant, consignation silencieusement
-//      perdue) + reminder follow_up_sent_property à +5 j
+//   4. Je l'ai proposé : match→sent (sent_via 'agent', 20260921130000) + deal
+//      new_lead + activity_events 'match_propose' (la policy INSERT agence est
+//      NOUVELLE — avant, consignation silencieusement perdue) + reminder
+//      follow_up_sent_property à +3 j. Rien ne part vers l'acheteur.
 //   5. Plus tard : snoozed_until +7 j + reminder custom ; réactivation
 //   6. Écarter : status=ignored, le couple reste en base (jamais re-proposé)
 //   7. Deal ↔ bien de veille : transactions.market_listing_id
 //   8. RLS : un client anonyme ne voit rien
 //
 // NB : les écritures reproduisent celles de src/hooks/useAtelierMatching.ts
-// (execSendDossier/execSnooze/execDismiss). On ne peut pas importer ces
+// (execProposer/execSnooze/execDismiss). On ne peut pas importer ces
 // exécuteurs ici : ils consomment le client navigateur '@/lib/supabase'
 // (URL prod). Ce spec fige donc le CONTRAT BASE (colonnes, contraintes,
 // policies) que ces exécuteurs supposent.
@@ -207,14 +208,24 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
     expect(dupErr!.code).toBe('23505') // unique_violation
   })
 
-  // ── 4. Geste « Envoyer » en tant qu'agent (RLS réelle) ──────────────────
-  it("Envoyer : match→sent + deal new_lead + timeline + reminder +5 j (agent, RLS)", async () => {
-    // a. match → sent (writes execSendDossier §1)
-    const { error: mErr } = await agent
+  // ── 4. Geste « Je l'ai proposé » en tant qu'agent (RLS réelle) ──────────
+  // ⛔ Plus d'« Envoyer » : le matching reste chez l'agent (21.09.2026). Le geste
+  // consigne ce que l'agent a présenté par ses propres moyens ; aucun e-mail.
+  it("Je l'ai proposé : match→sent 'agent' + deal new_lead + timeline + reminder +3 j (agent, RLS)", async () => {
+    // a. match → proposé par l'agent (writes execProposer §1). 'agent' n'est
+    //    accepté par matches_sent_via_check que depuis 20260921130000. Le marquage ne vise
+    //    qu'un match ENCORE `suggested` de CET acheteur, et relit la ligne réécrite
+    //    (`select('id')`) : c'est elle qui décide de la suite — sans elle, rien d'autre ne
+    //    s'écrit. Sous la RLS réelle, un UPDATE … RETURNING exige aussi la lecture.
+    const { data: marques, error: mErr } = await agent
       .from('matches')
-      .update({ status: 'sent', sent_via: 'email', sent_at: new Date().toISOString() })
+      .update({ status: 'sent', sent_via: 'agent', sent_at: new Date().toISOString() })
       .eq('id', internalMatchId)
+      .eq('contact_id', contactId)
+      .eq('status', 'suggested')
+      .select('id')
     expect(mErr).toBeNull()
+    expect(marques).toHaveLength(1)
 
     // b. deal new_lead (§2 — aucun deal actif existant → création)
     const { data: deal, error: dErr } = await agent
@@ -239,17 +250,17 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
       agency_id: agencyId,
       actor_id: userId,
       actor_kind: 'user',
-      action: 'dossier_envoye',
+      action: 'match_propose',
       entity_type: 'contact',
       entity_id: contactId,
       category: 'deal',
       severity: 'info',
       object_label: 'Martin Testmatch · Atelier QA',
-      metadata: { match_id: internalMatchId, deal_id: dealId, canal: 'email' },
+      metadata: { match_ids: [internalMatchId], deal_id: dealId, bien_refs: ['MG-QA-1'], nombre: 1, score: 95 },
     })
     expect(eErr).toBeNull()
 
-    // d. nextAction +5 j (§4)
+    // d. relance interne +3 j (§4) — une tâche de l'agent, jamais un message
     const { data: rem, error: rErr } = await agent
       .from('reminders')
       .insert({
@@ -260,18 +271,18 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
         match_id: internalMatchId,
         type: 'follow_up_sent_property',
         trigger_rule: 'manual',
-        trigger_days: 5,
-        trigger_at: new Date(Date.now() + 5 * DAY_MS).toISOString(),
+        trigger_days: 3,
+        trigger_at: new Date(Date.now() + 3 * DAY_MS).toISOString(),
         status: 'pending',
         channel: 'task',
-        message_template: 'Sans réponse au dossier — relancer Martin Testmatch',
+        message_template: 'Retour de Martin Testmatch sur MG-QA-1',
       })
       .select('id, trigger_at')
       .single()
     expect(rErr).toBeNull()
     const dueIn = new Date(rem!.trigger_at).getTime() - Date.now()
-    expect(dueIn).toBeGreaterThan(4.9 * DAY_MS)
-    expect(dueIn).toBeLessThan(5.1 * DAY_MS)
+    expect(dueIn).toBeGreaterThan(2.9 * DAY_MS)
+    expect(dueIn).toBeLessThan(3.1 * DAY_MS)
 
     // e. relecture agent : tout est visible dans son agence
     const { data: seen } = await agent
@@ -280,13 +291,13 @@ describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
       .eq('id', internalMatchId)
       .single()
     expect(seen!.status).toBe('sent')
-    expect(seen!.sent_via).toBe('email')
+    expect(seen!.sent_via).toBe('agent')
 
     const { data: events } = await agent
       .from('activity_events')
       .select('action')
       .eq('entity_id', contactId)
-      .eq('action', 'dossier_envoye')
+      .eq('action', 'match_propose')
     expect(events!.length).toBe(1)
   })
 

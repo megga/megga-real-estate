@@ -14,7 +14,7 @@
 //   En-tête  → ce qu'on cherche en premier : prix, adresse, taille, échéance du mandat
 //   Col. 1   → le bien      (photos, caractéristiques, description)
 //   Col. 2   → la vente     (mandat, diffusion, performance)
-//   Col. 3   → les gens     (visites, acheteurs en cours, suggestions MEGGA AI)
+//   Col. 3   → les gens     (visites, acheteurs en cours, « Qui pour ce bien ? »)
 //
 // Honnêteté des données (cf. CLAUDE.md) :
 //   • ⛔ La courbe « +18 % » de la performance a été RETIRÉE : c'était un repère
@@ -25,15 +25,19 @@
 //     parcours (`/dashboard/visits/new?bienId=`). L'ancienne modale n'écrivait qu'une
 //     date locale — « Ajoutée à votre planning local » — que ni le Calendrier ni un
 //     collègue ne voyaient.
-//   • Score MEGGA AI = estimation (icône sparkle), jamais une garantie.
+//   • « Qui pour ce bien ? » (lot D1) lit les matchs DU bien (`useQuiPourCeBien`), jamais
+//     ceux de l'agence : `useMatching` les chargeait tous, et PostgREST en tronquait
+//     au-delà de 1 000. Son score est celui du moteur, déterministe — plus d'étincelle
+//     « MEGGA AI » ni d'« affinité estimée » : l'appeler IA mentait sur sa nature.
 //   • KYC acheteur = rappel DOUX non-bloquant (jamais un verrou).
 //   • Diffusion = portail unique immobilier.ch ; le passage privé→public suit le vrai
 //     chemin de publication (updateProperty draft→active + audit nLPD).
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileAssombrissant, type CrmPalette } from '@/components/crm/tokens'
+import { useToast } from '@/components/ui/Toast'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
@@ -51,7 +55,9 @@ import { usePropertyStats } from '@/hooks/usePropertyStats'
 import { useTransactions } from '@/hooks/useTransactions'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
-import { useMatching } from '@/hooks/useMatching'
+import { useQuiPourCeBien } from '@/hooks/useQuiPourCeBien'
+import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
+import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
@@ -310,7 +316,11 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   useTabLabel(bien ? (bien.title || bien.address || null) : null)
   const { stats } = usePropertyStats(id)
   const { mutate: updateProperty } = useUpdateProperty()
+  // L'interrupteur Off-market a SA mutation : un `mutate` d'un autre geste (l'édition) pendant la bascule
+  // remplacerait ses rappels : ni journal, ni verrou relâché (`basculeEnCours`).
+  const { mutate: poserOffMarket } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
+  const alerte = useToast()
   const { data: transactions } = useTransactions()
   const dealsForBien = useMemo(
     () => (transactions ?? []).filter(tx => tx.property_id === id),
@@ -325,8 +335,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
     return m
   }, [contactsAll])
 
-  // Matches IA (suggestions d'acheteurs) — moteur réel, filtré sur ce bien.
-  const { matches: allMatches } = useMatching()
+  // « Qui pour ce bien ? » (lot D1) : les matchs DU bien, par une requête ciblée — plus `useMatching`, qui chargeait
+  // tous les matchs de l'agence (PostgREST les tronque à 1 000). `QuiPourFiche` lit la même clé : un seul appel.
+  const quiPour = useQuiPourCeBien(id ? { genre: 'mandat', id } : null)
   // Statut KYC des acheteurs en deal (rappel non-bloquant).
   const buyerIds = useMemo(
     () => Array.from(new Set(dealsForBien.map(d => d.contact_buyer_id).filter((x): x is string => !!x))),
@@ -378,6 +389,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
 
   // ── État UI ──
   const colsRef = useRef<HTMLDivElement>(null)
+  const basculeEnCours = useRef(false)
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
   const [visiteOpen, setVisiteOpen] = useState(false)
@@ -396,6 +408,22 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
     setVisiteOpen(false)
     colsRef.current?.querySelectorAll<HTMLElement>('.bf-col').forEach(c => { c.scrollTop = 0 })
   }, [id])
+  // `?qui=1` (« Aujourd'hui », l'écran de fin de « Nouveau bien ») : la fiche défile jusqu'au bloc — ses colonnes
+  // défilent chacune, et le bloc peut être sous le pli. ⚠ Une fois ses compatibles LUS : le bloc est le dernier de sa
+  // colonne, et en colonnes empilées (cadre sous 1 080 px) le défilement bute sur la fin du contenu — parti pendant
+  // « Lecture… », il posait le bloc au bas du cadre, sa liste sous le pli (mesuré au banc, 1 024 × 768 : 401 px sous
+  // le haut d'un cadre de 516). ⚠ Déclaré APRÈS la remise à zéro des colonnes : sur un bien déjà en cache, les deux
+  // effets partent au même rendu, dans l'ordre de leur déclaration, et celle-ci ramènerait la colonne en haut.
+  // ⚠ `?qui=1` n'est pas CONSOMMÉ : un remontage de l'écran (retour arrière, éviction au-delà de six écrans,
+  // rechargement) rejoue le défilement — la limite connue des liens d'arrivée du fil (`MatchingFil`).
+  const [params] = useSearchParams()
+  const quiDemande = params.has(PARAM_QUI_POUR)
+  const blocQuiPour = useRef<HTMLDivElement>(null)
+  const bienCharge = bien?.id
+  const compatiblesLus = !quiPour.isLoading
+  useEffect(() => {
+    if (quiDemande && bienCharge && compatiblesLus) blocQuiPour.current?.scrollIntoView({ block: 'start' })
+  }, [quiDemande, bienCharge, compatiblesLus])
 
   // ── États transitoires ──
   const etat = (texte: string, couleur: string) => (
@@ -424,8 +452,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const daysToExp = mandatExp ? Math.round((mandatExp.getTime() - maintenant) / 86_400_000) : null
   const mandatUrgent = daysToExp != null && daysToExp <= 30
   const features = bien.features ?? []
-  // Off-market = non publié (proxy réel de la « visibilité privée »).
-  const offMarket = !bien.published_at
+  // Off-market = l'interrupteur de l'agent (`off_market`, lot C, 22.09.2026). « Non publié » désignait un
+  // BROUILLON, que le moteur ne note jamais : un bien « off-market » n'était proposé à aucun acheteur.
+  const offMarket = bien.off_market === true
   // État de syndication immobilier.ch (queued/published/withdrawn/error ou absent).
   const idxStatus = syndications.find(x => x.portal === 'immobilier_ch')?.status ?? null
   const idxOnline = idxStatus === 'published' || idxStatus === 'queued'
@@ -449,10 +478,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const sellerId = dealsForBien.map(d => d.contact_seller_id).find(Boolean) ?? null
   const owner = sellerId ? contactsById.get(sellerId) ?? null : null
 
-  // Suggestions d'acheteurs (matches IA) hors deals existants.
-  const bienMatches = allMatches.filter(
-    m => m.propertyId === bien.id && m.status === 'suggested' && !dealsForBien.some(d => d.contact_buyer_id === m.contactId),
-  )
+  // Les acheteurs déjà en deal sur ce bien : « Acheteurs en cours » les montre, « Qui pour ce bien ? » les tait.
+  const enDeal = new Set(dealsForBien.map(d => d.contact_buyer_id).filter((x): x is string => !!x))
+  const compatibles = quiPour.compatibles.filter(m => !enDeal.has(m.acheteur.id))
   // KYC acheteurs : rappel doux (non-bloquant).
   const kycByContact = new Map<string, string | null>()
   for (const k of buyerKyc) if (!kycByContact.has(k.contact_id)) kycByContact.set(k.contact_id, k.dossier_status)
@@ -478,14 +506,17 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const flash = (title: string, lines: string[]) => setToast({ title, lines })
   // Le formulaire s'ouvre SUR la fiche : le bien est déjà choisi (cf. `PlanifierVisite`).
   const planifierVisite = () => setVisiteOpen(true)
-  // Qui proposer d'abord : les acheteurs en cours sur ce bien, puis les suggestions.
+  // Qui proposer d'abord : les acheteurs en cours sur ce bien, puis les acquéreurs compatibles.
   const liees: VisiteurLie[] = [
     ...dealsForBien.flatMap(d => {
       const c = d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
       return c ? [{ contactId: c.id, nom: `${c.first_name} ${c.last_name}`.trim(), dealId: d.id }] : []
     }),
-    ...bienMatches.map(m => ({ contactId: m.contactId, nom: m.contactName, score: m.score })),
+    ...compatibles.map(m => ({ contactId: m.acheteur.id, nom: `${m.acheteur.prenom} ${m.acheteur.nom}`.trim(), score: m.score })),
   ].filter((l, i, tous) => tous.findIndex(x => x.contactId === l.contactId) === i)
+
+  // Un brouillon « Réseau Off-market » mis en service ne publie aucune annonce : le toast ne dit pas « publiée ».
+  const titreMiseEnService = offMarket ? tr('nouveauBien.fini.offMarket') : tr('detail.toast.publishedTitle')
 
   // Édition réelle (update + transition draft→active + audit nLPD) — 4 champs.
   const saveEdit = (d: EditDraft) => {
@@ -518,7 +549,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         })
         setEditOpen(false)
         flash(
-          wasDraft ? tr('detail.toast.publishedTitle') : tr('detail.toast.updatedTitle'),
+          wasDraft ? titreMiseEnService : tr('detail.toast.updatedTitle'),
           [wasDraft ? tr('detail.toast.statusActive') : null, tr('detail.toast.auditAdded')].filter((x): x is string => !!x),
         )
       },
@@ -543,8 +574,32 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
           objectLabel: bien.title,
           metadata: { transition: 'draft → active' },
         })
-        flash(tr('detail.toast.publishedTitle'), [tr('detail.toast.statusActive'), tr('detail.toast.auditAdded')])
+        flash(titreMiseEnService, [tr('detail.toast.statusActive'), tr('detail.toast.auditAdded')])
       },
+    })
+  }
+
+  // L'interrupteur Off-market : le moteur renote le bien (trigger `trg_property_off_market`, lot C). Le verrou
+  // tient jusqu'au retour du serveur : un double clic écrivait deux fois la même bascule, et deux lignes au journal.
+  const basculerOffMarket = (valeur: boolean) => {
+    if (demoData) return // aperçu : aucune écriture
+    if (basculeEnCours.current) return
+    basculeEnCours.current = true
+    poserOffMarket({ id: bien.id, off_market: valeur }, {
+      onSuccess: () => {
+        logAudit({
+          category: 'bien',
+          severity: 'info',
+          action: valeur ? 'bien_off_market' : 'bien_rendu_public',
+          entityType: 'property',
+          entityId: bien.id,
+          objectLabel: bien.title,
+          metadata: { off_market: valeur },
+        })
+        flash(valeur ? tr('detail.toast.offMarketTitle') : tr('detail.toast.publicTitle'), [tr('detail.toast.renote'), tr('detail.toast.auditAdded')])
+      },
+      onError: () => { alerte.error(tr('detail.toast.offMarketErreur')) },
+      onSettled: () => { basculeEnCours.current = false },
     })
   }
 
@@ -782,20 +837,38 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                     <span style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', background: vx.card, display: 'grid', placeItems: 'center', color: vx.inkSoft, flexShrink: 0 }}>
                       <MEIcon name="globe" size={16} />
                     </span>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{PORTAIL_DIFFUSION}</span>
-                    {offMarket
-                      ? <BfCta small vx={vx} onClick={publishBien}>{tr('fiche.diffusion.publish')}</BfCta>
-                      : (
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{PORTAIL_DIFFUSION}</span>
+                      {/* Le « pourquoi » de l'off-market SOUS le portail : à droite, il écrasait son nom (lot C). */}
+                      {bien.status !== 'draft' && offMarket && (
+                        <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: vx.muted }}>{tr('fiche.diffusion.offMarketLigne')}</span>
+                      )}
+                    </span>
+                    {bien.status === 'draft'
+                      ? <BfCta small vx={vx} onClick={publishBien}>{offMarket ? tr('nouveauBien.proposerOffMarket') : tr('fiche.diffusion.publish')}</BfCta>
+                      : offMarket ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: vx.inkSoft, whiteSpace: 'nowrap' }}>
+                          <MEIcon name="lock" size={12} />{tr('fiche.offMarket')}
+                        </span>
+                      ) : (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: idxOnline ? vx.ok : vx.muted, whiteSpace: 'nowrap' }}>
                           <span style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: idxOnline ? vx.ok : vx.ghost }} />
                           {idxLabel}
                         </span>
                       )}
                   </BfLigne>
-                  <div>
-                    <BfCta small ghost vx={vx} icon="external" onClick={() => flash(tr('fiche.diffusion.previewToastTitle'), [idxOnline ? tr('fiche.diffusion.previewOnlineLine') : tr('fiche.diffusion.previewOfflineLine')])}>
-                      {tr('fiche.diffusion.publicPreview')}
-                    </BfCta>
+                  <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>
+                    {!offMarket && (
+                      <BfCta small ghost vx={vx} icon="external" onClick={() => flash(tr('fiche.diffusion.previewToastTitle'), [idxOnline ? tr('fiche.diffusion.previewOnlineLine') : tr('fiche.diffusion.previewOfflineLine')])}>
+                        {tr('fiche.diffusion.publicPreview')}
+                      </BfCta>
+                    )}
+                    {/* Un bien EN SERVICE seulement : le trigger de renotation ignore réservé, vendu, en pause et archivé. */}
+                    {bien.status === 'active' && (
+                      <BfCta small ghost vx={vx} icon={offMarket ? 'globe' : 'lock'} onClick={() => basculerOffMarket(!offMarket)}>
+                        {offMarket ? tr('fiche.diffusion.rendrePublic') : tr('fiche.diffusion.passerOffMarket')}
+                      </BfCta>
+                    )}
                   </div>
                 </div>
 
@@ -873,28 +946,17 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                   )}
                 </div>
 
-                {bienMatches.length > 0 && (
-                  <div className="bf-bloc">
-                    <BfGrp vx={vx}>{tr('fiche.suggestions.title')}</BfGrp>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
-                      {bienMatches.map(m => (
-                        <BfLigne key={m.id} vx={vx}>
-                          {/* Même teinte que la liste et la fiche du contact : on le reconnaît d'un écran à l'autre. */}
-                          <VxAvatar name={m.contactName} bg={pickAvatarBg(m.contactId)} size={36} dark={dark} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.contactName}</div>
-                            {/* Un score IA se lit comme une ESTIMATION : l'étincelle le dit. */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', color: vx.muted, fontWeight: 500, minWidth: 0 }}>
-                              <MEIcon name="sparkle" size={11} />
-                              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tr('fiche.suggestions.affinity', { score: m.score })}</span>
-                            </div>
-                          </div>
-                          <BfCta small ghost vx={vx} icon="send" onClick={() => navigate('/dashboard/matching')}>{tr('detail.buyers.propose')}</BfCta>
-                        </BfLigne>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* « Qui pour ce bien ? » (lot D1, conception §7) — toujours là : c'est aussi la place des anciens
+                    prospects. Le score est celui du moteur, déterministe : plus de « Suggestions MEGGA AI ». */}
+                <div className="bf-bloc" ref={blocQuiPour}>
+                  <BfGrp vx={vx}>{tr('fil.quiPour.titre', { ns: 'matching' })}</BfGrp>
+                  {/* Anciens prospects : un mandat ACTIF seulement. Le moteur ne note que lui (sur un brouillon, un
+                      bien réservé, vendu ou archivé, l'appel partait pour un 404), et on ne propose pas un bien vendu. */}
+                  <QuiPourFiche sp={sp} genre="mandat" bienId={id ?? null} location={bien.transaction_type === 'rent'}
+                    avecAnciens={bien.status === 'active'} exclure={enDeal}
+                    onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
+                    onVoirContact={(contactId) => navigate(`/dashboard/contacts/${contactId}`)} />
+                </div>
               </section>
             </div>
 

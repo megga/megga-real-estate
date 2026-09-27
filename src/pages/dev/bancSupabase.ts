@@ -90,8 +90,8 @@ const contrat = {
    * ⛔ SANS ELLES, LE BANC RÉPOND `{ok:true, banc:true}` À TOUT. C'était sans
    * conséquence tant que les bancs montaient des surfaces `/dashboard` : leurs
    * données viennent de `rest/v1`, et les edges n'y servent qu'à écrire. La face
-   * PUBLIQUE est l'inverse — `/kyc/:token`, `/reception/:token` et
-   * `/rendez-vous/:token` LISENT tout par une edge, jetons compris. Leur servir
+   * PUBLIQUE est l'inverse — `/kyc/:token`, `/rendez-vous/:token` et
+   * `/accept-invite/:token` LISENT tout par une edge, jetons compris. Leur servir
    * `{ok:true}` ne montre pas un écran vide : ça montre un écran d'ERREUR, ou
    * rien du tout.
    *
@@ -163,6 +163,105 @@ function valeur(v: string): unknown {
 }
 
 /**
+ * Éléments d'une liste PostgREST, quelle que soit sa CLÔTURE.
+ *
+ * ⚠ DEUX ÉCRITURES POUR LA MÊME CHOSE, et le banc lit ce qui ARRIVE plutôt que
+ * d'arbitrer laquelle est canonique : `in` clôt par des PARENTHÈSES
+ * (`statut=in.(match,clear)`), un tableau par des ACCOLADES — `roles=ov.{seller}`
+ * est le littéral d'un `text[]`, c'est ce que `postgrest-js` écrit pour
+ * `.overlaps('roles', […])`.
+ *
+ * ⚠ La liste VIDE rend `[]`, et non `['']` : `''.split(',')` rend un élément vide,
+ * et une ligne dont la valeur serait la chaîne vide aurait alors chevauché « aucune
+ * valeur demandée ».
+ */
+function liste(brut: string): string[] {
+  const corps = brut.replace(/^[({]|[)}]$/g, '')
+  return corps === '' ? [] : corps.split(',').map((x) => String(valeur(x)))
+}
+
+/** Un prédicat de colonne : la valeur de la ligne, puis le texte qui suit l'opérateur. */
+type Predicat = (v: unknown, brut: string) => boolean
+
+/**
+ * Les prédicats que le banc sait appliquer.
+ *
+ * ⚠ C'EST CETTE TABLE, ET RIEN D'AUTRE, QUI DIT CE QUI EST IMPLÉMENTÉ — un
+ * opérateur absent d'ici est signalé puis laissé passer par {@link filtrer}. Elle a
+ * remplacé un `switch` : tant que la liste des opérateurs connus aurait vécu à côté
+ * du code qui les applique, les deux auraient pu diverger sans que rien ne le dise.
+ */
+const PREDICATS: Record<string, Predicat | undefined> = {
+  eq: (v, b) => String(v) === String(valeur(b)),
+  neq: (v, b) => String(v) !== String(valeur(b)),
+  gt: (v, b) => String(v) > b,
+  gte: (v, b) => String(v) >= b,
+  lt: (v, b) => String(v) < b,
+  lte: (v, b) => String(v) <= b,
+  is: (v, b) => (b === 'null' ? v == null : v != null),
+  in: (v, b) => liste(b).includes(String(v)),
+  /**
+   * Chevauchement de tableaux (`roles=ov.{seller,buyer}`) — l'opérateur des rôles
+   * multiples : la ligne passe si SON tableau partage au moins un élément avec la
+   * liste demandée.
+   *
+   * ⛔ UNE LIGNE SANS TABLEAU NE CHEVAUCHE RIEN, et ce n'est pas une rigueur que le
+   * banc s'ajoute : en SQL `NULL && ARRAY[…]` vaut NULL, donc la ligne sort du
+   * résultat. La laisser passer ferait répondre « Private banker » par le
+   * portefeuille entier — le mensonge par excès que cet opérateur vient fermer.
+   */
+  ov: (v, b) => {
+    const demandes = liste(b)
+    return Array.isArray(v) && v.some((e) => demandes.includes(String(e)))
+  },
+}
+
+/**
+ * Prédicats non implémentés DÉJÀ dits — une fois chacun, par vie d'intercepteur.
+ *
+ * ⛔ SANS DÉDOUBLONNAGE C'EST UN FLOT, PAS UN AVERTISSEMENT : `filtrer` s'exécute
+ * par REQUÊTE et son prédicat par LIGNE. Une seule liste de contacts en cracherait
+ * une ligne par contact, à chaque rafraîchissement — on filtrerait la console au
+ * lieu de la lire, ce qui revient au silence d'avant en plus bruyant.
+ */
+const predicatsDits = new Set<string>()
+
+/**
+ * Dit UNE fois qu'un prédicat n'a pas été appliqué.
+ *
+ * ⚠ `console.warn` et jamais une exception : un banc doit rester regardable. Et
+ * jamais `contrat.signaler`, qui alimente la liste « sans fixture » des commandes —
+ * y mêler des opérateurs brouillerait ce qu'elle veut dire (une donnée manquante,
+ * pas un filtre ignoré). Ce module ne part pas en production : les pages `/dev/*`
+ * qui l'importent vivent derrière `import.meta.env.DEV` (cf.
+ * `tests/unit/dev-bancs-frontiere.spec.ts`).
+ */
+function signalerPredicat(cle: string, quoi: string): void {
+  if (predicatsDits.has(cle)) return
+  predicatsDits.add(cle)
+  console.warn(`[banc] filtre NON appliqué — ${quoi} : toutes les lignes passent.`)
+}
+
+/**
+ * -1, 0 ou 1, par FAMILLE puis dans la famille : les valeurs absentes, puis les nombres (en nombres),
+ * puis tout le reste (en chaînes).
+ *
+ * ⛔ UN ORDRE DOIT ÊTRE TRANSITIF, ou `sort` rend un ordre qui dépend de l'ordre d'entrée. Comparer deux
+ * nombres en nombres et un nombre à une chaîne en chaînes ne l'était pas sur une colonne mixte : 97 < 100
+ * (nombres), 100 < '50' (« 100 » < « 50 »), '50' < 97 (« 50 » < « 97 ») — un cycle. Les familles le
+ * rompent. L'absent reste en tête, comme quand il valait la chaîne vide.
+ */
+function comparerValeurs(a: unknown, b: unknown): number {
+  const famille = (v: unknown): number => (v == null ? 0 : typeof v === 'number' ? 1 : 2)
+  const fa = famille(a), fb = famille(b)
+  if (fa !== fb) return Math.sign(fa - fb)
+  if (fa === 0) return 0
+  if (fa === 1) return Math.sign((a as number) - (b as number))
+  const x = String(a), y = String(b)
+  return x === y ? 0 : x < y ? -1 : 1
+}
+
+/**
  * Applique les filtres et le tri de la requête aux lignes de la fixture.
  *
  * ⛔ SANS ÇA LE BANC MENT PAR EXCÈS. Le journal d'erreurs du Monitoring
@@ -172,15 +271,34 @@ function valeur(v: string): unknown {
  * un écran cohérent en apparence et faux en substance — la variante (e) des
  * pièges de sonde.
  *
- * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
- * `order`, `limit` et `offset`. Un opérateur inconnu laisse passer la ligne plutôt
- * que de la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme
- * un bogue de la page.
+ * Sous-ensemble volontaire ({@link PREDICATS}) : `eq`, `neq`, `gt(e)`, `lt(e)`,
+ * `in`, `is`, `ov`, plus `order`, `limit` et `offset`. Un opérateur inconnu laisse
+ * passer la ligne plutôt que de la retirer : mieux vaut un écran trop plein qu'un
+ * vide qu'on lirait comme un bogue de la page.
+ *
+ * ⛔ MAIS IL LE DIT DÉSORMAIS. « Laisser passer » en silence est ce qui a permis le
+ * défaut suivant : `roles=ov.{private_banker}` (étape 3, les rôles multiples)
+ * tombait dans ce repli, et l'écran répondait « Private banker » par le
+ * portefeuille ENTIER — cohérent en apparence, faux en substance, et indiscernable
+ * d'un filtre qui marche sur une fixture où tout le monde correspond. Un prédicat
+ * ignoré se dit une fois en console ({@link signalerPredicat}) ; la ligne passe
+ * quand même, le banc reste regardable.
+ *
+ * ⛔ CE QUI N'EST TOUJOURS PAS LU : `or=(…)` / `and=(…)`, les arbres booléens. La
+ * recherche par nom (`useContacts`, `useAdminSearch`) rend donc TOUTES les lignes
+ * sur le banc — c'est signalé, et les implémenter est une décision à part, pas un
+ * effet de bord de celle-ci.
  *
  * ⚠ `order` porte PLUSIEURS colonnes (`created_at.desc,id.desc` — c'est ce que
  * `postgrest-js` écrit pour deux `.order()` à la suite) : lu comme une seule, le
  * sens devenait `desc,id`, donc croissant. Et `.range(a, b)` s'écrit `offset=a` +
  * `limit=b-a+1` : sans `offset`, chaque page du journal d'audit rendait la PREMIÈRE.
+ *
+ * ⛔ DEUX NOMBRES SE COMPARENT COMME DES NOMBRES : comparés en chaînes, « 100 » passait avant « 97 », et
+ * le score parfait de la sélection du marché se rangeait APRÈS un 97 (21.09.2026). Le reste garde sa
+ * comparaison de chaînes (dates ISO, textes) ; sur une colonne MIXTE, les nombres passent avant les
+ * chaînes (`comparerValeurs`). Une valeur absente suit `nullsfirst` / `nullslast` quand la requête les
+ * écrit ; sinon elle passe en tête, comme avant.
  */
 function filtrer(lignes: unknown[], requete: string): unknown[] {
   const p = new URLSearchParams(requete)
@@ -188,37 +306,47 @@ function filtrer(lignes: unknown[], requete: string): unknown[] {
 
   for (const [col, expr] of p.entries()) {
     if (PARAMS_HORS_FILTRE.has(col)) continue
+    // ⚠ `or=(a.eq.1,b.eq.2)` N'EST PAS un prédicat de colonne, c'est un ARBRE : le
+    // découpage au premier point en tirerait un opérateur nommé `(a`, qu'on
+    // chercherait en vain dans la doc PostgREST. Il est donc nommé pour ce qu'il est,
+    // et une seule fois — sinon chaque forme de recherche en produirait une ligne.
+    if (col === 'or' || col === 'and') {
+      signalerPredicat(col, `« ${col}=(…) », un arbre booléen que le banc ne lit pas`)
+      continue
+    }
     const sep = expr.indexOf('.')
     if (sep < 0) continue
     const op = expr.slice(0, sep)
     const brut = expr.slice(sep + 1)
-    out = out.filter((l) => {
-      const v = l[col]
-      switch (op) {
-        case 'eq': return String(v) === String(valeur(brut))
-        case 'neq': return String(v) !== String(valeur(brut))
-        case 'gt': return String(v) > brut
-        case 'gte': return String(v) >= brut
-        case 'lt': return String(v) < brut
-        case 'lte': return String(v) <= brut
-        case 'is': return brut === 'null' ? v == null : v != null
-        case 'in': return brut.replace(/^\(|\)$/g, '').split(',')
-          .map((x) => String(valeur(x))).includes(String(v))
-        default: return true
-      }
-    })
+    const test = PREDICATS[op]
+    // ⚠ `ov` porte AUSSI les intervalles (`ov.[2026-01-01,2026-01-02)`), que le
+    // chevauchement de tableaux ci-dessus lirait de travers. Les crochets les
+    // distinguent sans ambiguïté d'une liste, dont les deux clôtures sont `()` et
+    // `{}`. Aucun appel du dépôt n'en écrit — le jour où l'un le fera, il sera dit.
+    const intervalle = op === 'ov' && (brut.startsWith('[') || brut.endsWith(']'))
+    if (!test || intervalle) {
+      signalerPredicat(`${col}.${op}`, intervalle
+        ? `« ${col}=ov.${brut} », un INTERVALLE (le banc ne chevauche que des tableaux)`
+        : `« ${col}=${op}.… », un opérateur non implémenté`)
+      continue
+    }
+    out = out.filter((l) => test(l[col], brut))
   }
 
   const ordre = p.get('order')
   if (ordre) {
     const cles = ordre.split(',').map((terme) => {
-      const [col, sens] = terme.split('.')
-      return { col: col!, desc: sens === 'desc' }
+      const [col, ...modes] = terme.split('.')
+      const nulls = modes.includes('nullsfirst') ? -1 : modes.includes('nullslast') ? 1 : 0
+      return { col: col!, desc: modes.includes('desc'), nulls }
     })
     out = [...out].sort((a, b) => {
-      for (const { col, desc } of cles) {
-        const x = String(a[col] ?? ''), y = String(b[col] ?? '')
-        if (x !== y) return (x < y ? -1 : 1) * (desc ? -1 : 1)
+      for (const { col, desc, nulls } of cles) {
+        const va = a[col], vb = b[col]
+        // La place d'une valeur absente ne dépend pas du sens : `nullslast` la met en fin, `desc` ou non.
+        if (nulls !== 0 && (va == null) !== (vb == null)) return va == null ? nulls : -nulls
+        const ordreNaturel = comparerValeurs(va, vb)
+        if (ordreNaturel !== 0) return ordreNaturel * (desc ? -1 : 1)
       }
       return 0
     })
@@ -333,7 +461,7 @@ function repondre(url: string, init?: RequestInit): Response | null {
   if (lignes === undefined) contrat.signaler(chemin)
   const methode = (init?.method ?? 'GET').toUpperCase()
   if (lignes && methode !== 'GET' && methode !== 'HEAD' && contrat.ecrivables.includes(chemin)) {
-    return ecrire(methode, lignes as Record<string, unknown>[], requete, init, contrat.completions[chemin])
+    return ecrire(methode, lignes as Record<string, unknown>[], requete, init, contrat.completions[chemin], objetSeul)
   }
   const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
   const sortie = vide ? [] : filtrer(lignes ?? [], requete)
@@ -346,13 +474,17 @@ function repondre(url: string, init?: RequestInit): Response | null {
  * `POST` insère (identifiant et horodatages posés s'ils manquent) ; `PATCH` et
  * `DELETE` visent les lignes que le PRÉDICAT de la requête désigne — le même
  * filtre que la lecture, pour qu'une écriture ne touche jamais plus de lignes que
- * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit.
+ * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit. La forme rendue
+ * suit l'en-tête Accept, comme une lecture.
  */
 function ecrire(
   methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit,
   completer?: (ligne: Record<string, unknown>) => Record<string, unknown>,
+  objetSeul = false,
 ): Response {
-  if (contrat.etat !== 'nominal') return json([], 0)
+  // ⛔ Même forme que la lecture : `.select().single()` après une écriture attend un OBJET.
+  const rendre = (l: Record<string, unknown>[]) => json(objetSeul ? (l[0] ?? null) : l, l.length)
+  if (contrat.etat !== 'nominal') return rendre([])
   const corps: unknown = lireCorps(init)
   const maintenant = new Date().toISOString()
   if (methode === 'POST') {
@@ -361,7 +493,7 @@ function ecrire(
       .map((l) => ({ id: crypto.randomUUID(), created_at: maintenant, updated_at: maintenant, ...l }))
       .map((l) => (completer ? { ...l, ...completer(l) } : l))
     lignes.push(...nouvelles)
-    return json(nouvelles, nouvelles.length)
+    return rendre(nouvelles)
   }
   const cibles = filtrer(lignes, requete) as Record<string, unknown>[]
   if (methode === 'PATCH') {
@@ -370,7 +502,7 @@ function ecrire(
   } else if (methode === 'DELETE') {
     for (const l of cibles) lignes.splice(lignes.indexOf(l), 1)
   }
-  return json(cibles, cibles.length)
+  return rendre(cibles)
 }
 
 /** Corps JSON d'une écriture, ou `null`. */
@@ -388,6 +520,10 @@ let fetchOrigine: typeof window.fetch | null = null
  */
 export function installerBanc(): void {
   if (fetchOrigine) return
+  // ⚠ Un intercepteur neuf redit ce qu'il ne sait pas filtrer : sans ce vidage, un
+  // banc rouvert après `desinstallerBanc` hériterait de l'inventaire du précédent et
+  // se tairait sur des filtres qu'il ignore toujours.
+  predicatsDits.clear()
   fetchOrigine = window.fetch.bind(window)
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url

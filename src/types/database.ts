@@ -1755,98 +1755,6 @@ export type Database = {
           },
         ]
       }
-      buyer_reception_links: {
-        Row: {
-          agency_id: string
-          agent_id: string | null
-          channel: string | null
-          client_ip: string | null
-          client_user_agent: string | null
-          contact_id: string
-          created_at: string
-          created_by: string | null
-          expires_at: string
-          id: string
-          match_ids: string[]
-          reacted_at: string | null
-          revoked_at: string | null
-          sent_at: string
-          status: string
-          token: string
-          updated_at: string
-          viewed_at: string | null
-        }
-        Insert: {
-          agency_id: string
-          agent_id?: string | null
-          channel?: string | null
-          client_ip?: string | null
-          client_user_agent?: string | null
-          contact_id: string
-          created_at?: string
-          created_by?: string | null
-          expires_at: string
-          id?: string
-          match_ids: string[]
-          reacted_at?: string | null
-          revoked_at?: string | null
-          sent_at?: string
-          status?: string
-          token: string
-          updated_at?: string
-          viewed_at?: string | null
-        }
-        Update: {
-          agency_id?: string
-          agent_id?: string | null
-          channel?: string | null
-          client_ip?: string | null
-          client_user_agent?: string | null
-          contact_id?: string
-          created_at?: string
-          created_by?: string | null
-          expires_at?: string
-          id?: string
-          match_ids?: string[]
-          reacted_at?: string | null
-          revoked_at?: string | null
-          sent_at?: string
-          status?: string
-          token?: string
-          updated_at?: string
-          viewed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "buyer_reception_links_agency_id_fkey"
-            columns: ["agency_id"]
-            isOneToOne: false
-            referencedRelation: "agencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_contact_id_fkey"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "buyer_reception_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       calendar_events: {
         Row: {
           agency_id: string
@@ -2367,6 +2275,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           residence_country: string | null
+          roles: string[]
           score: string | null
           search_criteria: Json | null
           source: string
@@ -2399,6 +2308,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           residence_country?: string | null
+          roles?: string[]
           score?: string | null
           search_criteria?: Json | null
           source?: string
@@ -2431,6 +2341,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           residence_country?: string | null
+          roles?: string[]
           score?: string | null
           search_criteria?: Json | null
           source?: string
@@ -4707,6 +4618,7 @@ export type Database = {
           quality_flags: Json | null
           quality_score: number | null
           relevance_score: number | null
+          removed_at: string | null
           rent: number | null
           rent_chf: number | null
           rooms: number | null
@@ -4799,6 +4711,7 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          removed_at?: string | null
           rent?: number | null
           rent_chf?: number | null
           rooms?: number | null
@@ -4891,6 +4804,7 @@ export type Database = {
           quality_flags?: Json | null
           quality_score?: number | null
           relevance_score?: number | null
+          removed_at?: string | null
           rent?: number | null
           rent_chf?: number | null
           rooms?: number | null
@@ -4924,28 +4838,49 @@ export type Database = {
       }
       market_price_history: {
         Row: {
+          canton: string | null
           change_pct: number | null
+          city: string | null
           detected_at: string
           id: string
+          kind: string
           market_listing_id: string
-          new_price: number
-          old_price: number
+          new_price: number | null
+          new_status: string | null
+          old_price: number | null
+          old_status: string | null
+          transaction_type: string | null
+          type: string | null
         }
         Insert: {
+          canton?: string | null
           change_pct?: number | null
+          city?: string | null
           detected_at?: string
           id?: string
+          kind: string
           market_listing_id: string
-          new_price: number
-          old_price: number
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          transaction_type?: string | null
+          type?: string | null
         }
         Update: {
+          canton?: string | null
           change_pct?: number | null
+          city?: string | null
           detected_at?: string
           id?: string
+          kind?: string
           market_listing_id?: string
-          new_price?: number
-          old_price?: number
+          new_price?: number | null
+          new_status?: string | null
+          old_price?: number | null
+          old_status?: string | null
+          transaction_type?: string | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -4960,11 +4895,13 @@ export type Database = {
       matches: {
         Row: {
           agency_id: string
+          apprentissage_at: string | null
           client_search_id: string | null
           contact_id: string
           created_at: string | null
           id: string
           market_listing_id: string | null
+          prix_propose: number | null
           property_id: string | null
           reaction_motif: string | null
           reaction_note: string | null
@@ -4980,11 +4917,13 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          apprentissage_at?: string | null
           client_search_id?: string | null
           contact_id: string
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
+          prix_propose?: number | null
           property_id?: string | null
           reaction_motif?: string | null
           reaction_note?: string | null
@@ -5000,11 +4939,13 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          apprentissage_at?: string | null
           client_search_id?: string | null
           contact_id?: string
           created_at?: string | null
           id?: string
           market_listing_id?: string | null
+          prix_propose?: number | null
           property_id?: string | null
           reaction_motif?: string | null
           reaction_note?: string | null
@@ -5692,6 +5633,7 @@ export type Database = {
           moderation_reason: string | null
           moderation_status: string | null
           neighborhood_variant: string
+          off_market: boolean
           partner_agency: string | null
           photo_tags: Json | null
           photos: string[] | null
@@ -5755,6 +5697,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string | null
           neighborhood_variant?: string
+          off_market?: boolean
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
@@ -5818,6 +5761,7 @@ export type Database = {
           moderation_reason?: string | null
           moderation_status?: string | null
           neighborhood_variant?: string
+          off_market?: boolean
           partner_agency?: string | null
           photo_tags?: Json | null
           photos?: string[] | null
@@ -6347,6 +6291,7 @@ export type Database = {
           id: string
           kind: string | null
           match_id: string | null
+          match_ids: string[] | null
           message_template: string | null
           property_id: string | null
           status: string
@@ -6367,6 +6312,7 @@ export type Database = {
           id?: string
           kind?: string | null
           match_id?: string | null
+          match_ids?: string[] | null
           message_template?: string | null
           property_id?: string | null
           status?: string
@@ -6387,6 +6333,7 @@ export type Database = {
           id?: string
           kind?: string | null
           match_id?: string | null
+          match_ids?: string[] | null
           message_template?: string | null
           property_id?: string | null
           status?: string
@@ -9191,6 +9138,10 @@ export type Database = {
       }
       flatfox_sync_health: { Args: never; Returns: Json }
       flatfox_active_count_refresh: { Args: never; Returns: number }
+      flatfox_balayer_retraits: {
+        Args: { p_limit?: number; p_plafond?: number; p_sync_start: string }
+        Returns: number
+      }
       focus_top_matches: {
         Args: { p_limit?: number }
         Returns: {
@@ -10105,6 +10056,7 @@ export type Database = {
           p_types?: string[]
         }
         Returns: {
+          bedrooms: number
           canton: string
           city: string
           current_price: number
@@ -10119,7 +10071,98 @@ export type Database = {
           surface_m2: number
           transaction_type: string
           type: string
+          year_built: number
+          year_renovated: number
         }[]
+      }
+      matching_actions_agence: {
+        Args: { p_agency: string; p_limite?: number }
+        Returns: {
+          baisses: number
+          contact_id: string
+          genre: string
+          location: boolean
+          market_listing_id: string
+          match_id: string
+          montant: number
+          nom: string
+          nombre: number
+          nouveaux: number
+          prenom: string
+          property_id: string
+          quand: string
+          statut: string
+          titre: string
+          total: number
+          ville: string
+        }[]
+      }
+      matching_actions_du_jour: {
+        Args: { p_limite?: number }
+        Returns: {
+          baisses: number
+          contact_id: string
+          genre: string
+          location: boolean
+          market_listing_id: string
+          match_id: string
+          montant: number
+          nom: string
+          nombre: number
+          nouveaux: number
+          prenom: string
+          property_id: string
+          quand: string
+          statut: string
+          titre: string
+          total: number
+          ville: string
+        }[]
+      }
+      matching_ajuster_recherche: {
+        Args: {
+          p_acteur_id: string
+          p_agency_id: string
+          p_bilan: Json
+          p_cle: string
+          p_client_search_id: string
+          p_motif: string
+          p_refus_ids: string[]
+          p_valeur: Json
+        }
+        Returns: Json
+      }
+      matching_appliquer_notes: {
+        Args: { p_agency_id: string; p_client_search_id: string; p_notes: Json }
+        Returns: {
+          id: string
+          status: string
+        }[]
+      }
+      matching_fil_marche_resume: {
+        Args: never
+        Returns: {
+          baisses: number
+          contact_id: string
+          meilleur_score: number
+          nombre: number
+          nouveaux: number
+          vignettes: string[]
+        }[]
+      }
+      matching_reactiver_prospect: {
+        Args: {
+          p_acteur_id: string
+          p_agency_id: string
+          p_client_search_id: string
+          p_market_listing_id: string
+          p_origine: string
+          p_property_id: string
+          p_reasons: Json
+          p_score: number
+          p_score_version: number
+        }
+        Returns: string
       }
       megga_agency_slug: { Args: { p_name: string }; Returns: string }
       ml_extract_rooms: {
@@ -10141,6 +10184,37 @@ export type Database = {
       }
       pg_cron_installe: { Args: never; Returns: boolean }
       pg_database_size_mb: { Args: never; Returns: number }
+      pige_acheteurs_compatibles: {
+        Args: { p_annonces: string[] }
+        Returns: { acheteurs: number; market_listing_id: string }[]
+      }
+      pige_mouvements: {
+        Args: {
+          p_before_at?: string
+          p_before_id?: string
+          p_budget_max?: number
+          p_budget_min?: number
+          p_cantons?: string[]
+          p_city?: string
+          p_kind: string
+          p_limit?: number
+          p_margin?: number
+          p_min_quality?: number
+          p_since: string
+          p_tx?: string
+          p_types?: string[]
+        }
+        Returns: {
+          change_pct: number
+          detected_at: string
+          event_id: string
+          first_seen_at: string
+          kind: string
+          market_listing_id: string
+          new_price: number
+          old_price: number
+        }[]
+      }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
@@ -10257,16 +10331,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      record_buyer_reaction: {
-        Args: {
-          p_link_id: string
-          p_match_id: string
-          p_motif?: string
-          p_note?: string
-          p_reaction: string
-        }
-        Returns: undefined
-      }
       record_consent: {
         Args: { p_type: string; p_version?: string }
         Returns: undefined
@@ -10309,7 +10373,6 @@ export type Database = {
           id: string
         }[]
       }
-      revoke_reception_link: { Args: { p_link_id: string }; Returns: boolean }
       revoke_user_session: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: undefined
@@ -11019,6 +11082,61 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      wa_matching_biens_de_l_acheteur: {
+        Args: {
+          p_agency: string
+          p_contact: string
+          p_limite?: number
+          p_mots: string[]
+          p_statuts: string[]
+        }
+        Returns: {
+          adresse: string
+          genre: string
+          id: string
+          match_id: string
+          titre: string
+          ville: string
+        }[]
+      }
+      wa_matching_biens_designes: {
+        Args: { p_agency: string; p_limite?: number; p_mots: string[] }
+        Returns: {
+          adresse: string
+          genre: string
+          id: string
+          titre: string
+          ville: string
+        }[]
+      }
+      wa_matching_consigner: {
+        Args: {
+          p_agency: string
+          p_match: string
+          p_motif?: string
+          p_note?: string
+          p_profile: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
+      wa_matching_visite: {
+        Args: {
+          p_agency: string
+          p_contact: string
+          p_debut: string
+          p_duree?: number
+          p_market_listing: string
+          p_profile: string
+          p_property: string
+          p_type?: string
+        }
+        Returns: Json
+      }
+      wa_matching_visite_annuler: {
+        Args: { p_agency: string; p_profile: string; p_retour: Json }
+        Returns: Json
       }
       wa_move_transaction_stage: {
         Args: {

@@ -50,7 +50,8 @@ const FEUILLE = 'src/components/matching-atelier/atelier.css'
 const css = readFileSync(FEUILLE, 'utf-8')
 
 /**
- * ⛔ SEPT SITES, SIX FICHIERS — pas deux.
+ * ⛔ SEPT SITES, SIX FICHIERS — pas deux. (Six sites, cinq fichiers depuis le 21.09.2026 : la
+ * feuille d'envoi `AtlSendSheet` est retirée, le matching n'envoie plus rien à l'acheteur.)
  *
  * La première version de cette garde ne lisait que `AtlQueue.tsx`, les deux
  * initiales que la sonde au rendu avait montrées. Elle serait passée au VERT
@@ -194,9 +195,9 @@ describe('Matching — l’encre reste lisible, et la garde lit le CSS', () => {
       }
     }
     // Sans ce plancher, un sélecteur qui ne matcherait plus rien rendrait la
-    // garde verte par vacuité : sept sites sont connus, on en exige au moins
-    // autant.
-    expect(trouves.length, 'aucune initiale d’avatar trouvée — le motif ne matche plus').toBeGreaterThanOrEqual(7)
+    // garde verte par vacuité : six sites sont connus (sept avant le retrait de la
+    // feuille d'envoi, 21.09.2026), on en exige au moins autant.
+    expect(trouves.length, 'aucune initiale d’avatar trouvée — le motif ne matche plus').toBeGreaterThanOrEqual(6)
     expect(fautives, `encre non dérivée :\n  ${fautives.join('\n  ')}`).toEqual([])
   })
 

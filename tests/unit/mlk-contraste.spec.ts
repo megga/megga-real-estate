@@ -657,9 +657,8 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
    * ici ferait de cette spec la garde d'une PAGE au lieu d'un OBJET, ce qui est
    * exactement la confusion que la forme n° 38 décrit.
    *
-   * De même l'objet `RC` de `BuyerReceptionPage` : dix clés, mêmes valeurs pour
-   * la moitié, et AUCUN lien avec `MLK`. C'est un second objet, donc une seconde
-   * garde — pas une rallonge de celle-ci.
+   * (L'objet `RC` de l'ancienne page de réception acheteur, second objet gardé
+   * par sa propre spec, est parti avec elle le 21.09.2026.)
    */
   it.skip('les couleurs hors MLK des pages publiques — hors périmètre, voir le commentaire', () => {})
 })

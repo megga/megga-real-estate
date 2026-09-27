@@ -26,6 +26,7 @@ import { declarerPaletteEnPlace } from './openSearch'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { crmTabLibelle } from '@/lib/crmTabs'
+import { rolesDepuisTexte } from '@/lib/contactRoles'
 
 // ⛔ LES CINQ PASTILLES DE PORTÉE ONT ÉTÉ RETIRÉES (7 septembre 2026, décision
 // Julien). Deux raisons, la première mesurée :
@@ -310,7 +311,13 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   }, [q])
 
   // ── Données réelles ──
-  const { contacts } = useContacts(debouncedQ.trim().length >= 2 ? { search: debouncedQ.trim() } : undefined)
+  // Les rôles que la frappe désigne : « avocat » trouve les avocats, en plus des noms.
+  // ⚠ `ns: 'contacts'` explicite — ce composant traduit dans `common`, où `roles.*` n'existe
+  // pas : sans lui la clé sortirait brute et aucun rôle ne correspondrait jamais.
+  const rolesCherches = useMemo(() => rolesDepuisTexte(debouncedQ, (r) => tr(`roles.${r}`, { ns: 'contacts' })), [debouncedQ, tr])
+  const { contacts } = useContacts(
+    debouncedQ.trim().length >= 2 ? { search: debouncedQ.trim(), roles: rolesCherches } : undefined,
+  )
   const { biens } = useListingsScreen()
   const { deals } = usePipelineScreen()
   // Conversations copilote persistées (chantier B). Vide tant que le writer n'est

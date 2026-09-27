@@ -71,6 +71,15 @@ describe('optinCopy — l’information préalable (art. 6 al. 6 nLPD)', () => {
   it('les quatre textes sont distincts (pas de repli silencieux sur le français)', () => {
     expect(new Set(LANGS.map((l) => optinCopy(l, 'X SA').body)).size).toBe(4)
   })
+
+  it('ne promet pas l’envoi de biens : le matching reste chez l’agent (21.09.2026)', () => {
+    // Une information préalable qui décrit un envoi que le CRM ne fait plus serait fausse.
+    const PROMESSES = /annonces|biens qui correspondent|passenden Objekte|Angebote|listings|properties matching|annunci|immobili corrispondenti/i
+    for (const lang of LANGS) {
+      const c = optinCopy(lang, 'X SA')
+      expect(`${c.subject}\n${c.body}`, lang).not.toMatch(PROMESSES)
+    }
+  })
 })
 
 describe('optinLang', () => {

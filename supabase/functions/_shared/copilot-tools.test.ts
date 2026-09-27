@@ -4,6 +4,7 @@ import {
   copilotTools, copilotToolsBlock,
 } from './copilot-tools'
 import { toolTier } from './whatsapp-agent-router'
+import { WHATSAPP_TOOLS } from './whatsapp-tools'
 import { NBA_PROMPT_GUARDRAIL } from './contact-nba'
 
 describe('catalogue copilote web — invariant lecture seule', () => {
@@ -62,6 +63,17 @@ describe('COPILOT_TOOLS — composition du catalogue', () => {
   it('la description web de search_listings ne renvoie pas vers send_listings', () => {
     const sl = COPILOT_TOOLS.find((t) => t.function.name === 'search_listings')
     expect(sl?.function.description).not.toContain('send_listings')
+  })
+
+  it('la description web de get_matches DÉRIVE de la description WhatsApp (retire la phrase des outils absents, rien d’autre, lot D2)', () => {
+    const phrase = " L'id de chaque bien sert à schedule_visit (property_id d'un mandat, market_listing_id d'une annonce) et à get_buyers_for_property."
+    const wa = WHATSAPP_TOOLS.find((t) => t.function.name === 'get_matches')?.function.description ?? ''
+    // Sinon le retrait ci-dessous serait un no-op et l'égalité qui suit ne prouverait rien.
+    expect(wa).toContain(phrase)
+    const web = COPILOT_TOOLS.find((t) => t.function.name === 'get_matches')?.function.description
+    expect(web).toBe(wa.replace(phrase, ''))
+    expect(web).not.toContain('schedule_visit')
+    expect(web).not.toContain('get_buyers_for_property')
   })
 })
 

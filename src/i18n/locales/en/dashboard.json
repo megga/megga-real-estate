@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "New",
-        "sent": "File sent",
+        "sent": "Property proposed",
         "visitPlanned": "Visit scheduled",
         "interested": "Interested"
       },
+      "proposeError": "The proposal couldn't be recorded. Try again.",
       "why": {
         "fallback": "New match, first contact to initiate."
       },
@@ -318,8 +319,8 @@
         "toRefine": "to refine"
       },
       "action": {
-        "addToFile": "Add to {{name}}'s file",
-        "added": "Added to {{name}}'s file",
+        "addToFile": "I proposed it to {{name}}",
+        "added": "Proposed to {{name}}",
         "openInMatching": "Open in Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "No dormant contact to follow up today. Your follow-ups will appear here as soon as a contact goes cold."
       },
       "sendError": "Sending failed, try again or copy the message.",
+      "sendErrorBien": "Nothing was sent: this message contains a property (listing link or MG-… reference). Matching stays with you: present the property yourself, then record “I proposed it” in matching.",
       "draft": {
         "to": "To",
         "emailMissing": "(email missing)",
@@ -420,7 +422,8 @@
       "freeWindow": "{{duration}} free · follow-up session",
       "tabs": {
         "deals": "Deals",
-        "listings": "Listings"
+        "listings": "Listings",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} hot",
       "hotCount_other": "{{count}} hot",
@@ -453,16 +456,18 @@
         "markAll": "Mark all as seen",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signals",
-        "groupBuyers": "Buyer feedback",
+        "groupBuyers": "Recorded feedback",
         "groupReminders": "Reminders",
-        "liked": "liked {{subject}}",
-        "skipped": "passed on {{subject}}",
         "reminderDue": "{{subject}} to pick back up",
         "ctaProposeVisit": "Propose a viewing",
         "ctaRecalibrate": "Recalibrate",
         "ctaResume": "Resume",
         "unknownContact": "Contact",
-        "unknownProperty": "a property"
+        "unknownProperty": "a property",
+        "interesse": "interested in {{subject}}",
+        "pasInteresse": "not interested in {{subject}}",
+        "retourAttendu_one": "feedback due on {{count}} proposed property",
+        "retourAttendu_other": "feedback due on {{count}} proposed properties"
       },
       "toast": {
         "allUpToDate": "Everything is up to date",
@@ -523,10 +528,37 @@
         "ctaKyc": "Open KYC",
         "ctaSign": "Prepare",
         "ctaOffer": "View offer",
-        "ctaMatch": "View matches",
         "ctaVisit": "View viewing",
         "ctaSeller": "Open",
         "ctaListing": "View listing"
+      },
+      "matching": {
+        "compte_one": "{{count}} action",
+        "compte_other": "{{count}} actions",
+        "retour_one": "Feedback to record for {{prenom}} · {{count}} property",
+        "retour_other": "Feedback to record for {{prenom}} · {{count}} properties",
+        "prixPropose": "Price down {{montant}} on the property proposed to {{prenom}}",
+        "prixRefuse": "Price down {{montant}} on the property {{prenom}} declined",
+        "mandat_one": "New mandate · {{count}} matching buyer",
+        "mandat_other": "New mandate · {{count}} matching buyers",
+        "marcheNouveau": "New property in {{ville}} for {{prenom}}",
+        "marcheNouveauSansVille": "New property for {{prenom}}",
+        "marcheBaisse": "Price drop in {{ville}} for {{prenom}}",
+        "marcheBaisseSansVille": "Price drop for {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} new property",
+        "nouveaux_other": "{{count}} new properties",
+        "baisses_one": "{{count}} price drop",
+        "baisses_other": "{{count}} price drops",
+        "ctaRetour": "Record",
+        "ctaPrix": "Open",
+        "ctaMandat": "See who",
+        "ctaMarche": "See properties",
+        "voirTout": "See all in Matching",
+        "voirToutCompte_one": "See the action in Matching",
+        "voirToutCompte_other": "See all {{count}} actions in Matching",
+        "vide": "No matching action today.",
+        "erreur": "Matching actions unavailable: loading failed."
       }
     }
   },

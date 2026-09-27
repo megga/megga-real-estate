@@ -27,6 +27,10 @@ export const PROP_TYPE_EN_TO_FR: Record<string, string> = {
 
 export type UiTransaction = 'vente' | 'location'
 
+/** L'état minimum qu'un acheteur peut demander (lot C) : « à rénover » n'en est pas un, tout bien le tient. */
+export const ETATS_MINIMUM = ['good', 'renovated', 'new'] as const
+export type EtatMinimum = (typeof ETATS_MINIMUM)[number]
+
 export interface CriteriaInput {
   transaction: UiTransaction
   types: string[] // ids FR : appartement / maison / terrain / commercial…
@@ -37,6 +41,9 @@ export interface CriteriaInput {
   roomsMin?: number | null
   areaMin?: number | null
   mustHave?: string[] // libellés d'indispensables (features)
+  bedroomsMin?: number | null
+  conditionMin?: EtatMinimum | null
+  offMarketOnly?: boolean
 }
 
 /**
@@ -58,9 +65,14 @@ export function buildSearchCriteria(i: CriteriaInput): SearchCriteria | null {
   if (i.roomsMin != null && i.roomsMin !== 0) c.rooms_min = i.roomsMin
   if (i.areaMin != null && i.areaMin !== 0) c.surface_min = i.areaMin
   if (i.mustHave?.length) c.features = i.mustHave
+  // Lot C. ⛔ Une clé oubliée ici est EFFACÉE au prochain enregistrement de la fiche : l'objet est reconstruit.
+  if (i.bedroomsMin != null && i.bedroomsMin > 0) c.bedrooms_min = i.bedroomsMin
+  if (i.conditionMin) c.condition_min = i.conditionMin
+  if (i.offMarketOnly) c.off_market_only = true
 
   const meaningful =
     c.type || c.zones || c.budget_min || c.budget_max || c.rooms_min || c.surface_min || c.features
+    || c.bedrooms_min || c.condition_min || c.off_market_only
   return meaningful ? c : null
 }
 
@@ -101,5 +113,8 @@ export function parseSearchCriteria(sc: SearchCriteria | null | undefined): Crit
     roomsMin: sc?.rooms_min ?? null,
     areaMin: sc?.surface_min ?? null,
     mustHave: sc?.features ?? [],
+    bedroomsMin: sc?.bedrooms_min ?? null,
+    conditionMin: (ETATS_MINIMUM as readonly string[]).includes(sc?.condition_min ?? '') ? sc!.condition_min as EtatMinimum : null,
+    offMarketOnly: sc?.off_market_only === true,
   }
 }

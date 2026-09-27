@@ -41,12 +41,12 @@ export const WHATSAPP_TOOL_CATALOG: WaToolCatalogEntry[] = [
   { name: 'attach_property_photos', tier: 'auto' },
   { name: 'update_property', tier: 'auto' },
   { name: 'create_property', tier: 'auto' },
-  // confirm (9)
+  // confirm (8) — l'envoi de biens au client (send_listings) est retiré le 21.09.2026 :
+  // le matching reste chez l'agent.
   { name: 'send_kyc_link', tier: 'confirm' },
   { name: 'send_client_email', tier: 'confirm' },
   { name: 'update_pipeline', tier: 'confirm' },
   { name: 'send_client_message', tier: 'confirm' },
-  { name: 'send_listings', tier: 'confirm' },
   { name: 'record_offer', tier: 'confirm' },
   { name: 'open_kyc_case', tier: 'confirm' },
   { name: 'publish_to_portals', tier: 'confirm' },

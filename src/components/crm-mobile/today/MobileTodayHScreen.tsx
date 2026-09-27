@@ -117,7 +117,9 @@ export function MobileTodayHScreen() {
   }
 
   const onSignal = async (s: AbsenceSignal) => {
-    if (s.type === 'rappel') {
+    // Lot D1 : le mobile n'est pas repris, mais il partage le hook — une relance de PROPOSITION ne se clôt pas d'ici
+    // (elle se clôt quand ses réponses sont consignées) : on ouvre la fiche, sans rien écrire.
+    if (s.type === 'rappel' && !s.retoursDe) {
       const ok = await resumeReminder(s)
       if (!ok) { say(t('today.h.toast.resumeFailed')); return }
     }

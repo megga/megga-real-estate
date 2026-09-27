@@ -26,6 +26,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildRelanceEmail } from './relance-email.ts'
 import { unsubscribeHeaders, unsubscribeFooterHtml } from './email-guard.ts'
 import { guardOutboundEmail, type OutboundEmailCaller, type OutboundEmailSender } from './email-recipient.ts'
+import { bienDansMessage } from './message-sans-bien.ts'
 
 /** Ce que l'agent a écrit ou validé : objet et corps libres. */
 export interface RelanceEmail {
@@ -77,6 +78,17 @@ export async function sendRelanceEmail(
   }
   if (!EMAIL_REGEX.test(relance.to)) {
     return json(400, { error: 'Invalid email address' }, corsHeaders)
+  }
+  // ⛔ AUCUN BIEN DANS UNE RELANCE (21.09.2026) : le matching reste chez l'agent. Les deux portes
+  // de ce module portent un texte que le copilote a pu rédiger (`send_client_email`, et la relance
+  // d'« Aujourd'hui », brouillon de `draft_email`) : un lien d'annonce, une fiche de bien MEGGA ou une
+  // référence MG-… ne part pas, même validé par l'agent. Vérifié AVANT la garde de sortie : un
+  // refus de contenu ne consomme pas le quota. `message-sans-bien.ts` dit ce qui passe.
+  if (bienDansMessage(relance.subject, relance.body)) {
+    return json(422, {
+      error: 'property_in_message',
+      message: "Rien n'est parti : ce message contient un bien (lien d'annonce ou référence MG-…). Le matching reste chez l'agent, qui présente le bien lui-même.",
+    }, corsHeaders)
   }
 
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')

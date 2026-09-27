@@ -74,17 +74,10 @@
     "aggregator": "Aggregator",
     "matchFor": "Match für",
     "actions": "Aktionen",
-    "emailSentSuccess": "E-Mail erfolgreich gesendet",
-    "sendByEmail": "Per E-Mail senden",
-    "clientEmail": "Kunden-E-Mail",
-    "customMessage": "Persönliche Nachricht (optional)",
-    "sending": "Wird gesendet...",
-    "send": "Senden",
     "importToPortfolio": "In mein Portfolio importieren",
     "viewOriginal": "Originalinserat ansehen",
     "copied": "Kopiert",
     "copyLink": "Link kopieren",
-    "sendHistory": "Versandverlauf",
     "location": "Standort",
     "canton": "Kanton",
     "postalCode": "PLZ",
@@ -111,8 +104,6 @@
     },
     "photoAlt": "Immobilienobjekt",
     "aggregatorValue": "RealAdvisor ({{count}} Portale)",
-    "channelEmail": "Email",
-    "channelMessaging": "Nachrichten",
     "loading": "Inserat wird geladen…",
     "loadError": "Dieses Inserat konnte nicht geladen werden."
   },
@@ -738,8 +729,6 @@
       "title": "Aktive Käufer",
       "pipeline": "Pipeline",
       "buyerFallback": "Käufer",
-      "matchAffinity": "MEGGA AI Match · {{score}}% Übereinstimmung",
-      "propose": "Vorschlagen",
       "kycNotice": "<0>KYC zu vervollständigen</0> für einen Käufer, in dieser Phase optional, vor der Unterzeichnung erforderlich.",
       "startKyc": "Starten"
     },
@@ -804,7 +793,11 @@
       "publishedTitle": "Inserat veröffentlicht",
       "updatedTitle": "Inserat aktualisiert",
       "statusActive": "Status auf aktiv gesetzt",
-      "auditAdded": "Eintrag zum nDSG-Auditprotokoll hinzugefügt"
+      "auditAdded": "Eintrag zum nDSG-Auditprotokoll hinzugefügt",
+      "offMarketTitle": "Objekt auf Off-market gestellt",
+      "publicTitle": "Objekt öffentlich gemacht",
+      "renote": "Die Matches dieses Objekts werden neu berechnet",
+      "offMarketErreur": "Die Sichtbarkeit konnte nicht geändert werden. Versuchen Sie es erneut."
     },
     "c2paAlert": {
       "title": "Fotos ohne Echtheitszertifizierung",
@@ -1778,7 +1771,10 @@
       "publicPreview": "Öffentliches Inserat ansehen",
       "previewToastTitle": "Öffentliche Vorschau",
       "previewOnlineLine": "Das Inserat ist auf immobilier.ch veröffentlicht.",
-      "previewOfflineLine": "Das Inserat ist noch nicht öffentlich veröffentlicht."
+      "previewOfflineLine": "Das Inserat ist noch nicht öffentlich veröffentlicht.",
+      "offMarketLigne": "Nur Ihren Käufern angeboten, nie ausgeschrieben",
+      "passerOffMarket": "Auf Off-market stellen",
+      "rendrePublic": "Öffentlich machen"
     },
     "back": "Zurück zu Meine Objekte",
     "cta": {
@@ -1789,10 +1785,6 @@
       "mandateExpires_other": "Mandat {{type}} · läuft in {{count}} Tagen ab",
       "mandateOverdue_one": "Mandat {{type}} · seit {{count}} Tag abgelaufen",
       "mandateOverdue_other": "Mandat {{type}} · seit {{count}} Tagen abgelaufen"
-    },
-    "suggestions": {
-      "title": "MEGGA AI Vorschläge",
-      "affinity": "{{score}} % geschätzte Übereinstimmung"
     },
     "photos": {
       "none": "Keine Fotos",
@@ -1885,7 +1877,7 @@
     "modifier": "Ändern",
     "continuer": "Weiter",
     "retour": "Zurück",
-    "garder": "Speichern ohne Veröffentlichung",
+    "garder": "Als Entwurf speichern",
     "publier": "Inserat veröffentlichen",
     "enCours": "Wird gespeichert…",
     "adresseAvant": "Fügen Sie zuerst eine Adresse hinzu.",
@@ -2012,12 +2004,23 @@
     },
     "fini": {
       "publie": "Inserat veröffentlicht",
-      "garde": "Objekt gespeichert",
+      "garde": "Entwurf gespeichert",
       "publieAide": "«{{titre}}» ist in Meine Objekte online.",
-      "gardeAide": "«{{titre}}» ist Off-market gespeichert. Veröffentlichen Sie es über die Objektseite, sobald es bereit ist.",
+      "gardeAide": "«{{titre}}» ist als Entwurf gespeichert. Veröffentlichen Sie es über die Objektseite, sobald es bereit ist.",
       "ouvrir": "Objektseite öffnen",
       "autre": "Weiteres Objekt erfassen",
-      "retour": "Zurück zu Meine Objekte"
-    }
+      "retour": "Zurück zu Meine Objekte",
+      "offMarket": "Objekt Off-market",
+      "offMarketAide": "«{{titre}}» ist aktiv: Es wird Ihren Käufern angeboten und nie ausgeschrieben.",
+      "acquereurs": {
+        "recherche": "Passende Käufer werden gesucht…",
+        "trouves_one": "{{count}} passender Käufer",
+        "trouves_other": "{{count}} passende Käufer",
+        "aucun": "Vorerst kein passender Käufer",
+        "erreur": "Die passenden Käufer stehen auf seiner Seite.",
+        "voir": "Wer passt"
+      }
+    },
+    "proposerOffMarket": "Off-market anbieten"
   }
 }

@@ -3,7 +3,8 @@
 // Le handoff demande un « classement MEGGA AI » des dossiers chauds. Il existe
 // déjà, et il ne s'appelle pas comme ça : c'est la FILE FOCUS (`useFocusQueue`),
 // DÉTERMINISTE et EXPLICABLE, 0 LLM — deals à risque, rappels échus, offres qui
-// expirent, leads vendeurs, matchs à traiter, le tout scoré et trié.
+// expirent, leads vendeurs, le tout scoré et trié. (Les matchs à traiter n'y sont
+// plus depuis le lot D1 : voir l'appel de la file, plus bas.)
 //
 // On la réemploie plutôt que d'inventer un second classement : deux algorithmes
 // concurrents sur la même page finiraient par se contredire, et c'est l'agent
@@ -45,7 +46,6 @@ const CTA_BY_TYPE: Record<string, string> = {
   kyc: 'today.h.deals.ctaKyc',
   sign: 'today.h.deals.ctaSign',
   offer: 'today.h.deals.ctaOffer',
-  match: 'today.h.deals.ctaMatch',
   visit: 'today.h.deals.ctaVisit',
   seller: 'today.h.deals.ctaSeller',
   bien: 'today.h.deals.ctaListing',
@@ -54,7 +54,7 @@ const CTA_BY_TYPE: Record<string, string> = {
 
 const ICON_BY_TYPE: Record<string, string> = {
   call: 'user', kyc: 'shield', sign: 'doc', offer: 'offer',
-  match: 'spark', visit: 'home', seller: 'user', bien: 'doc', cooling: 'user',
+  visit: 'home', seller: 'user', bien: 'doc', cooling: 'user',
 }
 
 /** Pastille : rouge si le dossier est en retard, sinon la teinte de sa famille. */
@@ -63,12 +63,14 @@ const DOT_BY_CATEGORY: Record<string, string> = {
   KYC: '#5B6472',
   MANDAT: '#1E5BC6',
   OFFRE: '#C45A00',
-  MATCH: '#6F8CFF',
 }
 
 export function useHotDeals(): UseHotDealsReturn {
   const { t } = useTranslation('dashboard')
-  const { items, isLive, isLoading, isError } = useFocusQueue()
+  // Lot D1 : les matchs ont quitté « Dossiers ». Ils vivent dans le segment Matching, avec leur raison
+  // (`matching_actions_du_jour`) ; ici, un même match s'affichait une seconde fois, sans elle. La file ne les lit
+  // donc pas : un acheteur dormant qui a un match n'est plus écarté des relances (`useFocusQueue`).
+  const { items, isLive, isLoading, isError } = useFocusQueue({ matchs: false })
 
   const deals = useMemo<HotDeal[]>(() => {
     const queue: FocusItem[] = selectFocusQueue({ live: isLive, items, isDemo: false })

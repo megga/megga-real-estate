@@ -26,6 +26,11 @@ export interface Contact {
   email: string | null
   phone: string | null
   type: ContactType
+  /**
+   * Étape 3 : les rôles multiples. Source de vérité ; `type` en dérive par déclencheur.
+   * Vide = un lead. Vocabulaire et dérivations : `src/lib/contactRoles.ts`.
+   */
+  roles: string[]
   source: string | null
   score: ContactScore | null
   tags: string[]
@@ -76,4 +81,10 @@ export interface SearchCriteria {
   surface_min?: number
   surface_max?: number
   features?: string[]
+  /** Lot C : chambres au minimum. */
+  bedrooms_min?: number
+  /** Lot C : l'état minimum — bon état < rénové < neuf (`matching-normalize.ts`, `ETATS_BIEN`). */
+  condition_min?: 'good' | 'renovated' | 'new'
+  /** Lot C : l'acheteur ne veut que de l'off-market. Le moteur le NOTE, ce n'est pas un filtre. */
+  off_market_only?: boolean
 }

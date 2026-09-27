@@ -7,6 +7,7 @@
 //      poids modeste ; nextAction = prochain reminder réel du deal (nullable).
 //   3. Matches 'suggested' à fort score (RPC focus_top_matches via useFocusMatches)
 //      — le signal vivant dominant, internes (mandat propre) vs marché distingués.
+//      Pas au bureau depuis le lot D1 (`matchs: false`) : voir `useFocusQueue`.
 // Chaque item porte score (estimation), reason (« pourquoi #1 ») et tier
 // (now/next/rest). Le tri + les caps (3 « Maintenant », 2 matches/contact)
 // vivent dans finalizeQueue. Items AUTO-SUFFISANTS (contact/bien embarqués) :
@@ -105,12 +106,18 @@ export interface UseFocusQueueResult {
   snoozeItem: (item: FocusItem) => void
 }
 
-export function useFocusQueue(): UseFocusQueueResult {
+/**
+ * La file Focus. `matchs: false` — « Dossiers », au bureau, depuis le lot D1 : les matchs vivent dans le segment
+ * Matching, avec leur raison. La file ne les lit pas (requête désactivée), donc ni leur échec ne compte dans
+ * `isError`, ni la déduplication des leads qui refroidissent (section 5) n'écarte un acheteur parce qu'il a un
+ * match — sans quoi il disparaissait de « Dossiers ». Le mobile garde le défaut.
+ */
+export function useFocusQueue({ matchs = true }: { matchs?: boolean } = {}): UseFocusQueueResult {
   const { t } = useTranslation('dashboard')
   const { user, profile } = useAuth()
   const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading, isError: dealsError } = usePipelineScreen()
   const { reminders, isLoading: remLoading, isError: remError, markAsDone, snooze } = useReminders()
-  const { matches, isLoading: matchesLoading, isError: matchesError } = useFocusMatches()
+  const { matches, isLoading: matchesLoading, isError: matchesError } = useFocusMatches(30, matchs)
   // RADAR : nouveaux mandats vendeurs 'new' à réclamer (argent qui attend).
   // Limite bornée : la file Focus est une « liste courte » et l'entonnoir public
   // (anon insert) peut faire grossir seller_leads — on ne charge que le haut.

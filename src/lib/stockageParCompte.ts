@@ -44,7 +44,7 @@ export const STOCKAGE_PAR_COMPTE: readonly EntreeParCompte[] = [
   { base: 'megga.crm.tabs', aire: 'session', forme: 'par-compte', sensible: true, motif: "pile d'onglets du CRM : ses libellés sont des noms de clients (clé uid:agence)" },
   { base: 'megga.import-lead.state.v1', aire: 'session', forme: 'exacte', sensible: true, motif: "brouillon d'import de lead : texte collé d'un message de prospect (ImportLeadPage)" },
   { base: 'megga-impersonate', aire: 'local', forme: 'par-compte', sensible: true, motif: "vue impersonée du super-admin : nom de l'utilisateur ciblé" },
-  { base: 'megga_external_listing_actions', aire: 'local', forme: 'par-compte', sensible: true, motif: 'notes sur des annonces externes et nom du contact destinataire' },
+  { base: 'megga_external_listing_actions', aire: 'local', forme: 'par-compte', sensible: true, motif: "notes de l'agent sur des annonces externes (et, écrit avant le 21.09.2026, nom du contact destinataire)" },
   { base: 'megga-avatar-url', aire: 'local', forme: 'par-compte', sensible: true, motif: "photo de l'agent — parfois une data URL de son visage" },
   { base: 'megga-agent-notif-lastseen', aire: 'local', forme: 'par-compte', sensible: false, motif: 'dernière ouverture de la cloche : aucun nom, gardée à la déconnexion' },
   { base: 'megga-agent-notif-read', aire: 'local', forme: 'par-compte', sensible: false, motif: 'identifiants de notifications lues : aucun nom, gardés à la déconnexion' },

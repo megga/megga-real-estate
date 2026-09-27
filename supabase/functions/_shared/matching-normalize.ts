@@ -131,16 +131,66 @@ function typeFamily(t: string): string {
   return TYPE_FAMILY[s] ?? s
 }
 
+// ─── État du bien (lot C) ────────────────────────────────────────────────────
+/** Les états d'un bien, du moins bon au meilleur : l'index est le RANG qui se compare. */
+export const ETATS_BIEN = ['to_renovate', 'good', 'renovated', 'new'] as const
+export type EtatBien = (typeof ETATS_BIEN)[number]
+/**
+ * Ce qu'un acheteur peut EXIGER (`condition_min`). ⛔ Pas « à rénover » : tout état connu l'atteint, et cet axe
+ * toujours tenu gonflerait la note — un 52 devient 56 et franchit le seuil de 55.
+ */
+const ETATS_MINIMUM: readonly EtatBien[] = ['good', 'renovated', 'new']
+/** Neuf : construit il y a 5 ans au plus, ou en chantier. Rénové : rénové il y a 10 ans au plus. */
+export const ANS_NEUF = 5
+export const ANS_RENOVE = 10
+/** Au-delà, une année de construction future est une saisie fautive, pas un chantier. */
+const ANS_CHANTIER = 5
+
+/** L'état connu d'un bien, et d'où il vient : saisi par l'agent (mandat), ou déduit d'une année. */
+export interface EtatConnu {
+  etat: EtatBien
+  source: 'saisi' | 'construction' | 'renovation'
+  annee: number | null
+}
+
+/**
+ * L'état d'un bien, ou `null` s'il est INCONNU. Saisi sur un mandat (`condition`, formulaire du bien) ;
+ * sinon déduit des seules années qui DISENT quelque chose : neuf, rénové. ⛔ Jamais « bon état » ni « à
+ * rénover » d'une date : un immeuble de 1968 a pu être refait l'an dernier sans que l'annonce le dise.
+ */
+export function etatDuBien(listing: Record<string, unknown>, annee: number): EtatConnu | null {
+  const saisi = listing.condition
+  if (typeof saisi === 'string' && (ETATS_BIEN as readonly string[]).includes(saisi)) {
+    return { etat: saisi as EtatBien, source: 'saisi', annee: null }
+  }
+  const construit = numOrNull(listing.year_built)
+  if (construit != null && construit > 0 && construit >= annee - ANS_NEUF && construit <= annee + ANS_CHANTIER) {
+    return { etat: 'new', source: 'construction', annee: construit }
+  }
+  const renove = numOrNull(listing.year_renovated)
+  if (renove != null && renove > 0 && renove >= annee - ANS_RENOVE && renove <= annee) {
+    return { etat: 'renovated', source: 'renovation', annee: renove }
+  }
+  return null
+}
+
 // ─── Config de scoring (poids/seuil), surchargée par app_config ─────────────
 export interface ScoringConfig {
-  weights: { price: number; zone: number; type: number; rooms: number; surface: number; features: number; pricePosition: number; priceDrop: number }
+  weights: {
+    price: number; zone: number; type: number; rooms: number; surface: number; features: number
+    /** Lot C : chambres, état, off-market — actifs quand la recherche les pose ET que le bien les renseigne. */
+    bedrooms: number; condition: number; offMarket: number
+    pricePosition: number; priceDrop: number
+  }
   threshold: number
   priceOverTolerance: number // 0.15 = 0 pt à +15% au-dessus du budget max
   surfaceDeficitTolerance: number // 0.20 = 0 pt à -20% sous la surface min
   version: number
 }
 export const DEFAULT_SCORING_CONFIG: ScoringConfig = {
-  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10, pricePosition: 7, priceDrop: 5 }, // 100 = barème redistribué ; 7 et 5 = BONUS additifs (hors redistribution)
+  // 100 = le barème des six axes historiques, redistribué ; chambres, état et off-market (lot C) y PRENNENT
+  // leur part quand ils sont actifs ; 7 et 5 = BONUS additifs (hors redistribution).
+  weights: { price: 32, zone: 24, type: 12, rooms: 12, surface: 10, features: 10, bedrooms: 10, condition: 8, offMarket: 10, pricePosition: 7, priceDrop: 5 },
   threshold: 55,
   priceOverTolerance: 0.15,
   surfaceDeficitTolerance: 0.20,
@@ -173,13 +223,16 @@ export interface MatchReasons {
 }
 export interface ScoreResult { total: number; reasons: MatchReasons }
 
-// listing : current_price?/price/type/canton/city/rooms/surface_m2/features
-// criteria : budget_min/max/zones/type/rooms_min/max/surface_min/features
+// listing : current_price?/price/type/canton/city/rooms/surface_m2/features, + bedrooms/condition/year_built/
+//           year_renovated/off_market (lot C)
+// criteria : budget_min/max/zones/type/rooms_min/max/surface_min/features, + bedrooms_min/condition_min/
+//            off_market_only (lot C)
 export function calculateScoreV2(
   listing: Record<string, unknown>,
   criteria: Record<string, unknown> | null | undefined,
   cfg: ScoringConfig = DEFAULT_SCORING_CONFIG,
   rentRef: RentPosition | null = null, // précalculé par l'edge, zéro I/O ici
+  maintenant: number = Date.now(), // l'année de référence de l'état (lot C) ; figée par les tests
 ): ScoreResult {
   if (!criteria) return { total: 0, reasons: emptyReasons() }
   const W = cfg.weights
@@ -210,6 +263,9 @@ export function calculateScoreV2(
   // ── FEATURES : actif si des features sont demandées (corrige le +10 par défaut) ──
   const features = scoreFeatures(featTokens(listing.features), wantFeats)
 
+  // ── CHAMBRES, ÉTAT, OFF-MARKET (lot C) : actifs si la recherche les pose ET que le bien les renseigne ──
+  const { chambres, etat, offMarket } = axesComplementaires(listing, criteria, maintenant)
+
   // ── Redistribution : les axes inactifs cèdent leur poids aux actifs ──
   const axes: { active: boolean; w: number }[] = [
     { active: price.active, w: W.price },
@@ -218,10 +274,16 @@ export function calculateScoreV2(
     { active: rooms.active, w: W.rooms },
     { active: surface.active, w: W.surface },
     { active: features.active, w: W.features },
+    { active: chambres.active, w: W.bedrooms },
+    { active: etat.active, w: W.condition },
+    { active: offMarket.active, w: W.offMarket },
   ]
   const liveWeight = axes.reduce((s, a) => s + (a.active ? a.w : 0), 0)
-  const totalWeight = axes.reduce((s, a) => s + a.w, 0)
-  const scale = liveWeight > 0 ? totalWeight / liveWeight : 0
+  // ⛔ L'ÉCHELLE EST ANCRÉE SUR LE BARÈME HISTORIQUE (les six axes, 100) : les trois axes du lot C ne font que
+  // PRENDRE leur part quand ils sont actifs. Rapportée à la somme de TOUS les poids (128), une recherche sans
+  // eux aurait vu chacune de ses notes gonfler de 28 %.
+  const bareme = W.price + W.zone + W.type + W.rooms + W.surface + W.features
+  const scale = liveWeight > 0 ? bareme / liveWeight : 0
 
   const pts = (axis: { active: boolean; frac: number }, w: number): number =>
     axis.active ? axis.frac * w * scale : 0
@@ -232,6 +294,9 @@ export function calculateScoreV2(
   const roomsP = pts(rooms, W.rooms)
   const surfaceP = pts(surface, W.surface)
   const featP = pts(features, W.features)
+  const chambresP = pts(chambres, W.bedrooms)
+  const etatP = pts(etat, W.condition)
+  const offMarketP = pts(offMarket, W.offMarket)
 
   // ─── PRIX vs MARCHÉ (BONUS additif, hors redistribution) ─────────────────
   // pricePosition n'entre PAS dans axes[]/totalWeight (sinon +7% sur 100% des
@@ -253,7 +318,9 @@ export function calculateScoreV2(
       : 0
   const priceDropP = dropFrac >= 0.02 ? clamp(dropFrac / 0.10, 0, 1) * W.priceDrop : 0
 
-  const total = clamp(Math.round(priceP + zoneP + typeP + roomsP + surfaceP + featP + pricePosP + priceDropP), 0, 100)
+  const total = clamp(Math.round(
+    priceP + zoneP + typeP + roomsP + surfaceP + featP + chambresP + etatP + offMarketP + pricePosP + priceDropP,
+  ), 0, 100)
 
   // reason « rooms » = pièces + surface fusionnés (libellé Atelier « Pièces & surface »)
   const roomsSurfP = roomsP + surfaceP
@@ -283,7 +350,7 @@ export function calculateScoreV2(
 }
 
 // ─── Axes (chacun renvoie {active, frac 0-1, detail}) ───────────────────────
-interface Axis { active: boolean; frac: number; detail: string }
+export interface Axis { active: boolean; frac: number; detail: string }
 
 function scorePrice(amount: number, min: number | null, max: number | null, overTol: number): Axis {
   if (min == null && max == null) return { active: false, frac: 0, detail: '' }
@@ -348,6 +415,45 @@ function scoreFeatures(have: string[], want: string[]): Axis {
   const hits = want.filter((w) => have.some((h) => h === w || h.includes(w) || w.includes(h)))
   const frac = hits.length / want.length
   return { active: true, frac, detail: `${hits.length}/${want.length} critères` }
+}
+
+/** Chambres (lot C). ⛔ 0 n'est pas une valeur : le wizard l'écrit pour « non renseigné » (`useWizardDraft.ts`). */
+function scoreChambres(chambres: number | null, min: number | null): Axis {
+  if (min == null || min <= 0 || chambres == null || chambres <= 0) return { active: false, frac: 0, detail: '' }
+  if (chambres >= min) return { active: true, frac: 1, detail: `${fmtNum(chambres)} chambres` }
+  return { active: true, frac: Math.max(0, 1 - (min - chambres) / 2), detail: `${fmtNum(chambres)} chambres` }
+}
+
+/** État (lot C) : tenu au rang voulu ou mieux, à moitié un rang en dessous, pas au-delà. */
+function scoreEtat(etat: EtatConnu | null, voulu: EtatBien | null): Axis {
+  if (!voulu || !etat) return { active: false, frac: 0, detail: '' }
+  const manque = ETATS_BIEN.indexOf(voulu) - ETATS_BIEN.indexOf(etat.etat)
+  return { active: true, frac: manque <= 0 ? 1 : manque === 1 ? 0.5 : 0, detail: etat.etat }
+}
+
+/** Off-market (lot C) : toujours évalué — un mandat porte son interrupteur, une annonce du marché est publique. */
+function scoreOffMarket(offMarket: boolean, voulu: boolean): Axis {
+  if (!voulu) return { active: false, frac: 0, detail: '' }
+  return { active: true, frac: offMarket ? 1 : 0, detail: offMarket ? 'Off-market' : 'Publié' }
+}
+
+/**
+ * Les trois critères du lot C (conception de la boucle, §4.1) : chambres, état, off-market. Un critère que la
+ * recherche ne pose pas, OU que le bien ne renseigne pas, est INACTIF : il sort du dénominateur — le score dit
+ * ce qu'il sait. ⛔ Jamais une 6ᵉ clé `reasons` (contrat figé, lu par l'atelier) : le fil explique ces trois
+ * critères sur les mêmes faits (`lignesCriteres`), confronté à cette fonction par `matching-fil-modele.spec.ts`.
+ */
+export function axesComplementaires(
+  listing: Record<string, unknown>, criteria: Record<string, unknown>, maintenant: number,
+): { chambres: Axis; etat: Axis; offMarket: Axis } {
+  const voulu = typeof criteria.condition_min === 'string' && (ETATS_MINIMUM as readonly string[]).includes(criteria.condition_min)
+    ? criteria.condition_min as EtatBien
+    : null
+  return {
+    chambres: scoreChambres(numOrNull(listing.bedrooms), numOrNull(criteria.bedrooms_min)),
+    etat: scoreEtat(etatDuBien(listing, new Date(maintenant).getUTCFullYear()), voulu),
+    offMarket: scoreOffMarket(listing.off_market === true, criteria.off_market_only === true),
+  }
 }
 
 // ─── utilitaires ─────────────────────────────────────────────────────────

@@ -74,7 +74,7 @@ const INTERNES_HORS_PREFIXE = [
  * de la console — ce sont des tables métier — mais elles vérifient la même
  * propriété, et pour une raison plus étroite : leur accès public légitime passe
  * TOUJOURS par une fonction SECURITY DEFINER (les quatre `*_visit_by_token`) ou
- * par une edge function en `service_role` (magic-link-*, buyer-reception-*). Ces
+ * par une edge function en `service_role` (magic-link-*). Ces
  * deux chemins s'exécutent sous une autre identité que `anon` et n'ont donc
  * besoin d'AUCUN droit de table pour `anon`.
  *
@@ -84,12 +84,14 @@ const INTERNES_HORS_PREFIXE = [
  * ce grant-là ; seule sa révocation le peut. D'où leur entrée ici : le garde-fou
  * empêche la récidive, qui viendrait sinon en silence des droits par défaut
  * reposés à la prochaine recréation de table.
+ *
+ * `buyer_reception_links` a quitté la liste avec sa table (20260921130000) : le matching
+ * reste chez l'agent, plus aucun lien ne part vers l'acheteur.
  */
 const TABLES_A_CAPACITE = [
   'visits',
   'kyc_magic_links',
   'kyc_magic_link_uploads',
-  'buyer_reception_links',
 ];
 
 const SURVEILLEES = [...INTERNES_HORS_PREFIXE, ...TABLES_A_CAPACITE];

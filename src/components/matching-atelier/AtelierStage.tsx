@@ -13,7 +13,6 @@ import AtlListing from './AtlListing'
 import AtlWhy from './AtlWhy'
 import AtlConfirm from './AtlConfirm'
 import AtlOverlayHost from './AtlOverlayHost'
-import AtlSendSheet from './AtlSendSheet'
 import AtlAnnonceVue from './AtlAnnonceVue'
 import AtlAcheteurMode from './AtlAcheteurMode'
 import { atlMatchQuery, atlMatchTab } from './constants'
@@ -85,9 +84,9 @@ export default function AtelierStage({
   const [history, setHistory] = useState<string[]>([])
   const [exiting, setExiting] = useState<{ id: string; dir: string } | null>(null)
   const [toast, setToast] = useState<AtelierToast | null>(null)
+  // Seule « J'ai relancé » passe par une confirmation : « Je l'ai proposé » n'envoie rien,
+  // la fenêtre d'annulation du toast lui suffit.
   const [confirmSend, setConfirmSend] = useState<{ matchId: string; relance?: boolean } | null>(null)
-  // Feuille d'envoi (lien privé réception) — remplace la confirmation email pour l'envoi.
-  const [sendSheet, setSendSheet] = useState<string | null>(null)
   const [annonce, setAnnonce] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -169,7 +168,7 @@ export default function AtelierStage({
     return (filtered[idx + 1] ?? rest[rest.length - 1] ?? rest[0]).matchId
   }, [filtered])
 
-  const triage = useCallback((matchId: string, kind: TriageKind, channel: 'email' | 'reception' = 'email') => {
+  const triage = useCallback((matchId: string, kind: TriageKind) => {
     if (exitTimer.current) return
     const b = buyers.find(x => x.matchId === matchId)
     if (!b) return
@@ -177,7 +176,7 @@ export default function AtelierStage({
     const ret = kind === 'later' ? atlReturnDate() : null
 
     const handle =
-      kind === 'sent' ? gestes.send(matchId, channel)
+      kind === 'sent' ? gestes.send(matchId)
       : kind === 'relance' ? gestes.relance(matchId)
       : kind === 'later' ? gestes.snooze(matchId)
       : kind === 'interested' ? gestes.react(matchId, 'interested')
@@ -207,10 +206,15 @@ export default function AtelierStage({
     }, 340)
   }, [buyers, nextAfter, gestes, showToast, t])
 
+  // « Je l'ai proposé » (E) : plus de feuille d'envoi (21.09.2026, rien ne part vers
+  // l'acheteur) — le triage part directement, annulable pendant le toast. Seulement pour un
+  // match À PROPOSER : sur un bien déjà proposé, E le réécrivait « proposé », avec un
+  // deuxième journal et une deuxième relance. L'exécuteur le refuse aussi ; ici, le geste
+  // ne s'offre même pas (bouton masqué, touche muette).
   const requestSend = useCallback((matchId: string) => {
-    if (exitTimer.current) return
-    setSendSheet(matchId)
-  }, [])
+    if (buyers.find(x => x.matchId === matchId)?.status !== 'to-send') return
+    triage(matchId, 'sent')
+  }, [buyers, triage])
 
   const requestRelance = useCallback((matchId: string) => {
     if (exitTimer.current) return
@@ -266,18 +270,19 @@ export default function AtelierStage({
       // `menuOpen` compte comme un overlay : son voile est plein écran mais laisse la
       // file montée derrière. Sans cette garde, une frappe destinée au menu (`x`, `p`,
       // une flèche) partait trier l'acheteur caché dessous, écriture Supabase comprise.
-      if (menuOpen || confirmSend || annonce || sendSheet) return
+      if (menuOpen || confirmSend || annonce) return
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
       // ←/→ NAVIGUENT (handoff atelier-a.jsx:957-958) : seules `e` et `x` agissent.
       // Auparavant ArrowLeft écrivait un triage « écarté » persisté — une touche de
       // déplacement ne doit pas produire d'écriture.
-      if (k === 'e') { e.preventDefault(); if (selected) requestSend(selected.matchId) }
+      if (k === 'e') { e.preventDefault(); if (selected && selected.status === 'to-send') requestSend(selected.matchId) }
       else if (k === 'x') { e.preventDefault(); if (selected) triage(selected.matchId, 'skipped') }
       else if (k === 'p') { e.preventDefault(); if (selected) triage(selected.matchId, 'later') }
       else if (k === 'r') { e.preventDefault(); if (selected && selected.status === 'no-reply') requestRelance(selected.matchId) }
       else if (k === 'i') { e.preventDefault(); if (selected && selected.status === 'no-reply') triage(selected.matchId, 'interested') }
+      else if (k === 'n') { e.preventDefault(); if (selected && selected.status === 'no-reply') triage(selected.matchId, 'rejected') }
       else if (k === 'v') { e.preventDefault(); if (selected && selected.status === 'engaged' && canVisit) gestes.visit(selected.matchId) }
       else if (k === 'j' || e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); move(1) }
       else if (k === 'k' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); move(-1) }
@@ -285,7 +290,7 @@ export default function AtelierStage({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pivotBuyer, ecranActif, selected, menuOpen, confirmSend, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
+  }, [pivotBuyer, ecranActif, selected, menuOpen, confirmSend, annonce, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
 
   // ── parking « Reportés » : session + base ───────────────────────────────
   const snoozedList: SnoozedEntry[] = useMemo(() => [
@@ -299,7 +304,6 @@ export default function AtelierStage({
   ], [history, processed, laterInfo, buyers])
 
   const confirmBuyer = confirmSend ? buyers.find(x => x.matchId === confirmSend.matchId) ?? null : null
-  const sendBuyer = sendSheet ? buyers.find(x => x.matchId === sendSheet) ?? null : null
 
   return (
     <div
@@ -396,10 +400,10 @@ export default function AtelierStage({
               onOpenListing={() => setAnnonce(true)}
             />
 
-            {/* Intéressé / Pas intéressé / Visite ne sont plus des boutons de la
-                colonne 3 (la maquette les en a retirés). Les gestes restent joignables :
-                `i` et `v` au clavier ci-dessus, et « pas intéressé » vient normalement
-                de l'acheteur lui-même, via sa page de réception. */}
+            {/* Visite n'est plus un bouton de la colonne 3 (la maquette l'en a
+                retiré) : `v` au clavier. Intéressé / Pas intéressé y reviennent pour
+                un bien proposé sans retour (aussi `i` / `n`) : la réponse de
+                l'acheteur est consignée par l'agent, rien ne lui est envoyé. */}
             <section className="atl-panel atl-enter d2" aria-label="Pourquoi ça matche">
               {selected ? (
                 <AtlWhy
@@ -409,6 +413,8 @@ export default function AtelierStage({
                   onSkip={() => triage(selected.matchId, 'skipped')}
                   onLater={() => triage(selected.matchId, 'later')}
                   onRelance={() => requestRelance(selected.matchId)}
+                  onInterested={() => triage(selected.matchId, 'interested')}
+                  onNotInterested={() => triage(selected.matchId, 'rejected')}
                   onPivot={() => onOpenBuyerPivot(selected.id)}
                   onStartKyc={() => onStartKyc(selected.id)}
                 />
@@ -427,7 +433,7 @@ export default function AtelierStage({
         )}
       </div>
 
-      {/* ── confirmation d'envoi / relance ── */}
+      {/* ── confirmation de « J'ai relancé » ── */}
       {confirmSend && confirmBuyer && pivot && (
         <AtlOverlayHost dark={dark}>
           <AtlConfirm
@@ -440,18 +446,6 @@ export default function AtelierStage({
               setConfirmSend(null)
               triage(confirmBuyer.matchId, rel ? 'relance' : 'sent')
             }}
-          />
-        </AtlOverlayHost>
-      )}
-
-      {/* ── feuille d'envoi (lien privé réception — WhatsApp / lien copié, zéro email) ── */}
-      {sendSheet && sendBuyer && pivot && (
-        <AtlOverlayHost dark={dark}>
-          <AtlSendSheet
-            b={sendBuyer}
-            L={pivot.listing}
-            onClose={() => setSendSheet(null)}
-            onSent={() => { const mid = sendSheet; setSendSheet(null); triage(mid, 'sent', 'reception') }}
           />
         </AtlOverlayHost>
       )}
@@ -473,7 +467,7 @@ export default function AtelierStage({
             L={pivot.listing}
             buyer={selected}
             onClose={() => setAnnonce(false)}
-            onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
+            onPropose={selected?.status === 'to-send' ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
           />
         </AtlOverlayHost>
       )}

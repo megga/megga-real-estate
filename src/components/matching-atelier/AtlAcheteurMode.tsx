@@ -150,16 +150,20 @@ function AtlWhyBien({ m, onSend, onSkip, onLater }: {
       </div>
 
       <div className="atl-triage">
-        <div className="btns" data-cols="3">
+        {/* Sans « Je l'ai proposé », les deux gestes restants se partagent la largeur. */}
+        <div className="btns" data-cols="3" style={m.status === 'to-send' ? undefined : { gridTemplateColumns: '1fr 1fr' }}>
           <button className="btn btn-ghost" onClick={onSkip}>
             <AtlIcon d="close" size={16} /> {t('atelier.dismiss')}
           </button>
           <button className="btn btn-ghost" onClick={onLater}>
             <AtlIcon d="clock" size={16} /> {t('atelier.later')}
           </button>
-          <button className="btn btn-primary" onClick={onSend}>
-            {t('common:actions.send')}
-          </button>
+          {/* Même règle que le mode annonce : « Je l'ai proposé » pour un bien À PROPOSER seulement. */}
+          {m.status === 'to-send' && (
+            <button className="btn btn-primary" onClick={onSend}>
+              {t('atelier.sendDossier')}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -242,10 +246,12 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
     }, 340)
   }, [pool, open, gestes, b.first, t])
 
+  // Un bien déjà proposé n'ouvre pas de seconde proposition (bouton masqué, `e` muette).
   const requestSend = useCallback((lid: string) => {
     if (exitTimer.current) return
+    if (pool.find(x => x.lid === lid)?.status !== 'to-send') return
     setConfirmLid(lid)
-  }, [])
+  }, [pool])
 
   const undo = useCallback(() => {
     setHistory(h => {
@@ -402,7 +408,7 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
         )}
       </section>
 
-      {/* ── confirmation d'envoi (réutilisée) ── */}
+      {/* ── confirmation de « Je l'ai proposé » (réutilisée) ── */}
       {confirmMatch && (
         <AtlConfirm
           b={b}

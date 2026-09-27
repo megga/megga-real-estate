@@ -252,10 +252,11 @@
       },
       "status": {
         "new": "Nuovo",
-        "sent": "Fascicolo inviato",
+        "sent": "Immobile proposto",
         "visitPlanned": "Visita pianificata",
         "interested": "Interessato"
       },
+      "proposeError": "La proposta non è stata registrata. Riprovi.",
       "why": {
         "fallback": "Nuovo match, primo contatto da avviare."
       },
@@ -318,8 +319,8 @@
         "toRefine": "da affinare"
       },
       "action": {
-        "addToFile": "Aggiungi al fascicolo di {{name}}",
-        "added": "Aggiunto al fascicolo di {{name}}",
+        "addToFile": "L'ho proposto a {{name}}",
+        "added": "Proposto a {{name}}",
         "openInMatching": "Apri in Matching"
       },
       "gallery": {
@@ -358,6 +359,7 @@
         "body": "Nessun contatto dormiente da ricontattare oggi. I tuoi follow-up appariranno qui non appena un contatto si raffredda."
       },
       "sendError": "Invio non riuscito, riprova o copia il messaggio.",
+      "sendErrorBien": "Non è partito nulla: questo messaggio contiene un immobile (link di annuncio o riferimento MG-…). Il matching resta a Lei: presenti l'immobile personalmente, poi registri «L'ho proposto» nel matching.",
       "draft": {
         "to": "A",
         "emailMissing": "(email mancante)",
@@ -420,7 +422,8 @@
       "freeWindow": "{{duration}} liberi · sessione solleciti",
       "tabs": {
         "deals": "Dossier",
-        "listings": "Annunci"
+        "listings": "Annunci",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} caldo",
       "hotCount_other": "{{count}} caldi",
@@ -453,16 +456,18 @@
         "markAll": "Segna tutto come visto",
         "count_one": "{{count}} segnale",
         "count_other": "{{count}} segnali",
-        "groupBuyers": "Riscontri acquirenti",
+        "groupBuyers": "Riscontri registrati",
         "groupReminders": "Promemoria",
-        "liked": "ha apprezzato {{subject}}",
-        "skipped": "ha scartato {{subject}}",
         "reminderDue": "dossier {{subject}} da riprendere",
         "ctaProposeVisit": "Proponi la visita",
         "ctaRecalibrate": "Ricalibra",
         "ctaResume": "Riprendi",
         "unknownContact": "Contatto",
-        "unknownProperty": "un immobile"
+        "unknownProperty": "un immobile",
+        "interesse": "interessato/a a {{subject}}",
+        "pasInteresse": "non interessato/a a {{subject}}",
+        "retourAttendu_one": "riscontro atteso su {{count}} immobile proposto",
+        "retourAttendu_other": "riscontro atteso su {{count}} immobili proposti"
       },
       "toast": {
         "allUpToDate": "Tutto aggiornato",
@@ -523,10 +528,37 @@
         "ctaKyc": "Apri KYC",
         "ctaSign": "Preparare",
         "ctaOffer": "Vedi l’offerta",
-        "ctaMatch": "Vedi i match",
         "ctaVisit": "Vedi la visita",
         "ctaSeller": "Apri",
         "ctaListing": "Vedi l’immobile"
+      },
+      "matching": {
+        "compte_one": "{{count}} azione",
+        "compte_other": "{{count}} azioni",
+        "retour_one": "Riscontro da registrare per {{prenom}} · {{count}} immobile",
+        "retour_other": "Riscontro da registrare per {{prenom}} · {{count}} immobili",
+        "prixPropose": "Prezzo ribassato di {{montant}} sull'immobile proposto a {{prenom}}",
+        "prixRefuse": "Prezzo ribassato di {{montant}} sull'immobile rifiutato da {{prenom}}",
+        "mandat_one": "Nuovo mandato · {{count}} acquirente compatibile",
+        "mandat_other": "Nuovo mandato · {{count}} acquirenti compatibili",
+        "marcheNouveau": "Nuovo immobile a {{ville}} per {{prenom}}",
+        "marcheNouveauSansVille": "Nuovo immobile per {{prenom}}",
+        "marcheBaisse": "Ribasso a {{ville}} per {{prenom}}",
+        "marcheBaisseSansVille": "Ribasso per {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nuovo immobile",
+        "nouveaux_other": "{{count}} nuovi immobili",
+        "baisses_one": "{{count}} ribasso",
+        "baisses_other": "{{count}} ribassi",
+        "ctaRetour": "Registra",
+        "ctaPrix": "Apri",
+        "ctaMandat": "Vedi chi",
+        "ctaMarche": "Vedi gli immobili",
+        "voirTout": "Vedi tutto nel Matching",
+        "voirToutCompte_one": "Vedi l'azione nel Matching",
+        "voirToutCompte_other": "Vedi tutte le {{count}} azioni nel Matching",
+        "vide": "Nessuna azione di matching oggi.",
+        "erreur": "Azioni di matching non disponibili: caricamento non riuscito."
       }
     }
   },

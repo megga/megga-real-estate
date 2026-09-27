@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
+import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import type { WizardData } from '@/components/crm-wizard/tokens'
 import { VxAvatar } from '@/components/crm-dossiers/vitrine/vitrineKit'
 import { useContacts } from '@/hooks/useContacts'
@@ -153,17 +154,32 @@ export function EtapeMandat({ data, set, dark, sp }: { data: WizardData; set: (p
         </NbBloc>
 
         <NbBloc sp={sp} titre={t('nouveauBien.mandat.diffusion')}>
-          <div className="nb-grille" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-            {(['publier', 'garder'] as const).map((k) => (
-              <div key={k} style={{ display: 'flex', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)', border: `1px solid ${sp.cardBorder}`, background: sp.cardBg }}>
-                <MEIcon name={k === 'publier' ? 'globe' : 'lock'} size={18} color={sp.sub} />
-                <div>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t(`nouveauBien.mandat.${k}Titre`)}</div>
-                  {/* « Réseau Off-market » se suffit (Julien, 16.09.2026) : seule la publication s'explique. */}
-                  {k === 'publier' && <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub, lineHeight: 1.5 }}>{t('nouveauBien.mandat.publierAide')}</div>}
-                </div>
-              </div>
-            ))}
+          {/* ⚠ UN CHOIX, plus deux étiquettes (lot C, 22.09.2026) : « Réseau Off-market » met le bien en service,
+              proposé aux seuls acheteurs de l'agence (`off_market`). Il en faisait un BROUILLON, que le moteur ne
+              note jamais — le bien n'était proposé à personne. Deux boutons à bascule (`aria-pressed`, comme
+              `NbPuce`), pas un `radiogroup` : il promet la navigation aux flèches, qui n'est pas câblée. */}
+          <div role="group" aria-label={t('nouveauBien.mandat.diffusion')} className="nb-grille" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {(['publier', 'garder'] as const).map((k) => {
+              const choisi = (data.visibility === 'network') === (k === 'garder')
+              // L'élément ACTIF porte l'accent (CLAUDE.md §3), comme `NbPuce` ; sur sombre l'accent brut tombe à
+              // 3,07:1 sur la carte, sous le seuil d'un filet et d'une icône : son barreau clair.
+              const accent = sp.isDark ? MXC_SYSTEM.blue300 : sp.accent
+              return (
+                <button key={k} type="button" aria-pressed={choisi} className={choisi ? undefined : 'nb-puce'}
+                  onClick={() => set({ visibility: k === 'garder' ? 'network' : 'public' })} style={{
+                    display: 'flex', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl)', borderRadius: 'var(--crm-radius-xl)',
+                    textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', background: sp.cardBg,
+                    border: `1px solid ${choisi ? accent : sp.cardBorder}`, boxShadow: choisi ? `inset 0 0 0 1px ${accent}` : 'none',
+                  }}>
+                  <MEIcon name={k === 'publier' ? 'globe' : 'lock'} size={18} color={choisi ? accent : sp.sub} />
+                  <span>
+                    <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t(`nouveauBien.mandat.${k}Titre`)}</span>
+                    {/* « Réseau Off-market » se suffit (Julien, 16.09.2026) : seule la publication s'explique. */}
+                    {k === 'publier' && <span style={{ display: 'block', marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub, lineHeight: 1.5 }}>{t('nouveauBien.mandat.publierAide')}</span>}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </NbBloc>
       </div>

@@ -25,19 +25,14 @@ interface DefaultTemplate {
   body: string
 }
 
+// ⛔ Types de rappel qui ne s'écrivent JAMAIS au client. Le matching reste chez l'agent
+// (décision du 21.09.2026) : la relance d'un bien proposé est un rappel POUR L'AGENT, et son
+// gabarit « Suite à notre sélection de biens » est retiré. Le type est REFUSÉ plutôt que de
+// retomber sur le gabarit `custom` : automation-engine ne le transmet plus, mais cette fonction
+// ne doit pas l'envoyer si un autre appelant le lui demandait.
+const TYPES_SANS_ENVOI_CLIENT: ReadonlySet<string> = new Set(['follow_up_sent_property'])
+
 const DEFAULT_TEMPLATES: Record<string, DefaultTemplate> = {
-  follow_up_sent_property: {
-    subject: 'Suite à notre sélection de biens',
-    body: `Bonjour {{contact.first_name}},
-
-Je vous ai envoyé récemment une sélection de biens qui correspond à vos critères de recherche.
-
-Avez-vous eu l'occasion de la consulter ? Je reste à votre disposition pour organiser des visites ou répondre à vos questions.
-
-Cordialement,
-{{agent.full_name}}
-{{agency.name}}`,
-  },
   post_visit_feedback: {
     subject: 'Votre avis suite à la visite',
     body: `Bonjour {{contact.first_name}},
@@ -162,6 +157,13 @@ serve(async (req) => {
 
     if (remErr || !reminder) {
       throw new Error(`Reminder not found: ${reminder_id}`)
+    }
+
+    if (TYPES_SANS_ENVOI_CLIENT.has(reminder.type)) {
+      return new Response(JSON.stringify({ error: 'reminder_type_not_sendable' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Normalize joins (may be array)

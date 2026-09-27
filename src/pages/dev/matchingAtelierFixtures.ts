@@ -146,7 +146,7 @@ export const ATELIER_BUYERS: AtelierBuyer[] = [
   buyer({
     id: 'c-022', first: 'Laura', last: 'Conti', av: '#e0795f', type: 'Acheteuse',
     budget: '0,8–1,15M', zone: 'Carouge', kyc: 'verified', status: 'no-reply',
-    engage: 'Envoyé · sans retour', score: 76,
+    engage: 'Proposé · sans retour', score: 76,
     ai: 'Dossier envoyé il y a 6 jours, aucune ouverture. Tenter un autre canal (téléphone).',
     reasons: [
       r('Quartier favori', 'Carouge ciblé', 20, true),
@@ -174,7 +174,7 @@ export const ATELIER_BUYERS: AtelierBuyer[] = [
   buyer({
     id: 'c-025', first: 'Marco', last: 'Felli', av: '#679cff', type: 'Acheteur',
     budget: '1–1,3M', zone: 'Genève', kyc: 'stale', status: 'no-reply',
-    engage: 'Envoyé · sans retour', score: 64,
+    engage: 'Proposé · sans retour', score: 64,
     ai: 'Vérification KYC expirée. À re-screener avant de relancer activement.',
     reasons: [
       r('Budget', '1,1M dans 1–1,3M', 20, true),

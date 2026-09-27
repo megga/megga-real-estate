@@ -3,6 +3,13 @@
      Les 3 premiers templates (megga_followup / megga_availability / megga_new_listings)
      ont été soumis à Meta le même jour et ne sont pas rediscutés ici. -->
 
+> ⚠ **21.09.2026 : `new_listings` est RETIRÉ du registre** (`_shared/whatsapp-templates.ts`), de sa
+> branche de finalité dans `whatsapp-webhook` et du plan de soumission. Décision de Julien : le
+> matching reste chez l'agent, le CRM n'envoie plus de biens au client (conception
+> `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md`). Le modèle
+> `megga_new_listings` existe encore côté Meta : le supprimer dans le Business Manager est un geste
+> de Julien. Les mentions de `new_listings` plus bas décrivent l'état du 14.08.2026.
+
 # WhatsApp — catalogue de templates : retenus, écartés, et ce qui bloque
 
 **Verdict en une ligne :** 6 retenus sur 9, **aucun n'était correct tel que rédigé** (les 6 sont des corps réécrits), 3 écartés, **0 activable aujourd'hui**, et **rien n'est soumissible avant d'avoir tranché la convention de nommage**. Plusieurs preuves du catalogue initial étaient fausses ; elles sont corrigées au fil du texte.
@@ -58,7 +65,7 @@ Les priorités du catalogue initial ne survivent pas à la mesure : `visits` com
 
 **Correction de preuve, et elle est lourde :** `visits` compte **0 ligne en production** (contacts 15, properties 6, whatsapp_messages 172). Le cron tourne 24×/jour sur une table vide et `reminder_sent` n'a **jamais** été posé. Le P1 revendiqué n'est pas tenable, et `megga_availability` — déjà approuvé — couvre le seul cas qui existe réellement aujourd'hui.
 
-**Trois verrous techniques avant activation :** (1) la requête cron ne SELECT que `FROM visits`, sans jointure `contacts` : aucun téléphone n'est atteignable, et `visits.buyer_phone` est nullable sans normalisation E.164 ; (2) `execScheduleVisit` (`whatsapp-actions.ts:448-455`), chemin de création principal du copilote, n'insère **ni** `buyer_email` **ni** `buyer_phone` — ces visites sont structurellement invisibles au cron sur les deux canaux ; (3) `reminder_sent` est un booléen unique déjà partagé par les deux crons live : un second canal brûlerait le drapeau du premier. Il faut **un drapeau par canal**.
+**Trois verrous techniques avant activation :** (1) la requête cron ne SELECT que `FROM visits`, sans jointure `contacts` : aucun téléphone n'est atteignable, et `visits.buyer_phone` est nullable sans normalisation E.164 ; (2) `wa_matching_visite`, chemin de création principal du copilote depuis le lot D2 (exécuteur `execScheduleVisit`, `_shared/whatsapp-matching-outils.ts`), n'insère **ni** `buyer_email` **ni** `buyer_phone` — ces visites sont structurellement invisibles au cron sur les deux canaux, et naissent de toute façon avec `reminder_sent = true` PAR CHOIX (rien ne part au client depuis le copilote) ; (3) `reminder_sent` est un booléen unique déjà partagé par les deux crons live : un second canal brûlerait le drapeau du premier. Il faut **un drapeau par canal**.
 
 ### P2 — `visit_change` · UTILITY · client
 

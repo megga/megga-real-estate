@@ -130,6 +130,8 @@ export interface CreatePropertyInput {
   published_at?: string
   /** Agence partenaire en co-mandat ; NULL = l'agence du compte. */
   partner_agency?: string | null
+  /** Off-market (lot C) : l'interrupteur de l'agent ; le moteur renote le bien quand il bascule. */
+  off_market?: boolean
 }
 
 /** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */

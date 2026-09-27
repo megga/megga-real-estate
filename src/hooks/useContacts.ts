@@ -22,6 +22,7 @@
 // guard isn't satisfied. Cache Helpers skips the fetch and returns
 // `{ data: undefined, isLoading: false }`.
 
+import { useEffect, useState } from 'react'
 import {
   useQuery,
   useInsertMutation,
@@ -33,6 +34,7 @@ import { INTERCOM_EVENTS } from '@/lib/intercom'
 import { syncIntercomMilestones } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
+import type { RoleContact } from '@/lib/contactRoles'
 import type { ContactScore } from '@/lib/constants'
 
 interface CreateContactInput {
@@ -41,29 +43,94 @@ interface CreateContactInput {
   /** NULL quand le contact n'a qu'un téléphone (la fiche express n'exige plus l'e-mail). */
   email: string | null
   phone?: string
-  type: ContactType
+  /**
+   * Étape 3 : les rôles. `type` est dérivé par le déclencheur, on ne l'écrit plus ici.
+   * Absent ou vide = un lead.
+   */
+  roles?: RoleContact[]
+  /**
+   * ⚠ L'ANCIENNE voie, gardée pour les appelants qui ne connaissent qu'un type — le
+   * pipeline, la visite, le wizard de publication, le mobile : le déclencheur AJOUTE le
+   * rôle correspondant sans effacer les autres. Ne jamais passer les deux à la fois :
+   * `roles` l'emporterait en silence.
+   */
+  type?: ContactType
 }
 
 interface ContactFilters {
-  type?: ContactType
+  /** Étape 3 : « porte ce rôle », et non plus le rangement exclusif par type. */
+  role?: RoleContact
+  /**
+   * Étape 3 : les rôles que la RECHERCHE désigne — « avocat » tapé dans ⌘K.
+   *
+   * ⚠ Rien à voir avec `role`, qui RESTREINT : ceux-ci ÉLARGISSENT le `or` du texte (cf.
+   * plus bas), et n'ont d'effet qu'avec `search`. Ils se dérivent des libellés traduits
+   * côté écran (`rolesDepuisTexte`), ce hook ne connaissant pas i18n.
+   */
+  roles?: RoleContact[]
   score?: ContactScore
   search?: string
 }
 
-/** Liste des contacts de l'agence, filtrable par type/score/recherche. */
+/**
+ * ⛔ VERROU DE DÉPLOIEMENT — pas un drapeau de fonctionnalité. L'écran part AVANT les
+ * migrations : `deploy-app.yml` n'attend pas `deploy.yml` (76 s d'écart MESURÉES le
+ * 15.09.2026, CLAUDE.md §8). Dans cette fenêtre `contacts.roles` n'existe pas encore, et
+ * PostgREST rend `42703` sur TOUTE la requête — sondé le 22.09.2026 : un `roles.ov.{…}`
+ * dans un `or` rend « column contacts.roles does not exist », donc la recherche ⌘K tombe
+ * ENTIÈRE, pas seulement sa part de rôle. Une fois levé, la requête repart sans son terme
+ * de rôle : la recherche par NOM continue, seule celle par rôle est muette.
+ *
+ * Au niveau du MODULE : une colonne ne réapparaît pas en cours de page, et un verrou par
+ * composant ferait repayer le 42703 à chaque montage.
+ */
+let rolesColonneAbsente = false
+
+/**
+ * `42703` = `undefined_column`.
+ *
+ * ⚠ NE TOLÈRE QUE L'ABSENCE, et seulement celle de `roles` — même règle que
+ * `useMatchingFil` pour une RPC absente. Un échec passager doit remonter : avalé, il
+ * rendrait une liste plausible et fausse.
+ */
+function estColonneRolesAbsente(e: unknown): boolean {
+  if (!e || typeof e !== 'object') return false
+  const { code, message } = e as { code?: unknown; message?: unknown }
+  return code === '42703' && typeof message === 'string' && message.includes('roles')
+}
+
+/** Liste des contacts de l'agence, filtrable par rôle/score/recherche. */
 export function useContacts(filters?: ContactFilters) {
   const { user } = useAuth()
+  // Un re-rendu quand le verrou bascule — sans quoi la requête dégradée ne partirait pas.
+  // Cache Helpers dérivant sa clé de la FORME de la requête, elle repart comme une neuve.
+  const [sansRoles, setSansRoles] = useState(rolesColonneAbsente)
 
   // Build the query — Cache Helpers derives the query key from its shape.
   // SELECT * kept intentionally — Contact type requires all columns and
   // Supabase generated types don't support partial column inference well.
   // RLS agency-scoping ensures only authorized data is returned.
   let baseQuery = supabase.from('contacts').select('*')
-  if (filters?.type) baseQuery = baseQuery.eq('type', filters.type)
+  // `overlaps` et non `eq` : un contact porte plusieurs rôles, il appartient à chacun.
+  //
+  // ⚖ ARBITRAGE, sous le verrou : la colonne absente, on RETIRE le filtre et on journalise,
+  // au lieu de rendre zéro contact. Une liste trop large est VISIBLEMENT fausse — le
+  // sélecteur dit « Avocat », l'écran montre tout le monde, on recharge — là où une liste
+  // vide est indistinguable de « cette agence n'a pas d'avocat », donc CRUE. C'est le mode
+  // d'échec muet que ce dépôt paie le plus cher. ⚠ Aucun appelant ne passe `role`
+  // aujourd'hui (seul `CrmSearch` filtre, et par `roles`) : la règle vaut pour le premier
+  // qui le fera.
+  if (filters?.role && !sansRoles) baseQuery = baseQuery.overlaps('roles', [filters.role])
   if (filters?.score) baseQuery = baseQuery.eq('score', filters.score)
   if (filters?.search) {
+    // Étape 3 : le texte OU un rôle désigné par ce texte. `roles.ov.{a,b}` est la forme
+    // PostgREST de « les tableaux se chevauchent » ; les accolades ne se citent pas.
+    // ⛔ Dans le MÊME `or` que le texte, et non un `.overlaps()` à côté : deux filtres se
+    // combinent en ET, et taper « avocat » ne rendrait alors que les avocats NOMMÉS Avocat.
+    const rolesCherches = sansRoles ? [] : (filters.roles ?? [])
+    const parRole = rolesCherches.length ? `,roles.ov.{${rolesCherches.join(',')}}` : ''
     baseQuery = baseQuery.or(
-      `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`
+      `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%${parRole}`
     )
   }
   // Cache Helpers `useQuery` doesn't accept `null` — gate via `enabled`
@@ -74,6 +141,17 @@ export function useContacts(filters?: ContactFilters) {
     { enabled: !!user }
   )
 
+  // Le rejeu : UNE fois, et seulement sur l'absence de la colonne (cf. `rolesColonneAbsente`).
+  useEffect(() => {
+    if (rolesColonneAbsente || !estColonneRolesAbsente(contactsQuery.error)) return
+    rolesColonneAbsente = true
+    console.error(
+      '[useContacts] colonne `roles` absente : migration pas encore appliquée — la recherche '
+      + 'et le filtre par rôle sont muets jusqu\'à son passage, la recherche par nom continue.',
+      contactsQuery.error,
+    )
+    setSansRoles(true)
+  }, [contactsQuery.error])
 
   return {
     contacts: (contactsQuery.data ?? []) as unknown as Contact[],
@@ -135,7 +213,10 @@ export function useCreateContact() {
           last_name: input.lastName,
           email: input.email?.trim() || null,
           phone: input.phone ?? null,
-          type: input.type,
+          // L'un OU l'autre — jamais les deux : `roles` fait foi, `type` se dérive. Une clé
+          // absente laisse le déclencheur remplir l'autre sens (cf. `CreateContactInput`).
+          ...(input.roles ? { roles: input.roles } : {}),
+          ...(input.type ? { type: input.type } : {}),
           source: input.source ?? 'manual',
           score: input.score ?? 'cold',
           tags: input.tags ?? [],

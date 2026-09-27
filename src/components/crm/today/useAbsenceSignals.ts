@@ -10,54 +10,32 @@
 // ⛔ Pas d'accusé de lecture en base : « Tout marquer comme vu » avance la
 // présence, ce qui vide le fil par construction. L'écartement d'UNE ligne reste
 // local à la session, exactement comme dans la maquette.
+//
+// ⛔ LOT D1 : une relance de PROPOSITION (`follow_up_sent_property`) n'est pas un rappel qu'on « reprend » : elle se
+// clôt quand ses réponses sont consignées (`fermer_relance_proposition`). La passer à `done` d'ici laissait ses biens
+// `sent` sans relance : « En attente » gardait la ligne — elle vit tant qu'un bien est `sent` — mais perdait son
+// échéance (conception §2 et §5.3). `retoursDe` la désigne : le bureau ouvre « Retours de … » dans le fil, le mobile
+// ouvre la fiche du contact, et aucun des deux n'écrit.
+//
+// La traduction d'une ligne en signal vit dans `absenceSignaux.ts`, PURE, éprouvée seule.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { HlSignalData } from './dataH'
+import { CLE_FIL } from '@/components/matching-fil/filModele'
+import { versSignalAbsence, type AbsenceRow, type AbsenceSignal } from './absenceSignaux'
+
+// Ré-exporté : les écrans l'importent d'ici, avec le hook.
+export type { AbsenceSignal } from './absenceSignaux'
 
 /** Fenêtre de découverte à la toute première session (aucune ligne de présence). */
 const FIRST_SESSION_HOURS = 72
 
-/** Palette d'avatars du prototype — déterministe sur l'identifiant du contact. */
-const AV_PALETTE = ['#5b6cff', '#9b7cf0', '#39B7C9', '#E08A45', '#34C796', '#8B5CF6', '#2370ff', '#c0566b']
-
-function avatarColor(seed: string): string {
-  let h = 0
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0
-  return AV_PALETTE[Math.abs(h) % AV_PALETTE.length]
-}
-
-function initialsOf(first: string | null, last: string | null): string {
-  return `${first?.[0] ?? ''}${last?.[0] ?? ''}`.toUpperCase() || '??'
-}
-
-interface AbsenceRow {
-  id: string
-  kind: 'like' | 'skip' | 'reminder'
-  contact_id: string | null
-  first_name: string | null
-  last_name: string | null
-  subject: string | null
-  motif: string | null
-  occurred_at: string
-  late: boolean
-  ref_id: string
-}
-
 interface AbsencePayload {
   since: string | null
   signals: AbsenceRow[]
-}
-
-export interface AbsenceSignal extends HlSignalData {
-  /** Cible de deep-link du CTA, et sa référence réelle. */
-  route: string
-  navRef?: string
-  /** Identifiant de la LIGNE d'origine (rappel ou match) — cible du geste. */
-  refId: string
 }
 
 /** Groupe d'affichage, avec son libellé déjà traduit. */
@@ -77,7 +55,10 @@ export interface UseAbsenceSignalsReturn {
   isError: boolean
   /** Avance la présence : vide le fil de façon durable. */
   markAllSeen: () => Promise<void>
-  /** « Reprendre » : marque le rappel traité. Rend `false` si l'écriture échoue. */
+  /**
+   * « Reprendre » : marque le rappel traité. Rend `false` si l'écriture échoue — et d'emblée, SANS RIEN ÉCRIRE, pour une
+   * relance de PROPOSITION (`retoursDe`) : elle se clôt quand ses réponses sont consignées (lot D1).
+   */
   resumeReminder: (signal: AbsenceSignal) => Promise<boolean>
 }
 
@@ -90,7 +71,11 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
   const { data, isLoading, isError, dataUpdatedAt } = useQuery({
-    queryKey: ['today-absence', profile?.id],
+    // ⚠ Sous le préfixe du fil (`CLE_FIL`, lot D1), comme `useMatchingDuJour` : « Reprendre » ouvre « Retours de … »
+    // dans le fil, et la relance se clôt quand les réponses y sont consignées. Chaque geste du fil invalide
+    // `[CLE_FIL]` ; sous une clé à part, « Pendant ton absence » montrait encore la relance close au retour, le temps
+    // du `staleTime`. Les deux invalidations d'ici portent la même clé.
+    queryKey: [CLE_FIL, 'absence', profile?.id],
     queryFn: async (): Promise<AbsencePayload> => {
       const { data: payload, error } = await supabase.rpc('today_absence', { p_fallback_hours: FIRST_SESSION_HOURS })
       if (error) throw error
@@ -121,7 +106,7 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
   const markAllSeen = useCallback(async () => {
     await supabase.rpc('presence_touch')
     setDismissed(new Set())
-    await queryClient.invalidateQueries({ queryKey: ['today-absence', profile?.id] })
+    await queryClient.invalidateQueries({ queryKey: [CLE_FIL, 'absence', profile?.id] })
   }, [queryClient, profile?.id])
 
   // ─── Geste « Reprendre » (Lot 2) ─────────────────────────────────────────
@@ -129,8 +114,15 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
   // UPDATE agence), et la forme canonique est celle de `useReminders.markAsDone`
   // — `status='done'` + `completed_at`. Vérifié avant de l'employer : la table
   // n'a AUCUN trigger, et la seule fonction qui lit `reminders`+`done` est
-  // `contact_next_action`, en LECTURE. Marquer traité n'a donc pas d'effet caché.
+  // `contact_next_action`, en LECTURE.
+  // ⛔ Marquer traité a pourtant un effet sur une relance de PROPOSITION (lot D1) : le fil ne lit que les relances
+  // OUVERTES (`useMatchingFil`), et « En attente » en tire l'échéance de l'acheteur. La clore d'ici la lui retirait
+  // sans qu'aucune réponse soit consignée — d'où la garde en tête du geste.
   const resumeReminder = useCallback(async (signal: AbsenceSignal): Promise<boolean> => {
+    // ⛔ Une relance de PROPOSITION se clôt quand ses réponses sont consignées (`fermer_relance_proposition`), jamais
+    // d'ici. Les écrans la gardent déjà (le bureau ouvre « Retours de … », le mobile la fiche) : cette garde double la
+    // leur, pour qu'un nouvel appelant ne puisse pas la clore sans réponse.
+    if (signal.retoursDe) return false
     const { error } = await supabase
       .from('reminders')
       .update({ status: 'done', completed_at: new Date().toISOString() })
@@ -159,7 +151,7 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
 
     // Le fil ET la journée relisent : le rappel disparaît des deux.
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['today-absence', profile?.id] }),
+      queryClient.invalidateQueries({ queryKey: [CLE_FIL, 'absence', profile?.id] }),
       queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] }),
     ])
     return true
@@ -172,56 +164,8 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
     const timeOnly = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' })
     const dayAndTime = new Intl.DateTimeFormat(i18n.language, { weekday: 'short', hour: '2-digit', minute: '2-digit' })
 
-    return rows.filter((r) => !dismissed.has(r.id)).map((r) => {
-      const first = r.first_name?.trim() || ''
-      const who = [first, r.last_name?.trim() || ''].filter(Boolean).join(' ') || t('today.h.absence.unknownContact')
-      const subject = r.subject?.trim() || t('today.h.absence.unknownProperty')
-      const when = new Date(r.occurred_at)
-      // Référence de temps = l'instant du FETCH, pas l'horloge lue au rendu :
-      // lire l'heure pendant le rendu est impur (deux rendus, deux résultats).
-      // `dataUpdatedAt` est stable entre deux refetch et décrit exactement ce
-      // que le libellé prétend décrire : la donnée telle qu'elle a été reçue.
-      const daysAgo = Math.round((when.getTime() - dataUpdatedAt) / 86_400_000)
-
-      // Moins de 24 h → l'heure ; hier → « hier 21:47 » ; au-delà → jour + heure.
-      const meta = daysAgo === 0
-        ? timeOnly.format(when)
-        : daysAgo === -1
-          ? `${relative.format(-1, 'day')} ${timeOnly.format(when)}`
-          : dayAndTime.format(when)
-
-      if (r.kind === 'like') {
-        return {
-          id: r.id, type: 'like' as const, who, initials: initialsOf(r.first_name, r.last_name),
-          av: avatarColor(r.contact_id || r.id),
-          text: t('today.h.absence.liked', { subject }),
-          meta, late: false,
-          cta: t('today.h.absence.ctaProposeVisit'),
-          route: 'contact-detail', navRef: r.contact_id ?? undefined, refId: r.ref_id,
-        }
-      }
-      if (r.kind === 'skip') {
-        return {
-          id: r.id, type: 'skip' as const, who, initials: initialsOf(r.first_name, r.last_name),
-          av: avatarColor(r.contact_id || r.id),
-          text: t('today.h.absence.skipped', { subject }),
-          // Le motif d'écartement est la donnée la plus utile du signal : il dit
-          // POURQUOI recalibrer. On le montre à côté de l'horodatage.
-          meta: r.motif ? `${meta} · « ${r.motif} »` : meta,
-          late: false,
-          cta: t('today.h.absence.ctaRecalibrate'),
-          route: 'contact-detail', navRef: r.contact_id ?? undefined, refId: r.ref_id,
-        }
-      }
-      return {
-        id: r.id, type: 'rappel' as const, who, initials: initialsOf(r.first_name, r.last_name),
-        av: avatarColor(r.contact_id || r.id),
-        text: t('today.h.absence.reminderDue', { subject }),
-        meta, late: r.late,
-        cta: t('today.h.absence.ctaResume'),
-        route: 'contact-detail', navRef: r.contact_id ?? undefined, refId: r.ref_id,
-      }
-    })
+    return rows.filter((r) => !dismissed.has(r.id))
+      .map((r) => versSignalAbsence(r, { t, relative, timeOnly, dayAndTime, dataUpdatedAt }))
   }, [data, dismissed, t, i18n.language, dataUpdatedAt])
 
   // Groupés par nature, comme la maquette. Un groupe vide n'apparaît pas — c'est

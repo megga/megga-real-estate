@@ -5,6 +5,8 @@
 //
 // Ce fichier est le CONTENEUR : données réelles (useAtelierMatching), gestes
 // Supabase différés (undo 5 s avant toute écriture), deep-links et navigation.
+// ⛔ Aucun geste n'écrit à l'acheteur (21.09.2026) : « Je l'ai proposé » et
+// « J'ai relancé » consignent ce que l'agent a fait par ses propres moyens.
 // La présentation + machine d'état vivent dans AtelierStage (réutilisé par la
 // démo /dev/matching-atelier avec les mocks du handoff).
 //
@@ -22,8 +24,8 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   execDismiss,
   execReact,
+  execProposer,
   execRelance,
-  execSendDossier,
   execSnooze,
   execWake,
   useAtelierMatching,
@@ -86,10 +88,8 @@ export default function MatchingAtelierPage(
     return {
       agencyId: profile.agency_id,
       userId: profile.id ?? user?.id ?? '',
-      agentName: profile.full_name ?? t('atelier.defaultAgentName'),
-      agentPhone: profile.phone ?? null,
     }
-  }, [profile, user, t])
+  }, [profile, user])
 
   // matchId → (acheteur, annonce) — couvre les deux modes (les pivots
   // regroupent TOUS les matches actifs de l'agence)
@@ -103,15 +103,16 @@ export default function MatchingAtelierPage(
   const showError = useCallback(() => setErrorKey(k => k + 1), [])
 
   const gestes: AtelierGestes = useMemo(() => ({
-    send: (matchId, channel) => registry.defer(async () => {
+    send: matchId => registry.defer(async () => {
       const e = matchIndex.get(matchId)
       if (!e || !ctx) return null
-      return execSendDossier(ctx, e.buyer, e.listing, channel)
+      return execProposer(ctx, e.buyer, e.listing)
     }, { onSettled: refresh, onError: showError }),
     relance: matchId => registry.defer(async () => {
       const e = matchIndex.get(matchId)
       if (!e || !ctx) return null
-      return execRelance(ctx, e.buyer, e.listing)
+      await execRelance(ctx, e.buyer, e.listing)
+      return null
     }, { onSettled: refresh, onError: showError }),
     snooze: matchId => registry.defer(async () => {
       const e = matchIndex.get(matchId)
@@ -121,8 +122,8 @@ export default function MatchingAtelierPage(
     }, { onSettled: refresh, onError: showError }),
     dismiss: matchId => registry.defer(async () => {
       const e = matchIndex.get(matchId)
-      if (!e) return null
-      await execDismiss(e.buyer)
+      if (!e || !ctx) return null
+      await execDismiss(ctx, e.buyer)
       return null
     }, { onSettled: refresh, onError: showError }),
     react: (matchId, reaction) => registry.defer(async () => {

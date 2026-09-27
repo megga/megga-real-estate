@@ -11,8 +11,8 @@ import { useAuth } from '@/hooks/useAuth'
 import {
   execDismiss,
   execReact,
+  execProposer,
   execRelance,
-  execSendDossier,
   execSnooze,
   execWake,
   useAtelierMatching,
@@ -30,7 +30,7 @@ import CrmActionMenu from '../primitives/CrmActionMenu'
 import CrmConfirmDestructive from '../primitives/CrmConfirmDestructive'
 import MmBuyerCard from './MmBuyerCard'
 import MmFocus from './MmFocus'
-import MmSendModal from './MmSendModal'
+import MmProposeModal from './MmProposeModal'
 import MmMatchingSettings from './MmMatchingSettings'
 import MmToast, { type MmToastState } from './MmToast'
 import {
@@ -54,8 +54,8 @@ const TOAST_MS = 4200 // < UNDO_WINDOW_MS (4500) — l'undo reste cliquable jusq
  * les gestes ciblent le matchId du BIEN concerné (un acheteur = N matchId).
  * KYC non-bloquant. Seeds derrière `demo` (harnais /dev/mobile, no-auth).
  *
- * v1 : liste↔focus + envoyer-par-bien (HITL réel) + reporter/écarter + scan +
- * réglages. Différés (cf. spec §6) : fiche annonce, nouvelle recherche, barre
+ * v1 : liste↔focus + « Je l'ai proposé » par bien (confirmé, rien n'est envoyé à
+ * l'acheteur depuis le 21.09.2026) + reporter/écarter + scan + réglages. Différés (cf. spec §6) : fiche annonce, nouvelle recherche, barre
  * dossier multi-bien, relance par bien, section « Reportés » + réactivation.
  */
 export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
@@ -76,10 +76,8 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
     return {
       agencyId: profile.agency_id,
       userId: profile.id ?? user?.id ?? '',
-      agentName: profile.full_name ?? t('atelier.defaultAgentName'),
-      agentPhone: profile.phone ?? null,
     }
-  }, [profile, user, t])
+  }, [profile, user])
 
   // matchId → (acheteur, annonce) — couvre tous les matches actifs de l'agence
   const matchIndex = useMemo(() => {
@@ -87,44 +85,6 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
     for (const g of pivots) for (const b of g.buyers) map.set(b.matchId, { buyer: b, listing: g.listing })
     return map
   }, [pivots])
-
-  const gestes: AtelierGestes = useMemo(() => ({
-    send: (matchId) => registry.defer(async () => {
-      const e = matchIndex.get(matchId)
-      if (!e || !ctx) return null
-      return execSendDossier(ctx, e.buyer, e.listing)
-    }, { onSettled: refresh }),
-    relance: (matchId) => registry.defer(async () => {
-      const e = matchIndex.get(matchId)
-      if (!e || !ctx) return null
-      return execRelance(ctx, e.buyer, e.listing)
-    }, { onSettled: refresh }),
-    snooze: (matchId) => registry.defer(async () => {
-      const e = matchIndex.get(matchId)
-      if (!e || !ctx) return null
-      await execSnooze(ctx, e.buyer)
-      return null
-    }, { onSettled: refresh }),
-    dismiss: (matchId) => registry.defer(async () => {
-      const e = matchIndex.get(matchId)
-      if (!e) return null
-      await execDismiss(e.buyer)
-      return null
-    }, { onSettled: refresh }),
-    react: (matchId, reaction) => registry.defer(async () => {
-      const e = matchIndex.get(matchId)
-      if (!e) return null
-      await execReact(e.buyer, reaction)
-      return null
-    }, { onSettled: refresh }),
-    wake: (matchId) => { void execWake(matchId).then(refresh) },
-    visit: (matchId) => {
-      const e = matchIndex.get(matchId)
-      if (!e || e.listing.kind !== 'property') return
-      registry.flushAll()
-      navigate(`/dashboard/visits/new?bienId=${e.listing.id}&contactId=${e.buyer.id}`)
-    },
-  }), [registry, matchIndex, ctx, refresh, navigate])
 
   // ── état liste / focus / surfaces ────────────────────────────────────────
   const [filter, setFilter] = useState<AtelierTab>('all')
@@ -156,6 +116,55 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
     toastTimer.current = setTimeout(() => setToast(null), TOAST_MS)
   }, [])
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
+
+  // Un geste en échec le DIT (toast d'erreur, le même que celui du fil) et rend ce qu'il avait
+  // masqué ou marqué d'avance : sans ça, l'écran affichait « Proposé » ou retirait l'acheteur
+  // pour une écriture qui n'a jamais eu lieu, et l'erreur ne se lisait qu'en console.
+  const echec = useCallback((matchId: string) => {
+    const contactId = matchIndex.get(matchId)?.buyer.id
+    setSent((s) => { if (!s.has(matchId)) return s; const n = new Set(s); n.delete(matchId); return n })
+    if (contactId) setHidden((h) => { if (!h.has(contactId)) return h; const n = new Set(h); n.delete(contactId); return n })
+    showToast({ msg: t('fil.erreurGeste') })
+  }, [matchIndex, showToast, t])
+
+  const gestes: AtelierGestes = useMemo(() => ({
+    send: (matchId) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return null
+      return execProposer(ctx, e.buyer, e.listing)
+    }, { onSettled: refresh, onError: () => echec(matchId) }),
+    relance: (matchId) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return null
+      await execRelance(ctx, e.buyer, e.listing)
+      return null
+    }, { onSettled: refresh, onError: () => echec(matchId) }),
+    snooze: (matchId) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return null
+      await execSnooze(ctx, e.buyer)
+      return null
+    }, { onSettled: refresh, onError: () => echec(matchId) }),
+    dismiss: (matchId) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return null
+      await execDismiss(ctx, e.buyer)
+      return null
+    }, { onSettled: refresh, onError: () => echec(matchId) }),
+    react: (matchId, reaction) => registry.defer(async () => {
+      const e = matchIndex.get(matchId)
+      if (!e) return null
+      await execReact(e.buyer, reaction)
+      return null
+    }, { onSettled: refresh, onError: () => echec(matchId) }),
+    wake: (matchId) => { void execWake(matchId).then(refresh).catch(() => echec(matchId)) },
+    visit: (matchId) => {
+      const e = matchIndex.get(matchId)
+      if (!e || e.listing.kind !== 'property') return
+      registry.flushAll()
+      navigate(`/dashboard/visits/new?bienId=${e.listing.id}&contactId=${e.buyer.id}`)
+    },
+  }), [registry, matchIndex, ctx, refresh, navigate, echec])
 
   // ── groupes (réels ou démo), filtrés ────────────────────────────────────
   const allGroups = useMemo(
@@ -484,14 +493,13 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
         onCancel={() => setConfirmExclude(null)}
       />
 
-      {/* Confirmation d'envoi (HITL) */}
-      <MmSendModal
+      {/* Confirmation de « Je l'ai proposé » */}
+      <MmProposeModal
         open={sendTarget !== null}
         buyerFirst={focusVM?.buyer.first ?? ''}
         listingTitle={sendTarget?.title ?? ''}
         listingAddr={sendTarget?.addr ?? ''}
         priceLabel={sendTarget ? mmPriceLabel(sendTarget.price, sendTarget.transaction, t) : ''}
-        email={!demo && sendTarget ? matchIndex.get(sendTarget.matchId)?.buyer.email ?? null : null}
         onConfirm={confirmSend}
         onCancel={() => setSendTarget(null)}
       />
