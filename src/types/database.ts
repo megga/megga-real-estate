@@ -10067,6 +10067,28 @@ export type Database = {
           year_renovated: number
         }[]
       }
+      matching_actions_agence: {
+        Args: { p_agency: string; p_limite?: number }
+        Returns: {
+          baisses: number
+          contact_id: string
+          genre: string
+          location: boolean
+          market_listing_id: string
+          match_id: string
+          montant: number
+          nom: string
+          nombre: number
+          nouveaux: number
+          prenom: string
+          property_id: string
+          quand: string
+          statut: string
+          titre: string
+          total: number
+          ville: string
+        }[]
+      }
       matching_actions_du_jour: {
         Args: { p_limite?: number }
         Returns: {
@@ -11052,6 +11074,34 @@ export type Database = {
           table_name: string
         }
         Returns: string
+      }
+      wa_matching_consigner: {
+        Args: {
+          p_agency: string
+          p_match: string
+          p_motif?: string
+          p_note?: string
+          p_profile: string
+          p_reponse: string
+        }
+        Returns: Json
+      }
+      wa_matching_visite: {
+        Args: {
+          p_agency: string
+          p_contact: string
+          p_debut: string
+          p_duree?: number
+          p_market_listing: string
+          p_profile: string
+          p_property: string
+          p_type?: string
+        }
+        Returns: Json
+      }
+      wa_matching_visite_annuler: {
+        Args: { p_agency: string; p_profile: string; p_retour: Json }
+        Returns: Json
       }
       wa_move_transaction_stage: {
         Args: {
