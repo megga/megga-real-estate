@@ -15,6 +15,9 @@ import { nombreOuNull, temps, type FilMatch, type SuiviMatch } from './filModele
  * ⚠ La base compte les mêmes, en dur, dans la migration du lot D1 (`…_matching_surfaces.sql`) :
  * `pige_acheteurs_compatibles` (« Ce qui a bougé ») et le CTE `mandats` de `matching_actions_du_jour`
  * (« Aujourd'hui »). Changer l'une sans les autres ferait dire deux comptes différents au même bien.
+ * ⚠ Le copilote WhatsApp (lot D2) les RECOPIE dans `supabase/functions/_shared/whatsapp-matching.ts` — cette
+ * liste avec `etatCompatible`, l'ordre des compatibles ci-dessous (`trierCompatibles`) avec `vueAcheteurs` —
+ * confrontés par `tests/unit/whatsapp-matching-fil.spec.ts`.
  */
 export const STATUTS_COMPATIBLES = ['suggested', 'sent', 'interested', 'visit_planned'] as const
 
@@ -88,6 +91,10 @@ export function etatCompatible(m: Compatible, maintenant: number): EtatCompatibl
   return motif ? { cle: 'refuse', motif } : { cle: 'refuseSansMotif' }
 }
 
-/** Les compatibles d'un bien, par score ; l'id départage. */
+/**
+ * Les compatibles d'un bien, par score ; l'id départage.
+ * ⚠ Le copilote WhatsApp (lot D2) la recopie dans `vueAcheteurs` (`_shared/whatsapp-matching.ts`), confrontée
+ * par `tests/unit/whatsapp-matching-fil.spec.ts`.
+ */
 export const trierCompatibles = <T extends Compatible>(ms: readonly T[]): T[] =>
   [...ms].sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))

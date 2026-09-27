@@ -9,6 +9,8 @@
  * ⛔ LES SEUILS SONT AUSSI CEUX DE LA BASE : `matching_fil_marche_resume()` (migration `…_matching_explique.sql`)
  * compte les annonces nouvelles et en baisse de la ligne « Marché » avec les mêmes ; `matching-fil-signaux.spec.ts`
  * lit la migration pour les confronter.
+ * ⚠ Le copilote WhatsApp (lot D2) les recopie, avec `signalBien` : `_shared/whatsapp-matching.ts`, confronté par
+ * `tests/unit/whatsapp-matching-fil.spec.ts`.
  */
 import { temps, type FilBien, type FilMatch } from './filModele'
 import { signalPrix } from './filBoucle'

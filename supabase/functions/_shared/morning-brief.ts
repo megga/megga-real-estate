@@ -137,8 +137,9 @@ const REMINDER_LABELS: Record<WaLang, Record<string, string>> = {
 }
 
 /** Montant en CHF suisse (apostrophe). Dupliqué de whatsapp-actions.ts : l'importer
- *  tirerait ses imports https: Deno dans le run Vitest. */
-function fmtCHF(n: number): string {
+ *  tirerait ses imports https: Deno dans le run Vitest. Exporté pour le copilote du matching
+ *  (`whatsapp-matching.ts`, lot D2), qui écrit ses montants comme ce point du matin. */
+export function fmtCHF(n: number): string {
   return `CHF ${Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")}`
 }
 

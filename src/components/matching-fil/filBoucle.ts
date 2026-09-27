@@ -22,6 +22,8 @@ export type FilOnglet = (typeof ONGLETS)[number]
  * Les motifs d'un refus (§4.4) — un geste, une puce —, dans l'ordre de l'écran et de leurs touches (1 à 8).
  * ⚠ Les codes du CHECK `matches_reaction_motif_check` (migration 20260921140000), qui y ajoute
  * `recherche_ajustee` : un match écarté par la réévaluation d'une recherche, pas par l'acheteur.
+ * ⚠ Recopiés par le copilote WhatsApp (lot D2, `_shared/whatsapp-matching.ts`), avec `signalPrix` :
+ * `tests/unit/whatsapp-matching-fil.spec.ts` confronte les deux.
  */
 export const MOTIFS_REFUS = ['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements', 'etat', 'autre'] as const
 export type MotifRefus = (typeof MOTIFS_REFUS)[number]

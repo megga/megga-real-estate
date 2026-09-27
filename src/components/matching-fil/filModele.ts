@@ -176,6 +176,9 @@ export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
  * décroissant, puis — à score égal — ce qui porte un signal (`signal`, lot C : `aUnSignal` de filSignaux.ts ;
  * absent, aucun), puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. Un groupe se
  * range par son premier match. ⚠ Le comparateur est PASSÉ, pas importé : filSignaux lit ce module.
+ * ⚠ Le copilote WhatsApp (lot D2) recopie ce comparateur (`avant`, local, non exporté) dans `vueGetMatches`
+ * (`_shared/whatsapp-matching.ts`) : confronté par `tests/unit/whatsapp-matching-fil.spec.ts`, par la sortie
+ * publique de `construireFil` puisque `avant` lui-même ne l'est pas.
  */
 export function construireFil(
   matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number, signal: (m: FilMatch) => boolean = () => false,
@@ -267,7 +270,11 @@ function etatDuBien(b: FilBien, annee: number): EtatConnu | null {
   return null
 }
 
-/** Les lignes « Recherché / Ce bien » : une par critère que la recherche a posé (§4.4). */
+/**
+ * Les lignes « Recherché / Ce bien » : une par critère que la recherche a posé (§4.4).
+ * ⚠ Recopiée par le copilote WhatsApp (lot D2, `expliquer` dans `_shared/whatsapp-matching.ts`), confrontée par
+ * `tests/unit/whatsapp-matching-fil.spec.ts`.
+ */
 export function lignesCriteres(m: FilMatch, maintenant: number = Date.now()): LigneCritere[] {
   const c = m.criteres
   if (!c) return []
@@ -472,7 +479,12 @@ export const nombreOuNull = (v: number | string | null): number | null => {
   return Number.isFinite(n) ? n : null
 }
 
-/** Les équipements d'un bien : un tableau de chaînes, ou un objet `{ equipement: vrai }`. */
+/**
+ * Les équipements d'un bien : un tableau de chaînes, ou un objet `{ equipement: vrai }`.
+ * ⚠ Recopiée par le copilote (`whatsapp-matching.ts`, qui ne peut pas importer `src/` — sa propre copie, privée,
+ * y vit à côté de `bienDAnnonce`/`bienDeMandat`) ; `tests/unit/whatsapp-matching-fil.spec.ts` l'appelle (via
+ * `versBien`/`versBienMarche`) pour confronter les deux formes.
+ */
 export function listeEquipements(brut: unknown): string[] {
   if (Array.isArray(brut)) return brut.filter((f): f is string => typeof f === 'string')
   if (brut && typeof brut === 'object') {

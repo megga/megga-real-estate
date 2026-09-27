@@ -76,7 +76,7 @@ export interface LigneContact {
   id: string; first_name: string; last_name: string; email: string | null; phone: string | null
   search_criteria: SearchCriteria | null
 }
-interface LigneBien {
+export interface LigneBien {
   id: string; title: string | null; type: string | null; transaction_type: string | null
   price: number | string | null; rooms: number | string | null; surface_m2: number | string | null
   address: string | null; city: string | null; canton: string | null; features: unknown; photos: string[] | null
@@ -122,7 +122,13 @@ function plusRecente(a: string | null, b: string | null): string | null {
   return Date.parse(a) >= Date.parse(b) ? a : b
 }
 
-function versBien(b: LigneBien): FilBien {
+/**
+ * Un bien en mandat, dans la forme du fil.
+ * ⚠ Recopiée par le copilote (`bienDeMandat`, `supabase/functions/_shared/whatsapp-matching.ts`, qui ne peut
+ * pas importer `src/`) ; `tests/unit/whatsapp-matching-fil.spec.ts` appelle celle-ci pour confronter les deux
+ * formes.
+ */
+export function versBien(b: LigneBien): FilBien {
   return {
     id: b.id, titre: b.title ?? '', prix: nombreOuNull(b.price), location: b.transaction_type === 'rent',
     type: b.type, pieces: nombreOuNull(b.rooms), surface: nombreOuNull(b.surface_m2), ville: b.city, canton: b.canton,
@@ -135,7 +141,12 @@ function versBien(b: LigneBien): FilBien {
   }
 }
 
-/** Une annonce du marché, dans la forme du fil. */
+/**
+ * Une annonce du marché, dans la forme du fil.
+ * ⚠ Recopiée par le copilote (`bienDAnnonce`, `supabase/functions/_shared/whatsapp-matching.ts`, qui ne peut
+ * pas importer `src/`) ; `tests/unit/whatsapp-matching-fil.spec.ts` l'appelle pour confronter les deux formes,
+ * comme `versBien` ci-dessus.
+ */
 export function versBienMarche(a: LigneAnnonce): FilBien {
   const ref = refAnnonceMarche(a.source_portal, a.source_id, a.id)
   return {
