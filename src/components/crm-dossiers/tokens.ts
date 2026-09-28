@@ -310,17 +310,6 @@ export function fmtDateShort(iso: string | null | undefined): string {
   })
 }
 
-/** Formate une date + heure : `12 avr · 14:30`. */
-export function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString('fr-CH', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 // ─── Labels canoniques (handoff §Modèle de données) ─────────────────────
 
 /** Les 5 contrôles LBA art. 3-7. */

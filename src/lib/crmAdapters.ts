@@ -248,6 +248,7 @@ export function transactionToCrmDeal(
     contactId,
     bienId: propertyId,
     stage,
+    dbStage: t.stage as TransactionStage,
     value,
     probability: STAGE_PROBABILITY[stage] ?? 0,
     ownerAgentId: t.assigned_to ?? '',

@@ -186,9 +186,6 @@ const BiensShowcasePage = import.meta.env.DEV
 const ContactsShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/ContactsShowcasePage'))
   : () => null
-const PipelineShowcasePage = import.meta.env.DEV
-  ? lazy(() => import('@/pages/dev/PipelineShowcasePage'))
-  : () => null
 const ModalesShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
   : () => null
@@ -220,7 +217,7 @@ const OnboardingPreviewPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
   : () => null
 // Banc de la console super-admin — DEV seulement, même ternaire et même raison.
-// ⚠ Il s'écarte des autres bancs (`/dev/pipeline`, `/dev/biens`), qui sont
+// ⚠ Il s'écarte des autres bancs (`/dev/biens`, `/dev/contacts`), qui sont
 // permanents : ceux-là montrent l'écran d'un agent, celui-ci monte le chrome de
 // la PLATEFORME — badge « ADMIN », MRR, registre des agences, journal de
 // sécurité. Le servir publiquement inviterait la question « est-ce réel ? » et
@@ -402,7 +399,7 @@ const ROUTES_TABLEAU_DE_BORD = (
   {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
       Mobile (< 768px) : fiche lecture seule (P7). */}
   <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<ListingDetailPage />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
-  {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
+  {/* La fiche d'affaire (refonte du 27.09.2026) : cinq phases, prochaine action, offres, clôture. */}
   <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailPage />} mobile={<MobileDealDetailPage />} /></ByParam>} />
   {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
   <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferPage /></ByParam>} />
@@ -661,11 +658,6 @@ function AppRoutes() {
               <Route path="/dev/biens" element={<BiensShowcasePage />} />
               {/* Contacts — même raison, même idiome (liste, fiche, premier lancement). */}
               <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
-              {/* Pipeline — la page RÉELLE par le slot `banc` : 3 vues, 8 colonnes,
-                  états d'exception, modales, bascule de thème. Une seule vue à la
-                  fois : `DealCard` porte un `layoutId` GLOBAL, et deux vues
-                  montées ensemble videraient les colonnes jumelles. */}
-              <Route path="/dev/pipeline" element={<PipelineShowcasePage />} />
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
                   JAMAIS rendues hors production, donc jamais éprouvées. */}
               <Route path="/dev/modales" element={<ModalesShowcasePage />} />

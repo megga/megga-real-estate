@@ -6,15 +6,23 @@
  * perdu). Le sous-menu de réassignation est rendu ACCESSIBLE (le proto avait le
  * picker construit mais aucun déclencheur — bug de câblage assumé, le README
  * liste bien « réassigner » dans les actions) ; agents réels via useTeamMembers.
+ *
+ * ⛔ LES PANNEAUX SONT PORTÉS DANS `<body>` (27.09.2026). Positionnés dans la carte, ils étaient
+ * coupés par la colonne défilante (`overflow: hidden/auto`) : sur une carte de 200 px, « Planifier
+ * une visite » (210 px, aligné à droite de la pilule) perdait sa moitié gauche — « …er une visite ».
+ * Même réponse que `LabsFolderPicker` : un portail, placé d'après la pilule. Le survol n'en souffre
+ * pas : React calcule l'entrée et la sortie sur l'arbre des composants, où le panneau porté reste
+ * DANS la carte — la quitter pour le panneau ne la « quitte » pas.
  */
 
-import { useEffect, useMemo, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { type CrmPalette } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { useTeamMembers } from '@/hooks/useTeam'
+import { ATTR_FLOTTANT, Flottant } from './Flottant'
 
 /** Créneau proposé par le popover visite (J+1 10:00 · J+1 14:00 · J+2 11:00 · J+3 16:00). */
 export interface VisitSlot {
@@ -25,18 +33,23 @@ export interface VisitSlot {
   at: Date
 }
 
-interface Props {
+/** Callbacks des actions rapides de carte — partagés board → carte → popover. */
+export interface DealCardActions {
+  onReassign: (dealId: string, member: { id: string; name: string }) => void
+  onArchive: (dealId: string) => void
+  onMarkLost: (dealId: string) => void
+  onScheduleVisit: (dealId: string, slot: VisitSlot) => void
+  /** « Envoyer à MEGGA AI » du popover visite (brouillon copilote, human-in-the-loop). */
+  onAskAiVisit: (dealId: string) => void
+}
+
+interface Props extends DealCardActions {
   sp: CrmPalette
   dark: boolean
   deal: CrmDeal
   menuOpen: boolean
   setMenuOpen: (open: boolean | ((o: boolean) => boolean)) => void
   onActiveChange: (active: boolean) => void
-  onReassign: (dealId: string, member: { id: string; name: string }) => void
-  onArchive: (dealId: string) => void
-  onMarkLost: (dealId: string) => void
-  onScheduleVisit: (dealId: string, slot: VisitSlot) => void
-  onAskAiVisit: (dealId: string) => void
 }
 
 export function CardQuickActions({
@@ -53,6 +66,19 @@ export function CardQuickActions({
     return () => onActiveChange(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuOpen, visitOpen, reassignOpen])
+  // Un panneau placé d'après la pilule ment dès que la page défile : il se ferme. Défiler DANS le
+  // panneau (la liste des agents) ne ferme rien.
+  const pilule = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!visitOpen && !menuOpen) return
+    const fermer = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest(`[${ATTR_FLOTTANT}]`)) return
+      setVisitOpen(false); setMenuOpen(false)
+    }
+    window.addEventListener('scroll', fermer, true)
+    window.addEventListener('resize', fermer)
+    return () => { window.removeEventListener('scroll', fermer, true); window.removeEventListener('resize', fermer) }
+  }, [visitOpen, menuOpen, setMenuOpen])
 
   const visitSlots = useMemo<VisitSlot[]>(() => {
     const weekday = new Intl.DateTimeFormat(i18n.language, { weekday: 'long' })
@@ -88,10 +114,10 @@ export function CardQuickActions({
   const panelHair = sp.solidBorder
   const panelBg = sp.solidBg
   const panelStyle: React.CSSProperties = {
-    position: 'absolute', top: 32, right: 0, minWidth: 200,
+    minWidth: 200,
     background: panelBg, border: dark ? `1px solid ${panelHair}` : 0, borderRadius: 'var(--crm-radius-xl)',
     boxShadow: sp.solidShadow,
-    padding: 'var(--crm-space-sm)', zIndex: 10, animation: 'qaFade .14s ease-out',
+    padding: 'var(--crm-space-sm)', animation: 'qaFade .14s ease-out',
   }
   const rowStyle: React.CSSProperties = {
     width: '100%', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)', border: 0,
@@ -102,7 +128,7 @@ export function CardQuickActions({
   const hoverOut = (e: ReactMouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' }
 
   return (
-    <div onClick={stop} style={{
+    <div ref={pilule} onClick={stop} style={{
       position: 'absolute', top: 8, right: 8, display: 'flex', gap: 'var(--crm-space-2xs)', zIndex: 5,
       padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
       background: sp.solidBg,
@@ -118,7 +144,7 @@ export function CardQuickActions({
           <MEIcon name="home" size={11} color={visitOpen ? sp.accentInk : btnFg} />
         </button>
         {visitOpen && (
-          <div style={{ ...panelStyle, minWidth: 210 }}>
+          <Flottant ancre={pilule}><div style={{ ...panelStyle, minWidth: 210 }}>
             <div style={{
               fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md) var(--crm-space-md)',
             }}>
@@ -142,7 +168,7 @@ export function CardQuickActions({
                 <MEIcon name="chevron-right" size={12} color={sp.sub} />
               </button>
             </div>
-          </div>
+          </div></Flottant>
         )}
       </div>
       <div style={{ position: 'relative' }}>
@@ -154,7 +180,7 @@ export function CardQuickActions({
           <MEIcon name="more-horizontal" size={14} color={menuOpen ? sp.accentInk : btnFg} />
         </button>
         {menuOpen && !reassignOpen && (
-          <div style={panelStyle}>
+          <Flottant ancre={pilule}><div style={panelStyle}>
             {team.length > 0 && (
               <ActionMenuItem sp={sp} dark={dark} icon="users" label={t('board.card.reassign')} chevron
                 onClick={() => setReassignOpen(true)} />
@@ -163,10 +189,10 @@ export function CardQuickActions({
               onClick={() => { setMenuOpen(false); onArchive(deal.id) }} />
             <ActionMenuItem sp={sp} dark={dark} icon="alert" label={t('board.card.markLost')} tone="danger"
               onClick={() => { setMenuOpen(false); onMarkLost(deal.id) }} />
-          </div>
+          </div></Flottant>
         )}
         {menuOpen && reassignOpen && (
-          <div style={{ ...panelStyle, minWidth: 220, maxHeight: 300, overflowY: 'auto' }}>
+          <Flottant ancre={pilule}><div style={{ ...panelStyle, minWidth: 220, maxHeight: 300, overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-sm) var(--crm-space-md)' }}>
               <button onClick={() => setReassignOpen(false)} style={{
                 width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
@@ -182,7 +208,7 @@ export function CardQuickActions({
               <AgentMenuItem key={m.id} sp={sp} member={m}
                 onClick={() => { setMenuOpen(false); onReassign(deal.id, m) }} />
             ))}
-          </div>
+          </div></Flottant>
         )}
       </div>
     </div>

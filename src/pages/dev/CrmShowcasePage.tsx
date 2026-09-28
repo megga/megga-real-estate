@@ -104,6 +104,8 @@ const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 // lectures traversent l'interception. L'atelier actuel garde son banc, `/dev/matching-atelier`.
 const MatchingFilBanc = lazy(() => import('@/pages/dev/matchingFilBanc'))
 const LabsPage = lazy(() => import('@/pages/agent/LabsPage'))
+const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
+const DealDetailPage = lazy(() => import('@/pages/agent/DealDetailPage'))
 
 /**
  * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
@@ -191,12 +193,33 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   { id: 'nouveau-bien', chemin: '/dashboard/listings/new', label: 'Nouveau bien', vague: null },
   // Le fil de matchs (refonte, lot 1) — l'atelier actuel reste sur `/dev/matching-atelier`.
   { id: 'matching', chemin: '/dashboard/matching', label: 'Matching · fil', vague: null },
+  // ⚠ HORS CHANTIER, et pour la même raison que « Mes biens » : `/dev/pipeline` monte le board
+  // hors coquille, sur des deals DÉJÀ adaptés (slot `banc`). Ici il passe par ses vrais hooks et
+  // les `transactions` du banc — la barre latérale y menait, et y aboutissait à « Sortie neutralisée ».
+  { id: 'pipeline', chemin: '/dashboard/pipeline', label: 'Pipeline', vague: null },
+  // d10 : la négociation d'Emma, trois tours d'offre dont le dernier en attente.
+  { id: 'deal', chemin: '/dashboard/transactions/d10', label: 'Deal · fiche', vague: null },
+  // d14 : une affaire conclue — récapitulatif, clôture, après-vente.
+  { id: 'deal-conclue', chemin: '/dashboard/transactions/d14', label: 'Deal · fiche conclue', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
+/**
+ * Ce que « Nominal » contient, COMPTÉ dans les fixtures et non plus écrit à la main.
+ *
+ * ⚠ L'infobulle écrite à la main s'est périmée deux fois — « 8 contacts », puis « 10 contacts »
+ * quand le banc en comptait 14 : chaque lot ajoute ses lignes, aucun ne relit l'infobulle.
+ */
+const nb = (table: string) => CRM_TABLES[table]?.length ?? 0
+const DEALS_AU_BOARD = (CRM_TABLES.transactions as { stage: string; status: string; archived_at: string | null }[])
+  .filter((d) => d.stage !== 'lost' && d.status !== 'completed' && !d.archived_at).length
+const TITRE_NOMINAL = `${nb('contacts')} contacts, ${nb('properties')} biens, ${DEALS_AU_BOARD} deals au board, `
+  + `${nb('matches')} matchs, ${nb('reminders')} rappels, ${nb('visits')} visite${nb('visits') > 1 ? 's' : ''}, `
+  + `journal à ${nb('activity_events')} lignes`
+
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 20 matchs, 4 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'nominal', label: 'Nominal', titre: TITRE_NOMINAL },
   { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
   { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
@@ -402,6 +425,11 @@ const ROUTES_BANC = (
         <Route path="listings" element={<ListingsPage />} />
         <Route path="listings/new" element={<NouveauBienPage />} />
         <Route path="listings/:id" element={<ByParam><ListingDetailPage /></ByParam>} />
+        <Route path="pipeline" element={<PipelinePage />} />
+        {/* Les chemins de comparaison du 27.09.2026 (proposition, ancien) : un onglet resté ouvert
+            dessus retombe sur le Pipeline. */}
+        <Route path="pipeline/*" element={<Navigate to="/dashboard/pipeline" replace />} />
+        <Route path="transactions/:id" element={<ByParam><DealDetailPage /></ByParam>} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="import-lead" element={<ImportLeadPage />} />
         <Route path="visits/new" element={<VisitNewPage />} />
@@ -516,7 +544,8 @@ export default function CrmShowcasePage() {
       // `contacts` aussi : un visiteur créé depuis « Planifier une visite » doit exister ensuite.
       // `matches`, `transactions` et `activity_events` : un match proposé, reporté ou écarté doit
       // QUITTER le fil, et son deal comme sa ligne de journal doivent exister ensuite.
-      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes', 'contacts', 'matches', 'transactions', 'activity_events'],
+      // `properties` et `client_searches` : la clôture d'une affaire marque le bien vendu et met la recherche en pause.
+      ecrivables: ['calendar_labels', 'visits', 'reminders', 'calendar_events', 'contact_notes', 'contacts', 'matches', 'transactions', 'activity_events', 'properties', 'client_searches'],
       // Une note ajoutée dans le banc est signée de l'agent de démonstration, comme la base
       // la signerait de l'appelant — sinon elle n'aurait ni auteur ni « Modifier ».
       completions: {

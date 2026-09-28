@@ -4,6 +4,7 @@
 
 import type { StageId } from './tokens'
 import type { RoleContact } from '@/lib/contactRoles'
+import type { TransactionStage } from '@/lib/constants'
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -88,6 +89,12 @@ export interface CrmDeal {
   contactId: string
   bienId: string | null
   stage: StageId
+  /**
+   * Le stade EXACT de la base (`transactions.stage`). `stage` en est la colonne UI, qui en
+   * regroupe cinq sous « Offre » : c'est ce champ qui permet de dire « Notaire » au lieu de
+   * « Offre déposée ». Optionnel — seul l'adaptateur de la base le pose.
+   */
+  dbStage?: TransactionStage
   value: number
   probability: number
   ownerAgentId: string

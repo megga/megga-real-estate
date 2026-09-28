@@ -80,6 +80,8 @@ export function useTransaction(id: string | undefined) {
 // document n'est rattaché — état honnête, pas de fabrication.
 
 interface CreateTransactionInput {
+  /** Choisi par l'appelant quand il doit reconnaître la carte AVANT la réponse (animation d'arrivée). */
+  id?: string
   agency_id: string
   property_id?: string
   contact_buyer_id?: string

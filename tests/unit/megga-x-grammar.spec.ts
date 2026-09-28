@@ -1028,7 +1028,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/notifications', { hors: 0, total: 0 }],
   // {32,38} -> {30,36} (13.09.2026) : la colonne « Valeur » de la liste passe de
   // `paddingRight: 56` au barreau `7xl` — le montant s'y cassait sur deux lignes.
-  ['src/components/crm/pipeline', { hors: 30, total: 36 }],
+  // {30,36} -> {7,9} (27.09.2026) : l'ancien Pipeline est retiré — colonnes d'étape, liste,
+  // timeline, bento de signature, « Nouveau deal » —, la refonte à cinq phases écrit en jetons.
+  ['src/components/crm/pipeline', { hors: 7, total: 9 }],
   // {2,2} -> {1,1} (05.09.2026). Le sous-titre du menu de compte — « rôle ·
   // agence », puis l'e-mail quand il existait — a été retiré (décision Julien :
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
@@ -1133,7 +1135,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // latérale. Il lit `--crm-radius-4xl`.
   // ⚠ 762 le 21.09.2026 : la fiche d'une annonce du marché perd son « Envoyer par e-mail » et son
   // historique d'envoi (le matching reste chez l'agent).
-  ['src/pages/agent', { hors: 215, total: 762 }],
+  // 215/762 → 149/666 le 27.09.2026 : `PipelinePage` et `DealDetailPage` sont réécrites par la
+  // refonte à cinq phases ; l'ancienne fiche « Atelier scindé » portait l'essentiel de ces littéraux.
+  ['src/pages/agent', { hors: 149, total: 666 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   // {66,257} -> {10,178} (21.09.2026) : `BuyerReceptionPage` est retirée avec la page de
   // réception acheteur (le matching reste chez l'agent), et ses littéraux avec elle.
