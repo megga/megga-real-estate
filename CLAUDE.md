@@ -233,12 +233,13 @@ parce qu'une page marketing se PARCOURT, le CRM s'HABITE. Valeurs dans
 | survol — un **ÉTAT**, pas un palier | `sp.focusSurface` | `#1b1e23` |
 | **LE FILET** — un seul, discret | `sp.cardBorder` | `#2b2d30` |
 
-⚠ **La grammaire du Pipeline est LIGNÉE** : les colonnes ne se remplissent plus,
-leur teinte d'étape est mélangée à **0,94 vers le canvas** — assez pour que le
-balayage indigo→orange reste lisible (ΔL\* 2,73 à 3,93), quatre fois plus faible
-que le filet. Ne pas monter ce facteur sans remesurer les DEUX bouts du
-balayage : à 0,95 l'indigo passe sous le seuil et le bout froid s'efface avant
-le chaud.
+⚠ **La grammaire du Pipeline est LIGNÉE, dans les DEUX thèmes depuis le 27.09.2026** —
+le board à cinq phases a remplacé les huit colonnes d'étape, et leur teinte mélangée
+vers le canvas est partie avec elles : aucune colonne n'a plus de fond, clair
+compris. La phase se lit au libellé et au FILET du haut (3 px, sa teinte) ; mis bout
+à bout, les cinq filets gardent le balayage indigo → orange. Les colonnes se
+séparent par un voile d'encre (0,09 en sombre, 0,08 en clair). Garde :
+[pipeline-ligne.spec.ts](tests/unit/pipeline-ligne.spec.ts).
 
 1. **La séparation vient de la BORDURE**, et désormais d'ELLE SEULE —
    `sp.shadow` vaut `'none'` en sombre. Il n'y a plus d'écart de luminance du
@@ -391,6 +392,8 @@ d'écran n'est restée sur Graphite).
   dans son CADRE** (`MailModalShell`, `cadre ?? document.body` ; Julien, 14.09.2026 : « le flou
   doit épouser le pager ») : leur voile couvre la Messagerie et non l'écran, et elles se
   masquent avec l'écran de leur onglet. Les ramener dans `<body>` rendrait le voile plein écran.
+  Même règle, depuis le 27.09.2026, pour « Nouveau deal », la confirmation « Perdu » et le
+  panneau de clôture du Pipeline (prop `cadre`) : voile 0,4 et flou 6 px, comme `MailModalShell`.
   ⚠ **« TOUJOURS … avec `z-[100]` » n'est
   vrai ni pour l'un ni pour l'autre.** Mesuré le 20.09.2026 : **41 fichiers appellent
   `createPortal`** (36 le 05.09.2026, dont 33 nommés modale/panneau/dialogue — la règle
@@ -417,16 +420,16 @@ d'écran n'est restée sur Graphite).
     (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
     = sourdine ; « Nouveau bien », 4 étapes : actif = pilule d'accent, fait = coche) ;
   - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
-    dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
-    AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
-    `DealDetailPage:100` et `MobileDealDetailScreen:179` rendent tous deux
-    `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
-    la même forme que la barre segmentée. Le « 8 » était juste (8 colonnes UI pour 14
-    stades DB), la forme non.
-    ⚠ Et les deux segments ne se peignent pas pareil : le mobile met l'étape
-    courante en `accent`, le bureau la peint en `ink` — donc **le bureau n'applique
-    pas la règle du 10 août** (« l'élément ACTIF porte l'accent »). Écart réel, non
-    tranché.
+    dans un formulaire (segments de 4 px). ⚠ Deux formes depuis le 27.09.2026 : la
+    fiche d'affaire du BUREAU (`DealDetailPage`) rend les **cinq phases**, chaque
+    segment à la TEINTE de sa phase — pleine pour la phase en cours, adoucie pour les
+    passées, filet pour les suivantes, vert pour une affaire conclue. Écart ASSUMÉ avec
+    « l'élément actif porte l'accent » : ici la couleur ENCODE la phase, la même que les
+    colonnes du kanban. Le MOBILE (`MobileDealDetailScreen:179`) garde sa barre de
+    8 segments d'étape, la courante en `accent`.
+    ⛔ Ce point a dit « `dealStepper`, 8 CERCLES » jusqu'au 16 août 2026 : il n'y a
+    jamais eu de cercle. L'écart « le bureau peint l'étape courante en `ink` » est
+    parti avec l'ancienne fiche.
   - **cercles numérotés** — l'idiome que ce point ne nommait pas. `KycStepper`
     (alias `SgStepper`, [primitives.tsx:341](src/components/crm-dossiers/primitives.tsx))
     rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
@@ -782,7 +785,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts (⚠ **rôles multiples sur branche le 22.09.2026, fusion à la fin** : `contacts.roles` fait foi, douze valeurs — cinq de transaction, sept de réseau —, `contacts.type` en DÉRIVE par déclencheur dans les deux sens et reste écrit, parce que ~100 lecteurs en dépendent, dont trois politiques RLS ; la liste range par rôle et non plus par audience, `audienceOf` est retirée), Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching (chez l'agent seul depuis le 21.09.2026 : « Je l'ai proposé », « J'ai relancé », « Pas intéressé » consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » et les fiches d'annonce l'historique du prix, même date ; lot C sur branche le 22.09.2026, fusion à la fin : chambres, état et off-market notés sans 6ᵉ clé `reasons`, `properties.off_market` posé par l'agent, signaux « pourquoi maintenant », « Qui pour ce bien ? » et ses anciens prospects ; lot D1 sur branche le 23.09.2026, fusion à la fin et jamais sans le lot E, qui met en production le fil où mènent ses liens : segment « Matching » d'« Aujourd'hui » (`matching_actions_du_jour`), « Sa boucle » entière avec ses biens revenus, « Qui pour ce bien ? » sur la fiche d'un mandat et sur celle d'une annonce, acquéreurs comptés en direct à la fin de « Nouveau bien », et dans « Ce qui a bougé » une pastille « N acheteurs » sur les lignes qui en ont (`pige_acheteurs_compatibles`) ; lot D2 sur branche le 24.09.2026, fusion à la fin et jamais sans le lot E : le copilote WhatsApp consigne la réponse d'un acheteur après un « oui » de l'agent (`record_match_outcome`), dit qui pour un bien (`get_buyers_for_property`), rend les biens vivants d'un acheteur avec leur état et leur score expliqué (`get_matches`), planifie une visite qui fait passer un intéressé en « visite planifiée » sans rien écrire au client (`schedule_visit`), et son point du matin parle du matching (`matching_actions_agence`), chaque écriture métier signée MEGGA AI par une fonction de base), Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts (⚠ **rôles multiples sur branche le 22.09.2026, fusion à la fin** : `contacts.roles` fait foi, douze valeurs — cinq de transaction, sept de réseau —, `contacts.type` en DÉRIVE par déclencheur dans les deux sens et reste écrit, parce que ~100 lecteurs en dépendent, dont trois politiques RLS ; la liste range par rôle et non plus par audience, `audienceOf` est retirée), Pipeline à cinq phases (refonte du 27.09.2026, qui remplace le v2 Sugar Pure et ses 8 colonnes : 14 stades DB → 5 phases ; Kanban + Timeline, zones Conclu / Perdu, « Nouveau deal » refait, fiche d'affaire, clôture et après-vente, menus du clic droit sur la carte, la ligne, le fond et la fiche, nextAction = reminders ; le téléphone garde son écran), Matching (chez l'agent seul depuis le 21.09.2026 : « Je l'ai proposé », « J'ai relancé », « Pas intéressé » consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » et les fiches d'annonce l'historique du prix, même date ; lot C sur branche le 22.09.2026, fusion à la fin : chambres, état et off-market notés sans 6ᵉ clé `reasons`, `properties.off_market` posé par l'agent, signaux « pourquoi maintenant », « Qui pour ce bien ? » et ses anciens prospects ; lot D1 sur branche le 23.09.2026, fusion à la fin et jamais sans le lot E, qui met en production le fil où mènent ses liens : segment « Matching » d'« Aujourd'hui » (`matching_actions_du_jour`), « Sa boucle » entière avec ses biens revenus, « Qui pour ce bien ? » sur la fiche d'un mandat et sur celle d'une annonce, acquéreurs comptés en direct à la fin de « Nouveau bien », et dans « Ce qui a bougé » une pastille « N acheteurs » sur les lignes qui en ont (`pige_acheteurs_compatibles`) ; lot D2 sur branche le 24.09.2026, fusion à la fin et jamais sans le lot E : le copilote WhatsApp consigne la réponse d'un acheteur après un « oui » de l'agent (`record_match_outcome`), dit qui pour un bien (`get_buyers_for_property`), rend les biens vivants d'un acheteur avec leur état et leur score expliqué (`get_matches`), planifie une visite qui fait passer un intéressé en « visite planifiée » sans rien écrire au client (`schedule_visit`), et son point du matin parle du matching (`matching_actions_agence`), chaque écriture métier signée MEGGA AI par une fonction de base), Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
 
 **Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
 mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou

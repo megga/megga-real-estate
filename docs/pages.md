@@ -60,13 +60,13 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | Route | Écran |
 |---|---|
 | `/dashboard` | Cockpit « Aujourd'hui » |
-| `/dashboard/pipeline` | Pipeline v2 « Sugar Pure » : kanban teinté / liste / timeline (14 stades DB → 8 colonnes UI), célébration de signature + bento de suites, modale « Nouveau deal » plein cadre + création inline |
+| `/dashboard/pipeline` | Pipeline à cinq phases (refonte du 27.09.2026, 14 stades DB → 5 phases) : Kanban + Timeline de quatorze jours, zones de dépôt Conclu / Perdu, panneau de clôture, « Nouveau deal » dans le cadre de la page + création en ligne, menus du clic droit (affaire, fond) ; téléphone : `MobilePipelinePage` |
 | `/dashboard/contacts` · `/new` · `/:id` | Liste, création, fiche contact |
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
 | `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche). Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » (nouveaux, en baisse, retirés) |
-| `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
+| `/dashboard/transactions/:id` | Fiche d'affaire (refonte du 27.09.2026) : cinq phases réglables, prochaine action datée, négociation, biens du moteur de matching, historique ; conclue : récapitulatif, clôture et après-vente ; téléphone : `MobileDealDetailPage` |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |
@@ -170,7 +170,7 @@ teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des e
 
 | Bancs | Ce qu'il en reste dans le bundle déployé |
 |---|---|
-| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `messagerie` · `labs` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
+| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `modales` · `messagerie` · `labs` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
 | `/dev/onboarding` | la `<Route>` elle-même est dans le bloc `DEV` ⇒ catch-all `path="*"` → `NotFoundPage` |
 | `/dev/crm` · `/dev/admin` | branchés dans `App()` **avant** `<BrowserRouter>` (leur banc porte son propre routeur). ⚠ Invisibles à un `grep path=` : c'est ce qui les a fait manquer aux inventaires précédents |
 

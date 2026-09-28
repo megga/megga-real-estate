@@ -49,11 +49,12 @@ Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modal
   et une palette montée une fois doit exposer des **getters**, sinon elle fige sa
   valeur au chargement. Barème et règles : `CLAUDE.md` §Échelle sombre.
 - **Teintes d'étape** : balayage continu `CRM_STAGE_HUE` (indigo `#5B6BE6` →
-  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `crmMix`
-  FIGÉES : fond de colonne clair `crmMix(hue,#FFF,.81)` / sombre
-  `crmMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
-  pilule à texte blanc `crmStagePillBg` = clair `crmMix(hue,#0B0C0E,.32)`,
-  sombre teinte pure. Les pastilles 8-9 px et les barres restent en teinte pure.
+  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Le Pipeline à cinq phases
+  (27.09.2026) en prend une par phase (`PHASES[].teinte`) : filet de 3 px en haut de
+  colonne, segment du stepper de la fiche, sélecteur de « Nouveau deal ». ⚠ Les
+  dérivations de l'ancien board — fond de colonne `crmStageTint`, pilule à texte blanc
+  `crmStagePillBg` — sont parties avec lui : les colonnes n'ont plus de fond, et aucun
+  texte ne se pose plus sur une teinte d'étape (libellés en encre).
 - **Pilules de statut/type** : TOUJOURS fond opaque plein + texte blanc (jamais
   fond teinté clair + texte coloré, jamais de dot dans la pilule).
 - **Rayons** : 999 pilule · 28 modal/bento panel · 26 cadre écran · 24 carte
