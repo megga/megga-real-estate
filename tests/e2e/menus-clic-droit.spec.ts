@@ -83,3 +83,64 @@ test.describe('Clic droit — libellés du Calendrier', () => {
     await expect(page.getByPlaceholder('Nom du libellé')).toHaveCount(0)
   })
 })
+
+test.describe('Clic droit — Pipeline', () => {
+  test.beforeEach(async ({ page }) => {
+    await ouvrirEcranBancCrm(page, '/dashboard/pipeline')
+  })
+
+  /** La colonne de phase qui porte un titre donné (son en-tête est un `span` exact). */
+  const colonne = (page: Page, phase: string) =>
+    page.locator('div[style*="flex: 1 1 0"]').filter({ has: page.getByText(phase, { exact: true }) }).first()
+
+  test('une carte ouvre le menu de l’affaire, et « Déplacer vers » la change de colonne', async ({ page }) => {
+    await page.getByText('Julie Morand', { exact: true }).first().click({ button: 'right' })
+    const menu = page.getByRole('menu').first()
+    await expect(menu).toContainText('Ouvrir dans un nouvel onglet')
+    await expect(menu).toContainText('Marquer conclu')
+    await page.getByRole('menuitem', { name: 'Déplacer vers' }).hover()
+    // La phase en cours est cochée, et ne se choisit pas.
+    await expect(page.getByRole('menuitemradio', { name: 'Recherche' })).toHaveAttribute('aria-checked', 'true')
+    await page.getByRole('menuitemradio', { name: 'Offre' }).click()
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(colonne(page, 'Offre')).toContainText('Julie Morand')
+  })
+
+  test('le clic qui ferme le menu n’ouvre pas la carte dessous', async ({ page }) => {
+    const theo = (await page.getByText('Théo Baumgartner', { exact: true }).first().boundingBox())!
+    await page.getByText('Léa Martin', { exact: true }).first().click({ button: 'right' })
+    await expect(page.getByRole('menu')).toBeVisible()
+    await page.mouse.click(theo.x + 20, theo.y + 8)
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await expect(page.getByText('Prospects', { exact: true }).first(), 'on reste sur le board').toBeVisible()
+  })
+
+  test('⇧ + clic droit et le champ de recherche gardent le menu du navigateur', async ({ page }) => {
+    await page.getByText('Léa Martin', { exact: true }).first().click({ button: 'right', modifiers: ['Shift'] })
+    await expect(page.getByRole('menu')).toHaveCount(0)
+    await page.getByPlaceholder(/Rechercher/).click({ button: 'right' })
+    await expect(page.getByRole('menu')).toHaveCount(0)
+  })
+
+  test('une ligne de la Timeline ouvre le même menu, et le clavier le pilote', async ({ page }) => {
+    await page.getByRole('button', { name: 'Timeline' }).first().click()
+    await page.getByText('Luca Bernasconi', { exact: true }).first().click({ button: 'right' })
+    await expect(page.getByRole('menu').first()).toContainText('Replanifier')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await expect(page.getByRole('menuitem', { name: 'Ouvrir dans un nouvel onglet' })).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menu')).toHaveCount(0)
+  })
+
+  test('la fiche d’affaire a son menu', async ({ page }) => {
+    await ouvrirEcranBancCrm(page, '/dashboard/transactions/d10')
+    // ⚠ La fiche d'abord : pendant son chargement, l'écran d'attente n'a pas de menu.
+    const historique = page.getByText('Historique', { exact: true }).first()
+    await historique.waitFor()
+    await historique.click({ button: 'right' })
+    const menu = page.getByRole('menu').first()
+    await expect(menu).toContainText('Retour au Pipeline')
+    await expect(menu).toContainText('Marquer perdu')
+  })
+})

@@ -23,6 +23,7 @@ import { type CrmPalette } from '../tokens'
 import type { CrmDeal } from '../mockData'
 import { useTeamMembers } from '@/hooks/useTeam'
 import { ATTR_FLOTTANT, Flottant } from './Flottant'
+import { creneauxDeVisite } from './affaire'
 
 /** Créneau proposé par le popover visite (J+1 10:00 · J+1 14:00 · J+2 11:00 · J+3 16:00). */
 export interface VisitSlot {
@@ -80,20 +81,7 @@ export function CardQuickActions({
     return () => { window.removeEventListener('scroll', fermer, true); window.removeEventListener('resize', fermer) }
   }, [visitOpen, menuOpen, setMenuOpen])
 
-  const visitSlots = useMemo<VisitSlot[]>(() => {
-    const weekday = new Intl.DateTimeFormat(i18n.language, { weekday: 'long' })
-    const fmt = (d: Date) => `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`
-    const mk = (addDays: number, time: string): VisitSlot => {
-      const d = new Date()
-      d.setDate(d.getDate() + addDays)
-      const [h, m] = time.split(':').map(Number)
-      d.setHours(h, m, 0, 0)
-      const raw = weekday.format(d)
-      const dayName = addDays === 1 ? t('board.card.tomorrow') : raw.charAt(0).toUpperCase() + raw.slice(1)
-      return { label: `${addDays}-${time}`, day: `${dayName} ${fmt(d)}`, time, at: d }
-    }
-    return [mk(1, '10:00'), mk(1, '14:00'), mk(2, '11:00'), mk(3, '16:00')]
-  }, [i18n.language, t])
+  const visitSlots = useMemo<VisitSlot[]>(() => creneauxDeVisite(i18n.language, t('board.card.tomorrow')), [i18n.language, t])
 
   const { data: members = [] } = useTeamMembers()
   const team = members

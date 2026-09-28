@@ -507,5 +507,19 @@
       "recommandation": "Um eine Empfehlung bitten",
       "anniversaire": "Ein Jahr im neuen Zuhause"
     }
+  },
+  "menu": {
+    "ouvrir": "Öffnen",
+    "nouvelOnglet": "In neuem Tab öffnen",
+    "actionFaite": "Aktion als erledigt markieren",
+    "deplacer": "Verschieben nach",
+    "ouvrirContact": "Kontakt öffnen",
+    "copierLien": "Link kopieren",
+    "lienCopie": "Link kopiert",
+    "marquerConclu": "Als abgeschlossen markieren",
+    "rechercher": "Suchen",
+    "vueTimeline": "Timeline anzeigen",
+    "vueKanban": "Kanban anzeigen",
+    "retour": "Zurück zur Pipeline"
   }
 }

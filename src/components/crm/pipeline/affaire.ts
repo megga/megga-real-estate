@@ -8,7 +8,53 @@
  */
 import type { MEIconName } from '@/components/propertyx/MEIcon'
 import type { CrmBien, CrmContact, CrmDeal } from '../mockData'
+import type { VisitSlot } from './CardQuickActions'
 import { JOURS_SILENCE, joursJusqua, loyerCourt, montantCourt } from './phases'
+
+/** Un jour qu'offrent les menus « Replanifier » / « Planifier ». */
+export type ChoixJour = 'aujourdhui' | 'demain' | 'apresDemain' | 'lundi' | 'semaine'
+
+/**
+ * Les jours d'une (re)planification : des gestes, pas un calendrier — la pastille de la Timeline,
+ * la fiche et le menu du clic droit proposent les mêmes. ⚠ Un même jour ne s'offre qu'une fois :
+ * un dimanche, « Lundi » EST « Demain ». « Aujourd'hui » seulement pour une première action.
+ */
+export function joursProposes(avecAujourdhui: boolean): { cle: ChoixJour; jours: number }[] {
+  const tous: { cle: ChoixJour; jours: number }[] = [
+    { cle: 'aujourdhui', jours: 0 },
+    { cle: 'demain', jours: 1 },
+    { cle: 'apresDemain', jours: 2 },
+    { cle: 'lundi', jours: ((8 - new Date().getDay()) % 7) || 7 },
+    { cle: 'semaine', jours: 7 },
+  ]
+  return tous
+    .filter((c) => avecAujourdhui || c.cle !== 'aujourdhui')
+    .filter((c, i, liste) => liste.findIndex((x) => x.jours === c.jours) === i)
+}
+
+/** L'échéance replanifiée dans N jours : l'heure de l'échéance d'avant gardée, 10 h pour une première. */
+export function echeanceDans(jours: number, avant: string | null): Date {
+  const d = new Date()
+  d.setDate(d.getDate() + jours)
+  if (avant) { const h = new Date(avant); d.setHours(h.getHours(), h.getMinutes(), 0, 0) } else d.setHours(10, 0, 0, 0)
+  return d
+}
+
+/** Les quatre créneaux de « Planifier une visite » : J+1 10 h et 14 h, J+2 11 h, J+3 16 h. */
+export function creneauxDeVisite(langue: string, demain: string): VisitSlot[] {
+  const weekday = new Intl.DateTimeFormat(langue, { weekday: 'long' })
+  const fmt = (d: Date) => `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`
+  const mk = (addDays: number, time: string): VisitSlot => {
+    const d = new Date()
+    d.setDate(d.getDate() + addDays)
+    const [h, m] = time.split(':').map(Number)
+    d.setHours(h, m, 0, 0)
+    const raw = weekday.format(d)
+    const dayName = addDays === 1 ? demain : raw.charAt(0).toUpperCase() + raw.slice(1)
+    return { label: `${addDays}-${time}`, day: `${dayName} ${fmt(d)}`, time, at: d }
+  }
+  return [mk(1, '10:00'), mk(1, '14:00'), mk(2, '11:00'), mk(3, '16:00')]
+}
 
 /** L'icône d'une prochaine action, par `reminders.kind` — les six valeurs que la base accepte. */
 export function iconeAction(kind: string): MEIconName {

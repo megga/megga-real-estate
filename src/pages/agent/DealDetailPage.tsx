@@ -56,17 +56,11 @@ import { CapsuleToast } from '@/components/crm/pipeline/CapsuleToast'
 import { ClotureAffaire } from '@/components/crm/pipeline/ClotureAffaire'
 import { ETAPES_APRES_VENTE, dateEtape } from '@/components/crm/pipeline/apresVente'
 import { LostConfirmModal } from '@/components/crm/pipeline/LostConfirmModal'
-import { iconeAction, jourCourt } from '@/components/crm/pipeline/affaire'
+import { MenuContextuel } from '@/components/crm/pipeline/MenuContextuel'
+import { menuNatifVoulu, type EntreeMenu, type MenuOuvert } from '@/components/crm/pipeline/menuClicDroit'
+import { echeanceDans, iconeAction, jourCourt, joursProposes } from '@/components/crm/pipeline/affaire'
 import { PHASES, echeanceDe, joursJusqua, montantCourt, phase, phaseDe, stadeDEntree } from '@/components/crm/pipeline/phases'
 import { ton } from '@/components/crm/pipeline/tons'
-
-/** Les choix d'une replanification : quatre jours, l'heure gardée — un geste, pas un calendrier. */
-const CHOIX_JOURS: { cle: 'demain' | 'apresDemain' | 'lundi' | 'semaine'; jours: () => number }[] = [
-  { cle: 'demain', jours: () => 1 },
-  { cle: 'apresDemain', jours: () => 2 },
-  { cle: 'lundi', jours: () => { const j = new Date().getDay(); return ((8 - j) % 7) || 7 } },
-  { cle: 'semaine', jours: () => 7 },
-]
 
 /** Une section de la feuille : un filet en haut, jamais une carte. */
 function Section({ sp, titre, droite, etire, premiere, children }: {
@@ -159,6 +153,8 @@ export default function DealDetailPage() {
   const [clotureOuverte, setClotureOuverte] = useState(false)
   // Le pager de la fiche : la confirmation « Perdu » s'y monte, et son flou n'en déborde pas.
   const [pager, setPager] = useState<HTMLDivElement | null>(null)
+  // Le clic droit de la fiche (`MenuContextuel`) — ses gestes, comme ceux de la carte au Pipeline.
+  const [menu, setMenu] = useState<MenuOuvert | null>(null)
   const [jours, setJours] = useState(false)
   const joursRef = useRef<HTMLDivElement>(null)
   const ecranActif = useEcranActif()
@@ -192,6 +188,7 @@ export default function DealDetailPage() {
         </CrmWorkspace>
       </div>
       {toast && <CapsuleToast sp={sp} message={toast} />}
+      {menu && <MenuContextuel sp={sp} menu={menu} onFermer={() => setMenu(null)} />}
     </div>
   )
 
@@ -258,15 +255,9 @@ export default function DealDetailPage() {
       onError: (err) => montrer(t('deal.offer_update_failed', { message: err.message })),
     })
   }
-  const auJour = (plus: number) => {
-    const d = new Date()
-    d.setDate(d.getDate() + plus)
-    if (nextAction) { const h = new Date(nextAction.dueAt); d.setHours(h.getHours(), h.getMinutes(), 0, 0) } else d.setHours(10, 0, 0, 0)
-    return d
-  }
   const choisirJour = async (plus: number) => {
     setJours(false)
-    const quand = auJour(plus)
+    const quand = echeanceDans(plus, nextAction?.dueAt ?? null)
     try {
       if (nextAction?.reminderId) {
         await replanifier.mutateAsync({ id: nextAction.reminderId, triggerAt: quand.toISOString() })
@@ -284,6 +275,51 @@ export default function DealDetailPage() {
     try { await terminer.mutateAsync(nextAction.reminderId); montrer(t('fiche.toast.fait')) } catch {
       montrer(t('board.card.actionFailed', { message: t('board.card.unknownError') }))
     }
+  }
+  /** Le menu du clic droit : naviguer, faire avancer l'affaire, la clore ou la rouvrir. */
+  const entreesFiche = (): EntreeMenu[] => {
+    const lien = `/dashboard/transactions/${deal.id}`
+    const echec = () => montrer(t('board.card.actionFailed', { message: t('board.card.unknownError') }))
+    const e: EntreeMenu[] = [{ genre: 'action', cle: 'retour', icone: 'arrow-left', libelle: t('menu.retour'), onChoisir: () => navigate('/dashboard/pipeline') }]
+    if (!conclue && !perdue) {
+      e.push({ genre: 'separateur', cle: 's-action' })
+      if (nextAction?.reminderId) e.push({ genre: 'action', cle: 'fait', icone: 'check', libelle: t('menu.actionFaite'), onChoisir: () => void actionFaite() })
+      e.push({
+        genre: 'sous-menu', cle: 'quand', icone: 'calendar', libelle: nextAction ? t('fiche.replanifier') : t('fiche.planifier'),
+        entrees: joursProposes(!nextAction).map((c) => ({
+          genre: 'action', cle: c.cle, libelle: c.cle === 'aujourdhui' ? t('board.card.today') : t(`fiche.quand.${c.cle}`),
+          onChoisir: () => void choisirJour(c.jours),
+        })),
+      })
+      e.push({
+        genre: 'sous-menu', cle: 'deplacer', icone: 'pipeline', libelle: t('menu.deplacer'),
+        entrees: PHASES.map((p) => ({
+          genre: 'action', cle: p.id, pastille: p.teinte, libelle: t(`phases.noms.${p.id}`), coche: p.id === idPhase,
+          onChoisir: () => poser(stadeDEntree(p.id)),
+        })),
+      })
+    }
+    e.push({ genre: 'separateur', cle: 's-liens' })
+    if (contactId) e.push({ genre: 'action', cle: 'contact', icone: 'user', libelle: t('menu.ouvrirContact'), onChoisir: () => navigate(`/dashboard/contacts/${contactId}`) })
+    if (bien) e.push({ genre: 'action', cle: 'bien', icone: 'building', libelle: t('fiche.ouvrirBien'), onChoisir: () => navigate(`/dashboard/listings/${bien.id}`) })
+    e.push({
+      genre: 'action', cle: 'lien', icone: 'copy', libelle: t('menu.copierLien'),
+      onChoisir: () => { navigator.clipboard.writeText(`${window.location.origin}${lien}`).then(() => montrer(t('menu.lienCopie'))).catch(echec) },
+    })
+    e.push({ genre: 'separateur', cle: 's-sortie' })
+    if (conclue || perdue) {
+      e.push({ genre: 'action', cle: 'rouvrir', icone: 'refresh', libelle: t('fiche.rouvrir'), onChoisir: () => void rouvrir() })
+    } else {
+      e.push({ genre: 'action', cle: 'conclu', icone: 'check-circle', teinte: ton('conclu', sp).encre, libelle: t('menu.marquerConclu'), onChoisir: () => void conclure() })
+      e.push({ genre: 'action', cle: 'perdu', icone: 'close-circle', danger: true, libelle: t('board.card.markLost'), onChoisir: () => setPerdu(true) })
+    }
+    return e
+  }
+  const ouvrirMenu = (ev: React.MouseEvent) => {
+    // Un champ, un lien, du texte sélectionné ou ⇧ : le menu du navigateur.
+    if (menuNatifVoulu(ev)) return
+    ev.preventDefault()
+    setMenu({ x: ev.clientX, y: ev.clientY, libelle: nom, entrees: entreesFiche() })
   }
   const ecrire = () => {
     const email = contact?.email?.trim()
@@ -554,7 +590,7 @@ export default function DealDetailPage() {
   const criteres = contact?.search_criteria as { budget_max?: number; rooms_min?: number; zones?: string[]; transaction_type?: string } | null | undefined
 
   return cadre(
-    <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+    <div onContextMenu={ouvrirMenu} style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       {/* ── L'affaire : qui, quoi, où elle en est ─────────────────────────── */}
       <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-7xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
@@ -669,12 +705,12 @@ export default function DealDetailPage() {
               }}>
                 {/* Un jour ne se propose qu'une fois (un dimanche, « Lundi » EST « Demain »), et sans sa date
                     en regard : le nom suffit (Julien, 27.09.2026, « règle numéro 1 »). */}
-                {CHOIX_JOURS.filter((c, i, tous) => tous.findIndex((x) => x.jours() === c.jours()) === i).map((c) => (
-                  <button key={c.cle} type="button" role="menuitem" onClick={() => void choisirJour(c.jours())} style={{
+                {joursProposes(!nextAction).map((c) => (
+                  <button key={c.cle} type="button" role="menuitem" onClick={() => void choisirJour(c.jours)} style={{
                     textAlign: 'left', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: 'transparent',
                     padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-md)',
                     fontSize: 'var(--crm-text-md)', color: sp.ink,
-                  }}>{t(`fiche.quand.${c.cle}`)}</button>
+                  }}>{c.cle === 'aujourdhui' ? t('board.card.today') : t(`fiche.quand.${c.cle}`)}</button>
                 ))}
               </div>
             )}

@@ -507,5 +507,19 @@
       "recommandation": "Chiedere una raccomandazione",
       "anniversaire": "Un anno nella nuova casa"
     }
+  },
+  "menu": {
+    "ouvrir": "Apri",
+    "nouvelOnglet": "Apri in una nuova scheda",
+    "actionFaite": "Segna l’azione come fatta",
+    "deplacer": "Sposta in",
+    "ouvrirContact": "Apri il contatto",
+    "copierLien": "Copia il link",
+    "lienCopie": "Link copiato",
+    "marquerConclu": "Segna come concluso",
+    "rechercher": "Cerca",
+    "vueTimeline": "Mostra la Timeline",
+    "vueKanban": "Mostra il Kanban",
+    "retour": "Torna alla Pipeline"
   }
 }

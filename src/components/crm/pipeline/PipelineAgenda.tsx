@@ -28,7 +28,7 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { crmMix, crmVoileEncre, type CrmPalette } from '../tokens'
 import type { CrmBien, CrmContact, CrmDeal } from '../mockData'
 import { useEcranActif } from '@/hooks/useEcranActif'
-import { amenerALaVue, iconeAction, jourCourt, type Arrivee } from './affaire'
+import { amenerALaVue, iconeAction, joursProposes, jourCourt, type Arrivee } from './affaire'
 import { ATTR_FLOTTANT, Flottant } from './Flottant'
 import { joursJusqua, montantCourt, phase, phaseDe, stadeDuDeal } from './phases'
 import { ton, type Ton } from './tons'
@@ -39,14 +39,6 @@ const JOURS = 14
 const COLONNES = `minmax(200px, 240px) 64px repeat(${JOURS}, minmax(0, 1fr)) 64px`
 /** En deçà, un geste est un CLIC (il ouvre les options) ; au-delà, un glisser. */
 const SEUIL_GLISSER = 4
-/** Les jours que propose le menu d'une pastille : quatre gestes, pas un calendrier. */
-const CHOIX: { cle: 'aujourdhui' | 'demain' | 'apresDemain' | 'lundi' | 'semaine'; jours: () => number }[] = [
-  { cle: 'aujourdhui', jours: () => 0 },
-  { cle: 'demain', jours: () => 1 },
-  { cle: 'apresDemain', jours: () => 2 },
-  { cle: 'lundi', jours: () => { const j = new Date().getDay(); return ((8 - j) % 7) || 7 } },
-  { cle: 'semaine', jours: () => 7 },
-]
 
 type Groupe = 'retard' | 'aujourdhui' | 'semaine' | 'plusTard' | 'aPlanifier'
 const ORDRE: Groupe[] = ['retard', 'aujourdhui', 'semaine', 'plusTard', 'aPlanifier']
@@ -77,9 +69,15 @@ interface Props {
   nouveauId?: string | null
   /** L'arrivée d'une affaire née de « Nouveau deal » : sa ligne attend la modale, puis se pose. */
   arriveeDe?: (id: string) => Arrivee | undefined
+  /** Le clic droit sur une ligne : le menu de l'affaire (`MenuContextuel`). */
+  onMenuAffaire?: (e: React.MouseEvent, deal: CrmDeal) => void
+  /** Le clic droit sur le fond de la Timeline. */
+  onMenuFond?: (e: React.MouseEvent) => void
 }
 
-export function PipelineAgenda({ sp, dark, deals, contactsById, biensById, onOpenDeal, onReschedule, onPlanifier, onFait, nouveauId, arriveeDe }: Props) {
+export function PipelineAgenda({
+  sp, dark, deals, contactsById, biensById, onOpenDeal, onReschedule, onPlanifier, onFait, nouveauId, arriveeDe, onMenuAffaire, onMenuFond,
+}: Props) {
   const { t, i18n } = useTranslation('pipeline')
   const [deplace, setDeplace] = useState<Record<string, string>>({})
   const [glisse, setGlisse] = useState<{ id: string; jour: number } | null>(null)
@@ -134,7 +132,8 @@ export function PipelineAgenda({ sp, dark, deals, contactsById, biensById, onOpe
   }
 
   const commencer = (e: React.PointerEvent, l: Ligne, piste: HTMLElement | null) => {
-    if (!piste) return
+    // Le bouton principal seul : un clic droit ouvre le menu, il ne commence pas un glisser.
+    if (!piste || e.button !== 0) return
     e.stopPropagation(); e.preventDefault()
     const r = piste.getBoundingClientRect()
     const x0 = e.clientX
@@ -178,7 +177,8 @@ export function PipelineAgenda({ sp, dark, deals, contactsById, biensById, onOpe
   }
 
   return (
-    <div style={{ minWidth: 820, display: 'flex', flexDirection: 'column', paddingBottom: 'var(--crm-space-6xl)' }}>
+    // Toute la hauteur : le clic droit sous la dernière ligne ouvre encore le menu du fond.
+    <div onContextMenu={onMenuFond} style={{ minWidth: 820, minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: 'var(--crm-space-6xl)' }}>
       {/* L'axe reste en haut pendant qu'on défile : on ne perd jamais le jour. */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 5, background: sp.pageBg,
@@ -257,6 +257,7 @@ export function PipelineAgenda({ sp, dark, deals, contactsById, biensById, onOpe
                     estUnGlisser={() => aGlisse.current}
                     onDeplacer={(jour) => deplacerVers(l, jour)}
                     onFait={onFait}
+                    onMenu={(e) => onMenuAffaire?.(e, l.deal)}
                   />
                 ))}
               </div>
@@ -268,7 +269,7 @@ export function PipelineAgenda({ sp, dark, deals, contactsById, biensById, onOpe
   )
 }
 
-function LigneAgenda({ l, n, sp, nouvelle, arrivee, glisseVers, onOpen, onCommencer, estUnGlisser, onDeplacer, onFait }: {
+function LigneAgenda({ l, n, sp, nouvelle, arrivee, glisseVers, onOpen, onCommencer, estUnGlisser, onDeplacer, onFait, onMenu }: {
   l: Ligne
   n: number
   sp: CrmPalette
@@ -281,6 +282,7 @@ function LigneAgenda({ l, n, sp, nouvelle, arrivee, glisseVers, onOpen, onCommen
   estUnGlisser: () => boolean
   onDeplacer: (jour: Date) => void
   onFait: (reminderId: string) => Promise<void>
+  onMenu: (e: React.MouseEvent) => void
 }) {
   const { t, i18n } = useTranslation('pipeline')
   const piste = useRef<HTMLDivElement>(null)
@@ -372,6 +374,7 @@ function LigneAgenda({ l, n, sp, nouvelle, arrivee, glisseVers, onOpen, onCommen
     <div
       ref={rangee}
       onClick={onOpen}
+      onContextMenu={onMenu}
       onMouseEnter={() => setSurvol(true)}
       onMouseLeave={() => setSurvol(false)}
       style={{
@@ -459,12 +462,9 @@ function LigneAgenda({ l, n, sp, nouvelle, arrivee, glisseVers, onOpen, onCommen
             fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
           }}>
             {na?.reminderId && ligneMenu('fait', 'check', t('fiche.fait'), () => { setMenu(false); void onFait(na.reminderId!) })}
-            {/* Un même jour ne se propose qu'une fois : un dimanche, « Lundi » EST « Demain ». */}
-            {CHOIX.filter((c) => !na || c.cle !== 'aujourdhui')
-              .filter((c, i, tous) => tous.findIndex((x) => x.jours() === c.jours()) === i)
-              .map((c) => ligneMenu(
+            {joursProposes(!na).map((c) => ligneMenu(
               c.cle, 'calendar', c.cle === 'aujourdhui' ? t('board.card.today') : t(`fiche.quand.${c.cle}`),
-              () => choisir(c.jours()),
+              () => choisir(c.jours),
             ))}
             <span aria-hidden style={{ height: 1, background: sp.cardBorder, margin: 'var(--crm-space-2xs) 0' }} />
             {ligneMenu('ouvrir', 'arrow-right', t('phases.agenda.ouvrir'), () => { setMenu(false); onOpen() })}

@@ -61,11 +61,13 @@ interface Props extends DealCardActions {
   nouvelle?: boolean
   /** Née de « Nouveau deal » : cachée sous la modale, puis elle se pose. */
   arrivee?: Arrivee
+  /** Le clic droit : le menu de l'affaire (`MenuContextuel`). */
+  onMenu?: (e: React.MouseEvent) => void
 }
 
 function AffaireCardImpl({
   deal, contact, bien, sp, dark, isDragging, signing, signExit,
-  onClick, onDragStart, onDragEnd, onChangeStade, nouvelle, arrivee,
+  onClick, onDragStart, onDragEnd, onChangeStade, nouvelle, arrivee, onMenu,
   onReassign, onArchive, onMarkLost, onScheduleVisit, onAskAiVisit,
 }: Props) {
   const { t, i18n } = useTranslation('pipeline')
@@ -134,6 +136,7 @@ function AffaireCardImpl({
         onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; setStadesOuverts(false); onDragStart() }}
         onDragEnd={onDragEnd}
         onClick={!isDragging && !signing ? onClick : undefined}
+        onContextMenu={!isDragging && !signing ? onMenu : undefined}
         onMouseEnter={() => { if (!isDragging && !signing) setHover(true) }}
         onMouseLeave={() => { if (!signing) { setHover(false); setMenuOpen(false) } }}
         style={{

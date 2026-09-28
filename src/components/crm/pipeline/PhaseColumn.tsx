@@ -36,6 +36,8 @@ interface Props {
   onDragOver: () => void
   onDragLeave: () => void
   onDrop: () => void
+  /** Le clic droit sur le fond de la colonne (une carte garde le sien). */
+  onMenu?: (e: React.MouseEvent) => void
   /** « + Ajouter » en pied de colonne ; `null` quand la phase ne se crée pas à la main. */
   onAjouter: (() => void) | null
   /** La carte fantôme de création, en tête de pile quand elle est ouverte. */
@@ -45,7 +47,7 @@ interface Props {
 
 export function PhaseColumn({
   phase, premiere, derniere, nombre, totalVentes, sp, dark, cibleDeDepot,
-  onDragOver, onDragLeave, onDrop, onAjouter, formulaire, children,
+  onDragOver, onDragLeave, onDrop, onMenu, onAjouter, formulaire, children,
 }: Props) {
   const { t, i18n } = useTranslation('pipeline')
   return (
@@ -53,6 +55,7 @@ export function PhaseColumn({
       onDragOver={(e) => { e.preventDefault(); onDragOver() }}
       onDragLeave={onDragLeave}
       onDrop={(e) => { e.preventDefault(); onDrop() }}
+      onContextMenu={onMenu}
       style={{
         flex: '1 1 0', minWidth: 196, height: '100%', minHeight: 0,
         display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)',

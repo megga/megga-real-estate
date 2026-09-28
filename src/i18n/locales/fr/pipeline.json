@@ -507,5 +507,19 @@
       "recommandation": "Demander une recommandation",
       "anniversaire": "Un an dans son bien"
     }
+  },
+  "menu": {
+    "ouvrir": "Ouvrir",
+    "nouvelOnglet": "Ouvrir dans un nouvel onglet",
+    "actionFaite": "Marquer l’action faite",
+    "deplacer": "Déplacer vers",
+    "ouvrirContact": "Ouvrir le contact",
+    "copierLien": "Copier le lien",
+    "lienCopie": "Lien copié",
+    "marquerConclu": "Marquer conclu",
+    "rechercher": "Rechercher",
+    "vueTimeline": "Afficher la Timeline",
+    "vueKanban": "Afficher le Kanban",
+    "retour": "Retour au Pipeline"
   }
 }

@@ -24,9 +24,10 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useLogAudit } from '@/hooks/useAuditLog'
-import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useCrmTabsOptionnel, useTabScopedState } from '@/hooks/useCrmTabs'
 import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { useTeamMembers } from '@/hooks/useTeam'
 import { useArchiveTransaction, useReassignTransaction, useUpdateTransactionStatus } from '@/hooks/useTransactions'
 import {
   useCancelTransactionReminders, useCompleteReminder, usePipelineReminderCreators, useRescheduleReminder,
@@ -41,6 +42,8 @@ import { CapsuleToast } from '@/components/crm/pipeline/CapsuleToast'
 import type { VisitSlot } from '@/components/crm/pipeline/CardQuickActions'
 import { CrmInlineNewDeal } from '@/components/crm/pipeline/CrmInlineNewDeal'
 import { LostConfirmModal } from '@/components/crm/pipeline/LostConfirmModal'
+import { MenuContextuel } from '@/components/crm/pipeline/MenuContextuel'
+import { menuNatifVoulu, type EntreeMenu, type MenuOuvert } from '@/components/crm/pipeline/menuClicDroit'
 import { NouvelleAffaireModal, type NewDealPrefill } from '@/components/crm/pipeline/NouvelleAffaireModal'
 import { PhaseColumn } from '@/components/crm/pipeline/PhaseColumn'
 import { PipelineAgenda } from '@/components/crm/pipeline/PipelineAgenda'
@@ -48,11 +51,12 @@ import { SegmentedView, type VuePipeline } from '@/components/crm/pipeline/Segme
 import { ClotureAffaire } from '@/components/crm/pipeline/ClotureAffaire'
 import { ZonesDeSortie, type Sortie } from '@/components/crm/pipeline/ZonesDeSortie'
 import { PHASES, phaseDe, stadeDEntree, stadeDuDeal, type PhaseId } from '@/components/crm/pipeline/phases'
-import type { Arrivee } from '@/components/crm/pipeline/affaire'
+import { creneauxDeVisite, echeanceDans, joursProposes, type Arrivee } from '@/components/crm/pipeline/affaire'
+import { ton } from '@/components/crm/pipeline/tons'
 
 
 export default function PipelinePage() {
-  const { t } = useTranslation('pipeline')
+  const { t, i18n } = useTranslation('pipeline')
   const navigate = useNavigate()
   const ai = useAiPanel()
   const [dark, setDark] = useCrmDarkPref()
@@ -237,6 +241,97 @@ export default function PipelinePage() {
     if (ai.enabled) ai.askAi(prompt); else if (d) openDeal(d.id)
   }
 
+  // ── Le clic droit (`MenuContextuel`) : une affaire, une colonne, le fond — comme un navigateur. ──
+  const onglets = useCrmTabsOptionnel()
+  const { data: membres = [] } = useTeamMembers()
+  const champRecherche = useRef<HTMLInputElement>(null)
+  const [menu, setMenu] = useState<MenuOuvert | null>(null)
+  const ouvrirMenu = (e: React.MouseEvent, libelle: string, entrees: EntreeMenu[]) => {
+    // Un champ, un lien, du texte sélectionné ou ⇧ : le menu du navigateur.
+    if (menuNatifVoulu(e) || entrees.length === 0) return
+    e.preventDefault(); e.stopPropagation()
+    setMenu({ x: e.clientX, y: e.clientY, libelle, entrees })
+  }
+  const echec = () => montrer(t('board.card.actionFailed', { message: t('board.card.unknownError') }))
+  /** Replanifie (ou planifie) l'action dans N jours, l'heure gardée — la règle de la fiche et de la Timeline. */
+  const planifierDans = (d: CrmDeal, jours: number) => {
+    const na = d.nextAction
+    const quand = echeanceDans(jours, na?.dueAt ?? null)
+    if (na?.reminderId) {
+      rescheduleReminder.mutateAsync({ id: na.reminderId, triggerAt: quand.toISOString() })
+        .then(() => montrer(t('fiche.toast.replanifiee'))).catch(echec)
+    } else {
+      createNextAction({ transactionId: d.id, contactId: d.contactId || null, kind: 'call', at: quand, note: t('phases.agenda.relance') })
+        .then(() => montrer(t('fiche.toast.planifiee'))).catch(echec)
+    }
+  }
+  const copierLien = (chemin: string) => {
+    navigator.clipboard.writeText(`${window.location.origin}${chemin}`).then(() => montrer(t('menu.lienCopie'))).catch(echec)
+  }
+  /** Le menu d'une AFFAIRE — la carte du Kanban comme la ligne de la Timeline. */
+  const entreesAffaire = (d: CrmDeal): EntreeMenu[] => {
+    const na = d.nextAction
+    const ici = phaseDe(stadeDuDeal(d))
+    const lien = `/dashboard/transactions/${d.id}`
+    const equipe = membres.filter((m) => m.id !== d.ownerAgentId)
+    const e: EntreeMenu[] = [{ genre: 'action', cle: 'ouvrir', icone: 'arrow-right', libelle: t('menu.ouvrir'), onChoisir: () => openDeal(d.id) }]
+    if (onglets) e.push({ genre: 'action', cle: 'onglet', icone: 'external', libelle: t('menu.nouvelOnglet'), onChoisir: () => onglets.ouvrirDans(lien) })
+    e.push({ genre: 'separateur', cle: 's-action' })
+    if (na?.reminderId) {
+      const id = na.reminderId
+      e.push({ genre: 'action', cle: 'fait', icone: 'check', libelle: t('menu.actionFaite'), onChoisir: () => { terminerAction.mutateAsync(id).then(() => montrer(t('fiche.toast.fait'))).catch(echec) } })
+    }
+    e.push({
+      genre: 'sous-menu', cle: 'quand', icone: 'calendar', libelle: na ? t('fiche.replanifier') : t('fiche.planifier'),
+      entrees: joursProposes(!na).map((c) => ({
+        genre: 'action', cle: c.cle, libelle: c.cle === 'aujourdhui' ? t('board.card.today') : t(`fiche.quand.${c.cle}`),
+        onChoisir: () => planifierDans(d, c.jours),
+      })),
+    })
+    e.push({
+      genre: 'sous-menu', cle: 'visite', icone: 'home', libelle: t('board.card.scheduleVisit'),
+      entrees: creneauxDeVisite(i18n.language, t('board.card.tomorrow')).map((s) => ({
+        genre: 'action', cle: s.label, libelle: `${s.day} · ${s.time}`, onChoisir: () => planifierVisite(d.id, s),
+      })),
+    })
+    e.push({ genre: 'separateur', cle: 's-place' })
+    e.push({
+      genre: 'sous-menu', cle: 'deplacer', icone: 'pipeline', libelle: t('menu.deplacer'),
+      entrees: PHASES.map((p) => ({
+        genre: 'action', cle: p.id, pastille: p.teinte, libelle: t(`phases.noms.${p.id}`), coche: p.id === ici,
+        onChoisir: () => deplacer(d, stadeDEntree(p.id)),
+      })),
+    })
+    if (equipe.length > 0) {
+      e.push({
+        genre: 'sous-menu', cle: 'reassigner', icone: 'users', libelle: t('board.card.reassign'),
+        entrees: equipe.map((m) => ({ genre: 'action', cle: m.id, icone: 'user', libelle: m.full_name, onChoisir: () => reassigner(d.id, { id: m.id, name: m.full_name }) })),
+      })
+    }
+    e.push({ genre: 'separateur', cle: 's-liens' })
+    e.push({ genre: 'action', cle: 'contact', icone: 'user', libelle: t('menu.ouvrirContact'), onChoisir: () => navigate(`/dashboard/contacts/${d.contactId}`) })
+    if (d.bienId) e.push({ genre: 'action', cle: 'bien', icone: 'building', libelle: t('fiche.ouvrirBien'), onChoisir: () => navigate(`/dashboard/listings/${d.bienId}`) })
+    e.push({ genre: 'action', cle: 'lien', icone: 'copy', libelle: t('menu.copierLien'), onChoisir: () => copierLien(lien) })
+    e.push({ genre: 'separateur', cle: 's-sortie' })
+    e.push({ genre: 'action', cle: 'conclu', icone: 'check-circle', teinte: ton('conclu', sp).encre, libelle: t('menu.marquerConclu'), onChoisir: () => conclure(d) })
+    e.push({ genre: 'action', cle: 'perdu', icone: 'close-circle', danger: true, libelle: t('board.card.markLost'), onChoisir: () => setPerdu(d.id) })
+    e.push({ genre: 'action', cle: 'archiver', icone: 'download', libelle: t('board.card.archive'), onChoisir: () => archiver(d.id) })
+    return e
+  }
+  /** Le menu du FOND — une colonne (sa phase préremplie dans « Nouveau deal »), ou la Timeline. */
+  const entreesFond = (p?: PhaseId): EntreeMenu[] => [
+    // « Signature » ne se crée pas à la main : on y arrive par une offre acceptée.
+    ...(p === 'signature' ? [] : [{
+      genre: 'action' as const, cle: 'nouveau', icone: 'plus' as const, libelle: t('new_deal'),
+      onChoisir: () => { setPrefill(p ? { stage: mapStage(stadeDEntree(p)) } : null); setNouveauOuvert(true) },
+    }]),
+    { genre: 'action', cle: 'rechercher', icone: 'search', libelle: t('menu.rechercher'), onChoisir: () => champRecherche.current?.focus() },
+    { genre: 'separateur', cle: 's-vue' },
+    vue === 'kanban'
+      ? { genre: 'action', cle: 'vue', icone: 'calendar', libelle: t('menu.vueTimeline'), onChoisir: () => setVue('timeline') }
+      : { genre: 'action', cle: 'vue', icone: 'pipeline', libelle: t('menu.vueKanban'), onChoisir: () => setVue('kanban') },
+  ]
+
   // ── Création ──
   const [ajoutPhase, setAjoutPhase] = useState<PhaseId | null>(null)
   const [nouveauOuvert, setNouveauOuvert] = useState(false)
@@ -308,6 +403,7 @@ export default function PipelinePage() {
                 }}>
                   <MEIcon name="search" size={14} color={sp.sub} />
                   <input
+                    ref={champRecherche}
                     value={recherche} onChange={(e) => setRecherche(e.target.value)}
                     placeholder={t('board.searchPlaceholder')}
                     style={{
@@ -385,6 +481,7 @@ export default function PipelinePage() {
                           onDragOver={() => { if (survolPhase !== p.id) setSurvolPhase(p.id); if (survolSortie) setSurvolSortie(null) }}
                           onDragLeave={() => {}}
                           onDrop={() => deposerPhase(p.id)}
+                          onMenu={(e) => ouvrirMenu(e, t(`phases.noms.${p.id}`), entreesFond(p.id))}
                           // « Signature » ne se crée pas à la main : on y arrive par une offre acceptée.
                           onAjouter={p.id === 'signature' ? null : () => setAjoutPhase(p.id)}
                           formulaire={ajoutPhase === p.id ? (
@@ -408,6 +505,7 @@ export default function PipelinePage() {
                               onDragEnd={finGlisser}
                               onChangeStade={(s) => deplacer(d, s)}
                               nouvelle={d.id === nouveauId} arrivee={arriveeDe(d.id)}
+                              onMenu={(e) => ouvrirMenu(e, nomDe(d), entreesAffaire(d))}
                               onReassign={reassigner} onArchive={archiver} onMarkLost={(id) => setPerdu(id)}
                               onScheduleVisit={planifierVisite} onAskAiVisit={demanderIaVisite}
                             />
@@ -421,6 +519,8 @@ export default function PipelinePage() {
                     sp={sp} dark={dark} deals={visibles} contactsById={contactsById} biensById={biensById}
                     onOpenDeal={openDeal}
                     nouveauId={nouveauId} arriveeDe={arriveeDe}
+                    onMenuAffaire={(e, d) => ouvrirMenu(e, nomDe(d), entreesAffaire(d))}
+                    onMenuFond={(e) => ouvrirMenu(e, t('view.timeline'), entreesFond())}
                     onFait={async (reminderId) => {
                       try { await terminerAction.mutateAsync(reminderId); montrer(t('fiche.toast.fait')) } catch {
                         montrer(t('board.card.actionFailed', { message: t('board.card.unknownError') }))
@@ -474,6 +574,7 @@ export default function PipelinePage() {
       )}
 
       {toast && <CapsuleToast sp={sp} message={toast.message} undo={toast.undo} />}
+      {menu && <MenuContextuel sp={sp} menu={menu} onFermer={() => setMenu(null)} />}
 
       {signe && dealSigne && (
         <ClotureAffaire

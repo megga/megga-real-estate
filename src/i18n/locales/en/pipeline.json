@@ -507,5 +507,19 @@
       "recommandation": "Ask for a referral",
       "anniversaire": "One year in the home"
     }
+  },
+  "menu": {
+    "ouvrir": "Open",
+    "nouvelOnglet": "Open in new tab",
+    "actionFaite": "Mark action as done",
+    "deplacer": "Move to",
+    "ouvrirContact": "Open contact",
+    "copierLien": "Copy link",
+    "lienCopie": "Link copied",
+    "marquerConclu": "Mark as won",
+    "rechercher": "Search",
+    "vueTimeline": "Show Timeline",
+    "vueKanban": "Show Kanban",
+    "retour": "Back to Pipeline"
   }
 }
