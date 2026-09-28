@@ -21,6 +21,7 @@ import {
   useQuery,
   useInsertMutation,
   useUpdateMutation,
+  useRevalidateTables,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -122,6 +123,7 @@ export function useCreateTransaction() {
 // wouldn't cover the activity-log caches; explicit invalidate keeps the contract.
 export function useUpdateTransactionStage() {
   const queryClient = useQueryClient()
+  const revaliderTransactions = useRevalidateTables([{ schema: 'public', table: 'transactions' }])
   return useMutation({
     mutationFn: async ({ id, stage, notes, lostReason }: {
       id: string
@@ -161,9 +163,18 @@ export function useUpdateTransactionStage() {
 
       return data
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] })
+    // ⛔ LES LISTES DU PIPELINE SONT DES REQUÊTES CACHE-HELPERS (`useTransactions`) : leur clé
+    // commence par « postgrest », et `['transactions']` ne les atteignait pas. Mesuré sur le banc
+    // le 27.09.2026 : le stade était bien écrit, mais la carte déposée RETOURNAIT dans sa colonne
+    // dès que la surcouche optimiste tombait — jusqu'au prochain rafraîchissement (2 min de
+    // `staleTime` en production). La promesse est ATTENDUE : la surcouche ne tombe qu'une fois la
+    // liste relue, sans va-et-vient.
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] }),
+        revaliderTransactions(),
+      ])
     },
   })
 }
