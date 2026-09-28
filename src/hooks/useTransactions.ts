@@ -91,9 +91,16 @@ interface CreateTransactionInput {
   notes?: string
 }
 
-/** Crée une transaction et émet l'événement Intercom « affaire créée ». */
+/**
+ * Crée une transaction et émet l'événement Intercom « affaire créée ». Rend `{ id }`.
+ *
+ * ⛔ SANS SA REQUÊTE `'id'`, CE HOOK RENDAIT TOUJOURS `undefined` (relevé le 27.09.2026) :
+ * cache-helpers ne renvoie à l'appelant que les colonnes de SA requête — sans elle, un tableau
+ * vide. Les trois créations de deal lisaient pourtant l'id rendu : le « Premier suivi » à J+2
+ * n'était jamais posé, et l'ajout en ligne du Pipeline restait ouvert après avoir créé.
+ */
 export function useCreateTransaction() {
-  const insert = useInsertMutation(supabase.from('transactions'), ['id'])
+  const insert = useInsertMutation(supabase.from('transactions'), ['id'], 'id')
   return {
     mutateAsync: async (input: CreateTransactionInput) => {
       const rows = await insert.mutateAsync([

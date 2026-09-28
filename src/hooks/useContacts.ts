@@ -175,18 +175,24 @@ export function useContact(id: string | undefined) {
   }
 }
 
-/** Création manuelle d'un contact (source `manual` par défaut, score `cold`). */
+/**
+ * Création manuelle d'un contact (source `manual` par défaut, score `cold`). Rend `{ id }`,
+ * rien d'autre : c'est la seule colonne que sa requête demande.
+ *
+ * ⛔ Même défaut que `useCreateTransaction` jusqu'au 27.09.2026 : sans la requête `'id'`,
+ * cache-helpers ne rendait RIEN à l'appelant — « Nouveau deal » avec un client neuf créait
+ * le contact puis échouait sur `undefined.id`, sans créer le deal.
+ */
 export function useCreateContact() {
   const { user, profile } = useAuth()
-  const insert = useInsertMutation(supabase.from('contacts'), ['id'])
+  const insert = useInsertMutation(supabase.from('contacts'), ['id'], 'id')
 
   return {
     mutateAsync: async (
       input: CreateContactInput & {
         /**
-         * Identifiant choisi par l'appelant. ⚠ La réponse de `useInsertMutation` ne rend
-         * pas toujours la ligne créée (d'où le `created?.id` de ContactsPage) : l'appelant
-         * qui doit ENCHAÎNER sur ce contact — une visite, un deal — pose l'id lui-même.
+         * Identifiant choisi par l'appelant, quand il doit le connaître AVANT l'insertion.
+         * Pour enchaîner après (une visite, un deal), l'id rendu suffit désormais.
          */
         id?: string
         agency_id?: string
@@ -235,7 +241,7 @@ export function useCreateContact() {
       // en base (une requête `head`, et plus aucune une fois le jalon envoyé).
       const agencyId = input.agency_id ?? profile?.agency_id
       if (agencyId) void syncIntercomMilestones(agencyId, [INTERCOM_EVENTS.FIRST_CONTACTS_IMPORTED])
-      return (Array.isArray(rows) ? rows[0] : rows) as unknown as Contact
+      return (Array.isArray(rows) ? rows[0] : rows) as unknown as { id: string }
     },
     isPending: insert.isPending,
   }
