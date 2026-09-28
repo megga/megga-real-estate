@@ -1806,7 +1806,7 @@ export default function NewContactModal({
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 8.5rem) minmax(0, 1fr)', gap: 'var(--crm-space-sm)' }}>
                     <select className="ncbm-in" value={paysTel} onChange={(e) => majPaysTel(e.target.value)}
                             aria-label={t('newContactPager.dialCode')} style={selW(C)}>
-                      {optionsIndicatif.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      {optionsIndicatif.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                     <input className="ncbm-in" type="tel" inputMode="tel" autoComplete="off" value={numeroLocal}
                            onChange={(e) => majNumeroLocal(e.target.value)} style={{ ...inpW(C, tried && !joignable), ...MONO }} />
