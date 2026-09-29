@@ -18,10 +18,14 @@ import type { SearchCriteria } from '@/types/contact'
 import type { LigneBoucleContact } from '@/components/crm/contacts-pager/saBoucle'
 
 const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
-/** Le match et son bien, colonnes légères (§7 de CLAUDE.md) ; le `status` d'une annonce dit qu'elle est retirée (`saBoucle`). */
+/**
+ * Le match et son bien, colonnes légères (§7 de CLAUDE.md) ; le `status` d'un bien dit s'il est encore une occasion —
+ * une annonce retirée, un mandat qui n'est plus en vente (lot E1) —, et `deleted_at` qu'un mandat est supprimé, ce que
+ * seul un super-administrateur lit encore (`saBoucle`). Les deux lectures partagent ces colonnes.
+ */
 const COLONNES = 'id, status, score, sent_at, response_at, reaction_motif, reaction_note, prix_propose, apprentissage_at,'
   + ' client_search_id, snoozed_until, property_id, market_listing_id,'
-  + ' property:properties(title, address, city, canton, price, rooms, surface_m2, photos, type, transaction_type, features),'
+  + ' property:properties(title, address, city, canton, price, rooms, surface_m2, photos, type, transaction_type, features, status, deleted_at),'
   + ' market_listing:market_listings(title, address, city, canton, price, current_price, rooms, surface_m2, photos, photos_cf, type, transaction_type, features, status)'
 
 interface BoucleContact {

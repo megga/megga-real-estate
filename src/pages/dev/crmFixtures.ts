@@ -613,18 +613,21 @@ const BIENS_CATALOGUE = Array.from({ length: 48 }, (_, i) => {
   }
 })
 
-/** Les jointures `property` des matchs — le banc n'applique pas `select`, la ligne les porte. */
+/**
+ * Les jointures `property` des matchs — le banc n'applique pas `select`, la ligne les porte. Leur `status` est celui de
+ * la table : « Sa boucle » le lit, et un mandat qui ne l'aurait pas n'y serait plus en vente (lot E1).
+ */
 const CHAMPEL_EMBARQUE = {
   title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
   city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
   photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
-  features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+  features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420, status: 'active',
 }
 const COLOGNY_EMBARQUE = {
   title: 'Villa individuelle · Cologny', price: 3_200_000, address: 'Chemin de Ruth 8',
   city: 'Cologny', canton: 'GE', postal_code: '1223', rooms: 7, bedrooms: 5, surface_m2: 260,
   photos: [PHOTO.cologny], type: 'house', description: 'Villa contemporaine avec piscine, jardin arboré de 1 200 m² et vue sur le lac.',
-  features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'], floor: null, year_built: 2011, charges_monthly: null,
+  features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'], floor: null, year_built: 2011, charges_monthly: null, status: 'active',
 }
 
 /**
@@ -707,7 +710,7 @@ const FLORISSANT_EMBARQUE = {
   title: 'Attique 5,5 pièces · Florissant', price: 2_350_000, address: 'Route de Florissant 58',
   city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 5.5, bedrooms: 4, surface_m2: 168,
   photos: [unsplash(PHOTOS_APPART[9]!)], type: 'apartment', description: 'Attique traversant, terrasse de 60 m² et vue sur le lac.',
-  features: ['Terrasse', 'Ascenseur', 'Vue lac'], floor: 7, year_built: 1972, charges_monthly: 690,
+  features: ['Terrasse', 'Ascenseur', 'Vue lac'], floor: 7, year_built: 1972, charges_monthly: 690, status: 'active',
 }
 /** Les jointures `contact` des matchs de la boucle — le banc n'applique pas `select`, la ligne les porte. */
 const JULIE_EMBARQUEE = { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' }
@@ -950,7 +953,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
         features: { match: false, score: 0, detail: '—' },
       },
       contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
-      property: { title: 'Loft 2,5 pièces · Genève', price: 1_290_000, city: 'Genève', canton: 'GE', rooms: 2.5, surface_m2: 86, photos: [], type: 'apartment' },
+      property: { title: 'Loft 2,5 pièces · Genève', price: 1_290_000, city: 'Genève', canton: 'GE', rooms: 2.5, surface_m2: 86, photos: [], type: 'apartment', status: 'active' },
       market_listing: null,
     },
     // ── Le marché du fil (lot 2, 17.09.2026) : m8 à m13, des paires acheteur × annonce ANNONCES_FIL

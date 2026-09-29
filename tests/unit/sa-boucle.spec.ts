@@ -3,11 +3,19 @@
  * reste là, un motif n'est jamais un code brut, l'ordre ne bouge pas d'une lecture à l'autre, chaque bien mène à sa
  * place dans le fil ; un bien revenu qui n'y a pas de place — reporté, ou sur une annonce retirée — ne mène nulle part,
  * et un mandat que la RLS masque n'a pas de ligne.
+ *
+ * Lot E1 : un bien revenu ne compte plus parmi les « Proposés », comme dans le fil (décision 10a) ; sur un mandat qui
+ * n'est plus en vente, il ne mène plus nulle part (décision 12a) ; un mandat supprimé n'a pas de ligne, même lu par un
+ * super-administrateur.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { SearchCriteria } from '@/types/contact'
+import { Constants } from '@/types/database'
 import { construireSaBoucle, type LigneBoucleContact } from '@/components/crm/contacts-pager/saBoucle'
 import { cleMotif } from '@/components/matching-fil/filBoucle'
+import { compterHistorique } from '@/components/matching-fil/filModele'
 
 const ACHETEUR = { id: 'c9', prenom: 'Julie', nom: 'Morand', telephone: null, email: null, kyc: 'none' as const }
 const JOUR = 86_400_000
@@ -36,9 +44,10 @@ describe('construireSaBoucle', () => {
   })
 
   it('un bien revenu reste dans la boucle, et mène à sa ligne dans le fil', () => {
+    // La jointure d'un mandat porte son état (lot E1) : en vente, il garde sa ligne d'« À proposer ».
     const mandat = ligne('m5', 'suggested', {
       reaction_motif: 'prix', prix_propose: 3_450_000, property_id: 'p2', market_listing_id: null, market_listing: null,
-      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale' },
+      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale', status: 'active' },
     })
     const b = boucle([mandat])
     expect(b.biens).toHaveLength(1)
@@ -63,7 +72,7 @@ describe('construireSaBoucle', () => {
   it('un mandat revenu reporté n’a pas de lien non plus ; son report échu, il retrouve sa ligne', () => {
     const mandat = (snoozed_until: string) => ligne('m5', 'suggested', {
       reaction_motif: 'prix', property_id: 'p2', market_listing_id: null, market_listing: null,
-      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale' }, snoozed_until,
+      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale', status: 'active' }, snoozed_until,
     })
     const reporte = boucle([mandat(il(-2))])
     expect(reporte.biens[0]).toMatchObject({ etat: 'revenu', lien: null })
@@ -141,12 +150,15 @@ describe('construireSaBoucle', () => {
     expect(boucle([revenu, propose]).biens.map((x) => [x.m.id, x.etat])).toEqual([['m1', 'revenu']])
   })
 
-  it('les compteurs : proposés, intéressés (visites comprises), pas intéressés', () => {
+  it('les compteurs : proposés, intéressés (visites comprises), pas intéressés — un bien revenu n’est pas « Proposé »', () => {
     const b = boucle([
       ligne('m1', 'sent'), ligne('m2', 'interested'), ligne('m3', 'visit_planned'), ligne('m4', 'rejected'),
       ligne('m5', 'suggested', { reaction_motif: 'prix' }),
     ])
-    expect(b.compteurs).toEqual({ proposes: 5, interesses: 2, refuses: 1 })
+    // Lot E1 (décision 10a) : 4 pour 5 lignes. Le bien revenu (m5) est à proposer de nouveau, et le fil ne le compte pas dans
+    // « Déjà proposé » (`compterHistorique`) ; il reste dans la liste, et « à traiter ».
+    expect(b.compteurs).toEqual({ proposes: 4, interesses: 2, refuses: 1 })
+    expect(b.biens).toHaveLength(5)
     expect(b.aTraiter.map((x) => x.m.id)).toEqual(['m2', 'm5'])
   })
 
@@ -168,5 +180,87 @@ describe('un motif n’est jamais un code brut', () => {
     expect(cleMotif('etat')).toBe('fil.motifs.etat')
     expect(cleMotif('recherche_ajustee')).toBeNull()
     expect(cleMotif(null)).toBeNull()
+  })
+})
+
+describe('lot E1 — un bien revenu n’est plus compté parmi les « Proposés » (décision 10a)', () => {
+  it('il reste « à traiter » et mène à sa ligne du fil, hors du compte des « Proposés »', () => {
+    const b = boucle([ligne('m1', 'sent'), ligne('m5', 'suggested', { reaction_motif: 'prix' })])
+    expect(b.compteurs).toEqual({ proposes: 1, interesses: 0, refuses: 0 })
+    expect(b.aTraiter.map((x) => x.m.id)).toEqual(['m5'])
+    expect(b.biens.find((x) => x.m.id === 'm5')).toMatchObject({ etat: 'revenu', lien: 'ligne=marche%3Ac9&contact=c9' })
+  })
+
+  it('« Proposés » et « Intéressés » se comptent comme « Déjà proposé » dans le fil (`compterHistorique`)', () => {
+    const lignes = [
+      ligne('m1', 'sent'), ligne('m2', 'interested'), ligne('m3', 'visit_planned'),
+      ligne('m4', 'rejected', { reaction_motif: 'prix' }), ligne('m5', 'suggested', { reaction_motif: 'prix' }),
+    ]
+    const { proposes, interesses } = boucle(lignes).compteurs
+    const fil = compterHistorique(lignes.map((l) => ({ contact_id: ACHETEUR.id, status: l.status })))
+    expect({ proposes, interesses }).toEqual(fil.get(ACHETEUR.id))
+  })
+})
+
+describe('lot E1 — un bien revenu sur un mandat qui n’est plus en vente ne mène plus nulle part (décision 12a)', () => {
+  // Refusé pour le prix à CHF 3'450'000, revenu par une baisse ; la jointure porte l'état du mandat.
+  const surMandat = (id: string, status: string, etatMandat: string, champs: Partial<LigneBoucleContact> = {}) =>
+    ligne(id, status, {
+      property_id: 'p2', market_listing_id: null, market_listing: null,
+      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale', status: etatMandat }, ...champs,
+    })
+  const revenu = { reaction_motif: 'prix', prix_propose: 3_450_000 }
+
+  it('vendu, son revenu reste dans la boucle, sans lien ni geste attendu : le fil ne propose plus ce mandat', () => {
+    const b = boucle([surMandat('m5', 'suggested', 'sold', revenu)])
+    expect(b.biens).toHaveLength(1)
+    expect(b.biens[0]).toMatchObject({ etat: 'revenu', lien: null })
+    expect(b.aTraiter).toEqual([])
+    expect(b.compteurs).toEqual({ proposes: 0, interesses: 0, refuses: 0 })
+  })
+
+  it('seul `active` est en vente — la règle du fil et du copilote, statut par statut', () => {
+    for (const etatMandat of Constants.public.Enums.property_status) {
+      const b = boucle([surMandat('m5', 'suggested', etatMandat, revenu)])
+      expect(b.biens[0]!.lien, etatMandat).toBe(etatMandat === 'active' ? 'ligne=m5&contact=c9' : null)
+      expect(b.aTraiter.map((x) => x.m.id), etatMandat).toEqual(etatMandat === 'active' ? ['m5'] : [])
+    }
+  })
+
+  it('proposé ou intéressé, un bien garde sa place — « Retours de … » et « À conclure » gardent le mandat ; une visite n’en a pas', () => {
+    const b = boucle([
+      surMandat('m1', 'sent', 'sold'), surMandat('m2', 'interested', 'sold'), surMandat('m3', 'visit_planned', 'sold'),
+    ])
+    expect(Object.fromEntries(b.biens.map((x) => [x.m.id, x.lien]))).toEqual({
+      m1: 'attente=c9', m2: 'onglet=aConclure&ligne=m2&contact=c9', m3: null,
+    })
+    expect(b.aTraiter.map((x) => x.m.id)).toEqual(['m2'])
+  })
+
+  it('vendu, ses refus nourrissent encore « Apprendre » : un refus dit quelque chose de l’acheteur, pas du bien', () => {
+    const criteres = new Map<string, SearchCriteria | null>([['cs9', { budget_max: 1_600_000, zones: ['Genève'] } as SearchCriteria]])
+    const b = boucle([
+      surMandat('m1', 'rejected', 'sold', { reaction_motif: 'prix', response_at: il(2), prix_propose: 1_500_000 }),
+      surMandat('m2', 'rejected', 'sold', { reaction_motif: 'prix', response_at: il(1), prix_propose: 1_560_000 }),
+    ], criteres)
+    expect(b.corrections).toHaveLength(1)
+    expect(b.corrections[0]!.c.motif).toBe('prix')
+  })
+
+  it('supprimé, un mandat n’a pas de ligne, même lu par un super-administrateur : le fil ne le lit pas', () => {
+    const supprime = surMandat('m9', 'sent', 'active', {
+      property: { title: 'Villa · Cologny', price: 3_200_000, transaction_type: 'sale', status: 'active', deleted_at: il(3) },
+    })
+    const b = boucle([supprime, ligne('m1', 'sent')])
+    expect(b.biens.map((x) => x.m.id)).toEqual(['m1'])
+    expect(b.compteurs).toEqual({ proposes: 1, interesses: 0, refuses: 0 })
+  })
+})
+
+describe('lot E1 — la lecture de « Sa boucle » (`useContactSentMatches`)', () => {
+  it('la jointure d’un mandat porte son état et sa suppression : sans eux, « en vente » ne se lit pas', () => {
+    const source = readFileSync(join(process.cwd(), 'src/hooks/useContactSentMatches.ts'), 'utf8')
+    const colonnes = /property:properties\(([^)]*)\)/.exec(source)?.[1]?.split(',').map((c) => c.trim()) ?? []
+    expect(colonnes).toEqual(expect.arrayContaining(['status', 'deleted_at']))
   })
 })
