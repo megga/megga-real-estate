@@ -122,7 +122,8 @@ export function versSignalAbsence(
   return {
     id: r.id, type: 'rappel' as const, who, initials: initialsOf(r.first_name, r.last_name),
     av: avatarColor(r.contact_id || r.id),
-    text: proposition ? t('today.h.absence.retourAttendu', { count: r.nb_biens ?? 0 }) : t('today.h.absence.reminderDue', { subject }),
+    text: proposition ? t('today.h.absence.retourAttendu', { count: r.nb_biens ?? 0 })
+      : r.subject?.trim() ? t('today.h.absence.reminderDueSubject', { subject }) : t('today.h.absence.reminderDue'),
     meta, late: r.late,
     cta: t('today.h.absence.ctaResume'),
     route: 'contact-detail', navRef: r.contact_id ?? undefined, refId: r.ref_id,

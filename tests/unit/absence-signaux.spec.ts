@@ -40,7 +40,8 @@ const ligne = (surcharge: Partial<AbsenceRow>): AbsenceRow => ({
   ...surcharge,
 })
 
-const RAPPEL_ANCIEN = 'today.h.absence.reminderDue {"subject":"today.h.absence.unknownProperty"}'
+/** Un rappel sans bien : la phrase courte, jamais « dossier un bien à reprendre ». */
+const RAPPEL_ANCIEN = 'today.h.absence.reminderDue'
 
 describe('versSignalAbsence — une relance de proposition se consigne, elle ne se reprend pas', () => {
   it('une relance de PROPOSITION désigne son acheteur et compte ses biens sans réponse', () => {
@@ -60,6 +61,11 @@ describe('versSignalAbsence — une relance de proposition se consigne, elle ne 
     const s = versSignalAbsence(ligne(surcharge), outils)
     expect(s.retoursDe).toBeNull()
     expect(s.text).toBe(RAPPEL_ANCIEN)
+  })
+
+  it('un rappel qui porte un bien le nomme', () => {
+    const s = versSignalAbsence(ligne({ reminder_type: 'custom', subject: 'Villa · Cologny' }), outils)
+    expect(s.text).toBe('today.h.absence.reminderDueSubject {"subject":"Villa · Cologny"}')
   })
 
   it('une base d’avant la migration (clés absentes) retombe sur l’ancien rappel', () => {
