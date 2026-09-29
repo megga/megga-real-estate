@@ -46,6 +46,21 @@ export async function debiterCredits(
   return { ok: true, balance: r.balance, autoTopupDue: !!r.auto_topup_due }
 }
 
+/**
+ * Le plan EFFECTIF de l'agence (`agency_plan_effectif`) : l'abonnement actif, en essai
+ * ou en retard de paiement, sinon Starter. ⛔ Jamais `agencies.plan`, que le webhook
+ * Stripe n'écrit pas : une agence qui paie Pro y resterait Starter, et un abonnement
+ * résilié garderait le studio. `null` si la lecture échoue — l'appelant refuse, fermé.
+ */
+export async function planEffectifAgence(supabase: SupabaseClient, agencyId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('agency_plan_effectif', { p_agency: agencyId })
+  if (error) {
+    console.error('agency_plan_effectif:', error.message)
+    return null
+  }
+  return typeof data === 'string' ? data : null
+}
+
 /** Rend les crédits d'une production qui n'a pas abouti. Idempotent : un second appel ne rend rien. */
 export async function rembourserCredits(
   supabase: SupabaseClient,

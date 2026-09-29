@@ -1,54 +1,16 @@
 {
   "title": "Pipeline",
-  "deals_count": "{{count}} deals",
   "new_deal": "Nouveau deal",
   "view": {
     "kanban": "Kanban",
-    "list": "Liste",
     "timeline": "Timeline"
   },
-  "filter": {
-    "stage": "Étape"
-  },
-  "column": {
-    "contact": "Contact",
-    "property": "Bien",
-    "price": "Prix",
-    "stage": "Étape",
-    "activity": "Activité",
-    "value": "Valeur"
-  },
-  "drop_target": "Déposez ici",
-  "empty_title": "Créez votre premier deal pour suivre vos transactions",
-  "empty_subtitle": "Chaque transaction suit un pipeline de 14 étapes.",
   "lost_dialog": {
     "title": "Marquer comme perdu ?",
-    "message": "Le deal de {{name}} sera déplacé dans la colonne \"Perdu\".",
-    "reason_label": "Raison de la perte *",
-    "cancel": "Annuler",
-    "confirm": "Confirmer",
-    "reasons": {
-      "budget": "Budget insuffisant",
-      "competitor": "Bien acheté ailleurs",
-      "financing": "Financement refusé",
-      "withdrawal": "Désistement client",
-      "price": "Prix trop élevé",
-      "other": "Autre raison"
-    }
+    "message": "Le deal de {{name}} sera déplacé dans la colonne \"Perdu\"."
   },
   "search": "Rechercher...",
   "clear": "Effacer",
-  "dropHere": "Déposez ici",
-  "overdueReminder": "Relance en retard",
-  "lost": {
-    "select": "Sélectionner...",
-    "budget": "Budget insuffisant",
-    "competitor": "Bien acheté ailleurs",
-    "financing": "Financement refusé",
-    "withdrawal": "Désistement client",
-    "price": "Prix trop élevé",
-    "other": "Autre raison"
-  },
   "stages": {
     "new-lead": "Nouveau lead",
     "to-qualify": "À qualifier",
@@ -66,35 +28,9 @@
       "message": "Une erreur est survenue. Vérifiez votre connexion, puis réessayez.",
       "retry": "Réessayer"
     },
-    "noPropertyYet": "Recherche active",
-    "dragDealHere": "Glisser un deal ici",
-    "dropToStage": "Déposer ici → {{stage}}",
     "searchPlaceholder": "Rechercher contact, bien, note…",
-    "commandPaletteComingSoon": "Recherche, ⌘K (à venir)",
-    "list": {
-      "dealContact": "Deal / Contact",
-      "nextAction": "Prochaine action",
-      "status": "Statut",
-      "noMatch": "Aucun deal ne correspond aux filtres actifs."
-    },
     "risk": {
-      "all": "Tous",
-      "healthy": "Sain",
-      "atRisk": "À risque",
-      "stalled": "Bloqué"
-    },
-    "filter": {
-      "label": "Filtres",
-      "none": "Aucun",
-      "apply": "Appliquer",
-      "reset": "Réinitialiser",
-      "resetAll": "Réinitialiser les filtres",
-      "riskHeader": "Risque",
-      "periodHeader": "Période",
-      "deselectAll": "Tout désélectionner",
-      "lastDays_one": "{{count}} dernier jour",
-      "lastDays_other": "{{count}} derniers jours",
-      "allTime": "Tous"
+      "atRisk": "À risque"
     },
     "card": {
       "scheduleVisit": "Planifier une visite",
@@ -103,8 +39,6 @@
       "archive": "Archiver",
       "markLost": "Marquer perdu",
       "reassignTo": "Réassigner à",
-      "newDealInColumn": "Nouveau deal · {{stage}}",
-      "planAction": "Planifier une action",
       "overdue": "En retard",
       "today": "Aujourd'hui",
       "tomorrow": "Demain",
@@ -116,18 +50,7 @@
       "unknownError": "erreur inconnue"
     },
     "sign": {
-      "sealed": "Affaire signée",
-      "eyebrow": "Et maintenant",
-      "scheduleAct": "Planifier la signature de l'acte",
-      "scheduleActSub": "Rendez-vous chez le notaire",
-      "congrats": "Féliciter {{name}}",
-      "congratsSub": "Message via son canal préféré",
-      "congratsPrompt": "Rédige un message de félicitations pour {{name}} qui vient de signer son affaire. Ton chaleureux et professionnel, prêt à envoyer via son canal préféré.",
-      "congratsPromptWithBien": "Rédige un message de félicitations pour {{name}} qui vient de signer pour « {{bien}} ». Ton chaleureux et professionnel, prêt à envoyer via son canal préféré.",
-      "openFile": "Ouvrir le dossier",
-      "openFileSub": "Documents et détail de l'affaire",
-      "reopen": "Rouvrir dans le pipeline",
-      "finish": "Terminer"
+      "sealed": "Affaire signée"
     },
     "lostConfirm": {
       "title": "Marquer ce deal comme perdu ?",
@@ -138,7 +61,6 @@
     },
     "toast": {
       "moveFailedTitle": "Impossible de déplacer le deal",
-      "moveFailedDescription": "Le changement d'étape n'a pas été enregistré. Vérifiez votre connexion, puis réessayez.",
       "archived": "Deal archivé",
       "lost": "Deal marqué comme perdu",
       "reassigned": "Deal réassigné à {{name}}",
@@ -148,11 +70,6 @@
     },
     "empty": "Aucune affaire dans le pipeline pour l’instant.",
     "emptyState": {
-      "filtered": {
-        "title": "Aucun deal ne correspond",
-        "body": "Modifiez la recherche ou réinitialisez les filtres pour retrouver vos deals.",
-        "cta": "Réinitialiser les filtres"
-      },
       "none": {
         "title": "Aucun deal en cours",
         "body": "Créez votre premier deal. Il apparaîtra ici, dans sa colonne d'étape."
@@ -173,46 +90,9 @@
       "late": "En retard",
       "today": "Aujourd'hui",
       "week": "Cette semaine",
-      "month": "Ce mois",
       "later": "Plus tard"
     },
-    "axis": {
-      "contact": "Contact",
-      "due": "Échéance"
-    },
-    "todayChip": "Aujourd'hui · {{date}}",
-    "jMinus": "J-{{count}}",
-    "dealsCount_one": "{{count}} deal",
-    "dealsCount_other": "{{count}} deals",
-    "dragHint": "Glisser pour replanifier",
-    "lastActivity": "Dernière activité · {{date}}",
     "emptySearch": "Aucun deal ne correspond à la recherche."
-  },
-  "kyc": {
-    "lock": {
-      "title": "Rappel non-bloquant, ouvrir les dossiers KYC",
-      "pending_one": "<strong>{{count}}</strong> dossier KYC à compléter",
-      "pending_other": "<strong>{{count}}</strong> dossiers KYC à compléter",
-      "optional": "Optionnel"
-    }
-  },
-  "transaction": {
-    "dialog_title": "Nouvelle transaction",
-    "dialog_subtitle": "Créez un deal dans votre pipeline.",
-    "optional": "(optionnel)",
-    "role": "Rôle",
-    "role_buyer": "Acheteur",
-    "role_seller": "Vendeur",
-    "add_details": "+ Ajouter des détails",
-    "mandate_type": "Type de mandat",
-    "mandate": {
-      "none": "Aucun",
-      "simple": "Simple",
-      "exclusive": "Exclusif",
-      "semi_exclusive": "Semi-exclusif"
-    },
-    "notes": "Notes",
-    "notes_placeholder": "Contexte, détails importants..."
   },
   "deal": {
     "loading": "Chargement du deal…",
@@ -220,18 +100,12 @@
     "error_unknown": "inconnue",
     "not_found": "Deal introuvable.",
     "buyer_fallback": "Acheteur",
-    "schedule_visit": "Planifier une visite",
     "counter_offer": "Contre-offre",
     "new_offer": "Nouvelle offre",
     "pipeline_stage": "Pipeline · {{stage}}",
-    "sentiment_healthy": "Sain",
-    "deal_amount": "Montant du deal",
     "last_offer": "Dernière offre : {{amount}}",
     "kyc_banner_title": "KYC recommandé avant la signature",
-    "kyc_banner_body": "Un KYC vérifié pour <strong>{{name}}</strong> est recommandé avant l'étape <strong>{{stage}}</strong>, en appui de conformité LBA. Ce n'est pas un verrou : vous pouvez poursuivre, la vérification finale revient au notaire.",
     "open_kyc_dossier": "Ouvrir le dossier KYC",
-    "negotiation_rounds_one": "Négociation · {{count}} tour",
-    "negotiation_rounds_other": "Négociation · {{count}} tours",
     "offers_title": "Offres & contre-offres",
     "no_offer_title": "Aucune offre déposée",
     "no_offer_subtitle": "Quand l'acheteur sera prêt, vous pourrez saisir son offre formelle ici.",
@@ -243,41 +117,18 @@
       "expired": "Voulez-vous marquer cette offre comme expirée ?"
     },
     "offer_update_failed": "Échec : {{message}}",
-    "recent_activity": "Activité récente",
-    "timeline_title": "Timeline du deal",
-    "timeline_counter_offer": "Contre-offre de {{by}}",
-    "timeline_offer": "Offre de {{by}}",
     "timeline_created": "Deal créé",
     "buyer": "Acheteur",
-    "view_full_profile": "Voir la fiche complète",
-    "call": "Appeler",
     "email": "E-mail",
     "message": "Message",
     "capacity": "Capacité",
     "purchase_probability": "{{value}}% probabilité d'achat",
     "surface_rooms": "{{surface}} m² · {{rooms}} pièces",
-    "documents": "Documents",
-    "documents_subtitle": "Du deal",
-    "doc_formal_offer": "Offre formelle, {{by}}",
-    "doc_counter_offer": "Contre-offre, {{by}}",
-    "doc_kyc_complete": "KYC acheteur, dossier complet",
-    "doc_sale_agreement": "Compromis de vente",
-    "no_documents": "Aucun document généré pour ce deal.",
-    "doc_status_signed": "Signé",
-    "doc_status_pending": "En attente",
-    "doc_status_missing": "À générer",
-    "doc_pages_one": "{{count}} page",
-    "doc_pages_other": "{{count}} pages",
     "private_notes": "Notes privées",
-    "notes_team": "Équipe {{brand}}",
     "notes_saving": "Enregistrement…",
     "notes_empty": "Notes privées, visibles uniquement par l'équipe {{brand}}.",
     "never_visible_client": "Jamais visible par le client",
     "asking_price": "Prix demandé",
-    "offer_received": "Offre reçue",
-    "last_update": "Dernière mise à jour",
-    "no_offer_recorded": "Aucune offre enregistrée pour cette transaction.",
-    "view_contact": "Voir le contact",
     "offer_status": {
       "pending": "En attente",
       "accepted": "Acceptée",
@@ -288,44 +139,32 @@
     },
     "notes_cancel": "Annuler",
     "notes_save": "Enregistrer",
-    "step_counter": "étape {{index}}/{{total}}",
     "negotiation": "Négociation",
-    "rounds_one": "{{count}} tour",
-    "rounds_other": "{{count}} tours",
     "no_offer_hint": "Quand l'acheteur sera prêt, saisissez son offre ici.",
     "offer_row": {
       "offer": "Offre · acheteur",
       "counter": "Contre-offre · vendeur"
     },
     "cond": {
-      "financing": "Financement {{days}}j",
-      "sale": "Vente d'un autre bien",
-      "diagnostic": "Expertise"
+      "financing": "Financement {{days}}j"
     },
     "accept_offer": "Accepter l'offre",
     "reject": "Refuser",
     "relaunch_offer": "Relancer une offre",
     "mark_lost": "Marquer perdu",
     "rejected_note": "Offre refusée. Relancez l'acheteur avec une nouvelle proposition, ou clôturez le deal.",
-    "kyc_to_complete": "KYC à compléter",
-    "optional": "optionnel",
     "toast": {
       "accepted": "Offre acceptée, deal signé",
       "rejected": "Offre refusée",
-      "lost": "Deal marqué perdu",
       "offer_sent": "Offre envoyée",
       "counter_sent": "Contre-offre envoyée"
     },
-    "buyer_eyebrow": "L'acheteur",
-    "affair_eyebrow": "L'affaire",
     "next_action": "Prochaine action",
     "matches_title": "Biens à proposer",
     "matches_count_one": "{{count}} match",
     "matches_count_other": "{{count}} matchs",
     "no_matches": "Aucun bien du portefeuille ne correspond encore.",
-    "transmit": "Transmettre à {{name}}",
     "open_contact": "Ouvrir la fiche contact",
-    "phone": "Téléphone",
     "lang": {
       "fr": "Français",
       "en": "Anglais",
@@ -344,10 +183,6 @@
     "cta": {
       "close": "Fermer",
       "cancel": "Annuler",
-      "back": "Retour",
-      "continue": "Continuer",
-      "submit": "Enregistrer & envoyer",
-      "submitting": "Envoi…",
       "save": "Enregistrer",
       "saving": "Enregistrement…"
     },
@@ -363,28 +198,7 @@
       "conditions": "Conditions suspensives",
       "validity": "Validité de l'offre"
     },
-    "eyebrow": {
-      "counter": "Contre-offre · vendeur",
-      "offer": "Nouvelle offre · acheteur"
-    },
-    "step": {
-      "amount": "Montant",
-      "conditions": "Conditions",
-      "delay": "Délai & envoi"
-    },
-    "step0": {
-      "eyebrow": "Étape 1 sur 3 · Montant",
-      "title": {
-        "counter": "Quel montant proposez-vous en retour ?",
-        "offer": "Quel montant l'acheteur propose-t-il ?"
-      },
-      "subtitle": {
-        "counter": "Vous pouvez ajuster le montant, repositionner les conditions et fixer un nouveau délai.",
-        "offer": "Saisissez le montant principal, un éventuel acompte et la date de signature souhaitée."
-      }
-    },
     "field": {
-      "offerFrom": "Offre de {{label}}",
       "amount": "Montant proposé",
       "askingPriceHint": "Prix demandé : {{price}}",
       "deposit": "Acompte",
@@ -395,47 +209,29 @@
       "expiryDate": "Date d'expiration",
       "expiryTime": "Heure"
     },
-    "step1": {
-      "eyebrow": "Étape 2 sur 3 · Conditions suspensives",
-      "title": "Sous quelles conditions ?",
-      "subtitle": "Activez uniquement les conditions qui s'appliquent. Chacune devra être levée avant la signature."
-    },
     "condition": {
       "financing": {
         "title": "Financement bancaire",
-        "sub": "L'offre est subordonnée à l'obtention d'un prêt immobilier.",
         "daysLabel": "Délai (jours)",
         "noteLabel": "Précision (banque, taux…)",
         "notePlaceholder": "Ex. BCGE, 80%, taux fixe 10 ans"
       },
       "sale": {
-        "title": "Vente d'un autre bien",
-        "sub": "L'acquisition dépend de la vente préalable d'un bien existant."
+        "title": "Vente d'un autre bien"
       },
       "diagnostic": {
         "title": "Expertise / Diagnostic",
-        "sub": "Expertise indépendante (toit, structure, énergie) à la charge de l'acheteur.",
         "noteLabel": "Périmètre de l'expertise",
         "notePlaceholder": "Ex. Toit + façade"
       },
       "occupancy": {
         "title": "Libération du logement",
-        "sub": "Le bien doit être libre d'occupant à une date précise.",
         "dateLabel": "Date de libération"
       },
       "other": {
-        "label": "Autre, texte libre",
-        "hint": "Visible dans l'offre formelle (PDF). Restez factuel.",
         "placeholder": "Ex. Acquisition à titre personnel, paiement comptant à hauteur de 35%."
       },
-      "financingShort": "Financement · {{days}}j",
-      "diagnosticShort": "Expertise",
       "noteTitle": "Note"
-    },
-    "step2": {
-      "eyebrow": "Étape 3 sur 3 · Délai & confirmation",
-      "title": "Validité de l'offre",
-      "subtitle": "Au-delà de cette date, l'offre passera automatiquement en statut « expirée »."
     },
     "delay": {
       "h48": "48h",
@@ -451,20 +247,6 @@
       "activeConditions": "Conditions actives",
       "expires": "Expire le",
       "expiresValue": "{{date}} à {{time}}"
-    },
-    "footer": {
-      "stepCount": "Étape {{current}} / {{total}}"
-    },
-    "eyebrowOffer": "Offre · acheteur",
-    "statusCurrent": "En cours",
-    "depositSuffix": "+ {{amount}} d'acompte",
-    "expiresAt": "Expire {{date}}",
-    "attachments_one": "{{count}} pièce jointe",
-    "attachments_other": "{{count}} pièces jointes",
-    "action": {
-      "accept": "Accepter",
-      "reject": "Refuser",
-      "withdraw": "Retirer"
     }
   },
   "journey": {
@@ -552,39 +334,26 @@
     }
   },
   "modal": {
-    "contact": "Contact",
-    "existing": "Existant",
-    "new": "Nouveau",
     "searchContact": "Rechercher un contact…",
-    "noContactsYet": "Aucun contact pour l'instant.",
-    "noContactFound": "Aucun contact trouvé.",
     "createContact": "Créer un contact",
     "createNamed": "Créer « {{name}} »",
-    "moreContacts_one": "{{count}} autre · précisez la recherche",
-    "moreContacts_other": "{{count}} autres · précisez la recherche",
     "firstName": "Prénom",
     "lastName": "Nom",
     "email": "Email",
     "phone": "Téléphone",
-    "bien": "Bien",
     "removeBien": "Retirer",
     "searchBien": "Rechercher un bien…",
     "noActiveBiens": "Aucune annonce active dans le portefeuille.",
     "noBienFound": "Aucun bien trouvé.",
-    "moreBiens_one": "{{count}} autre annonce · précisez la recherche",
-    "moreBiens_other": "{{count}} autres annonces · précisez la recherche",
-    "valueFromBien": "La valeur du deal reprend le prix du bien choisi.",
-    "value": "Valeur",
     "close": "Fermer",
     "cancel": "Annuler",
     "create": "Créer le deal",
     "creating": "Création…",
-    "created": "Deal créé.",
-    "seePipeline": "Voir le pipeline",
     "error": {
       "noAgency": "Aucune agence rattachée, impossible de créer le deal",
       "unknown": "Erreur inconnue"
-    }
+    },
+    "indicatif": "Indicatif"
   },
   "inline": {
     "searchPlaceholder": "Contact, nom, email…",
@@ -594,5 +363,167 @@
     "more": "Plus d'options",
     "cancelTitle": "Annuler (Échap)",
     "changeContact": "Changer de contact"
+  },
+  "phases": {
+    "noms": {
+      "prospects": "Prospects",
+      "recherche": "Recherche",
+      "visites": "Visites",
+      "offre": "Offre",
+      "signature": "Signature"
+    },
+    "stadesLongs": {
+      "visit_planned": "Visite planifiée",
+      "visit_done": "Visite faite"
+    },
+    "stades": {
+      "new_lead": "Nouveau",
+      "to_qualify": "À qualifier",
+      "to_recontact": "À recontacter",
+      "active_search": "En recherche",
+      "visit_planned": "Planifiée",
+      "visit_done": "Faite",
+      "interest_confirmed": "Intérêt",
+      "offer": "Offre",
+      "negotiation": "Négociation",
+      "reserved": "Réservé",
+      "financing": "Financement",
+      "notary": "Notaire",
+      "signed": "Signé"
+    },
+    "preciser": "Préciser l’étape",
+    "ajouter": "Ajouter",
+    "aPlanifier": "À planifier",
+    "silence_one": "{{count}} jour sans nouvelle",
+    "silence_other": "{{count}} jours sans nouvelle",
+    "parMois": "/mois",
+    "conclu": "Conclu",
+    "perdu": "Perdu",
+    "agenda": {
+      "aPlanifier": "À planifier",
+      "planifier": "Planifier",
+      "planifierAide": "Glisser sur un jour pour planifier une relance",
+      "replanifier": "Glisser sur un autre jour pour replanifier",
+      "hier": "hier",
+      "ilYA_one": "il y a {{count}} jour",
+      "ilYA_other": "il y a {{count}} jours",
+      "relance": "Relancer",
+      "ouvrir": "Ouvrir l’affaire"
+    }
+  },
+  "fiche": {
+    "aucuneAction": "Aucune action prévue",
+    "fait": "Fait",
+    "replanifier": "Replanifier",
+    "planifier": "Planifier",
+    "quand": {
+      "demain": "Demain",
+      "apresDemain": "Après-demain",
+      "lundi": "Lundi",
+      "semaine": "Dans une semaine"
+    },
+    "conclue": "Affaire conclue",
+    "perdue": "Affaire perdue",
+    "rouvrir": "Rouvrir",
+    "joursRestants_one": "{{count}} jour restant",
+    "joursRestants_other": "{{count}} jours restants",
+    "jusquaSignature": "Jusqu’à la signature",
+    "kycClient": "KYC du client",
+    "ouvrirMatching": "Ouvrir le matching",
+    "visites": "Visites",
+    "aucuneVisite": "Aucune visite pour l’instant.",
+    "planifierVisite": "Planifier une visite",
+    "historique": "Historique",
+    "hist": {
+      "etape": "Étape : {{de}} → {{a}}",
+      "conclue": "Affaire conclue",
+      "rouverte": "Affaire rouverte",
+      "enAttente": "Affaire mise en attente"
+    },
+    "client": "Client",
+    "bien": "Bien",
+    "criteres": "Critères",
+    "kycEtat": {
+      "verified": "Vérifié",
+      "pending": "En cours",
+      "none": "Pas encore ouvert"
+    },
+    "ouvrirBien": "Ouvrir le bien",
+    "toast": {
+      "etape": "Étape mise à jour",
+      "fait": "Action terminée",
+      "replanifiee": "Action replanifiée",
+      "planifiee": "Relance planifiée"
+    }
+  },
+  "nouvelle": {
+    "sansBien": "sans bien",
+    "changer": "Changer",
+    "choisirClient": "Choisissez ou créez un client pour créer le deal.",
+    "facultatif": "facultatif",
+    "suggeres": "Proches de sa recherche",
+    "actifs": "Biens actifs",
+    "etape": "Où en est l’affaire ?",
+    "montant": "Montant",
+    "aucunClient": "Aucun client choisi",
+    "prixDuBien": "Prix du bien",
+    "loyerDuBien": "Loyer du bien",
+    "cree": "Créé"
+  },
+  "cloture": {
+    "titre": "Affaire conclue",
+    "autres_one": "{{count}} autre",
+    "autres_other": "{{count}} autres",
+    "bienVendu": "Marquer le bien vendu",
+    "bienRetire": "Retirer le bien du marché",
+    "recherche": "Mettre sa recherche en pause",
+    "relances_one": "Solder la relance",
+    "relances_other": "Solder les {{count}} relances",
+    "noteRappel": "Prévenir {{noms}} : {{bien}} n'est plus disponible",
+    "rien": "Rien d’autre à régler.",
+    "erreur": "Enregistrement impossible. Réessayez.",
+    "plusTard": "Plus tard",
+    "enCours": "Clôture…",
+    "valider": "Valider",
+    "toast": "Clôture enregistrée",
+    "hist": "Clôture enregistrée",
+    "bandeau": {
+      "aTerminer": "Clôture à terminer",
+      "terminer": "Terminer"
+    },
+    "recap": {
+      "prixFinal": "Prix final",
+      "loyerFinal": "Loyer conclu",
+      "ecart": "Sur le prix demandé",
+      "cycle": "Cycle",
+      "jours_one": "{{count}} jour",
+      "jours_other": "{{count}} jours",
+      "commission": "Commission estimée"
+    },
+    "prevenir": "Me rappeler de prévenir {{noms}}"
+  },
+  "apresVente": {
+    "titre": "Après-vente",
+    "planifier": "Planifier l'après-vente",
+    "toast": "Après-vente planifiée",
+    "etapes": {
+      "nouvelles": "Prendre des nouvelles",
+      "recommandation": "Demander une recommandation",
+      "anniversaire": "Un an dans son bien"
+    }
+  },
+  "menu": {
+    "ouvrir": "Ouvrir",
+    "nouvelOnglet": "Ouvrir dans un nouvel onglet",
+    "actionFaite": "Marquer l’action faite",
+    "deplacer": "Déplacer vers",
+    "ouvrirContact": "Ouvrir le contact",
+    "copierLien": "Copier le lien",
+    "lienCopie": "Lien copié",
+    "marquerConclu": "Marquer conclu",
+    "rechercher": "Rechercher",
+    "vueTimeline": "Afficher la Timeline",
+    "vueKanban": "Afficher le Kanban",
+    "retour": "Retour au Pipeline"
   }
 }

@@ -27,6 +27,22 @@ describe('COUNTRY_DIAL_CODES — la table couvre la liste des pays', () => {
     expect(dialCodeOptions('fr')[0]).toEqual({ value: 'CH', label: 'Suisse +41' })
   })
 
+  it('les indicatifs les plus composés viennent en tête — Suisse, Italie, Allemagne, France — une seule fois', () => {
+    for (const langue of ['fr', 'de', 'en', 'it']) {
+      const opts = dialCodeOptions(langue)
+      expect(opts.slice(0, 4).map((o) => o.value), langue).toEqual(['CH', 'IT', 'DE', 'FR'])
+      for (const iso of ['CH', 'IT', 'DE', 'FR']) expect(opts.filter((o) => o.value === iso).length, `${langue} ${iso}`).toBe(1)
+    }
+    // Une ligne les sépare du reste — DÉSACTIVÉE, et d'aucune valeur de pays.
+    const ligne = dialCodeOptions('fr')[4]
+    expect(ligne?.disabled).toBe(true)
+    expect(COUNTRY_DIAL_CODES[ligne?.value ?? '']).toBeUndefined()
+    expect(dialCodeOptions('fr').filter((o) => o.disabled)).toHaveLength(1)
+    // Le reste garde l'ordre alphabétique de la langue.
+    const reste = dialCodeOptions('fr').slice(5).map((o) => o.label)
+    expect(reste).toEqual([...reste].sort((a, b) => a.localeCompare(b, 'fr')))
+  })
+
   it('⛔ la valeur d\'une option est l\'ISO, JAMAIS l\'indicatif', () => {
     // Dix pays portent +1. Un <select> dont deux options partagent une valeur
     // sélectionne toujours la PREMIÈRE : choisir « Canada » affichait « Bahamas »

@@ -78,7 +78,8 @@ const BANCS_HORS_BUNDLE = [
   { chemin: 'src/pages/dev/MobileShowcasePage.tsx', route: '/dev/mobile' },
   { chemin: 'src/pages/dev/BiensShowcasePage.tsx', route: '/dev/biens' },
   { chemin: 'src/pages/dev/ContactsShowcasePage.tsx', route: '/dev/contacts' },
-  { chemin: 'src/pages/dev/PipelineShowcasePage.tsx', route: '/dev/pipeline' },
+  // (`/dev/pipeline` est parti le 27.09.2026 avec l'ancien board : le Pipeline refait se
+  // regarde dans `/dev/crm`, sur ses vrais hooks.)
   { chemin: 'src/pages/dev/ModalesShowcasePage.tsx', route: '/dev/modales' },
 ].map((b) => ({ ...b, fichier: b.chemin.split('/').pop()!.replace('.tsx', '') }))
 

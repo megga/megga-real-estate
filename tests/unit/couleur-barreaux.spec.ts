@@ -161,13 +161,15 @@ const HORS_ASSUMES = new Map<string, number>([
   // « Dossiers » avec elles — les matchs vivent dans le segment Matching (lot D1).
   // 501 → 477 le 27.09.2026 : le catalogue de matchs d'« Aujourd'hui » (`PageCatalogue`)
   // est retiré avec ses vingt-quatre littéraux hors barreaux ; l'écran n'a plus qu'une page
-  // (lot E1).
-  ['src/components/crm', 477],
+  // (lot E1). → 460 le 29.09.2026, à la fusion avec le Pipeline : l'ancien Pipeline (huit colonnes, liste, bento de signature,
+  // « Nouveau deal » et sa palette) est retiré — la refonte à cinq phases le remplace.
+  ['src/components/crm', 460],
   ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
   // l'encre d'alerte recopiée `#8C5A00`.
-  ['src/components/crm-dossiers', 57],
+  // 57 → 53 le 27.09.2026 : la palette de l'ancienne fiche deal (`dealTokens`) part avec elle.
+  ['src/components/crm-dossiers', 53],
   // `crm-wizard` (47) est SORTI le 16.09.2026 : l'ancien wizard et sa palette sont retirés,
   // il ne reste dans ce dossier que le modèle de saisie et deux hooks, sans une couleur.
   // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo

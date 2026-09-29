@@ -1,54 +1,16 @@
 {
   "title": "Pipeline",
-  "deals_count": "{{count}} deals",
   "new_deal": "New deal",
   "view": {
     "kanban": "Kanban",
-    "list": "List",
     "timeline": "Timeline"
   },
-  "filter": {
-    "stage": "Stage"
-  },
-  "column": {
-    "contact": "Contact",
-    "property": "Property",
-    "price": "Price",
-    "stage": "Stage",
-    "activity": "Activity",
-    "value": "Value"
-  },
-  "drop_target": "Drop here",
-  "empty_title": "Create your first deal to track your transactions",
-  "empty_subtitle": "Each transaction follows a 14-stage pipeline.",
   "lost_dialog": {
     "title": "Mark as lost?",
-    "message": "The deal for {{name}} will be moved to the \"Lost\" column.",
-    "reason_label": "Reason for loss *",
-    "cancel": "Cancel",
-    "confirm": "Confirm",
-    "reasons": {
-      "budget": "Insufficient budget",
-      "competitor": "Property purchased elsewhere",
-      "financing": "Financing refused",
-      "withdrawal": "Client withdrawal",
-      "price": "Price too high",
-      "other": "Other reason"
-    }
+    "message": "The deal for {{name}} will be moved to the \"Lost\" column."
   },
   "search": "Search...",
   "clear": "Clear",
-  "dropHere": "Drop here",
-  "overdueReminder": "Overdue reminder",
-  "lost": {
-    "select": "Select...",
-    "budget": "Insufficient budget",
-    "competitor": "Property bought elsewhere",
-    "financing": "Financing rejected",
-    "withdrawal": "Client withdrawal",
-    "price": "Price too high",
-    "other": "Other reason"
-  },
   "stages": {
     "new-lead": "New lead",
     "to-qualify": "To qualify",
@@ -66,35 +28,9 @@
       "message": "Something went wrong. Check your connection, then try again.",
       "retry": "Try again"
     },
-    "noPropertyYet": "Active search",
-    "dragDealHere": "Drag a deal here",
-    "dropToStage": "Drop here → {{stage}}",
     "searchPlaceholder": "Search contact, property, note…",
-    "commandPaletteComingSoon": "Search, ⌘K (coming soon)",
-    "list": {
-      "dealContact": "Deal / Contact",
-      "nextAction": "Next action",
-      "status": "Status",
-      "noMatch": "No deal matches the active filters."
-    },
     "risk": {
-      "all": "All",
-      "healthy": "Healthy",
-      "atRisk": "At risk",
-      "stalled": "Stalled"
-    },
-    "filter": {
-      "apply": "Apply",
-      "reset": "Reset",
-      "riskHeader": "Risk",
-      "periodHeader": "Period",
-      "deselectAll": "Deselect all",
-      "lastDays_one": "Last {{count}} day",
-      "lastDays_other": "Last {{count}} days",
-      "allTime": "All",
-      "label": "Filters",
-      "none": "None",
-      "resetAll": "Reset filters"
+      "atRisk": "At risk"
     },
     "card": {
       "scheduleVisit": "Schedule a visit",
@@ -105,8 +41,6 @@
       "reassignTo": "Reassign to",
       "actionFailed": "Failed: {{message}}",
       "unknownError": "unknown error",
-      "newDealInColumn": "New deal · {{stage}}",
-      "planAction": "Plan an action",
       "overdue": "Overdue",
       "today": "Today",
       "tomorrow": "Tomorrow",
@@ -117,7 +51,6 @@
     },
     "toast": {
       "moveFailedTitle": "Could not move the deal",
-      "moveFailedDescription": "The stage change was not saved. Check your connection, then try again.",
       "archived": "Deal archived",
       "lost": "Deal marked as lost",
       "reassigned": "Deal reassigned to {{name}}",
@@ -127,18 +60,7 @@
     },
     "empty": "No deals in the pipeline yet.",
     "sign": {
-      "sealed": "Deal signed",
-      "eyebrow": "What's next",
-      "scheduleAct": "Schedule the deed signing",
-      "scheduleActSub": "Appointment at the notary",
-      "congrats": "Congratulate {{name}}",
-      "congratsSub": "Message via their preferred channel",
-      "congratsPrompt": "Draft a congratulations message for {{name}}, who has just signed their deal. Warm, professional tone, ready to send via their preferred channel.",
-      "congratsPromptWithBien": "Draft a congratulations message for {{name}}, who has just signed for “{{bien}}”. Warm, professional tone, ready to send via their preferred channel.",
-      "openFile": "Open the file",
-      "openFileSub": "Documents and deal details",
-      "reopen": "Reopen in the pipeline",
-      "finish": "Done"
+      "sealed": "Deal signed"
     },
     "lostConfirm": {
       "title": "Mark this deal as lost?",
@@ -148,42 +70,11 @@
       "confirm": "Mark as lost"
     },
     "emptyState": {
-      "filtered": {
-        "title": "No deals match",
-        "body": "Adjust the search or reset the filters to find your deals again.",
-        "cta": "Reset filters"
-      },
       "none": {
         "title": "No deals in progress",
         "body": "Create your first deal. It will appear here, in its stage column."
       }
     }
-  },
-  "kyc": {
-    "lock": {
-      "title": "Non-blocking reminder, open the KYC files",
-      "pending_one": "<strong>{{count}}</strong> KYC file to complete",
-      "pending_other": "<strong>{{count}}</strong> KYC files to complete",
-      "optional": "Optional"
-    }
-  },
-  "transaction": {
-    "dialog_title": "New transaction",
-    "dialog_subtitle": "Create a deal in your pipeline.",
-    "optional": "(optional)",
-    "role": "Role",
-    "role_buyer": "Buyer",
-    "role_seller": "Seller",
-    "add_details": "+ Add details",
-    "mandate_type": "Mandate type",
-    "mandate": {
-      "none": "None",
-      "simple": "Simple",
-      "exclusive": "Exclusive",
-      "semi_exclusive": "Semi-exclusive"
-    },
-    "notes": "Notes",
-    "notes_placeholder": "Context, important details..."
   },
   "deal": {
     "loading": "Loading deal…",
@@ -191,18 +82,12 @@
     "error_unknown": "unknown",
     "not_found": "Deal not found.",
     "buyer_fallback": "Buyer",
-    "schedule_visit": "Schedule a visit",
     "counter_offer": "Counter-offer",
     "new_offer": "New offer",
     "pipeline_stage": "Pipeline · {{stage}}",
-    "sentiment_healthy": "Healthy",
-    "deal_amount": "Deal amount",
     "last_offer": "Latest offer: {{amount}}",
     "kyc_banner_title": "KYC recommended before signing",
-    "kyc_banner_body": "A verified KYC for <strong>{{name}}</strong> is recommended before the <strong>{{stage}}</strong> stage, supporting AML compliance. It is not a blocker: you can proceed; final verification rests with the notary.",
     "open_kyc_dossier": "Open KYC file",
-    "negotiation_rounds_one": "Negotiation · {{count}} round",
-    "negotiation_rounds_other": "Negotiation · {{count}} rounds",
     "offers_title": "Offers & counter-offers",
     "no_offer_title": "No offer submitted",
     "no_offer_subtitle": "When the buyer is ready, you'll be able to record their formal offer here.",
@@ -214,41 +99,18 @@
       "expired": "Do you want to mark this offer as expired?"
     },
     "offer_update_failed": "Failed: {{message}}",
-    "recent_activity": "Recent activity",
-    "timeline_title": "Deal timeline",
-    "timeline_counter_offer": "Counter-offer from {{by}}",
-    "timeline_offer": "Offer from {{by}}",
     "timeline_created": "Deal created",
     "buyer": "Buyer",
-    "view_full_profile": "View full profile",
-    "call": "Call",
     "email": "Email",
     "message": "Message",
     "capacity": "Budget",
     "purchase_probability": "{{value}}% purchase probability",
     "surface_rooms": "{{surface}} m² · {{rooms}} rooms",
-    "documents": "Documents",
-    "documents_subtitle": "For this deal",
-    "doc_formal_offer": "Formal offer, {{by}}",
-    "doc_counter_offer": "Counter-offer, {{by}}",
-    "doc_kyc_complete": "Buyer KYC, complete file",
-    "doc_sale_agreement": "Sale agreement",
-    "no_documents": "No document generated for this deal.",
-    "doc_status_signed": "Signed",
-    "doc_status_pending": "Pending",
-    "doc_status_missing": "To generate",
-    "doc_pages_one": "{{count}} page",
-    "doc_pages_other": "{{count}} pages",
     "private_notes": "Private notes",
-    "notes_team": "{{brand}} team",
     "notes_saving": "Saving…",
     "notes_empty": "Private notes, visible only to the {{brand}} team.",
     "never_visible_client": "Never visible to the client",
     "asking_price": "Asking price",
-    "offer_received": "Offer received",
-    "last_update": "Last update",
-    "no_offer_recorded": "No offer recorded for this transaction.",
-    "view_contact": "View contact",
     "offer_status": {
       "pending": "Pending",
       "accepted": "Accepted",
@@ -259,44 +121,32 @@
     },
     "notes_cancel": "Cancel",
     "notes_save": "Save",
-    "step_counter": "step {{index}}/{{total}}",
     "negotiation": "Negotiation",
-    "rounds_one": "{{count}} round",
-    "rounds_other": "{{count}} rounds",
     "no_offer_hint": "When the buyer is ready, record their offer here.",
     "offer_row": {
       "offer": "Offer · buyer",
       "counter": "Counter-offer · seller"
     },
     "cond": {
-      "financing": "Financing {{days}}d",
-      "sale": "Sale of another property",
-      "diagnostic": "Survey"
+      "financing": "Financing {{days}}d"
     },
     "accept_offer": "Accept the offer",
     "reject": "Decline",
     "relaunch_offer": "Send a new offer",
     "mark_lost": "Mark as lost",
     "rejected_note": "Offer declined. Send the buyer a new proposal, or close the deal.",
-    "kyc_to_complete": "KYC to complete",
-    "optional": "optional",
     "toast": {
       "accepted": "Offer accepted, deal signed",
       "rejected": "Offer declined",
-      "lost": "Deal marked as lost",
       "offer_sent": "Offer sent",
       "counter_sent": "Counter-offer sent"
     },
-    "buyer_eyebrow": "The buyer",
-    "affair_eyebrow": "The deal",
     "next_action": "Next action",
     "matches_title": "Properties to propose",
     "matches_count_one": "{{count}} match",
     "matches_count_other": "{{count}} matches",
     "no_matches": "No portfolio property matches yet.",
-    "transmit": "Send to {{name}}",
     "open_contact": "Open the contact profile",
-    "phone": "Phone",
     "lang": {
       "fr": "French",
       "en": "English",
@@ -315,10 +165,6 @@
     "cta": {
       "close": "Close",
       "cancel": "Cancel",
-      "back": "Back",
-      "continue": "Continue",
-      "submit": "Save & send",
-      "submitting": "Sending…",
       "save": "Save",
       "saving": "Saving…"
     },
@@ -334,28 +180,7 @@
       "conditions": "Conditions precedent",
       "validity": "Offer validity"
     },
-    "eyebrow": {
-      "counter": "Counter-offer · seller",
-      "offer": "New offer · buyer"
-    },
-    "step": {
-      "amount": "Amount",
-      "conditions": "Conditions",
-      "delay": "Deadline & send"
-    },
-    "step0": {
-      "eyebrow": "Step 1 of 3 · Amount",
-      "title": {
-        "counter": "What amount are you proposing in return?",
-        "offer": "What amount is the buyer offering?"
-      },
-      "subtitle": {
-        "counter": "You can adjust the amount, reposition the conditions and set a new deadline.",
-        "offer": "Enter the main amount, any deposit and the desired signing date."
-      }
-    },
     "field": {
-      "offerFrom": "Offer from {{label}}",
       "amount": "Proposed amount",
       "askingPriceHint": "Asking price: {{price}}",
       "deposit": "Deposit",
@@ -366,47 +191,29 @@
       "expiryDate": "Expiry date",
       "expiryTime": "Time"
     },
-    "step1": {
-      "eyebrow": "Step 2 of 3 · Conditions precedent",
-      "title": "Under what conditions?",
-      "subtitle": "Enable only the conditions that apply. Each must be lifted before signing."
-    },
     "condition": {
       "financing": {
         "title": "Bank financing",
-        "sub": "The offer is conditional on obtaining a mortgage loan.",
         "daysLabel": "Deadline (days)",
         "noteLabel": "Details (bank, rate…)",
         "notePlaceholder": "E.g. BCGE, 80%, 10-year fixed rate"
       },
       "sale": {
-        "title": "Sale of another property",
-        "sub": "The purchase depends on first selling an existing property."
+        "title": "Sale of another property"
       },
       "diagnostic": {
         "title": "Survey / Inspection",
-        "sub": "Independent survey (roof, structure, energy) at the buyer's expense.",
         "noteLabel": "Scope of the survey",
         "notePlaceholder": "E.g. Roof + facade"
       },
       "occupancy": {
         "title": "Vacant possession",
-        "sub": "The property must be vacant by a specific date.",
         "dateLabel": "Vacancy date"
       },
       "other": {
-        "label": "Other: free text",
-        "hint": "Visible in the formal offer (PDF). Keep it factual.",
         "placeholder": "E.g. Purchase in a personal capacity, cash payment of 35%."
       },
-      "financingShort": "Financing · {{days}}d",
-      "diagnosticShort": "Survey",
       "noteTitle": "Note"
-    },
-    "step2": {
-      "eyebrow": "Step 3 of 3 · Deadline & confirmation",
-      "title": "Offer validity",
-      "subtitle": "After this date, the offer will move to « expired » status."
     },
     "delay": {
       "h48": "48h",
@@ -422,20 +229,6 @@
       "activeConditions": "Active conditions",
       "expires": "Expires on",
       "expiresValue": "{{date}} at {{time}}"
-    },
-    "footer": {
-      "stepCount": "Step {{current}} / {{total}}"
-    },
-    "eyebrowOffer": "Offer · buyer",
-    "statusCurrent": "Current",
-    "depositSuffix": "+ {{amount}} deposit",
-    "expiresAt": "Expires {{date}}",
-    "attachments_one": "{{count}} attachment",
-    "attachments_other": "{{count}} attachments",
-    "action": {
-      "accept": "Accept",
-      "reject": "Decline",
-      "withdraw": "Withdraw"
     }
   },
   "journey": {
@@ -536,55 +329,31 @@
       "late": "Overdue",
       "today": "Today",
       "week": "This week",
-      "month": "This month",
       "later": "Later"
     },
-    "axis": {
-      "contact": "Contact",
-      "due": "Due"
-    },
-    "todayChip": "Today · {{date}}",
-    "jMinus": "D-{{count}}",
-    "dealsCount_one": "{{count}} deal",
-    "dealsCount_other": "{{count}} deals",
-    "dragHint": "Drag to reschedule",
-    "lastActivity": "Last activity · {{date}}",
     "emptySearch": "No deals match the search."
   },
   "modal": {
-    "contact": "Contact",
-    "existing": "Existing",
-    "new": "New",
     "searchContact": "Search for a contact…",
-    "noContactsYet": "No contacts yet.",
-    "noContactFound": "No contact found.",
     "createContact": "Create a contact",
     "createNamed": "Create “{{name}}”",
-    "moreContacts_one": "{{count}} more · refine the search",
-    "moreContacts_other": "{{count}} more · refine the search",
     "firstName": "First name",
     "lastName": "Last name",
     "email": "Email",
     "phone": "Phone",
-    "bien": "Property",
     "removeBien": "Remove",
     "searchBien": "Search for a property…",
     "noActiveBiens": "No active listing in the portfolio.",
     "noBienFound": "No property found.",
-    "moreBiens_one": "{{count}} more listing · refine the search",
-    "moreBiens_other": "{{count}} more listings · refine the search",
-    "valueFromBien": "The deal value takes the price of the chosen property.",
-    "value": "Value",
     "close": "Close",
     "cancel": "Cancel",
     "create": "Create the deal",
     "creating": "Creating…",
-    "created": "Deal created.",
-    "seePipeline": "View the pipeline",
     "error": {
       "noAgency": "No agency attached, the deal cannot be created",
       "unknown": "Unknown error"
-    }
+    },
+    "indicatif": "Country code"
   },
   "inline": {
     "searchPlaceholder": "Contact, name, email…",
@@ -594,5 +363,167 @@
     "more": "More options",
     "cancelTitle": "Cancel (Esc)",
     "changeContact": "Change contact"
+  },
+  "phases": {
+    "noms": {
+      "prospects": "Prospects",
+      "recherche": "Search",
+      "visites": "Viewings",
+      "offre": "Offer",
+      "signature": "Closing"
+    },
+    "stadesLongs": {
+      "visit_planned": "Viewing scheduled",
+      "visit_done": "Viewing done"
+    },
+    "stades": {
+      "new_lead": "New",
+      "to_qualify": "To qualify",
+      "to_recontact": "To recontact",
+      "active_search": "Searching",
+      "visit_planned": "Scheduled",
+      "visit_done": "Done",
+      "interest_confirmed": "Interest",
+      "offer": "Offer",
+      "negotiation": "Negotiation",
+      "reserved": "Reserved",
+      "financing": "Financing",
+      "notary": "Notary",
+      "signed": "Signed"
+    },
+    "preciser": "Refine the stage",
+    "ajouter": "Add",
+    "aPlanifier": "To schedule",
+    "silence_one": "No news for {{count}} day",
+    "silence_other": "No news for {{count}} days",
+    "parMois": "/mo",
+    "conclu": "Won",
+    "perdu": "Lost",
+    "agenda": {
+      "aPlanifier": "To schedule",
+      "planifier": "Schedule",
+      "planifierAide": "Drag onto a day to schedule a follow-up",
+      "replanifier": "Drag onto another day to reschedule",
+      "hier": "yesterday",
+      "ilYA_one": "{{count}} day ago",
+      "ilYA_other": "{{count}} days ago",
+      "relance": "Follow up",
+      "ouvrir": "Open the deal"
+    }
+  },
+  "fiche": {
+    "aucuneAction": "No action planned",
+    "fait": "Done",
+    "replanifier": "Reschedule",
+    "planifier": "Schedule",
+    "quand": {
+      "demain": "Tomorrow",
+      "apresDemain": "In two days",
+      "lundi": "Monday",
+      "semaine": "In a week"
+    },
+    "conclue": "Deal won",
+    "perdue": "Deal lost",
+    "rouvrir": "Reopen",
+    "joursRestants_one": "{{count}} day left",
+    "joursRestants_other": "{{count}} days left",
+    "jusquaSignature": "Until signing",
+    "kycClient": "Client KYC",
+    "ouvrirMatching": "Open matching",
+    "visites": "Viewings",
+    "aucuneVisite": "No viewing yet.",
+    "planifierVisite": "Schedule a viewing",
+    "historique": "History",
+    "hist": {
+      "etape": "Stage: {{de}} → {{a}}",
+      "conclue": "Deal won",
+      "rouverte": "Deal reopened",
+      "enAttente": "Deal on hold"
+    },
+    "client": "Client",
+    "bien": "Property",
+    "criteres": "Criteria",
+    "kycEtat": {
+      "verified": "Verified",
+      "pending": "In progress",
+      "none": "Not opened yet"
+    },
+    "ouvrirBien": "Open property",
+    "toast": {
+      "etape": "Stage updated",
+      "fait": "Action done",
+      "replanifiee": "Action rescheduled",
+      "planifiee": "Follow-up scheduled"
+    }
+  },
+  "nouvelle": {
+    "sansBien": "no property",
+    "changer": "Change",
+    "choisirClient": "Choose or create a client to create the deal.",
+    "facultatif": "optional",
+    "suggeres": "Matching their search",
+    "actifs": "Active properties",
+    "etape": "Where does the deal stand?",
+    "montant": "Amount",
+    "aucunClient": "No client chosen yet",
+    "prixDuBien": "Property price",
+    "loyerDuBien": "Property rent",
+    "cree": "Created"
+  },
+  "cloture": {
+    "titre": "Deal closed",
+    "autres_one": "{{count}} other",
+    "autres_other": "{{count}} others",
+    "bienVendu": "Mark the property as sold",
+    "bienRetire": "Take the property off the market",
+    "recherche": "Pause their search",
+    "relances_one": "Close the follow-up",
+    "relances_other": "Close the {{count}} follow-ups",
+    "noteRappel": "Inform {{noms}}: {{bien}} is no longer available",
+    "rien": "Nothing else to settle.",
+    "erreur": "Couldn’t save. Try again.",
+    "plusTard": "Later",
+    "enCours": "Closing…",
+    "valider": "Confirm",
+    "toast": "Closing saved",
+    "hist": "Closing saved",
+    "bandeau": {
+      "aTerminer": "Closing to finish",
+      "terminer": "Finish"
+    },
+    "recap": {
+      "prixFinal": "Final price",
+      "loyerFinal": "Agreed rent",
+      "ecart": "Against the asking price",
+      "cycle": "Cycle",
+      "jours_one": "{{count}} day",
+      "jours_other": "{{count}} days",
+      "commission": "Estimated commission"
+    },
+    "prevenir": "Remind me to inform {{noms}}"
+  },
+  "apresVente": {
+    "titre": "After-sale",
+    "planifier": "Plan the after-sale",
+    "toast": "After-sale planned",
+    "etapes": {
+      "nouvelles": "Check in",
+      "recommandation": "Ask for a referral",
+      "anniversaire": "One year in the home"
+    }
+  },
+  "menu": {
+    "ouvrir": "Open",
+    "nouvelOnglet": "Open in new tab",
+    "actionFaite": "Mark action as done",
+    "deplacer": "Move to",
+    "ouvrirContact": "Open contact",
+    "copierLien": "Copy link",
+    "lienCopie": "Link copied",
+    "marquerConclu": "Mark as won",
+    "rechercher": "Search",
+    "vueTimeline": "Show Timeline",
+    "vueKanban": "Show Kanban",
+    "retour": "Back to Pipeline"
   }
 }

@@ -35,11 +35,11 @@ import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { r2Config, r2Put } from '../_shared/r2.ts'
 import {
   LABS_TTS_MODEL, LABS_VIDEO_ENDPOINTS, LABS_VIDEO_MAX_S, LABS_VIDEO_RESOLUTIONS, type LabsVideoResolution,
-  base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsOuvertAuPlan, labsVideoCostChf,
+  assetPourAgent, base64ToBytes, cleanPrompt, cleanVoice, cleanVoiceLang, cleanVoiceover, isUuid, labsOuvertAuPlan, labsVideoCostChf,
   labsVideoDuration, labsVideoPrompt, labsVoiceoverPrompt, pcmDurationSeconds, pcmToWav, sampleRateFromMime,
 } from '../_shared/labs.ts'
 import { creditsPourVideo } from '../_shared/credits.ts'
-import { debiterCredits, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
+import { debiterCredits, planEffectifAgence, rembourserCredits, reveillerAutoRecharge } from '../_shared/credits-edge.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -124,8 +124,10 @@ serve(async (req: Request) => {
   // 3. Plan. ⚠ Le DÉBIT vient plus bas, une fois la durée connue : avec une voix off,
   // c'est la narration qui décide de la durée, donc du prix — et elle n'est mesurée
   // qu'après la synthèse (quelques centimes, qu'on accepte de perdre sur un refus).
-  const { data: agency } = await supabase.from('agencies').select('plan').eq('id', profile.agency_id).single()
-  if (!labsOuvertAuPlan(agency?.plan as string | null)) return json({ error: 'upgrade_required' }, 403)
+  // Plan EFFECTIF : l'abonnement, jamais `agencies.plan` (que le webhook Stripe n'écrit pas).
+  const plan = await planEffectifAgence(supabase, profile.agency_id)
+  if (plan === null) return json({ error: 'plan_unavailable' }, 503)
+  if (!labsOuvertAuPlan(plan)) return json({ error: 'upgrade_required' }, 403)
 
   // 4. La ligne d'abord : ce qui échoue ensuite se lit dans `error_code`.
   const assetId = crypto.randomUUID()
@@ -271,5 +273,5 @@ serve(async (req: Request) => {
     return json({ error: 'record_failed', assetId }, 500)
   }
 
-  return json({ asset, credits: { debited: credits, balance: debit.balance ?? null } })
+  return json({ asset: assetPourAgent(asset), credits: { debited: credits, balance: debit.balance ?? null } })
 })

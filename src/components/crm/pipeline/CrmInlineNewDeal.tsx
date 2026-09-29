@@ -19,8 +19,7 @@ import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { usePipelineReminderCreators } from '@/hooks/usePipelineNextActions'
 import { stageIdToTransactionStage } from '@/lib/crmAdapters'
-import type { NewDealPrefill } from './NewDealModal'
-import type { CrmContact } from '../mockData'
+import type { NewDealPrefill } from './NouvelleAffaireModal'
 
 interface Props {
   stage: StageId
@@ -31,20 +30,12 @@ interface Props {
   onCreated: (txId: string) => void
   /** « Plus d'options » → ouvre la modale complète pré-remplie. */
   onMore: (prefill: NewDealPrefill) => void
-  /**
-   * Substitution d'aperçu (`/dev/pipeline`) : `useContactsScreen` est gaté sur
-   * la session, donc sans banc la recherche de contact ne propose JAMAIS rien —
-   * la moitié utile de la carte fantôme (les trois suggestions) restait
-   * invisible. L'écriture, elle, est déjà bloquée par la garde `agency_id`.
-   */
-  banc?: { contacts: CrmContact[] }
 }
 
-export function CrmInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, banc }: Props) {
+export function CrmInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }: Props) {
   const { t } = useTranslation('pipeline')
   const { profile } = useAuth()
-  const { contacts: liveContacts } = useContactsScreen()
-  const all = banc ? banc.contacts : liveContacts
+  const { contacts: all } = useContactsScreen()
   const createTransaction = useCreateTransaction()
   const { createFirstFollowUp } = usePipelineReminderCreators()
 

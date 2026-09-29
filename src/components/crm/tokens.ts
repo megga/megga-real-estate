@@ -4,23 +4,6 @@
 
 import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
-/**
- * Le PÔLE D'ENCRE des mélanges de teinte — l'extrémité neutre vers laquelle
- * `crmMix` tire une teinte d'étape pour en dériver une encre ou un aplat.
- *
- * ⚠ CE N'EST PAS LA TEINTE, C'EST SON POINT DE FUITE. L'arbitrage rendu quatre
- * fois met les teintes d'étape hors direction parce qu'elles ENCODENT l'étape
- * du deal ; le pôle, lui, n'encode rien — c'est le noir de la direction, et il
- * traînait en `#0B0C0E`, celui de Sugar.
- *
- * Effet MESURÉ du passage à `n100` sur les dix-huit dérivations (le 15 août
- * 2026) : toutes montent. Plancher de `crmStagePillBg` sous encre blanche
- * 4,529 → 4,657 ; plancher de `tintInk` sur son panneau 5,219 → 5,529 — cette
- * dernière valeur est exactement celle que `pipeline-contraste.spec.ts`
- * annonçait, ce qui confirme que la sonde lit bien la même chose que la garde.
- */
-const ENCRE_POLE = MXC_COLOR.n100
-
 export interface CrmTheme {
   bg: string
   surface: string
@@ -236,56 +219,6 @@ export function crmMix(hex: string, target: string, amt: number): string {
 }
 
 /**
- * Teinte dérivée d'une colonne kanban : fond (`panel`) + libellé de compteur
- * teinté (`tintInk`) + teinte vive (`hue`).
- *
- * ⛔ **EN SOMBRE, LA COLONNE N'A PLUS DE FOND DU TOUT** — grammaire LIGNÉE
- * menée au bout (décision Julien, 20.09.2026 : « mets les colonnes en
- * transparent »). Le CRM sombre ne rend qu'un gris, `MXC_DARK_SURFACE.s0`, et
- * la colonne le laisse passer : ce qui la délimite est son séparateur, rien
- * d'autre.
- *
- * ⚠ **CE QUE ÇA COÛTE, ET C'EST ASSUMÉ.** Le commentaire de `StageColumn`
- * décrit le kanban comme une FEUILLE CONTINUE dont les panneaux, mis bout à
- * bout, forment « la PROGRESSION de l'entonnoir, du bleu au brun ». Sans fond,
- * ce balayage ne vit plus que dans la pastille de 9 px de chaque en-tête et
- * dans l'anneau de survol au glissé. L'étape reste LUE (la pastille, le
- * libellé, la position), elle n'est plus BALAYÉE. Les valeurs intermédiaires
- * essayées avant : 0,85 rendait ΔL* 6,6–10,2 (panneaux pleins), 0,94 rendait
- * 2,7–3,9 (un murmure). Y revenir est un geste d'une ligne.
- *
- * ⚠ **`panel` n'est donc plus une couleur mesurable en sombre.** Ne rien en
- * dériver : `encreSur` et les gardes de contraste attendent un APLAT, et
- * `'transparent'` leur rendrait `NaN` en silence. L'encre d'une colonne se
- * calcule sur le CANVAS (`sp.pageBg`), qui est ce qu'on voit réellement
- * derrière — c'est le même piège que le voile translucide signalé sur
- * `encreSur`.
- *
- * ⚠ **LE MODE CLAIR GARDE SES COLONNES PLEINES, ET C'EST UNE DÉCISION** (Julien,
- * 20.09.2026) — pas un reste de périmètre, ce que disait la version précédente
- * de cette ligne. Le motif est mesuré, et il vaut d'être lu avant d'« harmoniser »
- * les deux thèmes : **la grammaire suit le MÉDIUM, pas la symétrie**.
- *
- * Sur blanc, une teinte pâle porte l'information sans rien coûter — elle ne
- * concurrence pas l'encre, et le clair n'a jamais eu le problème de plancher qui
- * a motivé tout ce chantier. Sur sombre, la même teinte devait se battre contre
- * le canvas : il fallait choisir entre la lisibilité du balayage et l'uniformité
- * des surfaces. Deux médiums, deux réponses.
- *
- * ⛔ Donc : ne PAS aligner le clair sur le sombre « pour la cohérence ». Ce
- * serait échanger une asymétrie justifiée contre une perte sèche d'information
- * sur le seul thème où elle ne coûtait rien.
- */
-export function crmStageTint(stage: StageId, dark: boolean): { hue: string; panel: string; tintInk: string } {
-  const hue = CRM_STAGE_HUE[stage] || '#8A93A5'
-  return {
-    hue,
-    panel: dark ? 'transparent' : crmMix(hue, '#FFFFFF', 0.81),
-    tintInk: dark ? crmMix(hue, '#FFFFFF', 0.35) : crmMix(hue, ENCRE_POLE, 0.45),
-  }
-}
-
-/**
  * Voile d'ENCRE, à l'opacité demandée — le seul rôle que la palette ne nommait
  * pas, et par lequel le noir Sugar rentrait.
  *
@@ -333,13 +266,6 @@ export function crmVoileAssombrissant(alpha: number): string {
   return `rgba(3,3,3,${alpha})`
 }
 
-/** Fond des pilules d'étape à texte blanc : teinte assombrie en clair
- *  (contraste ≥ 4.5:1), teinte vive inchangée en sombre. Réservé aux aplats
- *  portant du texte — pastilles 8-9 px et barres restent en CRM_STAGE_HUE pur. */
-export function crmStagePillBg(stage: StageId, dark: boolean): string {
-  const h = CRM_STAGE_HUE[stage] || '#8A93A5'
-  return dark ? h : crmMix(h, ENCRE_POLE, 0.32)
-}
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {
   if (n == null) return '—'

@@ -731,6 +731,183 @@ const PETIT_SACONNEX_EMBARQUE = {
   features: ['Balcon', 'Ascenseur'], floor: 3, year_built: 1985, charges_monthly: 480, status: 'sold',
 }
 
+/* ─── Le Pipeline (27.09.2026) ───────────────────────────────────────────────
+ * `transactions: []` rendait le Pipeline VIDE dans les trois états — il n'était pas au menu
+ * du banc, et la barre latérale y menait sur « Sortie neutralisée ». `/dev/pipeline` le montre,
+ * mais hors coquille et sur des deals DÉJÀ adaptés (slot `banc`) : ici il passe par ses vrais
+ * hooks (`usePipelineScreen`, `useTransaction`, `useOfferChain`).
+ *
+ * ⚠ CHAQUE DEAL PROLONGE UNE HISTOIRE QUE LE BANC RACONTE DÉJÀ, il n'en invente pas une autre :
+ * Camille signe demain chez le notaire (`ce1`) le bien qu'elle revisite aujourd'hui (`v1`) ;
+ * Antoine a refusé la villa de Cologny à 3'450'000 (`m5`) et le mandat vient de baisser ; Emma
+ * s'est dite intéressée par le loft (`m6`) ; Anastasia est LA prospecte du mandat off-market (`p3`) ;
+ * Nathalie porte le deal perdu que « Qui pour ce bien ? » cite (origine `deal_perdu`, 150 jours).
+ *
+ * ⚠ Quatre lecteurs, une ligne : le board et le Parcours lisent `property`, la fiche d'un bien
+ * filtre par `property_id`, la fiche deal lit `buyer` / `seller` / `agent`. Le banc n'applique pas
+ * `select` — la ligne porte la forme la PLUS LARGE des quatre.
+ *
+ * ⛔ Trois deals SORTENT du board — un perdu, un gagné, un rangé. Les inclure est la seule façon
+ * de vérifier qu'il les exclut (`banc-pipeline.spec.ts`).
+ */
+
+/** La jointure `property` d'un deal : les biens de l'agence, embarqués (p1-p3) ou du catalogue. */
+const BIENS_DES_DEALS: Record<string, Record<string, unknown>> = {
+  p1: CHAMPEL_EMBARQUE, p2: COLOGNY_EMBARQUE, p3: FLORISSANT_EMBARQUE,
+}
+const bienDuDeal = (id: string | null) => {
+  if (!id) return null
+  const b = BIENS_DES_DEALS[id] ?? BIENS_CATALOGUE.find((x) => x.id === id)
+  return b ? { id, ...b } : null
+}
+const agentDuDeal = (id: string) => {
+  const p = [AGENT_BANC, ...COLLEGUES_BANC].find((x) => x.id === id)
+  return p ? { full_name: p.full_name, avatar_url: null } : null
+}
+
+/**
+ * Une ligne `transactions` — ses colonnes RÉELLES, et ses jointures portées par la ligne.
+ * ⚠ Le contact du board est `contact_buyer_id ?? contact_seller_id` (`usePipelineScreen`) :
+ * un deal VENDEUR se lit sous le nom de son vendeur.
+ */
+const deal = (id: string, champs: {
+  contact_buyer_id?: string; contact_seller_id?: string; property_id?: string; assigned_to?: string
+  stage: string; status?: string; price_offered?: number; price_final?: number
+  created_at: string; updated_at: string; archived_at?: string
+}) => ({
+  id, agency_id: AGENCE_BANC.id, contact_buyer_id: null, contact_seller_id: null, property_id: null,
+  market_listing_id: null, mandate_type: null, notes: null, price_offered: null, price_final: null,
+  status: 'active', archived_at: null, assigned_to: AGENT_BANC.id,
+  ...champs,
+  property: bienDuDeal(champs.property_id ?? null),
+  buyer: CONTACTS.find((c) => c.id === champs.contact_buyer_id) ?? null,
+  seller: CONTACTS.find((c) => c.id === champs.contact_seller_id) ?? null,
+  agent: agentDuDeal(champs.assigned_to ?? AGENT_BANC.id),
+})
+
+/** Le prix d'une offre de d14, en fraction du prix affiché de pb44, arrondi à 5 000. */
+const prixD14 = (part: number) => {
+  const affiche = BIENS_CATALOGUE.find((b) => b.id === 'pb44')?.price ?? 0
+  return Math.round((affiche * part) / 5_000) * 5_000
+}
+
+// ⚠ EXPORTÉ pour `banc-pipeline.spec.ts` seul, comme `CONTACTS` : les écrans passent par `CRM_TABLES`.
+export const DEALS_BANC = [
+  // ── Au board : douze deals, les huit colonnes, et chaque colonne pour une raison.
+  deal('d1', { contact_buyer_id: 'c8', stage: 'new_lead', created_at: ilYA(0.2), updated_at: ilYA(0.2) }),
+  // Deux deals VENDEURS : Théo (estimation en retard) et Nadia (au board « Signé »).
+  deal('d2', { contact_seller_id: 'c2', stage: 'to_qualify', created_at: ilYA(24 * 9), updated_at: ilYA(74) }),
+  // L'ancien prospect à recontacter : en attente, sans prochaine action — la carte « Planifier une action ».
+  deal('d3', { contact_buyer_id: 'c12', stage: 'to_recontact', status: 'on_hold', created_at: ilYA(24 * 400), updated_at: ilYA(24 * 130) }),
+  deal('d4', { contact_buyer_id: 'c3', stage: 'active_search', created_at: ilYA(24 * 60), updated_at: ilYA(191) }),
+  deal('d5', { contact_buyer_id: 'c9', stage: 'active_search', created_at: ilYA(24 * 8), updated_at: ilYA(30) }),
+  deal('d6', { contact_buyer_id: 'c11', property_id: 'p3', stage: 'visit_planned', created_at: ilYA(24 * 2), updated_at: ilYA(20) }),
+  deal('d7', { contact_buyer_id: 'c6', property_id: 'pb36', stage: 'visit_planned', assigned_to: COLLEGUES_BANC[1].id, created_at: ilYA(24 * 12), updated_at: ilYA(48) }),
+  deal('d8', { contact_buyer_id: 'c10', property_id: 'p2', stage: 'visit_done', status: 'on_hold', created_at: ilYA(24 * 30), updated_at: ilYA(24 * 18) }),
+  // Une LOCATION : le montant de la carte est le loyer du bien (2'950 par mois).
+  deal('d9', { contact_buyer_id: 'c4', property_id: 'pb25', stage: 'interest_confirmed', assigned_to: COLLEGUES_BANC[0].id, created_at: ilYA(24 * 5), updated_at: ilYA(5) }),
+  // La négociation : trois tours d'offre, le dernier en attente (`OFFRES_BANC`) — « Deal · fiche » au menu.
+  deal('d10', { contact_buyer_id: 'c7', property_id: 'pb32', stage: 'negotiation', price_offered: 1_230_000, created_at: ilYA(24 * 5), updated_at: ilYA(24 * 2) }),
+  deal('d11', { contact_buyer_id: 'c1', property_id: 'p1', stage: 'notary', price_offered: 1_420_000, created_at: ilYA(24 * 40), updated_at: ilYA(24) }),
+  deal('d12', { contact_seller_id: 'c5', property_id: 'pb48', stage: 'signed', price_final: 3_100_000, created_at: ilYA(24 * 75), updated_at: ilYA(24 * 3) }),
+  // ── Hors du board.
+  deal('d13', { contact_buyer_id: 'c13', stage: 'lost', status: 'cancelled', created_at: ilYA(24 * 210), updated_at: ilYA(24 * 150) }),
+  // d14 : l'affaire CONCLUE du banc (« Deal · fiche conclue »). Emma a acheté pb44 — un bien que le catalogue
+  // donne déjà `sold` — au prix de sa seconde offre, acceptée (o6). Conclue il y a 90 jours, avant le chantier de
+  // la clôture : la fiche montre son récapitulatif, et ne lui réclame aucune clôture (au-delà de 30 jours).
+  deal('d14', { contact_buyer_id: 'c7', property_id: 'pb44', stage: 'signed', status: 'completed', price_final: prixD14(0.97), created_at: ilYA(24 * 200), updated_at: ilYA(24 * 90) }),
+  deal('d15', { contact_buyer_id: 'c4', property_id: 'pb10', stage: 'active_search', created_at: ilYA(24 * 40), updated_at: ilYA(24 * 20), archived_at: ilYA(24 * 20) }),
+]
+
+/**
+ * Les prochaines actions des deals — des `reminders` de la forme que le Pipeline POSE lui-même
+ * (`usePipelineReminderCreators` : `type: 'custom'`, `kind`, `channel: 'task'`, la note dans
+ * `message_template`). Le Calendrier et « Aujourd'hui » les montrent donc aussi, comme en production.
+ *
+ * ⚠ Les quatre branches d'échéance de la carte : en retard (d2), aujourd'hui (d1, d8, d9),
+ * demain (d7, d11), une date (le reste) ; et les six `kind` que la base accepte.
+ */
+const actionDeal = (id: string, transactionId: string, kind: string, note: string, heures: number) => {
+  const d = DEALS_BANC.find((x) => x.id === transactionId)!
+  const c = d.buyer ?? d.seller
+  return {
+    id, agency_id: AGENCE_BANC.id, transaction_id: transactionId, contact_id: c?.id ?? null,
+    property_id: d.property_id, match_id: null, type: 'custom', kind, trigger_rule: 'manual',
+    trigger_at: ilYA(heures), status: 'pending', channel: 'task', message_template: note,
+    calendar_label_id: null, created_at: d.updated_at,
+    contact: c ? { first_name: c.first_name, last_name: c.last_name } : null,
+    property: d.property,
+  }
+}
+// ⚠ Une seule action du jour AVANT la visite `v1` (13 h 30 sous l'horloge des e2e) : la case du 15
+// n'en montre que trois en vue Mois, et la visite doit y rester (`calendrier-deplacement.spec.ts`).
+const ACTIONS_DEALS = [
+  actionDeal('ra1', 'd1', 'call', 'Qualifier sa demande WhatsApp', -6),
+  actionDeal('ra2', 'd2', 'call', 'Rendez-vous d’estimation à Lutry', 26),
+  actionDeal('ra4', 'd4', 'match', 'Envoyer la sélection de Vandœuvres', -24 * 3),
+  actionDeal('ra5', 'd5', 'match', 'Envoyer trois biens du marché', -24 * 2),
+  actionDeal('ra6', 'd6', 'visit', 'Visite de l’attique de Florissant', -48),
+  actionDeal('ra7', 'd7', 'visit', 'Visite de l’appartement de Montreux', -24),
+  actionDeal('ra8', 'd8', 'call', "Annoncer la baisse à CHF 3'200'000", -1),
+  actionDeal('ra9', 'd9', 'kyc', 'Réunir son dossier de location', -7),
+  actionDeal('ra10', 'd10', 'offer', 'Réponse du vendeur attendue', -24 * 2),
+  // L'heure de `ce1` : la signature que le Calendrier montre déjà.
+  actionDeal('ra11', 'd11', 'note', 'Signature chez le notaire', -26),
+  actionDeal('ra12', 'd12', 'note', 'Préparer la remise des clés', -24 * 9),
+]
+
+/**
+ * La chaîne d'offres du deal d10 — lue par `crm_offer_chain` (la fiche deal) ET par `crm_offers`
+ * (les offres en attente de « Aujourd'hui »). ⚠ Le dernier tour est `pending` : la fiche n'offre
+ * « Accepter / Refuser » que sur lui. Il n'existe pas de statut `countered` — un tour auquel on a
+ * contre-offert est `rejected`, la contre-offre porte la suite.
+ */
+const offreDeal = (id: string, parent: string | null, kind: 'offer' | 'counter', amount: number, status: string, heures: number, repondu: number | null, deal = 'd10') => ({
+  id, deal_id: deal, agency_id: AGENCE_BANC.id, parent_offer_id: parent, kind,
+  from_party: kind === 'offer' ? 'buyer' : 'seller', by_id: kind === 'offer' ? null : AGENT_BANC.id,
+  by_label: kind === 'offer' ? 'Emma Schneider' : AGENT_BANC.full_name,
+  amount, currency: 'CHF', deposit: Math.round(amount * 0.1), closing_date: null,
+  conditions: {
+    financing: { active: kind === 'offer', days: kind === 'offer' ? 30 : null, note: null },
+    sale: { active: false, note: null }, diagnostic: { active: false, note: null },
+    occupancy: { active: false, note: null }, other: '',
+  },
+  expires_at: ilYA(heures - 24 * 7), attachments: [], notes: null, status,
+  created_at: ilYA(heures), responded_at: repondu === null ? null : ilYA(repondu),
+})
+/**
+ * Les faits de deux affaires, de la forme EXACTE que la base écrit (`trg_transaction_lifecycle` :
+ * `stage_change`, `entity_type = 'transaction'`, `old_stage` / `new_stage`) — l'historique de la
+ * fiche d'affaire les lit. Le banc n'a pas de trigger : sans eux, chaque historique serait vide.
+ */
+const faitDeal = (id: string, deal: string, de: string, vers: string, heures: number) => ({
+  id, agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'stage_change',
+  category: 'deal', severity: 'info', entity_type: 'transaction', entity_id: deal, object_label: `${de} → ${vers}`,
+  metadata: { old_stage: de, new_stage: vers }, created_at: ilYA(heures), actor: { full_name: AGENT_BANC.full_name },
+})
+const FAITS_DEALS = [
+  faitDeal('fd1', 'd10', 'visit_done', 'interest_confirmed', 24 * 5),
+  faitDeal('fd2', 'd10', 'interest_confirmed', 'offer', 24 * 4),
+  faitDeal('fd3', 'd10', 'offer', 'negotiation', 24 * 3),
+  faitDeal('fd4', 'd11', 'negotiation', 'reserved', 24 * 12),
+  faitDeal('fd5', 'd11', 'reserved', 'financing', 24 * 8),
+  faitDeal('fd6', 'd11', 'financing', 'notary', 24),
+  {
+    ...faitDeal('fd7', 'd14', 'signed', 'signed', 24 * 90),
+    action: 'status_change', object_label: 'active → completed', metadata: { old_status: 'active', new_status: 'completed' },
+  },
+]
+
+const OFFRES_BANC = [
+  offreDeal('o1', null, 'offer', 1_180_000, 'rejected', 24 * 4, 24 * 3.5),
+  offreDeal('o2', 'o1', 'counter', 1_260_000, 'rejected', 24 * 3, 24 * 2.2),
+  offreDeal('o3', 'o2', 'offer', 1_230_000, 'pending', 24 * 2, null),
+  // d14 : la négociation d'Emma sur pb44, close par l'offre acceptée — son montant est le prix final.
+  offreDeal('o4', null, 'offer', prixD14(0.93), 'rejected', 24 * 115, 24 * 114, 'd14'),
+  offreDeal('o5', 'o4', 'counter', prixD14(0.99), 'rejected', 24 * 110, 24 * 108, 'd14'),
+  offreDeal('o6', 'o5', 'offer', prixD14(0.97), 'accepted', 24 * 100, 24 * 99, 'd14'),
+]
+
 export const CRM_TABLES: Record<string, unknown[]> = {
   market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE, ...ANNONCES_SIGNAL],
   market_price_history: HISTORIQUE_PRIX_BANC,
@@ -739,7 +916,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
-  activity_events: [...EVENEMENTS, ...TRAINE_JOURNAL],
+  activity_events: [...EVENEMENTS, ...FAITS_DEALS, ...TRAINE_JOURNAL],
   relance_sessions: [],
   relance_items: [],
   // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »
@@ -758,6 +935,8 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     // rb2, échue, couvre les deux biens proposés ensemble à Emma. Colonnes réelles de `reminders`, telles que `poserRelance` les pose.
     { id: 'rb1', agency_id: AGENCE_BANC.id, contact_id: 'c9', property_id: null, transaction_id: null, match_id: 'm14', match_ids: ['m14', 'm15'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(-24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Julie Morand sur 2 biens proposés', created_at: ilYA(48), contact: { first_name: 'Julie', last_name: 'Morand' } },
     { id: 'rb2', agency_id: AGENCE_BANC.id, contact_id: 'c7', property_id: null, transaction_id: null, match_id: 'm18', match_ids: ['m18', 'm21'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Emma Schneider sur 2 biens proposés', created_at: ilYA(96), contact: { first_name: 'Emma', last_name: 'Schneider' } },
+    // Les prochaines actions des deals du Pipeline — voir `ACTIONS_DEALS`.
+    ...ACTIONS_DEALS,
   ],
   // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
   // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
@@ -871,7 +1050,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       created_at: ilYA(24 * 500), updated_at: ilYA(24 * 20),
     },
   ],
-  transactions: [],
+  transactions: DEALS_BANC,
   // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
   // ligne : le banc n'applique pas `select`.
   // ── Le fil de matchs (lot 1, 17.09.2026) : m2 à m6 sont des paires que le moteur PEUT créer —
@@ -1232,8 +1411,23 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       },
       contact: EMMA_EMBARQUEE, property: PETIT_SACONNEX_EMBARQUE, market_listing: null,
     },
+    // m28 : Anastasia avait une visite prévue à Champel (p1), le bien que Camille achète (d11). Conclure d11
+    // propose de la prévenir : c'est le cas que la clôture existe pour ne pas oublier.
+    {
+      id: 'm28', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 91, status: 'visit_planned', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 10),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 18, detail: '4,5 pièces · 118 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: CHAMPEL_EMBARQUE, market_listing: null,
+    },
   ],
-  crm_offers: [],
+  crm_offers: OFFRES_BANC,
   seller_leads: [],
   kyc_cases: KYC_CASES,
   kyc_checklist_items: KYC_CHECKS,
@@ -1979,6 +2173,9 @@ export const CRM_RPC: Record<string, unknown> = {
   kyc_by_contact_id: (a: Record<string, unknown>) =>
     KYC_CASES.filter((k) => k.contact_id === a.p_contact_id)
       .map(({ checks: _c, checklist: _l, decisions: _d, contact: _ct, ...row }) => row),
+  // La chaîne d'offres d'un deal, du premier tour au dernier — la fiche deal marque le DERNIER courant.
+  crm_offer_chain: (a: Record<string, unknown>) =>
+    OFFRES_BANC.filter((o) => o.deal_id === a.p_deal_id).sort((x, y) => x.created_at.localeCompare(y.created_at)),
   // Les doublons de la fiche express — la logique de `find_contact_duplicates` : e-mail
   // exact (casse ignorée), téléphone normalisé (chiffres seuls, `0` suisse ⇒ `41`),
   // prénom + nom exacts ; un contact par ligne, sa meilleure raison d'abord.

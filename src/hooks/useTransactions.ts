@@ -21,6 +21,7 @@ import {
   useQuery,
   useInsertMutation,
   useUpdateMutation,
+  useRevalidateTables,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -79,6 +80,8 @@ export function useTransaction(id: string | undefined) {
 // document n'est rattaché — état honnête, pas de fabrication.
 
 interface CreateTransactionInput {
+  /** Choisi par l'appelant quand il doit reconnaître la carte AVANT la réponse (animation d'arrivée). */
+  id?: string
   agency_id: string
   property_id?: string
   contact_buyer_id?: string
@@ -91,9 +94,16 @@ interface CreateTransactionInput {
   notes?: string
 }
 
-/** Crée une transaction et émet l'événement Intercom « affaire créée ». */
+/**
+ * Crée une transaction et émet l'événement Intercom « affaire créée ». Rend `{ id }`.
+ *
+ * ⛔ SANS SA REQUÊTE `'id'`, CE HOOK RENDAIT TOUJOURS `undefined` (relevé le 27.09.2026) :
+ * cache-helpers ne renvoie à l'appelant que les colonnes de SA requête — sans elle, un tableau
+ * vide. Les trois créations de deal lisaient pourtant l'id rendu : le « Premier suivi » à J+2
+ * n'était jamais posé, et l'ajout en ligne du Pipeline restait ouvert après avoir créé.
+ */
 export function useCreateTransaction() {
-  const insert = useInsertMutation(supabase.from('transactions'), ['id'])
+  const insert = useInsertMutation(supabase.from('transactions'), ['id'], 'id')
   return {
     mutateAsync: async (input: CreateTransactionInput) => {
       const rows = await insert.mutateAsync([
@@ -115,6 +125,7 @@ export function useCreateTransaction() {
 // wouldn't cover the activity-log caches; explicit invalidate keeps the contract.
 export function useUpdateTransactionStage() {
   const queryClient = useQueryClient()
+  const revaliderTransactions = useRevalidateTables([{ schema: 'public', table: 'transactions' }])
   return useMutation({
     mutationFn: async ({ id, stage, notes, lostReason }: {
       id: string
@@ -154,9 +165,18 @@ export function useUpdateTransactionStage() {
 
       return data
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] })
+    // ⛔ LES LISTES DU PIPELINE SONT DES REQUÊTES CACHE-HELPERS (`useTransactions`) : leur clé
+    // commence par « postgrest », et `['transactions']` ne les atteignait pas. Mesuré sur le banc
+    // le 27.09.2026 : le stade était bien écrit, mais la carte déposée RETOURNAIT dans sa colonne
+    // dès que la surcouche optimiste tombait — jusqu'au prochain rafraîchissement (2 min de
+    // `staleTime` en production). La promesse est ATTENDUE : la surcouche ne tombe qu'une fois la
+    // liste relue, sans va-et-vient.
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['transaction', variables.id] }),
+        revaliderTransactions(),
+      ])
     },
   })
 }

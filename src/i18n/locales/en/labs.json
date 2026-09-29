@@ -83,7 +83,9 @@
     "estimateMany_one": "{{n}} credits · {{count}} image",
     "estimateMany_other": "{{n}} credits · {{count}} images",
     "balance": "balance {{n}}",
-    "recharge": "Top up"
+    "recharge": "Top up",
+    "proOnly": "From the Pro plan",
+    "seePlans": "See plans"
   },
   "voices": {
     "Kore": "Kore, composed",
@@ -161,6 +163,7 @@
   },
   "errors": {
     "upgrade_required": "The studio is available from the Pro plan.",
+    "plan_unavailable": "The agency's plan could not be read. Please try again in a moment.",
     "provider_not_configured": "The generation service is not configured.",
     "storage_not_configured": "Production storage is not configured.",
     "storage_failed": "The file could not be saved.",

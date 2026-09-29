@@ -4,17 +4,15 @@
  * Les erreurs sont des CODES stables de l'edge, traduits par l'écran (`labs:errors.*`).
  */
 import { useState } from 'react'
-import { invokeLabs } from '@/lib/labs'
+import { invokeLabs, type LabsAssetRow } from '@/lib/labs'
 import { fxGenerateImage, fxSoldeCourant, fxSoldeInsuffisant, fxSubmitVideo, useLabsFixtures } from '@/components/crm/labs/fixtures'
 import { creditsPourImage, creditsPourVideo } from '@/lib/credits'
 import type { LabsAsset, LabsImageInput, LabsVideoInput } from '@/types/labs'
-import type { Database } from '@/types/database'
 
-type AssetRow = Database['public']['Tables']['labs_assets']['Row']
-interface EdgeOk { asset: AssetRow; credits?: { debited: number; balance: number | null } }
+interface EdgeOk { asset: LabsAssetRow; credits?: { debited: number; balance: number | null } }
 
 export interface LabsGenerateResult {
-  asset: LabsAsset | AssetRow | null
+  asset: LabsAsset | LabsAssetRow | null
   error: string | null
   extra: Record<string, unknown>
   /** Le solde APRÈS le débit, tel que l'edge le rend — l'écran le pose sans relire la RPC. */

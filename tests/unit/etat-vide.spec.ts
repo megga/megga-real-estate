@@ -175,7 +175,8 @@ describe('État vide — un idiome, trois registres', () => {
   it('les surfaces migrées passent par EtatVide', () => {
     const ACQUISES = [
       'src/components/crm/today/PageAujourdhuiH.tsx',
-      'src/components/crm/pipeline/PipelineTimeline.tsx',
+      // La Timeline du Pipeline refait (27.09.2026) — elle remplace `PipelineTimeline`.
+      'src/components/crm/pipeline/PipelineAgenda.tsx',
       'src/pages/agent/PipelinePage.tsx',
       'src/components/crm/contacts-pager/ContactsPager.tsx',
       'src/components/crm/contacts-pager/ContactDetailPager.tsx',
