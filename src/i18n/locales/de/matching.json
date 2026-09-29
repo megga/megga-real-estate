@@ -490,7 +490,7 @@
       "texte": "Keines Ihrer Objekte wartet auf einen Vorschlag.",
       "contacts": "Suche eines Kontakts ergänzen",
       "marche": "Markt ansehen",
-      "sansMatch": "Noch kein Objekt entspricht den Kriterien Ihrer Käufer",
+      "sansMatch": "Noch keine Matches",
       "attenteTitre": "Keine Antwort ausstehend",
       "attenteTexte": "Vorgeschlagene Objekte warten hier auf die Antwort des Käufers.",
       "conclureTitre": "Keine Besichtigung zu planen",
@@ -693,7 +693,7 @@
       "chargementCompatibles": "Passende Käufer werden gelesen…",
       "erreurCompatibles": "Passende Käufer konnten nicht gelesen werden.",
       "retiree": "Inserat vom Markt zurückgezogen: Es wird seinen Käufern nicht mehr vorgeschlagen.",
-      "horsVente": "Objekt nicht mehr verfügbar: Es wird seinen Käufern nicht mehr vorgeschlagen."
+      "horsVente": "Dieses Objekt ist nicht mehr verfügbar."
     }
   }
 }

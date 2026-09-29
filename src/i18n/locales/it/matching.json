@@ -490,7 +490,7 @@
       "texte": "Nessuno dei Suoi immobili è in attesa di essere proposto.",
       "contacts": "Completa la ricerca di un contatto",
       "marche": "Vedi il mercato",
-      "sansMatch": "Nessun immobile corrisponde ancora ai criteri dei Suoi acquirenti",
+      "sansMatch": "Ancora nessun match",
       "attenteTitre": "Nessuna risposta in attesa",
       "attenteTexte": "Gli immobili che propone attendono qui la risposta dell'acquirente.",
       "conclureTitre": "Nessuna visita da pianificare",
@@ -693,7 +693,7 @@
       "chargementCompatibles": "Lettura degli acquirenti compatibili…",
       "erreurCompatibles": "Non è stato possibile leggere gli acquirenti compatibili.",
       "retiree": "Annuncio ritirato dal mercato: non viene più proposto ai suoi acquirenti.",
-      "horsVente": "Immobile non più disponibile: non viene più proposto ai suoi acquirenti."
+      "horsVente": "Questo immobile non è più disponibile."
     }
   }
 }

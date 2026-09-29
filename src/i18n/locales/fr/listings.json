@@ -1801,7 +1801,7 @@
       "enCours": "Planification…",
       "erreur": "La visite n’a pas pu être enregistrée.",
       "dansCalendrier": "Elle apparaît dans votre Calendrier et dans les visites du bien.",
-      "rienEnvoye": "Rien n’est envoyé à {{prenom}}, ni confirmation ni rappel la veille.",
+      "rienEnvoye": "Rien n’est envoyé à {{prenom}}.",
       "demo": "Aperçu : rien n’a été enregistré.",
       "ouvrir": "Ouvrir la visite",
       "termine": "Terminé",

@@ -62,7 +62,7 @@ describe('les textes de la couverture et de l’état « aucun match », quatre 
       scores: { title: 'MEGGA calcule les matchs', sub: 'Rien à configurer.' },
       start: 'Ajouter un acheteur',
     })
-    expect(fil.vide.sansMatch).toBe('Aucun bien ne correspond encore aux critères de vos acheteurs')
+    expect(fil.vide.sansMatch).toBe('Aucun match pour l\'instant')
     expect(fil.vide.titre).toBe('Tout est à jour')
   })
 

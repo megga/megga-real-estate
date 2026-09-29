@@ -1801,7 +1801,7 @@
       "enCours": "Pianificazione…",
       "erreur": "Impossibile salvare la visita.",
       "dansCalendrier": "Compare nel suo Calendario e nelle visite dell’immobile.",
-      "rienEnvoye": "A {{prenom}} non viene inviato nulla, né una conferma né un promemoria il giorno prima.",
+      "rienEnvoye": "A {{prenom}} non viene inviato nulla.",
       "demo": "Anteprima: nulla è stato salvato.",
       "ouvrir": "Apri la visita",
       "termine": "Fatto",

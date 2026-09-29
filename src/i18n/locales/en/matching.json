@@ -490,7 +490,7 @@
       "texte": "None of your properties is waiting to be proposed.",
       "contacts": "Complete a contact's search",
       "marche": "View the market",
-      "sansMatch": "No property matches your buyers' criteria yet",
+      "sansMatch": "No matches yet",
       "attenteTitre": "No reply awaited",
       "attenteTexte": "The properties you propose wait here for the buyer's reply.",
       "conclureTitre": "No viewing to schedule",
@@ -693,7 +693,7 @@
       "chargementCompatibles": "Reading matching buyers…",
       "erreurCompatibles": "Matching buyers could not be read.",
       "retiree": "Listing withdrawn from the market: it is no longer proposed to its buyers.",
-      "horsVente": "Property no longer available: it is no longer proposed to its buyers."
+      "horsVente": "This property is no longer available."
     }
   }
 }
