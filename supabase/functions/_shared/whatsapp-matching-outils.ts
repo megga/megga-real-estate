@@ -19,7 +19,7 @@ import {
   confirmConsigner, consigne, consignationChangee, consignationDeja, consignationEchec, consignationImpossible,
   consignationNonConfirmee, consignerMotifManquant, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens,
   consignerQuelAcheteur, consignerQuelleReponse, consignerTropDeBiens, consignerTropLarge, consignerAnnonceRetiree,
-  undoHint, type Consignation,
+  consignerPlusDisponible, undoHint, type Consignation, type WaLang,
 } from './whatsapp-i18n.ts'
 import {
   COLONNES_MATCH, COLONNES_MANDAT, COLONNES_ANNONCE, LIMITE_ECHO, STATUTS_COMPATIBLES, STATUTS_EN_COURS, STATUTS_DE_DEPART, STATUT_D_ARRIVEE,
@@ -401,14 +401,25 @@ async function lirePage(
 interface LigneDeLAcheteur extends LigneDesignee { match_id: string }
 
 /**
- * Ce que « propose » peut viser. Une annonce RETIRÉE ne se propose plus — le fil n'en offre aucune à proposer
- * (`FilSelectionResume`, filModele.ts), et `NOTE_MODELE` le dit au modèle : la consigner créerait un deal et une
- * relance sur un bien parti. Un mandat garde sa place quel que soit son statut : cette consignation ne lit pas son
- * `occasion`, que le fil et `get_matches` appliquent (décision 12a) — l'y étendre attend l'accord de Julien.
+ * Ce que « propose » peut viser : un bien qui est encore une OCCASION (`occasion`, whatsapp-matching.ts) — une annonce
+ * que le marché n'a pas retirée, un mandat en vente (`active` ; un mandat supprimé n'a pas de ligne, `lireBiens`). La
+ * règle de `get_matches` et du fil, une seule (lot E1, décision 12a de Julien, 27.09.2026) : le fil n'offre aucun
+ * autre bien à proposer, et `NOTE_MODELE` le dit au modèle — le consigner créerait un deal et une relance sur un bien
+ * qui ne se propose plus. Les autres réponses visent un bien déjà proposé, qu'« En attente » et « À conclure » gardent.
  */
-const proposable = (b: BienWa): boolean => !(b.genre === 'annonce' && b.retire)
+const proposable = (b: BienWa): boolean => b.occasion
 
 const libelles = (biens: readonly Option[]): string[] => biens.map((b) => libelleBien(b))
+
+/**
+ * Le refus de « propose » quand aucun des biens visés ne se propose plus : il les nomme, rien n'est consigné. Que des
+ * annonces retirées : « retirées du marché », lu sur l'étiquette même que la phrase affirme (`retire`) ; sinon « plus
+ * disponibles », ce qu'est aussi une annonce retirée.
+ */
+const refusNonProposables = (lang: WaLang, biens: readonly Option[]): string =>
+  biens.every((b) => b.genre === 'annonce' && b.retire)
+    ? consignerAnnonceRetiree(lang, libelles(biens))
+    : consignerPlusDisponible(lang, libelles(biens))
 
 /**
  * Prépare la consignation : l'acheteur de l'agence, puis le bien, cherché parmi SES matchs au statut que la réponse
@@ -485,9 +496,9 @@ export async function prepareRecordMatchOutcome(ctx: ActionCtx, a: Args): Promis
     const page = await lirePage(ctx, contact.id, statuts)
     if (!page) return echec
     const vises = aViser(page.options)
-    // Complète, la page dit tout : n'y voir que des annonces retirées, c'est le dire plutôt que « aucun bien ».
+    // Complète, la page dit tout : n'y voir que des biens qui ne se proposent plus, c'est le dire plutôt que « aucun bien ».
     if (page.plancher == null && !vises.length && page.options.length) {
-      return { ok: false, error: consignerAnnonceRetiree(lang, libelles(page.options)) }
+      return { ok: false, error: refusNonProposables(lang, page.options) }
     }
     if (!vises.length) {
       // Coupée sans rien de nommable : ni « aucun bien » (il y en a plus d'une page), ni une liste vide.
@@ -500,7 +511,7 @@ export async function prepareRecordMatchOutcome(ctx: ActionCtx, a: Args): Promis
   }
 
   const vises = aViser(trouves)
-  if (!vises.length && trouves.length) return { ok: false, error: consignerAnnonceRetiree(lang, libelles(trouves)) }
+  if (!vises.length && trouves.length) return { ok: false, error: refusNonProposables(lang, trouves) }
   if (vises.length > 1) return { ok: false, error: consignerPlusieursBiens(lang, nom, libelles(vises)) }
   if (!vises.length) {
     // Le texte n'a rien désigné parmi TOUS les biens de l'acheteur : la page dit ce qu'il a, pour que l'agent choisisse.

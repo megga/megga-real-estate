@@ -24,8 +24,8 @@ import {
   execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, executeRecordMatchOutcome, execScheduleVisit, annulerVisite,
 } from './whatsapp-matching-outils'
 import {
-  confirmConsigner, consigne, consignerAnnonceRetiree, consignerAucunBien, consignerEchoTropLarge, consignerPlusieursBiens,
-  consignerTropDeBiens, consignerTropLarge,
+  confirmConsigner, consigne, consignerAnnonceRetiree, consignerAucunBien, consignerEchoTropLarge, consignerPlusDisponible,
+  consignerPlusieursBiens, consignerTropDeBiens, consignerTropLarge,
 } from './whatsapp-i18n'
 import type { ActionCtx, Prepared } from './whatsapp-actions'
 
@@ -1142,13 +1142,78 @@ describe('prepareRecordMatchOutcome — « propose » ne vise jamais une annonce
     expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'Rhône', reponse: 'interesse' }))
       .toMatchObject({ ok: true, payload: { match_id: 'rt5', bien: RET } })
   })
+})
 
-  it('un MANDAT vendu se consigne encore « proposé » : la consignation ne lit pas `occasion`, que le fil applique (décision 12a)', async () => {
-    const vendu = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000d1', status: 'sold' }
-    const mS = m({ id: 'rt6', property_id: vendu.id })
-    const { client } = fauxClient({ contacts, market_listings: [], properties: [vendu], matches: [mS] }, { wa_matching_biens_de_l_acheteur: [LA(mS, 'mandat', vendu)] })
-    expect(await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'villa', reponse: 'propose' }))
-      .toMatchObject({ ok: true, payload: { match_id: 'rt6', bien: VIL } })
+describe('prepareRecordMatchOutcome — « propose » ne vise pas un mandat qui n’est plus en vente (lot E1, décision 12a)', () => {
+  // La règle de `get_matches` et du fil : un mandat est en vente s'il est `active` et non supprimé (`occasion`) — un
+  // mandat supprimé n'a déjà pas de ligne. Pour « propose » seulement : une réponse en cours se consigne encore.
+  const vendu = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000d1', title: 'Villa Vendue', address: 'Chemin Vendu 1', status: 'sold' }
+  const reserve = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000d2', title: 'Villa Réservée', address: 'Chemin Réservé 2', status: 'reserved' }
+  const retiree = { id: 'd0000000-0000-4000-8000-0000000000a9', title: 'Loft Retiré', address: 'Rue du Rhône 5', city: 'Genève', price: 800_000, transaction_type: 'buy', status: 'removed' }
+  const VEN = 'Villa Vendue · Chemin Vendu 1'
+  const RES = 'Villa Réservée · Chemin Réservé 2'
+  const RET = 'Loft Retiré · Rue du Rhône 5'
+  const mVendu = m({ id: 'hv1', property_id: vendu.id, score: 90 })
+  const mReserve = m({ id: 'hv2', property_id: reserve.id, score: 85 })
+  const mEnVente = m({ id: 'hv3', property_id: VILLA, score: 20 })
+  const mRetiree = m({ id: 'hv4', market_listing_id: retiree.id, score: 80 })
+  const preparer = (matches: Ligne[], designes: Ligne[] | null, bien?: string, reponse = 'propose') => {
+    const { client } = fauxClient(
+      { contacts, market_listings: [retiree], properties: [...mandats, vendu, reserve], matches },
+      designes ? { wa_matching_biens_de_l_acheteur: designes } : {},
+    )
+    return prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien, reponse, motif: 'prix' })
+  }
+
+  it('seul un mandat `active` se propose — statut par statut, le refus nomme celui qui ne l’est plus', async () => {
+    for (const status of ['draft', 'active', 'reserved', 'sold', 'archived']) {
+      const bien = { ...mandats[0], status }
+      const mB = m({ id: 'hv0', property_id: VILLA })
+      const { client } = fauxClient({ contacts, market_listings: [], properties: [bien], matches: [mB] }, { wa_matching_biens_de_l_acheteur: [LA(mB, 'mandat', bien)] })
+      const p = await prepareRecordMatchOutcome(ctx(client), { contact_id: JULIE, bien: 'villa', reponse: 'propose' })
+      if (status === 'active') expect(p, status).toMatchObject({ ok: true, payload: { match_id: 'hv0', bien: VIL } })
+      else expect(p, status).toEqual({ ok: false, error: `« ${VIL} » n'est plus disponible : ce bien ne se propose plus. Rien n'est consigné.` })
+    }
+  })
+
+  it('en anglais, par la préparation elle-même : le refus suit la langue de l’agent', async () => {
+    const bien = { ...mandats[0], status: 'sold' }
+    const mB = m({ id: 'hv0', property_id: VILLA })
+    const { client } = fauxClient({ contacts, market_listings: [], properties: [bien], matches: [mB] }, { wa_matching_biens_de_l_acheteur: [LA(mB, 'mandat', bien)] })
+    expect(erreur(await prepareRecordMatchOutcome(ctx(client, 'en'), { contact_id: JULIE, bien: 'villa', reponse: 'propose' })))
+      .toBe(`« ${VIL} » is no longer available: it can't be proposed any more. Nothing recorded.`)
+  })
+
+  it('deux qui ne sont plus en vente : au pluriel', async () => {
+    expect(erreur(await preparer([mVendu, mReserve], [LA(mVendu, 'mandat', vendu), LA(mReserve, 'mandat', reserve)], 'villa')))
+      .toBe(`« ${VEN} », « ${RES} » ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.`)
+  })
+
+  it('hors vente ET en vente mêlés : celui en vente seul, et la question', async () => {
+    const p = await preparer([mVendu, mEnVente], [LA(mVendu, 'mandat', vendu), LA(mEnVente, 'mandat', mandats[0])], 'villa')
+    expect(p).toMatchObject({ ok: true, payload: { match_id: 'hv3', bien: VIL } })
+  })
+
+  it('« Ceux que je vois » ne nomme aucun mandat hors vente', async () => {
+    expect(erreur(await preparer([mVendu, mEnVente], [], 'duplex')))
+      .toBe(`Aucun bien à proposer pour Julie Martin ne correspond. Ceux que je vois : « ${VIL} ». Lequel ?`)
+  })
+
+  it('sans texte : le seul en vente se désigne de lui-même ; aucun, le refus les nomme — une annonce retirée avec eux', async () => {
+    expect(await preparer([mVendu, mEnVente], null)).toMatchObject({ ok: true, payload: { match_id: 'hv3', bien: VIL } })
+    expect(erreur(await preparer([mVendu, mReserve], null)))
+      .toBe(`« ${VEN} », « ${RES} » ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.`)
+    // Une annonce retirée n'est plus disponible non plus : un seul refus les nomme ensemble.
+    expect(erreur(await preparer([mVendu, mRetiree], null)))
+      .toBe(`« ${VEN} », « ${RET} » ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.`)
+  })
+
+  it('« interesse », « pas_interesse », « pas_encore » se consignent encore sur un mandat vendu déjà proposé : « En attente » et « À conclure » le gardent', async () => {
+    const mS = m({ id: 'hv5', property_id: vendu.id, status: 'sent' })
+    for (const reponse of ['interesse', 'pas_interesse', 'pas_encore']) {
+      expect(await preparer([mS], [LA(mS, 'mandat', vendu)], 'villa', reponse), reponse)
+        .toMatchObject({ ok: true, payload: { match_id: 'hv5', reponse, bien: VEN } })
+    }
   })
 })
 
@@ -1570,6 +1635,15 @@ describe('whatsapp-i18n — les refus de record_match_outcome, à l’égalité 
     expect(consignerAnnonceRetiree('en', ['A'])).toBe("« A » is no longer on the market: it can't be proposed any more. Nothing recorded.")
     expect(consignerAnnonceRetiree('en', ['A', 'B'])).toBe("« A », « B » are no longer on the market: they can't be proposed any more. Nothing recorded.")
     expect(consignerAnnonceRetiree('en', six)).toBe(`${cinqNommes} (5 of 6) are no longer on the market: they can't be proposed any more. Nothing recorded.`)
+  })
+
+  it('plus disponible (un mandat qui n’est plus en vente) : singulier, pluriel, au-delà de cinq — en français et en anglais', () => {
+    expect(consignerPlusDisponible('fr', ['A'])).toBe("« A » n'est plus disponible : ce bien ne se propose plus. Rien n'est consigné.")
+    expect(consignerPlusDisponible('fr', ['A', 'B'])).toBe("« A », « B » ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.")
+    expect(consignerPlusDisponible('fr', six)).toBe(`${cinqNommes} (5 sur 6) ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.`)
+    expect(consignerPlusDisponible('en', ['A'])).toBe("« A » is no longer available: it can't be proposed any more. Nothing recorded.")
+    expect(consignerPlusDisponible('en', ['A', 'B'])).toBe("« A », « B » are no longer available: they can't be proposed any more. Nothing recorded.")
+    expect(consignerPlusDisponible('en', six)).toBe(`${cinqNommes} (5 of 6) are no longer available: they can't be proposed any more. Nothing recorded.`)
   })
 
   it('cinq biens nommés au plus : à cinq, aucun compte ; à six, « (5 sur 6) » et cinq noms seulement', () => {

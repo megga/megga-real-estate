@@ -4,7 +4,7 @@ import {
   t, consigne, confirmConsigner, consignationDeja, consignationChangee, consignationNonConfirmee,
   consignationImpossible, consignationEchec, consignerMotifManquant, consignerQuelleReponse, consignerQuelAcheteur,
   consignerAucunBien, consignerPlusieursBiens, consignerTropDeBiens, consignerTropLarge, consignerEchoTropLarge,
-  consignerAnnonceRetiree,
+  consignerAnnonceRetiree, consignerPlusDisponible,
 } from './whatsapp-i18n'
 
 // L'incident du 10.09.2026, 19:38:52 UTC, mot pour mot : réponse finale de DeepSeek SANS aucun
@@ -615,6 +615,8 @@ describe('lot D2 — consigner la réponse d’un acheteur passe par l’outil',
       consignerEchoTropLarge('fr', nom, 'attique geneve'), consignerEchoTropLarge('en', nom, 'attique geneve'),
       consignerAnnonceRetiree('fr', [bien]), consignerAnnonceRetiree('en', [bien]),
       consignerAnnonceRetiree('fr', [bien, autreBien]), consignerAnnonceRetiree('en', [bien, autreBien]),
+      consignerPlusDisponible('fr', [bien]), consignerPlusDisponible('en', [bien]),
+      consignerPlusDisponible('fr', [bien, autreBien]), consignerPlusDisponible('en', [bien, autreBien]),
     ]) expect(detectPhantomAction(s), s).toBeNull()
   })
 })

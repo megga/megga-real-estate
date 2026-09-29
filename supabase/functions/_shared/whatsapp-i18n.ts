@@ -597,9 +597,9 @@ export function consignerPlusieursBiens(lang: WaLang, nom: string, titres: reado
 }
 
 /**
- * Sans texte, la page des matchs de l'acheteur a été coupée et aucun de ses biens ne se nomme (mandats supprimés,
- * annonces retirées pour « propose ») : ni « aucun bien » (il y en a plus d'une page), ni une liste vide
- * (« correspondent : . »). Le copilote demande lequel.
+ * Sans texte, la page des matchs de l'acheteur a été coupée et aucun de ses biens ne se nomme (mandats supprimés ;
+ * pour « propose », annonces retirées et mandats qui ne sont plus en vente) : ni « aucun bien » (il y en a plus d'une
+ * page), ni une liste vide (« correspondent : . »). Le copilote demande lequel.
  */
 export function consignerTropDeBiens(lang: WaLang, reponse: Consignation['reponse'], nom: string): string {
   return lang === 'en'
@@ -635,8 +635,8 @@ export function consignerEchoTropLarge(lang: WaLang, nom: string, texte: string)
 /**
  * `propose` sur une annonce RETIRÉE du marché consignerait un deal et une relance sur un bien parti : elle ne se
  * propose plus, ni dans le fil ni selon `NOTE_MODELE` (whatsapp-matching.ts). Nomme ce qui a été écarté, cinq au
- * plus ; rien n'est consigné. Les MANDATS n'ont pas cette règle ici : la consignation ne lit pas leur `occasion`
- * (`proposable`, whatsapp-matching-outils.ts).
+ * plus ; rien n'est consigné. Un mandat qui n'est plus en vente a son propre refus, `consignerPlusDisponible`, qui
+ * nomme aussi une annonce retirée visée avec lui (`refusNonProposables`, whatsapp-matching-outils.ts).
  */
 export function consignerAnnonceRetiree(lang: WaLang, titres: readonly string[]): string {
   const liste = nommer(titres) + compteEnClair(lang, titres.length, null)
@@ -649,4 +649,22 @@ export function consignerAnnonceRetiree(lang: WaLang, titres: readonly string[])
   return pluriel
     ? `${liste} sont retirées du marché : elles ne se proposent plus. Rien n'est consigné.`
     : `${liste} est retirée du marché : elle ne se propose plus. Rien n'est consigné.`
+}
+
+/**
+ * `propose` sur un mandat qui n'est plus EN VENTE (lot E1, décision 12a de Julien) : vendu, réservé, archivé ou
+ * redevenu brouillon, il ne se propose plus — `get_matches` et le fil l'écartent d'« à proposer ». « Plus
+ * disponible » vaut aussi pour une annonce retirée nommée avec lui. Cinq au plus ; rien n'est consigné.
+ */
+export function consignerPlusDisponible(lang: WaLang, titres: readonly string[]): string {
+  const liste = nommer(titres) + compteEnClair(lang, titres.length, null)
+  const pluriel = titres.length > 1
+  if (lang === 'en') {
+    return pluriel
+      ? `${liste} are no longer available: they can't be proposed any more. Nothing recorded.`
+      : `${liste} is no longer available: it can't be proposed any more. Nothing recorded.`
+  }
+  return pluriel
+    ? `${liste} ne sont plus disponibles : ces biens ne se proposent plus. Rien n'est consigné.`
+    : `${liste} n'est plus disponible : ce bien ne se propose plus. Rien n'est consigné.`
 }

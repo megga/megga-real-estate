@@ -187,7 +187,8 @@ export interface BienWa {
    * SEULEMENT `active` (`draft` et `reserved` en sont exclus SANS être dits « retirés »). Règle du point du matin de
    * ce même copilote (`matching_actions_agence`, migration 20260924200000 : « un mandat vendu, retiré ou supprimé
    * n'est plus une occasion »). Le fil l'applique aussi (lot E1, décision 12a de Julien : `enVente`, `versBien`) ;
-   * `tests/unit/whatsapp-matching-fil.spec.ts` confronte les deux.
+   * `tests/unit/whatsapp-matching-fil.spec.ts` confronte les deux. « propose » de `record_match_outcome` la lit
+   * aussi (`proposable`, whatsapp-matching-outils.ts).
    */
   occasion: boolean
   /** Le statut BRUT d'un mandat (`draft`, `active`, `reserved`, `sold`, `archived`) ; `null` pour une annonce, qui
