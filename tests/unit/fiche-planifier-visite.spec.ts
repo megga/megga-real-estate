@@ -14,10 +14,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { Constants } from '@/types/database'
 import type { Compatible } from '@/components/matching-fil/filQuiPour'
 import {
-  creationVisite, dealOuvert, preRemplissagePermis, visiteursLies, type ContexteVisite, type DealDuBien,
+  creationVisite, preRemplissagePermis, visiteursLies, type ContexteVisite, type DealDuBien,
 } from '@/components/crm/biens/fiche/visiteurs'
 import { ligneVisite, type CreateVisitInput } from '@/hooks/useVisitDetail'
 
@@ -30,7 +29,8 @@ const compatible = (contactId: string, prenom: string, score: number, statut?: S
     suivi: { statut, proposeLe: '2026-09-20T09:00:00Z', reponduLe: null, motif: null, note: null, prixPropose: null, apprisLe: null },
   } : {}),
 })
-const deal = (id: string, contactId: string, status: string, stage: string): DealDuBien => ({ id, contact_buyer_id: contactId, status, stage })
+const deal = (id: string, contactId: string, status: DealDuBien['status'], stage: DealDuBien['stage']): DealDuBien =>
+  ({ id, contact_buyer_id: contactId, status, stage })
 
 /**
  * Marc : en deal ouvert sur le bien, et compatible (intéressé). Paul : compatible, son deal sur ce bien est PERDU — l'étape
@@ -44,20 +44,7 @@ const contexte = (julie?: Statut, enVente = true, paul: Statut = 'sent'): Contex
 const NOMS: Record<string, string> = { 'c-marc': 'Marc Morand', 'c-paul': 'Paul Morand', 'c-julie': 'Julie Morand' }
 const nomDe = (id: string): string | null => NOMS[id] ?? null
 
-describe('un deal ouvert', () => {
-  it('statut par statut : `active` et `on_hold` sont ouverts ; `completed` (gagné) et `cancelled` (annulé) ne le sont pas', () => {
-    for (const status of Constants.public.Enums.transaction_status) {
-      expect(dealOuvert({ status, stage: 'offer' }), status).toBe(status === 'active' || status === 'on_hold')
-    }
-  })
-
-  it('un deal perdu n’en est pas un : « perdu » est l’étape `lost`, son statut reste ouvert', () => {
-    for (const stage of Constants.public.Enums.transaction_stage) {
-      expect(dealOuvert({ status: 'active', stage }), stage).toBe(stage !== 'lost')
-      expect(dealOuvert({ status: 'on_hold', stage }), stage).toBe(stage !== 'lost')
-    }
-  })
-})
+// La règle d'un deal ouvert elle-même (statuts, étape `lost`) se garde avec son module : `deal-ouvert.spec.ts`.
 
 describe('les visiteurs proposés', () => {
   it('les acheteurs en deal ouvert d’abord, puis les acquéreurs compatibles ; un deal perdu ne fait pas un acheteur en cours', () => {

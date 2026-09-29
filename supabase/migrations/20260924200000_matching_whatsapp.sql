@@ -355,10 +355,14 @@ begin
     if v_lignes = 0 then
       return jsonb_build_object('ok', true, 'deja', true, 'statut', v_match.status);
     end if;
-    -- Le deal : l'actif le plus récent de l'acheteur (un mandat y est rattaché s'il n'en porte aucun, jamais
-    -- écrasé), sinon un `new_lead` sur ce bien — `rattacherDeal` du fil.
+    -- Le deal : l'OUVERT le plus récent de l'acheteur (un mandat y est rattaché s'il n'en porte aucun, jamais
+    -- écrasé), sinon un `new_lead` sur ce bien — `rattacherDeal` du fil. Ouvert : un statut `active` ou `on_hold`, une
+    -- étape autre que `lost` — « Marquer perdu » n'écrit que l'étape, le statut reste `active`. La règle de
+    -- `dealOuvert` (src/lib/dealOuvert.ts), que tests/unit/deal-ouvert.spec.ts confronte à ce texte. `stage` est
+    -- NOT NULL : `<>` n'exclut aucun deal ouvert.
     select t.id into v_deal from public.transactions t
-     where t.agency_id = p_agency and t.contact_buyer_id = v_match.contact_id and t.status = 'active'
+     where t.agency_id = p_agency and t.contact_buyer_id = v_match.contact_id
+       and t.status in ('active', 'on_hold') and t.stage <> 'lost'
      order by t.created_at desc
      limit 1;
     if v_deal is null then
@@ -447,7 +451,7 @@ grant execute on function public.wa_matching_consigner(uuid, uuid, uuid, text, t
 
 -- ── 3. La visite de `schedule_visit`, et son « /annuler » ───────────────────
 -- La règle de « Planifier une visite » (`execPlanifierVisite` du fil) : si l'acheteur est INTÉRESSÉ par ce bien, son
--- match passe `visit_planned` et son deal (l'actif, sinon un `new_lead`) avance à `visit_planned` s'il était avant,
+-- match passe `visit_planned` et son deal (l'ouvert, sinon un `new_lead`) avance à `visit_planned` s'il était avant,
 -- jamais en arrière. Un mandat reçoit une ligne `visits` ; une annonce du marché, que l'agence ne détient pas
 -- (`visits.property_id` n'accepte qu'un mandat), un événement `visite` de l'agenda, qui se journalise lui-même.
 -- ⛔ `reminder_sent = true` : `visit-reminders-j1` écrit au client la veille de toute visite `planned` dont le rappel
@@ -544,9 +548,11 @@ begin
 
   if v_statut = 'interested' then
     update public.matches set status = 'visit_planned' where id = v_match and status = 'interested';
+    -- Le deal OUVERT le plus récent de l'acheteur, la règle de wa_matching_consigner : un deal perdu n'en est pas un.
     select t.id, t.stage::text into v_deal, v_etape
       from public.transactions t
-     where t.agency_id = p_agency and t.contact_buyer_id = p_contact and t.status = 'active'
+     where t.agency_id = p_agency and t.contact_buyer_id = p_contact
+       and t.status in ('active', 'on_hold') and t.stage <> 'lost'
      order by t.created_at desc
      limit 1
      for update;

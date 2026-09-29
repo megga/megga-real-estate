@@ -13,17 +13,20 @@
  * message et le rappel : la règle vise ce que produit le matching, pas la confirmation d'une visite (conception §3.1).
  *
  * ⚠ « Perdu » n'est pas un statut de deal : c'est l'étape `lost` — « Marquer perdu » du Pipeline n'écrit qu'elle, le
- * statut reste `active`. Un deal ouvert se lit donc sur les deux (`dealOuvert`).
+ * statut reste `active`. Un deal ouvert se lit donc sur les deux : `dealOuvert` (`src/lib/dealOuvert.ts`), la règle des
+ * gestes du matching et du copilote WhatsApp, une seule.
  */
 import type { Compatible } from '@/components/matching-fil/filQuiPour'
+import { dealOuvert } from '@/lib/dealOuvert'
 import type { AcheteurGeste } from '@/lib/matchingGestes'
+import type { Enums } from '@/types/database'
 
 /** Un deal du bien, tel que la fiche le lit (`useTransactions`, filtré sur le bien, le plus récent d'abord). */
 export interface DealDuBien {
   id: string
   contact_buyer_id: string | null
-  status: string
-  stage: string
+  status: Enums<'transaction_status'>
+  stage: Enums<'transaction_stage'>
 }
 
 /** Ce que la fiche d'un mandat sait des gens liés au bien. */
@@ -60,16 +63,6 @@ export interface CreationVisite {
   dealId: string | null
   rappelVeille: boolean
 }
-
-/**
- * Les statuts d'un deal ouvert (`transactions.status`) : `active`, et `on_hold`, un deal suspendu que le Pipeline garde.
- * `completed` est un deal gagné (« Terminer »), `cancelled` un deal annulé.
- */
-const STATUTS_OUVERTS: readonly string[] = ['active', 'on_hold']
-
-/** Un deal ouvert : d'un statut ouvert, et pas perdu. */
-export const dealOuvert = (d: Pick<DealDuBien, 'status' | 'stage'>): boolean =>
-  STATUTS_OUVERTS.includes(d.status) && d.stage !== 'lost'
 
 /** Le deal ouvert d'un contact sur ce bien, le plus récent. */
 const dealOuvertDe = (contactId: string, c: ContexteVisite): DealDuBien | null =>

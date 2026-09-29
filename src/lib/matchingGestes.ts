@@ -45,6 +45,7 @@
 import { supabase } from '@/lib/supabase'
 import { INTERCOM_EVENTS } from '@/lib/intercom'
 import { markIntercomMilestone } from '@/lib/intercom-milestones'
+import { ETAPE_DEAL_PERDU, STATUTS_DEAL_OUVERT } from '@/lib/dealOuvert'
 import type { Enums, Json, TablesInsert } from '@/types/database'
 import type { MotifRefus } from '@/components/matching-fil/filBoucle'
 import type { CorrectionChangement } from '@/components/matching-fil/filApprendre'
@@ -113,24 +114,40 @@ export interface BienGeste {
 }
 
 /**
- * Le deal d'un acheteur à qui l'on propose un bien : l'actif le plus récent s'il existe — un bien en
- * mandat y est rattaché s'il n'en porte aucun, jamais écrasé —, sinon un `new_lead` créé sur ce bien.
- * Partagé par la proposition d'un bien et celle d'une sélection, pour qu'elles ne divergent pas.
+ * Le deal d'un acheteur à qui l'on propose un bien : l'OUVERT le plus récent s'il existe (`dealOuvert` : un deal
+ * perdu n'en est pas un) — un bien en mandat y est rattaché s'il n'en porte aucun, jamais écrasé —, sinon un
+ * `new_lead` créé sur ce bien. Partagé par la proposition d'un bien, celle d'une sélection et la visite planifiée,
+ * pour qu'elles ne divergent pas.
  */
 async function rattacherDeal(ctx: GesteContext, contactId: string, listing: Pick<BienGeste, 'kind' | 'id'>): Promise<string> {
-  const { data: existing } = await supabase
+  const { data: existing, error: lErr } = await supabase
     .from('transactions')
     .select('id, property_id')
     .eq('agency_id', ctx.agencyId)
     .eq('contact_buyer_id', contactId)
-    .eq('status', 'active')
+    // Deux statuts, donc `in` : la règle de CLAUDE.md §7 (`eq` plutôt qu'`in`) vise les grandes tables et leurs
+    // index partiels ; `transactions` est petite, et cette lecture passe par l'acheteur (`idx_transactions_buyer`).
+    .in('status', STATUTS_DEAL_OUVERT)
+    // `neq` exclut aussi une étape nulle : il n'y en a pas, `stage` est `NOT NULL`.
+    .neq('stage', ETAPE_DEAL_PERDU)
     .order('created_at', { ascending: false })
     .limit(1)
+  // ⛔ Une lecture refusée ou expirée fait lever : avalée, elle se lirait « aucun deal ouvert », et le geste ouvrirait
+  // en silence un second deal à un acheteur qui en a déjà un.
+  if (lErr) throw lErr
 
   if (existing && existing.length > 0) {
     const deal = existing[0] as { id: string; property_id: string | null }
     if (listing.kind === 'property' && !deal.property_id) {
-      await supabase.from('transactions').update({ property_id: listing.id }).eq('id', deal.id)
+      // `property_id is null`, comme le jumeau SQL (`wa_matching_consigner`, `wa_matching_visite`) : un mandat posé
+      // entre la lecture et l'écriture, par un collègue ou le copilote, n'est pas écrasé. Un refus fait lever : le
+      // geste ne passe pas pour fait sur un deal resté sans son mandat.
+      const { error: pErr } = await supabase
+        .from('transactions')
+        .update({ property_id: listing.id })
+        .eq('id', deal.id)
+        .is('property_id', null)
+      if (pErr) throw pErr
     }
     return deal.id
   }
@@ -179,7 +196,7 @@ export async function execProposer(
   // Jalon Intercom (une première proposition par agent). Signal seul : ni le bien ni l'acheteur ne partent.
   void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
 
-  // 2. Deal : rattacher au deal actif existant, sinon créer en new_lead
+  // 2. Deal : rattacher au deal ouvert existant, sinon créer en new_lead
   const dealId = await rattacherDeal(ctx, buyer.id, listing)
 
   // 3. Timeline contact (consignation systématique)
@@ -551,7 +568,7 @@ const ETAPES_AVANT_VISITE: Enums<'transaction_stage'>[] = ['new_lead', 'to_quali
  * invitation ni lien (comme l'outil `schedule_visit` du copilote).
  *
  * Le match passe `visit_planned` D'ABORD, et seulement s'il est encore « intéressé » : un double geste ne pose
- * pas deux visites. Puis le deal (l'actif, sinon un `new_lead`, `rattacherDeal`), puis la visite : un bien EN
+ * pas deux visites. Puis le deal (l'ouvert, sinon un `new_lead`, `rattacherDeal`), puis la visite : un bien EN
  * MANDAT reçoit une ligne `visits` (sa fiche, son bon) ; une annonce du MARCHÉ, que l'agence ne détient pas
  * (`visits.property_id` n'accepte qu'un mandat), un événement `visite` de l'agenda (`calendar_events`, qui se
  * journalise lui-même). Le deal avance à `visit_planned` s'il était avant. Une visite refusée rend au match son

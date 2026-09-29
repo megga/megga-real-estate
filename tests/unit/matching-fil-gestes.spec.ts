@@ -58,6 +58,8 @@ vi.mock('@/lib/supabase', () => {
         insert: (valeurs: unknown) => { e.genre = 'insert'; e.valeurs = valeurs; return q },
         update: (valeurs: unknown) => { e.genre = 'update'; e.valeurs = valeurs; return q },
         eq: (col: string, val: unknown) => { e.filtres.push(`${col}=${String(val)}`); return q },
+        neq: (col: string, val: unknown) => { e.filtres.push(`${col}<>${String(val)}`); return q },
+        is: (col: string, val: unknown) => { e.filtres.push(`${col} is ${String(val)}`); return q },
         in: (col: string, vals: unknown[]) => { e.filtres.push(`${col} in ${vals.join(',')}`); return q },
         order: (col: string, o?: { ascending?: boolean }) => {
           e.filtres.push(`order ${col} ${o?.ascending === false ? 'desc' : 'asc'}`)
@@ -90,6 +92,10 @@ const annonce = (id: string, ref: string) => ({
   kind: 'market' as const, id, key: `m:${id}`, ref, title: `Annonce ${id}`, price: 1_500_000, addr: 'Genève',
   rooms: 5, area: 124, type: 'apartment', gallery: [], sourceUrl: null, agency: { name: null, phone: null },
 })
+const MANDAT = {
+  kind: 'property' as const, id: 'p1', key: 'p:p1', ref: 'MG-IN-P1', title: 'Champel', price: 1_450_000, addr: 'Genève',
+  rooms: 4.5, area: 118, type: 'apartment', gallery: [], sourceUrl: null, agency: { name: null, phone: null },
+}
 const ecritures = () => h.appels.filter((a) => a.genre !== 'select')
 const lectures = () => h.appels.filter((a) => a.genre === 'select')
 const seq = () => ecritures().map((e) => `${e.genre}:${e.table}`)
@@ -228,15 +234,7 @@ describe('execProposerSelection — un geste, un suivi', () => {
     expect(ecritures()[3]!.valeurs).toMatchObject({ property_id: null })
   })
 
-  it('cherche le deal actif de cet acheteur, dans cette agence, le plus récent', async () => {
-    await execProposerSelection(CTX, JULIE, DEUX)
-    expect(lectures().map((l) => [l.table, l.filtres])).toEqual([[
-      'transactions',
-      ['agency_id=ag-1', 'contact_buyer_id=c-1', 'status=active', 'order created_at desc', 'limit 1'],
-    ]])
-  })
-
-  it('rattache le deal actif existant, sans le modifier pour une annonce du marché', async () => {
+  it('rattache le deal ouvert existant, sans le modifier pour une annonce du marché', async () => {
     h.lectures.transactions = [{ id: 'deal-actif', property_id: null }]
     await execProposerSelection(CTX, JULIE, [{ matchId: 'm-a', score: 97, bien: annonce('ml-1', 'MG-MK-1') }])
     expect(seq()).toEqual(['update:matches', 'insert:activity_events', 'insert:reminders'])
@@ -270,23 +268,59 @@ describe('execProposerSelection — un geste, un suivi', () => {
 })
 
 describe('execProposer — le rattachement du deal, gardé à travers l’extraction', () => {
-  it('rattache un bien en mandat au deal actif qui n’en porte pas', async () => {
+  it('rattache un bien en mandat au deal ouvert qui n’en porte pas', async () => {
     h.lectures.transactions = [{ id: 'deal-actif', property_id: null }]
-    await execProposer(CTX, ACHETEUR, {
-      kind: 'property', id: 'p1', key: 'p:p1', ref: 'MG-IN-P1', title: 'Champel', price: 1_450_000, addr: 'Genève',
-      rooms: 4.5, area: 118, type: 'apartment', gallery: [], sourceUrl: null, agency: { name: null, phone: null },
-    })
+    await execProposer(CTX, ACHETEUR, MANDAT)
     expect(seq()).toEqual(['update:matches', 'update:transactions', 'insert:activity_events', 'insert:reminders'])
     expect(ecritures()[1]!.valeurs).toEqual({ property_id: 'p1' })
-    expect(ecritures()[1]!.filtres).toEqual(['id=deal-actif'])
+    // Seulement s'il n'en porte toujours aucun : un mandat posé entre la lecture et l'écriture (un collègue, le
+    // copilote) n'est pas écrasé.
+    expect(ecritures()[1]!.filtres).toEqual(['id=deal-actif', 'property_id is null'])
     expect(ecritures()[2]!.valeurs).toMatchObject({ action: 'match_propose', metadata: { deal_id: 'deal-actif' } })
     expect(ecritures()[3]!.valeurs).toMatchObject({ property_id: 'p1', transaction_id: 'deal-actif' })
   })
 
-  it('crée un new_lead sur l’annonce du marché quand aucun deal n’est actif', async () => {
+  it('un rattachement refusé fait lever, sans journal ni relance', async () => {
+    h.lectures.transactions = [{ id: 'deal-actif', property_id: null }]
+    h.erreurs['update:transactions'] = { message: 'refus', code: '42501' }
+    await expect(execProposer(CTX, ACHETEUR, MANDAT)).rejects.toMatchObject({ code: '42501' })
+    expect(seq()).toEqual(['update:matches', 'update:transactions'])
+  })
+
+  it('crée un new_lead sur l’annonce du marché quand aucun deal n’est ouvert', async () => {
     await expect(execProposer(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))).resolves.toEqual({ dealId: 'deal-neuf', deja: false })
     expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:activity_events', 'insert:reminders'])
     expect(ecritures()[1]!.valeurs).toMatchObject({ stage: 'new_lead', market_listing_id: 'ml-1' })
+  })
+})
+
+describe('le deal d’un geste : l’OUVERT de l’acheteur, jamais un deal perdu (lot E1)', () => {
+  // « Marquer perdu » (Pipeline) n'écrit que l'étape `lost`, le statut reste `active` : lu sur le statut seul, un geste
+  // neuf se rattacherait au deal perdu. Ouvert (`dealOuvert`) : un statut `active` ou `on_hold`, et une autre étape.
+  const LECTURE_DU_DEAL = ['agency_id=ag-1', 'contact_buyer_id=c-1', 'status in active,on_hold', 'stage<>lost', 'order created_at desc', 'limit 1']
+  const VISITE = { debut: '2026-09-24T12:00:00.000Z', dureeMinutes: 45, lieu: null }
+  /** Les trois gestes qui touchent un deal, tous par `rattacherDeal`. */
+  const GESTES: [string, () => Promise<unknown>][] = [
+    ['« Je l’ai proposé »', () => execProposer(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))],
+    ['« J’ai proposé N biens »', () => execProposerSelection(CTX, { id: 'c-1', first: 'Julie', last: 'Morand' }, [
+      { matchId: 'm-a', score: 97, bien: annonce('ml-1', 'MG-MK-1') },
+    ])],
+    ['« Planifier une visite »', () => execPlanifierVisite(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'), VISITE)],
+  ]
+
+  it.each(GESTES)('%s cherche le deal ouvert de cet acheteur, dans cette agence, le plus récent', async (_geste, geste) => {
+    await geste()
+    expect(lectures().filter((l) => l.table === 'transactions').map((l) => l.filtres)).toEqual([LECTURE_DU_DEAL])
+  })
+
+  it.each(GESTES)('%s : une lecture du deal refusée ou expirée fait lever, sans ouvrir un second deal', async (_geste, geste) => {
+    // `57014` : la lecture annulée au bout du statement_timeout. Avalée, elle se lirait « aucun deal ouvert ».
+    h.erreurs['select:transactions'] = { message: 'canceling statement due to statement timeout', code: '57014' }
+    await expect(geste()).rejects.toMatchObject({ code: '57014' })
+    expect(seq()).not.toContain('insert:transactions')
+    // Ni rien de ce qui suit le deal (journal, relance, visite) : seul le match a bougé, et la visite le rend à
+    // « intéressé ».
+    expect(seq().filter((s) => s !== 'update:matches')).toEqual([])
   })
 })
 
@@ -485,10 +519,6 @@ describe('execPasEncore — la relance de la proposition repoussée de 3 jours',
 
 describe('execPlanifierVisite — la visite créée en interne, aucune invitation (lot B)', () => {
   const VISITE = { debut: '2026-09-24T12:00:00.000Z', dureeMinutes: 45, lieu: 'Avenue de Champel 12, Genève' }
-  const MANDAT = {
-    kind: 'property' as const, id: 'p1', key: 'p:p1', ref: 'MG-IN-P1', title: 'Champel', price: 1_450_000, addr: 'Genève',
-    rooms: 4.5, area: 118, type: 'apartment', gallery: [], sourceUrl: null, agency: { name: null, phone: null },
-  }
 
   it('un bien en mandat : match → visit_planned, visite `planned` rattachée au deal, deal avancé, journal', async () => {
     // La visite écrite est rendue : la fiche d'un mandat l'ouvre (« Ouvrir la visite »).

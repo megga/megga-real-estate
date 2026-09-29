@@ -41,6 +41,11 @@
 //       vide le contact sans écarter la relance, et que l'exclusion d'une relance-retour correspond à ce que la
 //       RPC elle-même compte comme un retour pour le même acheteur — rien qu'un faux client ne peut prouver, lui
 //       qui n'applique ni le schéma ni `!inner`. À garder VERTE en CI avant toute fusion de ce lot.
+//   W7  (lot E1) un deal perdu ne reçoit aucun geste neuf : « Marquer perdu » n'écrit que l'étape `lost`, le statut
+//       reste `active`. « proposé » et la visite d'un intéressé ouvrent un deal neuf, que portent la relance et la
+//       visite, au lieu de se rattacher au perdu, qui ne reçoit rien (ni mandat, ni étape) ; un deal suspendu
+//       (`on_hold`) reste ouvert : le geste s'y rattache ; un deal ouvert ANCIEN l'emporte sur un deal perdu plus
+//       RÉCENT, le plus récent n'étant cherché que parmi les ouverts. La règle de `dealOuvert` (src/lib/dealOuvert.ts).
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés — et les crochets aussi : ils
 // sont au niveau du module, pour que chaque bloc du fichier ajoute le sien sans dupliquer la mise en place.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
@@ -776,5 +781,77 @@ describe.skipIf(!HAS_KEYS)('W6 — loadAgencyData contre une vraie base', () => 
     // Équivalence avec la RPC : elle voit le même acheteur comme un retour.
     const actions = await actionsAgence(s.agencyAId)
     expect(actions.some((x) => x.genre === 'retour' && x.contact_id === w6r)).toBe(true)
+  })
+})
+
+describe.skipIf(!HAS_KEYS)('W7 — un deal perdu ne reçoit aucun geste neuf (lot E1)', () => {
+  /** Un deal de l'acheteur, posé comme le Pipeline le laisse : « Marquer perdu » n'écrit que l'étape. */
+  const mkDeal = async (acheteur: string, champs: Record<string, unknown>) => {
+    const { data, error } = await svc.from('transactions').insert({
+      agency_id: s.agencyAId, contact_buyer_id: acheteur, assigned_to: s.agentAId, ...champs,
+    }).select('id').single()
+    if (error) throw new Error(`transactions: ${error.message}`)
+    return (data as { id: string }).id
+  }
+  const lireDeal = async (id: string) =>
+    (await svc.from('transactions').select('stage, status, property_id').eq('id', id).single()).data as Record<string, unknown>
+
+  it('« proposé » : un deal neuf s’ouvre et porte la relance ; le deal perdu ne reçoit rien', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7Propose')
+    const perdu = await mkDeal(acheteur, { stage: 'lost', status: 'active' })
+    const bien = await mkBien(s.agencyAId, 'w7p')
+    const m = await mkMatch(s.agencyAId, acheteur, { bien })
+    const r = await consigner(m, 'propose')
+    expect(r).toMatchObject({ ok: true, deja: false })
+    expect(r.deal_id).not.toBe(perdu)
+    expect(await lireDeal(r.deal_id!)).toEqual({ stage: 'new_lead', status: 'active', property_id: bien })
+    expect((await svc.from('reminders').select('transaction_id').eq('id', r.relance_id!).single()).data)
+      .toEqual({ transaction_id: r.deal_id })
+    // Le perdu n'a pas reçu le mandat : il est resté tel que « Marquer perdu » l'a laissé.
+    expect(await lireDeal(perdu)).toEqual({ stage: 'lost', status: 'active', property_id: null })
+    expect((await svc.from('transactions').select('id').eq('contact_buyer_id', acheteur)).data).toHaveLength(2)
+  })
+
+  it('la visite d’un intéressé : un deal neuf s’ouvre, avance et porte la visite ; le deal perdu reste perdu', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7Visite')
+    const bien = await mkBien(s.agencyAId, 'w7v')
+    const perdu = await mkDeal(acheteur, { stage: 'lost', status: 'active', property_id: bien })
+    const m = await mkMatch(s.agencyAId, acheteur, { bien }, { status: 'interested', sent_at: ilYA(6) })
+    const r = await planifier(acheteur, { bien }, dans(5))
+    if (r.visite_id) visites.push(r.visite_id)
+    expect(r).toMatchObject({ ok: true, match_id: m, etape_avant: 'new_lead' })
+    expect(r.deal_id).not.toBe(perdu)
+    expect(await lireDeal(r.deal_id!)).toEqual({ stage: 'visit_planned', status: 'active', property_id: bien })
+    expect((await svc.from('visits').select('transaction_id').eq('id', r.visite_id!).single()).data)
+      .toEqual({ transaction_id: r.deal_id })
+    expect(await lireDeal(perdu)).toEqual({ stage: 'lost', status: 'active', property_id: bien })
+  })
+
+  it('un deal suspendu (`on_hold`) reste ouvert : « proposé » s’y rattache', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7Suspendu')
+    const suspendu = await mkDeal(acheteur, { stage: 'active_search', status: 'on_hold' })
+    const m = await mkMatch(s.agencyAId, acheteur, { annonce: await mkAnnonce('w7s') })
+    expect(await consigner(m, 'propose')).toMatchObject({ ok: true, deja: false, deal_id: suspendu })
+  })
+
+  it('un deal ouvert ANCIEN et un deal perdu plus RÉCENT : « proposé », puis la visite de l’intéressé, prennent l’ancien', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7Ancien')
+    // Le perdu est le plus récent : lue sur le statut seul, la lecture le prendrait ; pris d'abord puis refusé parce
+    // que perdu, il ferait ouvrir un troisième deal. Le plus récent se cherche parmi les ouverts.
+    const ouvert = await mkDeal(acheteur, { stage: 'active_search', status: 'active', created_at: ilYA(30) })
+    const perdu = await mkDeal(acheteur, { stage: 'lost', status: 'active', created_at: ilYA(2) })
+    const bien = await mkBien(s.agencyAId, 'w7a')
+    const m = await mkMatch(s.agencyAId, acheteur, { bien })
+    expect(await consigner(m, 'propose')).toMatchObject({ ok: true, deja: false, deal_id: ouvert })
+    expect(await consigner(m, 'interesse')).toMatchObject({ ok: true, deja: false })
+    const r = await planifier(acheteur, { bien }, dans(5))
+    if (r.visite_id) visites.push(r.visite_id)
+    expect(r).toMatchObject({ ok: true, match_id: m, deal_id: ouvert, etape_avant: 'active_search' })
+    // L'ancien reçoit le mandat, l'étape et la visite ; le perdu reste tel que « Marquer perdu » l'a laissé.
+    expect(await lireDeal(ouvert)).toEqual({ stage: 'visit_planned', status: 'active', property_id: bien })
+    expect((await svc.from('visits').select('transaction_id').eq('id', r.visite_id!).single()).data)
+      .toEqual({ transaction_id: ouvert })
+    expect(await lireDeal(perdu)).toEqual({ stage: 'lost', status: 'active', property_id: null })
+    expect((await svc.from('transactions').select('id').eq('contact_buyer_id', acheteur)).data).toHaveLength(2)
   })
 })

@@ -58,7 +58,7 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // schedule_visit : planifie EN INTERNE (CRM), jamais un envoi client → auto, comme les autres écritures d'état
   // réversibles. ⚠ Exception nommée au garde-fou de update_pipeline plus bas : un acheteur intéressé par ce bien voit
   // AUSSI son deal avancer à visit_planned, jamais en arrière — décision de Julien du 24.09.2026, annulable 30 s
-  // comme toute action auto. Le deal peut aussi être CRÉÉ (à new_lead, faute d'un deal actif) plutôt que simplement
+  // comme toute action auto. Le deal peut aussi être CRÉÉ (à new_lead, faute d'un deal ouvert) plutôt que simplement
   // avancé ; « /annuler » ne défait alors que le passage à visit_planned — le deal créé, lui, reste à new_lead.
   schedule_visit: 'auto',
   create_reminder: 'auto',
