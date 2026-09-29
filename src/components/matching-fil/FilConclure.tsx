@@ -150,7 +150,7 @@ export default function FilConclure({
           </div>
           <p id={aideId} style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
             {valide
-              ? t(bien.marche ? 'fil.conclure.agenceAnnonce' : 'fil.conclure.aucuneInvitation', { prenom: acheteur.prenom })
+              ? t('fil.conclure.aucuneInvitation', { prenom: acheteur.prenom })
               : t('fil.conclure.dateRequise')}
           </p>
         </form>

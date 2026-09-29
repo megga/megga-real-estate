@@ -553,7 +553,7 @@
       "etat": "Zustand",
       "autre": "Anderes"
     },
-    "motifsAide": "Warum? Ein Klick erfasst die Absage.",
+    "motifsAide": "Warum?",
     "note": "Notiz (optional)",
     "annulerMotif": "Abbrechen",
     "retours": {
@@ -590,8 +590,7 @@
       "duree": "Dauer",
       "minutes": "{{n}} Min.",
       "confirmer": "Besichtigung planen",
-      "aucuneInvitation": "{{prenom}} erhält nichts: Die Besichtigung wird in Ihrer Agenda eingetragen.",
-      "agenceAnnonce": "Besichtigung mit der Agentur des Inserats: Sie wird in Ihrer Agenda eingetragen, {{prenom}} erhält nichts.",
+      "aucuneInvitation": "{{prenom}} erhält nichts.",
       "voirAnnonce": "Originalinserat ansehen",
       "dateRequise": "Wählen Sie ein künftiges Datum und eine Uhrzeit.",
       "planifiee": "Besichtigung mit {{prenom}} am {{date}} geplant"
@@ -629,7 +628,6 @@
       "typeAvant": "heute: {{type}}",
       "tousTypes": "heute: alle Objektarten",
       "equipements": "Zur gewünschten Ausstattung hinzufügen: {{liste}}",
-      "effet": "Die vorzuschlagenden Objekte werden neu bewertet; was nicht mehr passt, fällt aus der Liste.",
       "valider": "Suche anpassen",
       "ignorer": "Ignorieren",
       "valeurInvalide": "Geben Sie eine positive Zahl ein.",
@@ -667,7 +665,6 @@
       "aucunCompatible": "Noch kein passender Käufer.",
       "ouvrir": "Öffnen",
       "anciens": "Frühere Interessenten",
-      "anciensAide": "Suche seit mehr als 90 Tagen geschlossen, oder Deal in den letzten zwei Jahren verloren. Auf Abruf bewertet, mit derselben Schwelle wie die Engine.",
       "chargement": "Frühere Interessenten werden bewertet…",
       "erreur": "Die früheren Interessenten konnten nicht bewertet werden.",
       "aucunAncien": "Kein früherer Interessent passt zu diesem Objekt.",

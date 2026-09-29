@@ -553,7 +553,7 @@
       "etat": "Condition",
       "autre": "Other"
     },
-    "motifsAide": "Why? One click records the decline.",
+    "motifsAide": "Why?",
     "note": "Note (optional)",
     "annulerMotif": "Cancel",
     "retours": {
@@ -590,8 +590,7 @@
       "duree": "Duration",
       "minutes": "{{n}} min",
       "confirmer": "Schedule the viewing",
-      "aucuneInvitation": "Nothing is sent to {{prenom}}: the viewing goes into your calendar.",
-      "agenceAnnonce": "Viewing with the listing's agency: it goes into your calendar, nothing is sent to {{prenom}}.",
+      "aucuneInvitation": "Nothing is sent to {{prenom}}.",
       "voirAnnonce": "View the original listing",
       "dateRequise": "Choose an upcoming date and time.",
       "planifiee": "Viewing with {{prenom}} scheduled on {{date}}"
@@ -629,7 +628,6 @@
       "typeAvant": "currently: {{type}}",
       "tousTypes": "currently: all types",
       "equipements": "Add to the wanted features: {{liste}}",
-      "effet": "The properties to propose will be re-scored; those that no longer match will leave the list.",
       "valider": "Adjust the search",
       "ignorer": "Ignore",
       "valeurInvalide": "Enter a positive number.",
@@ -667,7 +665,6 @@
       "aucunCompatible": "No matching buyer yet.",
       "ouvrir": "Open",
       "anciens": "Former prospects",
-      "anciensAide": "Search closed for more than 90 days, or deal lost within the last two years. Scored on demand, at the same threshold as the engine.",
       "chargement": "Scoring former prospects…",
       "erreur": "Former prospects could not be scored.",
       "aucunAncien": "No former prospect matches this property.",

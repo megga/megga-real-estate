@@ -553,7 +553,7 @@
       "etat": "Stato",
       "autre": "Altro"
     },
-    "motifsAide": "Perché? Un clic registra il rifiuto.",
+    "motifsAide": "Perché?",
     "note": "Nota (facoltativa)",
     "annulerMotif": "Annulla",
     "retours": {
@@ -590,8 +590,7 @@
       "duree": "Durata",
       "minutes": "{{n}} min",
       "confirmer": "Pianifica la visita",
-      "aucuneInvitation": "A {{prenom}} non viene inviato nulla: la visita entra nella Sua agenda.",
-      "agenceAnnonce": "Visita con l'agenzia dell'annuncio: entra nella Sua agenda, a {{prenom}} non viene inviato nulla.",
+      "aucuneInvitation": "A {{prenom}} non viene inviato nulla.",
       "voirAnnonce": "Vedi l'annuncio originale",
       "dateRequise": "Scelga una data e un orario futuri.",
       "planifiee": "Visita di {{prenom}} pianificata il {{date}}"
@@ -629,7 +628,6 @@
       "typeAvant": "oggi: {{type}}",
       "tousTypes": "oggi: tutti i tipi",
       "equipements": "Aggiungere alle dotazioni desiderate: {{liste}}",
-      "effet": "Gli immobili da proporre saranno rivalutati; quelli che non corrispondono più usciranno dalla lista.",
       "valider": "Adatta la ricerca",
       "ignorer": "Ignora",
       "valeurInvalide": "Inserisca un numero positivo.",
@@ -667,7 +665,6 @@
       "aucunCompatible": "Ancora nessun acquirente compatibile.",
       "ouvrir": "Apri",
       "anciens": "Ex potenziali acquirenti",
-      "anciensAide": "Ricerca chiusa da più di 90 giorni, o trattativa persa negli ultimi due anni. Valutati su richiesta, alla stessa soglia del motore.",
       "chargement": "Valutazione degli ex potenziali acquirenti…",
       "erreur": "Non è stato possibile valutare gli ex potenziali acquirenti.",
       "aucunAncien": "Nessun ex potenziale acquirente corrisponde a questo immobile.",

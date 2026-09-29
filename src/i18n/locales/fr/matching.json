@@ -553,7 +553,7 @@
       "etat": "État du bien",
       "autre": "Autre"
     },
-    "motifsAide": "Pourquoi ? Un clic consigne le refus.",
+    "motifsAide": "Pourquoi ?",
     "note": "Note (facultative)",
     "annulerMotif": "Annuler",
     "retours": {
@@ -590,8 +590,7 @@
       "duree": "Durée",
       "minutes": "{{n}} min",
       "confirmer": "Planifier la visite",
-      "aucuneInvitation": "Rien n'est envoyé à {{prenom}} : la visite entre dans votre agenda.",
-      "agenceAnnonce": "Visite avec l'agence de l'annonce : elle entre dans votre agenda, rien n'est envoyé à {{prenom}}.",
+      "aucuneInvitation": "Rien n'est envoyé à {{prenom}}.",
       "voirAnnonce": "Voir l'annonce d'origine",
       "dateRequise": "Choisissez une date et une heure à venir.",
       "planifiee": "Visite planifiée avec {{prenom}} le {{date}}"
@@ -629,7 +628,6 @@
       "typeAvant": "aujourd'hui : {{type}}",
       "tousTypes": "aujourd'hui : tous les types",
       "equipements": "Ajouter à ses équipements voulus : {{liste}}",
-      "effet": "Ses biens à proposer seront réévalués ; ceux qui ne correspondent plus sortiront de la liste.",
       "valider": "Ajuster la recherche",
       "ignorer": "Ignorer",
       "valeurInvalide": "Saisissez un nombre positif.",
@@ -667,7 +665,6 @@
       "aucunCompatible": "Aucun acquéreur compatible pour l'instant.",
       "ouvrir": "Ouvrir",
       "anciens": "Anciens prospects",
-      "anciensAide": "Recherche close depuis plus de 90 jours, ou deal perdu depuis moins de deux ans. Notés à la demande, au même seuil que le moteur.",
       "chargement": "Notation des anciens prospects…",
       "erreur": "Les anciens prospects n'ont pas pu être notés.",
       "aucunAncien": "Aucun ancien prospect ne correspond à ce bien.",

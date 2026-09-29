@@ -107,7 +107,6 @@ export default function QuiPourCeBien({ sp, bien, compatibles, maintenant, ouvri
       {montrerAnciens && (
         <div>
           <h3 style={titre}>{t('fil.quiPour.anciens')}</h3>
-          <p style={{ ...aide, marginBottom: 'var(--crm-space-md)' }}>{t('fil.quiPour.anciensAide')}</p>
           {!pret || prospects.isLoading ? <p role="status" style={aide}>{t('fil.quiPour.chargement')}</p>
             : prospects.isError ? (
               <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', flexWrap: 'wrap' }}>

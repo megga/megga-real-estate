@@ -158,7 +158,6 @@ export default function FilCorrection({ sp, correction: c, occupe, onAjuster, on
           ) : (
             <p style={texte}>{t('fil.corrections.equipements', { liste: ch.ajoutes.map(nomEquipement).join(', ') })}</p>
           )}
-          <p style={aide}>{t('fil.corrections.effet')}</p>
         </div>
       </div>
 
