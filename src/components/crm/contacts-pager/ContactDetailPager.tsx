@@ -318,9 +318,8 @@ function CdRoundBtn({ icon, P, onClick, label }: { icon: string; P: FichePal; on
 }
 
 /**
- * Sur-titre de BLOC — 14 px / 600, casse normale. Quatre emplois : Coordonnées,
- * Ce qu'elle cherche, À traiter, Biens proposés (plus le bloc Note, qui porte le
- * même style en ligne).
+ * Sur-titre de BLOC — 14 px / 600, casse normale. Cinq emplois : Coordonnées,
+ * Ce qu'elle cherche (ou propose), Notes, À traiter, Ses biens.
  *
  * Il valait 11 px / 800 en micro-capitales avec un interlettrage de 1 — l'idiome
  * de sur-titre de Sugar, dont MEGGA X n'a aucun équivalent.
@@ -1901,7 +1900,7 @@ function CdBoucle({ P, dark, loop, lecture, firstName, onOpenMatching, onOuvrirF
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--crm-space-sm)' }}>
-                <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.biens.length })}</CdGrp>
+                <CdGrp P={P}>{t('fiche.loop.propertiesCount', { count: loop.biens.length })}</CdGrp>
                 <div style={{ flex: 1 }} />
                 <button type="button" onClick={onOpenMatching} style={{ border: 0, background: 'transparent', padding: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</button>
               </div>

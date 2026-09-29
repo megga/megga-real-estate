@@ -1099,7 +1099,7 @@
     },
     "loop": {
       "toHandleCount": "To handle ({{count}})",
-      "transmittedCount": "Properties proposed ({{count}})",
+      "propertiesCount": "Their properties ({{count}})",
       "openInMatching": "Open in Matching",
       "nothingToHandle": "All up to date, nothing to handle right now.",
       "emptyTitle": "No properties proposed yet",

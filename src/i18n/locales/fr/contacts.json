@@ -1099,7 +1099,7 @@
     },
     "loop": {
       "toHandleCount": "À traiter ({{count}})",
-      "transmittedCount": "Biens proposés ({{count}})",
+      "propertiesCount": "Ses biens ({{count}})",
       "openInMatching": "Ouvrir dans le Matching",
       "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
       "emptyTitle": "Aucun bien proposé",

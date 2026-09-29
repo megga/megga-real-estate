@@ -1099,7 +1099,7 @@
     },
     "loop": {
       "toHandleCount": "Zu bearbeiten ({{count}})",
-      "transmittedCount": "Vorgeschlagene Objekte ({{count}})",
+      "propertiesCount": "Objekte ({{count}})",
       "openInMatching": "Im Matching öffnen",
       "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
       "emptyTitle": "Noch keine Objekte vorgeschlagen",

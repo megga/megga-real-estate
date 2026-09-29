@@ -6,7 +6,7 @@
  *
  * Lot E1 : un bien revenu ne compte plus parmi les « Proposés », comme dans le fil (décision 10a) ; sur un mandat qui
  * n'est plus en vente, il ne mène plus nulle part (décision 12a) ; un mandat supprimé n'a pas de ligne, même lu par un
- * super-administrateur.
+ * super-administrateur ; le titre de la liste, neutre, compte ce qu'elle liste, biens revenus compris.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -262,5 +262,29 @@ describe('lot E1 — la lecture de « Sa boucle » (`useContactSentMatches`)', (
     const source = readFileSync(join(process.cwd(), 'src/hooks/useContactSentMatches.ts'), 'utf8')
     const colonnes = /property:properties\(([^)]*)\)/.exec(source)?.[1]?.split(',').map((c) => c.trim()) ?? []
     expect(colonnes).toEqual(expect.arrayContaining(['status', 'deleted_at']))
+  })
+})
+
+describe('lot E1 — le titre de la liste compte ce qu’elle liste', () => {
+  // La liste porte aussi les biens revenus, qui ne sont pas « Proposés » (décision 10a) : « Biens proposés (5) » sous
+  // « 4 Proposés » se contredisait. Un titre neutre, sur la longueur de la liste (décision de Julien, 27.09.2026).
+  const TITRES: Record<string, string> = {
+    fr: 'Ses biens ({{count}})', de: 'Objekte ({{count}})', en: 'Their properties ({{count}})', it: 'I suoi immobili ({{count}})',
+  }
+
+  it('la fiche l’écrit par `fiche.loop.propertiesCount`, sur `loop.biens.length`, la liste qu’elle rend dessous', () => {
+    const source = readFileSync(join(process.cwd(), 'src/components/crm/contacts-pager/ContactDetailPager.tsx'), 'utf8')
+    expect(source).toContain("{t('fiche.loop.propertiesCount', { count: loop.biens.length })}")
+    expect(source).toContain('{loop.biens.map((b, i) => <CdBienBoucle')
+    expect(source).not.toContain('fiche.loop.transmittedCount')
+  })
+
+  it('neutre, dans les quatre langues : il ne dit plus « proposés »', () => {
+    for (const [langue, titre] of Object.entries(TITRES)) {
+      const brut = readFileSync(join(process.cwd(), `src/i18n/locales/${langue}/contacts.json`), 'utf8')
+      const loop = (JSON.parse(brut) as { fiche: { loop: Record<string, string> } }).fiche.loop
+      expect(loop.propertiesCount, langue).toBe(titre)
+      expect(loop, langue).not.toHaveProperty('transmittedCount')
+    }
   })
 })

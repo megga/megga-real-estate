@@ -1099,7 +1099,7 @@
     },
     "loop": {
       "toHandleCount": "Da gestire ({{count}})",
-      "transmittedCount": "Immobili proposti ({{count}})",
+      "propertiesCount": "I suoi immobili ({{count}})",
       "openInMatching": "Apri nel Matching",
       "nothingToHandle": "Tutto aggiornato, nulla da gestire al momento.",
       "emptyTitle": "Nessun immobile proposto",
