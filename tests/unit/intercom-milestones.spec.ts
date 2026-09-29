@@ -64,8 +64,10 @@ beforeEach(async () => {
   h.writes = 0
   h.track = []
   // L'App ID est lu au chargement du module, et l'état (boot, garde, file) vit dans le
-  // module : on recharge les deux à chaque test.
+  // module : on recharge les deux à chaque test. Hors production, Intercom ne boote que
+  // si on le force (intercom-prod-seulement.spec.ts).
   vi.stubEnv('VITE_INTERCOM_APP_ID', 'app-test')
+  vi.stubEnv('VITE_INTERCOM_FORCE_DEV', 'true')
   vi.resetModules()
   intercom = await import('@/lib/intercom')
   jalons = await import('@/lib/intercom-milestones')

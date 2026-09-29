@@ -68,7 +68,7 @@ export const HELP_ARTICLES: Record<string, string> = {
 /**
  * Centre d'aide public (même corpus que le Messenger, hors authentification).
  * Sert de repli quand Intercom n'est pas configuré — typiquement en dev local,
- * où `VITE_INTERCOM_APP_ID` est absent.
+ * où il ne boote pas (production seulement, cf. src/lib/intercom.ts).
  */
 export const HELP_CENTER_URL = 'https://intercom.help/megga/fr'
 

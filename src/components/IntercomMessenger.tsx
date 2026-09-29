@@ -11,7 +11,8 @@
 // - Au boot identifié, rattrape les jalons d'activation pas encore envoyés
 //   (`syncIntercomMilestones`, un envoi par agent).
 //
-// No-op complet si `VITE_INTERCOM_APP_ID` est absent (cf. src/lib/intercom.ts).
+// No-op complet si `VITE_INTERCOM_APP_ID` est absent, et hors production sauf
+// `VITE_INTERCOM_FORCE_DEV=true` (cf. src/lib/intercom.ts).
 import { useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { useImpersonate } from '@/hooks/useImpersonate'
