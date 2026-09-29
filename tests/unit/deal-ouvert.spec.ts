@@ -6,6 +6,7 @@
  *
  * Ce que cette spec refuse :
  *   · un deal perdu tenu pour ouvert : « perdu » est l'étape `lost`, son statut reste `active` ;
+ *   · un deal archivé tenu pour ouvert : le Pipeline le range hors de sa vue, un geste neuf ne s'y rattache pas ;
  *   · une fonction du copilote qui lirait le deal de l'acheteur autrement que `dealOuvert` — un statut de plus ou de
  *     moins, l'étape oubliée, une autre étape exclue ;
  *   · une seconde définition : les gestes et la fiche lisent le module, sans en garder de copie ;
@@ -39,14 +40,22 @@ function corps(sql: string, nom: string): string {
 describe('un deal ouvert', () => {
   it('statut par statut : `active` et `on_hold` sont ouverts ; `completed` (gagné) et `cancelled` (annulé) ne le sont pas', () => {
     for (const status of Constants.public.Enums.transaction_status) {
-      expect(dealOuvert({ status, stage: 'offer' }), status).toBe(status === 'active' || status === 'on_hold')
+      expect(dealOuvert({ status, stage: 'offer', archived_at: null }), status).toBe(status === 'active' || status === 'on_hold')
     }
   })
 
   it('un deal perdu n’en est pas un : « perdu » est l’étape `lost`, son statut reste ouvert', () => {
     for (const stage of Constants.public.Enums.transaction_stage) {
-      expect(dealOuvert({ status: 'active', stage }), stage).toBe(stage !== 'lost')
-      expect(dealOuvert({ status: 'on_hold', stage }), stage).toBe(stage !== 'lost')
+      expect(dealOuvert({ status: 'active', stage, archived_at: null }), stage).toBe(stage !== 'lost')
+      expect(dealOuvert({ status: 'on_hold', stage, archived_at: null }), stage).toBe(stage !== 'lost')
+    }
+  })
+
+  it('un deal archivé n’en est pas un, quels que soient son statut et son étape : le Pipeline le range hors de sa vue', () => {
+    for (const status of Constants.public.Enums.transaction_status) {
+      for (const stage of Constants.public.Enums.transaction_stage) {
+        expect(dealOuvert({ status, stage, archived_at: '2026-09-01T08:00:00Z' }), `${status} / ${stage}`).toBe(false)
+      }
     }
   })
 
@@ -63,8 +72,9 @@ describe('un deal ouvert', () => {
 
 describe('la même règle en base : le copilote WhatsApp (migration du lot D2, lue)', () => {
   const sql = migrationWhatsapp()
-  // La règle telle que le SQL l'écrit, tirée du module, jamais retapée.
-  const regle = `t.status in (${STATUTS_DEAL_OUVERT.map((s) => `'${s}'`).join(', ')}) and t.stage <> '${ETAPE_DEAL_PERDU}'`
+  // La règle telle que le SQL l'écrit : statuts et étape tirés du module ; l'archivage n'a pas de valeur à en tirer, et
+  // la confrontation plus bas le rapporte à `dealOuvert`.
+  const regle = `t.status in (${STATUTS_DEAL_OUVERT.map((s) => `'${s}'`).join(', ')}) and t.stage <> '${ETAPE_DEAL_PERDU}' and t.archived_at is null`
 
   it('`wa_matching_consigner` (« proposé ») prend le deal ouvert de l’acheteur, le plus récent : la lecture entière', () => {
     expect(corps(sql, 'wa_matching_consigner')).toContain(
@@ -84,12 +94,15 @@ describe('la même règle en base : le copilote WhatsApp (migration du lot D2, l
       // Toute lecture de la table, quels qu'en soient l'alias, la casse ou la forme (`from`, `join`) : une seconde, de
       // repli (`from public.transactions tx …`), contournerait la règle.
       expect(c.match(/(?:from|join)\s+(?:public\.)?transactions\b/gi), nom).toHaveLength(1)
-      const m = c.match(/t\.status in \(([^)]*)\) and t\.stage <> '([a-z_]+)'/)
+      const m = c.match(/t\.status in \(([^)]*)\) and t\.stage <> '([a-z_]+)' and t\.archived_at is null/)
       expect(m, `${nom} : la règle du deal ouvert est introuvable`).not.toBeNull()
       const statuts = m![1].split(',').map((s) => s.trim().replace(/^'|'$/g, ''))
       for (const status of Constants.public.Enums.transaction_status) {
         for (const stage of Constants.public.Enums.transaction_stage) {
-          expect(statuts.includes(status) && stage !== m![2], `${nom} : ${status} / ${stage}`).toBe(dealOuvert({ status, stage }))
+          for (const archived_at of [null, '2026-09-01T08:00:00Z']) {
+            expect(statuts.includes(status) && stage !== m![2] && archived_at == null, `${nom} : ${status} / ${stage} / ${archived_at}`)
+              .toBe(dealOuvert({ status, stage, archived_at }))
+          }
         }
       }
     }
@@ -97,11 +110,15 @@ describe('la même règle en base : le copilote WhatsApp (migration du lot D2, l
 })
 
 describe('une seule définition : les gestes et la fiche la lisent (lecture du code)', () => {
-  it('`rattacherDeal` filtre sur les statuts et l’étape du module, jamais sur le statut seul', () => {
-    const code = lire('src/lib/matchingGestes.ts')
+  it('`rattacherDeal` filtre sur les statuts, l’étape et l’archivage du module, jamais sur le statut seul', () => {
+    const module = lire('src/lib/matchingGestes.ts')
+    const debut = module.indexOf('async function rattacherDeal(')
+    expect(debut).toBeGreaterThanOrEqual(0)
+    const code = module.slice(debut, module.indexOf('\n}\n', debut))
     expect(code).toContain(".in('status', STATUTS_DEAL_OUVERT)")
     expect(code).toContain(".neq('stage', ETAPE_DEAL_PERDU)")
-    expect(code).not.toMatch(/\.eq\('status', 'active'\)/)
+    expect(code).toContain(".is('archived_at', null)")
+    expect(module).not.toMatch(/\.eq\('status', 'active'\)/)
   })
 
   it('les règles de la fiche d’un mandat lisent `dealOuvert`, sans en garder de copie', () => {

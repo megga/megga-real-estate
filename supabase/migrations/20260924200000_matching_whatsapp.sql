@@ -357,12 +357,13 @@ begin
     end if;
     -- Le deal : l'OUVERT le plus récent de l'acheteur (un mandat y est rattaché s'il n'en porte aucun, jamais
     -- écrasé), sinon un `new_lead` sur ce bien — `rattacherDeal` du fil. Ouvert : un statut `active` ou `on_hold`, une
-    -- étape autre que `lost` — « Marquer perdu » n'écrit que l'étape, le statut reste `active`. La règle de
-    -- `dealOuvert` (src/lib/dealOuvert.ts), que tests/unit/deal-ouvert.spec.ts confronte à ce texte. `stage` est
-    -- NOT NULL : `<>` n'exclut aucun deal ouvert.
+    -- étape autre que `lost` — « Marquer perdu » n'écrit que l'étape, le statut reste `active` —, et pas archivé : un
+    -- deal archivé est rangé hors du Pipeline, un geste neuf ne s'y rattache pas. La règle de `dealOuvert`
+    -- (src/lib/dealOuvert.ts), que tests/unit/deal-ouvert.spec.ts confronte à ce texte. `stage` est NOT NULL : `<>`
+    -- n'exclut aucun deal ouvert.
     select t.id into v_deal from public.transactions t
      where t.agency_id = p_agency and t.contact_buyer_id = v_match.contact_id
-       and t.status in ('active', 'on_hold') and t.stage <> 'lost'
+       and t.status in ('active', 'on_hold') and t.stage <> 'lost' and t.archived_at is null
      order by t.created_at desc
      limit 1;
     if v_deal is null then
@@ -548,11 +549,12 @@ begin
 
   if v_statut = 'interested' then
     update public.matches set status = 'visit_planned' where id = v_match and status = 'interested';
-    -- Le deal OUVERT le plus récent de l'acheteur, la règle de wa_matching_consigner : un deal perdu n'en est pas un.
+    -- Le deal OUVERT le plus récent de l'acheteur, la règle de wa_matching_consigner : un deal perdu ou archivé n'en
+    -- est pas un.
     select t.id, t.stage::text into v_deal, v_etape
       from public.transactions t
      where t.agency_id = p_agency and t.contact_buyer_id = p_contact
-       and t.status in ('active', 'on_hold') and t.stage <> 'lost'
+       and t.status in ('active', 'on_hold') and t.stage <> 'lost' and t.archived_at is null
      order by t.created_at desc
      limit 1
      for update;

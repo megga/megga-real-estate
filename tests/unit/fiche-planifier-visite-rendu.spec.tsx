@@ -84,7 +84,8 @@ const JULIE: ContactCarnet = { id: 'c-julie', first_name: 'Julie', last_name: 'M
 const MARC: ContactCarnet = { id: 'c-marc', first_name: 'Marc', last_name: 'Rochat', phone: '+41 79 444 55 66', email: 'marc.rochat@example.ch', type: 'buyer' }
 
 type Statut = NonNullable<Compatible['suivi']>['statut']
-const deal = (id: string, contactId: string, stage: DealDuBien['stage']): DealDuBien => ({ id, contact_buyer_id: contactId, status: 'active', stage })
+const deal = (id: string, contactId: string, stage: DealDuBien['stage']): DealDuBien =>
+  ({ id, contact_buyer_id: contactId, status: 'active', stage, archived_at: null })
 
 /**
  * Marc : acheteur en deal ouvert sur le bien, absent des compatibles. Julie : acquéreuse compatible (score 92), sans

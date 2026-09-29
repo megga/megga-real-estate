@@ -7,10 +7,11 @@
  * dernier créé pour les gestes et le copilote, le dernier modifié sur ce bien pour la fiche (l'ordre de
  * `useTransactions`).
  *
- * Lot E1 (conception §5.8, décision de Julien) : un deal est ouvert si son statut est `active` ou `on_hold` et que son
- * étape n'est pas `lost`. ⚠ « Perdu » n'est pas un statut : c'est l'étape `lost` — « Marquer perdu » du Pipeline
- * n'écrit qu'elle, le statut reste `active`. Lu sur le statut seul, un geste neuf se rattacherait au deal perdu au lieu
- * d'en ouvrir un.
+ * Lot E1 (conception §5.8, décisions de Julien) : un deal est ouvert si son statut est `active` ou `on_hold`, que son
+ * étape n'est pas `lost`, et qu'il n'est pas archivé (`archived_at`, 29.09.2026 : le Pipeline le range hors de sa vue,
+ * un geste neuf ne doit pas s'y rattacher sans qu'on le voie). ⚠ « Perdu » n'est pas un statut : c'est l'étape `lost` —
+ * « Marquer perdu » du Pipeline n'écrit qu'elle, le statut reste `active`. Lu sur le statut seul, un geste neuf se
+ * rattacherait au deal perdu au lieu d'en ouvrir un.
  *
  * ⛔ CE MODULE EST LE MIROIR DU SQL : `wa_matching_consigner` et `wa_matching_visite` (le copilote WhatsApp, migration
  * `20260924200000_matching_whatsapp.sql`) appliquent la même règle ; `tests/unit/deal-ouvert.spec.ts` les confronte.
@@ -27,9 +28,12 @@ export const STATUTS_DEAL_OUVERT: readonly Enums<'transaction_status'>[] = ['act
 export const ETAPE_DEAL_PERDU: Enums<'transaction_stage'> = 'lost'
 
 /**
- * Un deal ouvert : d'un statut ouvert, et pas perdu. Son étape n'est jamais nulle (`transactions.stage` est
+ * Un deal ouvert : d'un statut ouvert, pas perdu, pas archivé. Son étape n'est jamais nulle (`transactions.stage` est
  * `NOT NULL`) : c'est ce qui rend la règle identique au `<> 'lost'` du SQL et au `neq` de PostgREST, qui excluraient
- * une étape nulle.
+ * une étape nulle. `archived_at` est exigé du lecteur : un deal lu sans lui passerait pour ouvert.
  */
-export const dealOuvert = (d: { status: Enums<'transaction_status'>; stage: Enums<'transaction_stage'> }): boolean =>
-  STATUTS_DEAL_OUVERT.includes(d.status) && d.stage !== ETAPE_DEAL_PERDU
+export const dealOuvert = (d: {
+  status: Enums<'transaction_status'>
+  stage: Enums<'transaction_stage'>
+  archived_at: string | null
+}): boolean => STATUTS_DEAL_OUVERT.includes(d.status) && d.stage !== ETAPE_DEAL_PERDU && d.archived_at == null

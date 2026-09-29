@@ -115,7 +115,7 @@ export interface BienGeste {
 
 /**
  * Le deal d'un acheteur à qui l'on propose un bien : l'OUVERT le plus récent s'il existe (`dealOuvert` : un deal
- * perdu n'en est pas un) — un bien en mandat y est rattaché s'il n'en porte aucun, jamais écrasé —, sinon un
+ * perdu ou archivé n'en est pas un) — un bien en mandat y est rattaché s'il n'en porte aucun, jamais écrasé —, sinon un
  * `new_lead` créé sur ce bien. Partagé par la proposition d'un bien, celle d'une sélection et la visite planifiée,
  * pour qu'elles ne divergent pas.
  */
@@ -130,6 +130,8 @@ async function rattacherDeal(ctx: GesteContext, contactId: string, listing: Pick
     .in('status', STATUTS_DEAL_OUVERT)
     // `neq` exclut aussi une étape nulle : il n'y en a pas, `stage` est `NOT NULL`.
     .neq('stage', ETAPE_DEAL_PERDU)
+    // Un deal archivé est rangé hors du Pipeline : le geste en ouvre un neuf plutôt que de s'y rattacher sans qu'on le voie.
+    .is('archived_at', null)
     .order('created_at', { ascending: false })
     .limit(1)
   // ⛔ Une lecture refusée ou expirée fait lever : avalée, elle se lirait « aucun deal ouvert », et le geste ouvrirait

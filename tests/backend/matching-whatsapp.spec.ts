@@ -41,11 +41,12 @@
 //       vide le contact sans écarter la relance, et que l'exclusion d'une relance-retour correspond à ce que la
 //       RPC elle-même compte comme un retour pour le même acheteur — rien qu'un faux client ne peut prouver, lui
 //       qui n'applique ni le schéma ni `!inner`. À garder VERTE en CI avant toute fusion de ce lot.
-//   W7  (lot E1) un deal perdu ne reçoit aucun geste neuf : « Marquer perdu » n'écrit que l'étape `lost`, le statut
-//       reste `active`. « proposé » et la visite d'un intéressé ouvrent un deal neuf, que portent la relance et la
-//       visite, au lieu de se rattacher au perdu, qui ne reçoit rien (ni mandat, ni étape) ; un deal suspendu
+//   W7  (lot E1) un deal perdu ou archivé ne reçoit aucun geste neuf : « Marquer perdu » n'écrit que l'étape `lost`, le
+//       statut reste `active`. « proposé » et la visite d'un intéressé ouvrent un deal neuf, que portent la relance et
+//       la visite, au lieu de se rattacher au perdu, qui ne reçoit rien (ni mandat, ni étape) ; un deal suspendu
 //       (`on_hold`) reste ouvert : le geste s'y rattache ; un deal ouvert ANCIEN l'emporte sur un deal perdu plus
-//       RÉCENT, le plus récent n'étant cherché que parmi les ouverts. La règle de `dealOuvert` (src/lib/dealOuvert.ts).
+//       RÉCENT, le plus récent n'étant cherché que parmi les ouverts ; un deal ARCHIVÉ n'est pas ouvert non plus. La
+//       règle de `dealOuvert` (src/lib/dealOuvert.ts).
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés — et les crochets aussi : ils
 // sont au niveau du module, pour que chaque bloc du fichier ajoute le sien sans dupliquer la mise en place.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
@@ -784,7 +785,7 @@ describe.skipIf(!HAS_KEYS)('W6 — loadAgencyData contre une vraie base', () => 
   })
 })
 
-describe.skipIf(!HAS_KEYS)('W7 — un deal perdu ne reçoit aucun geste neuf (lot E1)', () => {
+describe.skipIf(!HAS_KEYS)('W7 — un deal perdu ou archivé ne reçoit aucun geste neuf (lot E1)', () => {
   /** Un deal de l'acheteur, posé comme le Pipeline le laisse : « Marquer perdu » n'écrit que l'étape. */
   const mkDeal = async (acheteur: string, champs: Record<string, unknown>) => {
     const { data, error } = await svc.from('transactions').insert({
@@ -853,5 +854,32 @@ describe.skipIf(!HAS_KEYS)('W7 — un deal perdu ne reçoit aucun geste neuf (lo
       .toEqual({ transaction_id: ouvert })
     expect(await lireDeal(perdu)).toEqual({ stage: 'lost', status: 'active', property_id: null })
     expect((await svc.from('transactions').select('id').eq('contact_buyer_id', acheteur)).data).toHaveLength(2)
+  })
+
+  it('un deal ARCHIVÉ n’est pas ouvert (décision du 29.09.2026) : « proposé » en ouvre un neuf, l’archivé ne reçoit rien', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7Archive')
+    const archive = await mkDeal(acheteur, { stage: 'active_search', status: 'active', archived_at: ilYA(3) })
+    const bien = await mkBien(s.agencyAId, 'w7r')
+    const m = await mkMatch(s.agencyAId, acheteur, { bien })
+    const r = await consigner(m, 'propose')
+    expect(r).toMatchObject({ ok: true, deja: false })
+    expect(r.deal_id).not.toBe(archive)
+    expect(await lireDeal(r.deal_id!)).toEqual({ stage: 'new_lead', status: 'active', property_id: bien })
+    expect(await lireDeal(archive)).toEqual({ stage: 'active_search', status: 'active', property_id: null })
+  })
+
+  it('la visite d’un intéressé au deal ARCHIVÉ : un deal neuf s’ouvre, avance et porte la visite ; l’archivé ne bouge pas', async () => {
+    const acheteur = await mkContact(s.agencyAId, 'W7ArchiveVisite')
+    const bien = await mkBien(s.agencyAId, 'w7rv')
+    const archive = await mkDeal(acheteur, { stage: 'active_search', status: 'active', property_id: bien, archived_at: ilYA(3) })
+    const m = await mkMatch(s.agencyAId, acheteur, { bien }, { status: 'interested', sent_at: ilYA(6) })
+    const r = await planifier(acheteur, { bien }, dans(5))
+    if (r.visite_id) visites.push(r.visite_id)
+    expect(r).toMatchObject({ ok: true, match_id: m, etape_avant: 'new_lead' })
+    expect(r.deal_id).not.toBe(archive)
+    expect(await lireDeal(r.deal_id!)).toEqual({ stage: 'visit_planned', status: 'active', property_id: bien })
+    expect((await svc.from('visits').select('transaction_id').eq('id', r.visite_id!).single()).data)
+      .toEqual({ transaction_id: r.deal_id })
+    expect(await lireDeal(archive)).toEqual({ stage: 'active_search', status: 'active', property_id: bien })
   })
 })

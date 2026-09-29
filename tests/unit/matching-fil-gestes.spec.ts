@@ -294,10 +294,14 @@ describe('execProposer — le rattachement du deal, gardé à travers l’extrac
   })
 })
 
-describe('le deal d’un geste : l’OUVERT de l’acheteur, jamais un deal perdu (lot E1)', () => {
+describe('le deal d’un geste : l’OUVERT de l’acheteur, jamais un deal perdu ni archivé (lot E1)', () => {
   // « Marquer perdu » (Pipeline) n'écrit que l'étape `lost`, le statut reste `active` : lu sur le statut seul, un geste
-  // neuf se rattacherait au deal perdu. Ouvert (`dealOuvert`) : un statut `active` ou `on_hold`, et une autre étape.
-  const LECTURE_DU_DEAL = ['agency_id=ag-1', 'contact_buyer_id=c-1', 'status in active,on_hold', 'stage<>lost', 'order created_at desc', 'limit 1']
+  // neuf se rattacherait au deal perdu. Ouvert (`dealOuvert`) : un statut `active` ou `on_hold`, une autre étape, et
+  // pas d'archivage.
+  const LECTURE_DU_DEAL = [
+    'agency_id=ag-1', 'contact_buyer_id=c-1', 'status in active,on_hold', 'stage<>lost', 'archived_at is null',
+    'order created_at desc', 'limit 1',
+  ]
   const VISITE = { debut: '2026-09-24T12:00:00.000Z', dureeMinutes: 45, lieu: null }
   /** Les trois gestes qui touchent un deal, tous par `rattacherDeal`. */
   const GESTES: [string, () => Promise<unknown>][] = [

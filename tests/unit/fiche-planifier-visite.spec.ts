@@ -30,8 +30,9 @@ const compatible = (contactId: string, prenom: string, score: number, statut?: S
     suivi: { statut, proposeLe: '2026-09-20T09:00:00Z', reponduLe: null, motif: null, note: null, prixPropose: null, apprisLe: null },
   } : {}),
 })
-const deal = (id: string, contactId: string, status: DealDuBien['status'], stage: DealDuBien['stage']): DealDuBien =>
-  ({ id, contact_buyer_id: contactId, status, stage })
+const deal = (
+  id: string, contactId: string, status: DealDuBien['status'], stage: DealDuBien['stage'], archived_at: string | null = null,
+): DealDuBien => ({ id, contact_buyer_id: contactId, status, stage, archived_at })
 
 /**
  * Marc : en deal ouvert sur le bien, et compatible (intéressé, sauf `marc` ; `null` : hors des compatibles). Paul :
@@ -63,6 +64,16 @@ describe('les visiteurs proposés', () => {
 
   it('un mandat qui n’est plus en vente ne propose que ses acheteurs en deal ouvert', () => {
     expect(visiteursLies(contexte(undefined, false), nomDe)).toEqual([{ contactId: 'c-marc', nom: 'Marc Morand', dealId: 'd-marc' }])
+  })
+
+  it('un deal archivé ne fait pas un acheteur en cours : la visite ne s’y rattache pas, et son acquéreur suit la règle du fil', () => {
+    const archive: ContexteVisite = { ...contexte(), deals: [deal('d-marc', 'c-marc', 'active', 'offer', '2026-09-01T08:00:00Z')] }
+    expect(visiteursLies(archive, nomDe).map((l) => l.contactId)).toEqual(['c-julie', 'c-marc', 'c-paul'])
+    expect(creationVisite('c-marc', archive)).toEqual({
+      fil: { id: 'c-marc', matchId: 'm-c-marc', first: 'Marc', last: 'Morand', score: 88 },
+      dealId: null,
+      rappelVeille: false,
+    })
   })
 })
 

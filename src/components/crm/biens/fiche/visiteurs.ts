@@ -16,8 +16,8 @@
  * message et le rappel : la règle vise ce que produit le matching, pas la confirmation d'une visite (conception §3.1).
  *
  * ⚠ « Perdu » n'est pas un statut de deal : c'est l'étape `lost` — « Marquer perdu » du Pipeline n'écrit qu'elle, le
- * statut reste `active`. Un deal ouvert se lit donc sur les deux : `dealOuvert` (`src/lib/dealOuvert.ts`), la règle des
- * gestes du matching et du copilote WhatsApp, une seule.
+ * statut reste `active`. Un deal ouvert se lit donc sur le statut, l'étape et l'archivage : `dealOuvert`
+ * (`src/lib/dealOuvert.ts`), la règle des gestes du matching et du copilote WhatsApp, une seule.
  */
 import type { Compatible } from '@/components/matching-fil/filQuiPour'
 import { dealOuvert } from '@/lib/dealOuvert'
@@ -30,6 +30,7 @@ export interface DealDuBien {
   contact_buyer_id: string | null
   status: Enums<'transaction_status'>
   stage: Enums<'transaction_stage'>
+  archived_at: string | null
 }
 
 /** Ce que la fiche d'un mandat sait des gens liés au bien. */
