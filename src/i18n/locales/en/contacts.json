@@ -1101,7 +1101,7 @@
       "toHandleCount": "To handle ({{count}})",
       "propertiesCount": "Their properties ({{count}})",
       "openInMatching": "Open in Matching",
-      "nothingToHandle": "All up to date, nothing to handle right now.",
+      "nothingToHandle": "Nothing to handle",
       "emptyTitle": "No properties proposed yet",
       "emptyBody": "Propose properties to {{name}}, then log their answers.<1/>They land here."
     },

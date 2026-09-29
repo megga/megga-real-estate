@@ -1101,7 +1101,7 @@
       "toHandleCount": "Da gestire ({{count}})",
       "propertiesCount": "I suoi immobili ({{count}})",
       "openInMatching": "Apri nel Matching",
-      "nothingToHandle": "Tutto aggiornato, nulla da gestire al momento.",
+      "nothingToHandle": "Nulla da gestire",
       "emptyTitle": "Nessun immobile proposto",
       "emptyBody": "Proponga immobili a {{name}}, poi registri le risposte.<1/>Appariranno qui."
     },

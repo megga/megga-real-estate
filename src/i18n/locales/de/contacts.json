@@ -1101,7 +1101,7 @@
       "toHandleCount": "Zu bearbeiten ({{count}})",
       "propertiesCount": "Objekte ({{count}})",
       "openInMatching": "Im Matching öffnen",
-      "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
+      "nothingToHandle": "Nichts zu bearbeiten",
       "emptyTitle": "Noch keine Objekte vorgeschlagen",
       "emptyBody": "Schlagen Sie {{name}} Objekte vor und erfassen Sie die Antworten.<1/>Sie erscheinen hier."
     },
