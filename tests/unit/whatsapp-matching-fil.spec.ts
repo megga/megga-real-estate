@@ -15,6 +15,9 @@
  * `src/components/crm/today/matchingDuJour.ts`) — une ligne mal formée y est écartée pour ne pas écrire une phrase
  * fausse ou sans raison, et les deux doivent écarter EXACTEMENT les mêmes lignes.
  *
+ * Une règle va dans l'autre sens : « en vente » est celle du copilote (`occasion`, `bienDeMandat`), que le fil applique
+ * depuis le lot E1 (décision 12a : `enVente`, `versBien`). Elle est confrontée elle aussi, statut par statut.
+ *
  * Conception : docs/superpowers/specs/2026-09-24-matching-lot-d2-whatsapp-design.md, §3 (« une règle, une source »).
  *
  * Une troisième confrontation, tout en bas : `ligneMatching` + `lireMatching` (le point du matin) contre
@@ -24,6 +27,8 @@
  * de traduction choisie à la main) fait rougir une clé inversée côté écran (ville/sans-ville, proposé/refusé)
  * aussi bien qu'une régression côté copilote.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it, expect, vi } from 'vitest'
 import i18next from 'i18next'
 import type { SearchCriteria } from '@/types/contact'
@@ -39,9 +44,10 @@ import { aUnSignal, JOURS_BAISSE as BAISSE_FIL, JOURS_MANDAT as MANDAT_FIL, JOUR
 import { construireFil, lignesCriteres, type FilBien, type FilMatch, type RaisonsMoteur } from '@/components/matching-fil/filModele'
 import { fmtCHF, ligneMatching } from '../../supabase/functions/_shared/morning-brief'
 import * as wa from '../../supabase/functions/_shared/whatsapp-matching'
-import { versBien, versBienMarche, type LigneAnnonce, type LigneBien } from '@/hooks/useMatchingFil'
+import { COLONNES_BIEN, versBien, versBienMarche, type LigneAnnonce, type LigneBien } from '@/hooks/useMatchingFil'
 import { versAction, ecrire, type LigneAction } from '@/components/crm/today/matchingDuJour'
 import { lireMatching } from '../../supabase/functions/_shared/morning-brief-data'
+import { Constants } from '@/types/database'
 // La forme du fil vient des fonctions de PRODUCTION ci-dessus (jamais d'une troisième copie écrite à la main) :
 // quatre mocks suffisent à charger `useMatchingFil.ts` sans toucher Supabase ni React Query — les trois premiers
 // sont ceux des specs qui chargent le module des gestes (matching-whatsapp-sql, matching-fil-gestes) ; `useAuth` est
@@ -150,6 +156,31 @@ describe('la forme du bien, champ par champ : `copie` (le copilote) contre `fil`
   it.each(CAS)('%s', (_n, genre, o) => {
     const { fil, copie } = deuxFormes(genre, o)
     expect(garder(copie)).toEqual(garder(fil))
+  })
+})
+
+describe('« en vente » : la règle du copilote (`occasion`), que le fil applique (lot E1, décision 12a)', () => {
+  it.each([...Constants.public.Enums.property_status])('un mandat « %s »', (status) => {
+    const { fil, copie } = deuxFormes('mandat', { status })
+    expect(fil.enVente).toBe(copie.occasion)
+    expect(fil.statut).toBe(copie.statutMandat)
+  })
+
+  // La règle ne tient que si la lecture la nourrit : sans `status` dans le select, chaque mandat vaudrait
+  // `enVente: false` et « À proposer » se viderait sans erreur ; sans le filtre des supprimés, un mandat supprimé
+  // reviendrait dans la boucle de qui n'est pas filtré par la RLS (le super-admin).
+  it('la lecture des mandats sélectionne chaque colonne que `versBien` lit, `status` compris', () => {
+    const lues = new Set<string>()
+    const espion = new Proxy({}, { get: (_cible, cle) => { if (typeof cle === 'string') lues.add(cle); return null } })
+    versBien(espion as LigneBien)
+    const colonnes = COLONNES_BIEN.split(',').map((c) => c.trim())
+    expect(lues.has('status')).toBe(true)
+    expect([...lues].filter((c) => !colonnes.includes(c))).toEqual([])
+  })
+
+  it('la lecture des mandats écarte les mandats supprimés', () => {
+    const source = readFileSync(join(process.cwd(), 'src/hooks/useMatchingFil.ts'), 'utf8')
+    expect(source).toMatch(/\.from\('properties'\)\s*\.select\(COLONNES_BIEN\)\s*\.in\('id', bienIds\)\s*\.is\('deleted_at', null\)/)
   })
 })
 
@@ -300,9 +331,8 @@ describe('l’ordre « à proposer » : celui du fil (`avant`, via `construireFi
     },
     bien, criteres: null,
   })
-  // Mandat ACTIF : une occasion dans les deux mondes — la divergence sur `occasion` reste À CONFIRMER par
-  // Julien (décision 12, lot D1 ; docs/superpowers/feuille-de-route.md), pas testée ici. `publieIlYA` porte
-  // le signal « nouveau mandat » ou son absence.
+  // Mandat ACTIF : une occasion dans les deux mondes (« en vente », confronté plus haut, statut par statut).
+  // `publieIlYA` porte le signal « nouveau mandat » ou son absence.
   const mandat = (id: string, publieIlYA: number) => deuxFormes('mandat', { id, published_at: ilYA(publieIlYA) })
 
   it('le signal passe devant la récence, le score devant le signal ; l’id départage est celui du MATCH', () => {

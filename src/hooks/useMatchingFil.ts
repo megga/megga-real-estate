@@ -32,6 +32,12 @@
  * ⚠ Le filtre « bien en mandat » est posé DEUX fois : `not(property_id, is, null)` pour la base, et
  * côté client pour le banc, qui ne connaît pas l'opérateur `not`.
  *
+ * ⚠ LE STATUT D'UN MANDAT EST LU (lot E1, décision 12a) : « en vente » s'il est `active` et non supprimé — la règle du
+ * copilote WhatsApp (`occasion`, `get_matches`), confrontée par `whatsapp-matching-fil.spec.ts`. Porté sur le bien
+ * (`enVente`, `statut`), il retire un mandat d'« À proposer » (`horsVente`). Un mandat supprimé n'est pas lu du tout
+ * (`deleted_at`), comme par le copilote : la RLS d'un agent le masque déjà, pas celle d'un super-administrateur
+ * (`super_admin_read_all_properties`).
+ *
  * ⚠ `chargeLe` est l'heure du DÉBUT des lectures, pas de leur fin : le fil la compare à l'heure où un
  * geste a fini d'écrire pour savoir si ces données le reflètent déjà. Prise à la fin, une lecture
  * partie avant l'écriture passerait pour postérieure.
@@ -83,6 +89,8 @@ export interface LigneBien {
   /** Lot C. */
   bedrooms: number | string | null; condition: string | null; year_built: number | string | null
   off_market: boolean | null; mandate_signed_at: string | null; published_at: string | null
+  /** Lot E1 : `draft`, `active`, `reserved`, `sold` ou `archived` — en vente s'il est `active`. */
+  status: string | null
 }
 /** Une annonce du marché, colonnes légères (§7 de CLAUDE.md) : la sélection (lot 2) et la boucle (lot B) la lisent pareil. */
 export interface LigneAnnonce {
@@ -109,6 +117,12 @@ interface DonneesFil {
   chargeLe: number
 }
 
+/**
+ * Les colonnes d'un bien en mandat que le fil lit — toutes celles que lit `versBien`, `status` compris : sans elle,
+ * chaque mandat passerait pour hors vente et « À proposer » se viderait sans erreur. Épinglées par
+ * `tests/unit/whatsapp-matching-fil.spec.ts`.
+ */
+export const COLONNES_BIEN = 'id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos, bedrooms, condition, year_built, off_market, mandate_signed_at, published_at, status'
 /** Les colonnes d'une annonce du marché que le fil lit. */
 export const COLONNES_ANNONCE = 'id, title, type, transaction_type, price, current_price, rooms, surface_m2, address, city, canton, features, photos, photos_cf, status, source_portal, source_id, source_url, bedrooms, year_built, year_renovated, first_seen_at, price_at_first_seen, price_reduced_at'
 /** Les statuts de la boucle — ceux que compte aussi « Déjà proposé » (`compterHistorique`), et l'index `idx_matches_boucle`. */
@@ -138,6 +152,8 @@ export function versBien(b: LigneBien): FilBien {
     // `mandate_signed_at` n'est posé que par « Nouveau bien » (0 mandat sur 6 en production le 22.09.2026) :
     // la mise en service (`published_at`) date aussi un nouveau mandat.
     mandatLe: plusRecente(b.mandate_signed_at, b.published_at),
+    // Lot E1 (décision 12a) : la règle d'`occasion` du copilote (`bienDeMandat`), à l'identique.
+    enVente: b.status === 'active', statut: b.status,
   }
 }
 
@@ -250,8 +266,9 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
     bienIds.length > 0
       ? lire<LigneBien>(
         supabase.from('properties')
-          .select('id, title, type, transaction_type, price, rooms, surface_m2, address, city, canton, features, photos, bedrooms, condition, year_built, off_market, mandate_signed_at, published_at')
-          .in('id', bienIds),
+          .select(COLONNES_BIEN)
+          .in('id', bienIds)
+          .is('deleted_at', null),
       )
       : Promise.resolve([]),
     annonceIds.length > 0
@@ -276,7 +293,7 @@ async function chargerFil(agencyId: string): Promise<DonneesFil> {
   for (const m of lignes) {
     const c = contactParId.get(m.contact_id)
     const bien = bienParId.get(m.property_id as string)
-    // Un contact ou un bien que la RLS ne rend pas : on n'invente pas la ligne.
+    // Un contact ou un bien que la lecture ne rend pas (la RLS, un mandat supprimé) : on n'invente pas la ligne.
     if (!c || !bien) continue
     matchs.push({
       id: m.id, score: m.score, raisons: m.reasons, creeLe: m.created_at, reporteJusquau: m.snoozed_until, bien,

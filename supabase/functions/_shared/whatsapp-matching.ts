@@ -186,8 +186,8 @@ export interface BienWa {
    * L'ÉLIGIBILITÉ à « à proposer » et aux reportés — distincte de `retire` : une annonce non retirée ; un mandat
    * SEULEMENT `active` (`draft` et `reserved` en sont exclus SANS être dits « retirés »). Règle du point du matin de
    * ce même copilote (`matching_actions_agence`, migration 20260924200000 : « un mandat vendu, retiré ou supprimé
-   * n'est plus une occasion »). ⚠ DIFFÈRE du fil, qui garde tous les mandats quel que soit leur statut — à confirmer
-   * par Julien avant de la généraliser ailleurs (décision 12, lot D1).
+   * n'est plus une occasion »). Le fil l'applique aussi (lot E1, décision 12a de Julien : `enVente`, `versBien`) ;
+   * `tests/unit/whatsapp-matching-fil.spec.ts` confronte les deux.
    */
   occasion: boolean
   /** Le statut BRUT d'un mandat (`draft`, `active`, `reserved`, `sold`, `archived`) ; `null` pour une annonce, qui
@@ -232,8 +232,7 @@ export function bienDeMandat(l: LigneMandat): BienWa {
     // ÉLIGIBILITÉ, pas étiquette : seul un mandat `active` est une occasion (règle de `matching_actions_agence`,
     // migration 20260924200000 : « un mandat vendu, retiré ou supprimé n'est plus une occasion »). `draft` (pas
     // publié) et `reserved` (sous offre) en sont donc exclus SANS être dits « retirés » — ils gardent leur place en
-    // cours s'ils y sont déjà. Cette règle DIFFÈRE du fil, qui garde tous les mandats quel que soit leur statut : à
-    // confirmer par Julien avant de la généraliser (décision 12, lot D1).
+    // cours s'ils y sont déjà. Le fil applique la même règle (lot E1, décision 12a).
     occasion: l.status === 'active',
     statutMandat: l.status,
     vuLe: null, prixInitial: null, baisseLe: null,

@@ -11,8 +11,11 @@
  * ⛔ LE SIGNAL DE PRIX SE CALCULE SUR `prix_propose` SEULEMENT, posé par la base au geste « Je l'ai
  * proposé » (trigger `set_match_prix_propose`). Sans lui, pas de signal : le premier prix de l'annonce ne dit
  * rien de ce que l'acheteur a vu.
+ *
+ * ⚠ Lot E1 (décision 12a) : ces deux onglets GARDENT un mandat qui n'est plus en vente — une réponse en cours se
+ * consigne encore — et écrivent son état (`cleEtatMandat`) ; « À proposer » ne le montre plus (`horsVente`).
  */
-import { passeFiltres, temps, type FilFiltres, type FilMatch } from './filModele'
+import { horsVente, passeFiltres, temps, type FilBien, type FilFiltres, type FilMatch } from './filModele'
 
 /** Les trois onglets du fil, un par temps de la boucle (§5). */
 export const ONGLETS = ['aProposer', 'enAttente', 'aConclure'] as const
@@ -34,6 +37,14 @@ export type MotifRefus = (typeof MOTIFS_REFUS)[number]
  */
 export const cleMotif = (code: string | null | undefined): string | null =>
   (code && (MOTIFS_REFUS as readonly string[]).includes(code) ? `fil.motifs.${code}` : null)
+
+/**
+ * La clé i18n de l'état d'un mandat qui n'est plus en vente (lot E1), dans le vocabulaire de Mes biens
+ * (`listings:status.*` : « Vendu », « Archivé », « Réservé », « Brouillon ») ; `null` pour un bien en vente ou une
+ * annonce du marché. Pas de libellé propre au fil : l'état d'un bien se dit partout de la même façon.
+ */
+export const cleEtatMandat = (b: FilBien): string | null =>
+  (horsVente(b) && b.statut ? `listings:status.${b.statut}` : null)
 
 /** Une relance de proposition en cours (`reminders`), et les biens qu'elle couvre. */
 export interface RelanceProposition { id: string; contactId: string; matchIds: string[]; echeance: string | null }

@@ -1143,7 +1143,7 @@ describe('prepareRecordMatchOutcome — « propose » ne vise jamais une annonce
       .toMatchObject({ ok: true, payload: { match_id: 'rt5', bien: RET } })
   })
 
-  it('un MANDAT vendu se propose encore, comme dans le fil : la règle `occasion` des mandats attend la décision 12 du lot D1', async () => {
+  it('un MANDAT vendu se consigne encore « proposé » : la consignation ne lit pas `occasion`, que le fil applique (décision 12a)', async () => {
     const vendu = { ...mandats[0], id: 'e0000000-0000-4000-8000-0000000000d1', status: 'sold' }
     const mS = m({ id: 'rt6', property_id: vendu.id })
     const { client } = fauxClient({ contacts, market_listings: [], properties: [vendu], matches: [mS] }, { wa_matching_biens_de_l_acheteur: [LA(mS, 'mandat', vendu)] })

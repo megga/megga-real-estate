@@ -4,9 +4,14 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
-  cleAttente, construireAConclure, construireAttente, ongletValide, signalPrix, type RelanceProposition,
+  cleAttente, cleEtatMandat, construireAConclure, construireAttente, ongletValide, signalPrix, type RelanceProposition,
 } from '@/components/matching-fil/filBoucle'
 import type { FilBien, FilFiltres, FilMatch, SuiviMatch } from '@/components/matching-fil/filModele'
+import { Constants } from '@/types/database'
+import biensFr from '@/i18n/locales/fr/listings.json'
+import biensDe from '@/i18n/locales/de/listings.json'
+import biensEn from '@/i18n/locales/en/listings.json'
+import biensIt from '@/i18n/locales/it/listings.json'
 
 const MAINTENANT = Date.parse('2026-09-21T12:00:00.000Z')
 const SANS_FILTRE: FilFiltres = { bienId: null, acheteurId: null, texte: '' }
@@ -120,5 +125,34 @@ describe('ongletValide et cleAttente', () => {
 
   it('la clé d’une ligne d’attente ne se confond pas avec un id de match', () => {
     expect(cleAttente('c9')).toBe('attente:c9')
+  })
+})
+
+describe('lot E1 — un mandat qui n’est plus en vente garde sa place dans la boucle, son état écrit (décision 12a)', () => {
+  const julie = acheteur('c9', 'Julie')
+  const vendu = bien('p9', { enVente: false, statut: 'sold' })
+
+  it('« En attente » garde son bien proposé, « À conclure » son intéressé : la réponse se consigne encore', () => {
+    const attente = construireAttente([match('m14', julie, {}, { bien: vendu })], [], SANS_FILTRE, MAINTENANT)
+    expect(attente.map((l) => [l.acheteur.id, l.matchs.map((m) => m.id)])).toEqual([['c9', ['m14']]])
+    const conclure = construireAConclure([match('m6', julie, { statut: 'interested' }, { bien: vendu })], SANS_FILTRE)
+    expect(conclure.map((m) => m.id)).toEqual(['m6'])
+  })
+
+  it('son état s’écrit avec le vocabulaire de Mes biens ; un bien en vente ou du marché n’en écrit aucun', () => {
+    expect(cleEtatMandat(vendu)).toBe('listings:status.sold')
+    expect(cleEtatMandat(bien('p10', { enVente: false, statut: 'reserved' }))).toBe('listings:status.reserved')
+    expect(cleEtatMandat(bien('p1', { enVente: true, statut: 'active' }))).toBeNull()
+    expect(cleEtatMandat(bien('a1', { marche: { ref: 'MG-FL-1', sourceUrl: null } }))).toBeNull()
+  })
+
+  it('chaque statut d’un mandat hors vente a son libellé, dans les quatre langues', () => {
+    const LIBELLES: Record<string, { status: Record<string, string> }> = { fr: biensFr, de: biensDe, en: biensEn, it: biensIt }
+    const statuts = Constants.public.Enums.property_status.filter((s) => s !== 'active')
+    expect(statuts.length).toBeGreaterThan(0)
+    for (const statut of statuts) {
+      expect(cleEtatMandat(bien('p', { enVente: false, statut }))).toBe(`listings:status.${statut}`)
+      for (const [langue, j] of Object.entries(LIBELLES)) expect(j.status[statut], `${langue} · ${statut}`).toMatch(/\S/)
+    }
   })
 })

@@ -635,8 +635,8 @@ export function consignerEchoTropLarge(lang: WaLang, nom: string, texte: string)
 /**
  * `propose` sur une annonce RETIRÉE du marché consignerait un deal et une relance sur un bien parti : elle ne se
  * propose plus, ni dans le fil ni selon `NOTE_MODELE` (whatsapp-matching.ts). Nomme ce qui a été écarté, cinq au
- * plus ; rien n'est consigné. Les MANDATS n'ont pas cette règle : celle de leur `occasion` attend la décision 12 du
- * lot D1 (Julien).
+ * plus ; rien n'est consigné. Les MANDATS n'ont pas cette règle ici : la consignation ne lit pas leur `occasion`
+ * (`proposable`, whatsapp-matching-outils.ts).
  */
 export function consignerAnnonceRetiree(lang: WaLang, titres: readonly string[]): string {
   const liste = nommer(titres) + compteEnClair(lang, titres.length, null)

@@ -11,12 +11,14 @@
  *
  * ⚠ Le titre est le NOM de l'acheteur, comme dans la sélection du marché — pas « Retours de Julie » : le
  * français élide devant une voyelle (« d'Emma »), et une interpolation ne le sait pas.
+ *
+ * ⚠ Un mandat qui n'est plus en vente garde sa place (lot E1) : son état s'écrit en tête du bien (« Vendu · CHF … »).
  */
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { initiales, palierScore, type FilMatch } from './filModele'
-import type { FilAttente, MotifRefus } from './filBoucle'
+import { cleEtatMandat, type FilAttente, type MotifRefus } from './filBoucle'
 import { dateCourte, encreAccent, MARGE_POINTS, prixBien, texteSignal } from './filAffichage'
 import { FilAvatar, FilBouton, FilScore, FilVignette } from './filAtomes'
 import FilMotifs from './FilMotifs'
@@ -91,8 +93,10 @@ function BienPropose({ sp, m }: { sp: CrmPalette; m: FilMatch }) {
   const { t } = useTranslation('matching')
   const signal = texteSignal(m, t)
   const propose = m.suivi?.proposeLe
-  const details = [prixBien(m.bien, t), m.bien.ville, propose ? t('fil.retours.proposeLe', { date: dateCourte(propose) }) : null]
-    .filter(Boolean).join(' · ')
+  const etat = cleEtatMandat(m.bien)
+  const details = [
+    etat ? t(etat) : null, prixBien(m.bien, t), m.bien.ville, propose ? t('fil.retours.proposeLe', { date: dateCourte(propose) }) : null,
+  ].filter(Boolean).join(' · ')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
       <FilVignette sp={sp} photo={m.bien.photo} largeur={56} hauteur={42} />

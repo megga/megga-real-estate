@@ -136,6 +136,15 @@ describe('construireCorrections — au deuxième refus pour un même motif', () 
     expect(c!.changement).toMatchObject({ cle: 'features', ajoutes: ['vue lac', 'cheminée', 'machine à laver', 'place de parc'] })
   })
 
+  it('lot E1 : le refus d’un mandat qui n’est plus en vente compte encore — il dit quelque chose de l’acheteur, pas du bien', () => {
+    const [c] = construireCorrections([
+      m('m16', { prixPropose: 1_580_000 }, { enVente: false, statut: 'sold' }),
+      m('m14', { prixPropose: 1_560_000 }),
+    ])
+    expect(c!.refus.map((x) => x.id)).toEqual(['m16', 'm14'])
+    expect(c!.changement).toMatchObject({ cle: 'budget_max', apres: 1_550_000 })
+  })
+
   it('les plus récentes d’abord', () => {
     const cs = construireCorrections([
       m('a', {}), m('b', {}),

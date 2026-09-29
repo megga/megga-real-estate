@@ -403,8 +403,8 @@ interface LigneDeLAcheteur extends LigneDesignee { match_id: string }
 /**
  * Ce que « propose » peut viser. Une annonce RETIRÉE ne se propose plus — le fil n'en offre aucune à proposer
  * (`FilSelectionResume`, filModele.ts), et `NOTE_MODELE` le dit au modèle : la consigner créerait un deal et une
- * relance sur un bien parti. Un mandat garde sa place quel que soit son statut, comme dans le fil : la règle
- * `occasion` des mandats attend la décision 12 du lot D1 (Julien).
+ * relance sur un bien parti. Un mandat garde sa place quel que soit son statut : cette consignation ne lit pas son
+ * `occasion`, que le fil et `get_matches` appliquent (décision 12a) — l'y étendre attend l'accord de Julien.
  */
 const proposable = (b: BienWa): boolean => !(b.genre === 'annonce' && b.retire)
 

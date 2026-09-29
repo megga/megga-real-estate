@@ -325,7 +325,7 @@ describe('bienDeMandat — l’étiquette « retiré » et l’éligibilité « 
     expect(bienDeMandat(mandat({ status: 'sold' })).retire).toBe(true)
   })
 
-  it('seul `active` est une occasion : draft et reserved en sont exclus SANS être « retirés » (règle du point du matin, à confirmer — décision 12, lot D1)', () => {
+  it('seul `active` est une occasion : draft et reserved en sont exclus SANS être « retirés » (règle du point du matin et du fil — décision 12a)', () => {
     expect(bienDeMandat(mandat({ status: 'active' })).occasion).toBe(true)
     expect(bienDeMandat(mandat({ status: 'draft' })).occasion).toBe(false)
     expect(bienDeMandat(mandat({ status: 'reserved' })).occasion).toBe(false)
@@ -516,7 +516,7 @@ describe('vueGetMatches — les biens vivants d’un acheteur', () => {
     expect(vue.total).toEqual({ en_cours: '1', a_proposer: '0', reportes: '0' })
   })
 
-  it('un mandat « reserved » est hors « à proposer » (pas une occasion) sans être étiqueté retiré — règle du point du matin, à confirmer (décision 12, lot D1)', () => {
+  it('un mandat « reserved » est hors « à proposer » (pas une occasion) sans être étiqueté retiré — règle du point du matin et du fil (décision 12a)', () => {
     const reserve = bienDeMandat(mandat({ status: 'reserved' }))
     expect(reserve.retire).toBe(false)
     const vue = vueGetMatches([entree({ id: 'm-res' }, reserve)], MAINTENANT, false)

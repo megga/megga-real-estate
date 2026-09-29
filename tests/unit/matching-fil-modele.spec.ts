@@ -9,8 +9,8 @@ import { describe, expect, it } from 'vitest'
 import { axesComplementaires, calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
 import {
   bienDeCle, cleBien, cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection,
-  criteresNonTenus, initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
-  type FilBien, type FilFiltres, type FilMatch, type FilSelectionResume,
+  criteresNonTenus, horsVente, initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
+  type FilBien, type FilFiltres, type FilMatch, type FilSelectionResume, type SuiviMatch,
 } from '@/components/matching-fil/filModele'
 
 const MAINTENANT = Date.parse('2026-09-17T12:00:00.000Z')
@@ -109,6 +109,44 @@ describe('construireFil', () => {
     expect(bienDeCle(vue.ordre[0]!)).toBe('p1')
     expect(bienDeCle('m2')).toBeNull()
     expect(vue.compte).toBe(1)
+  })
+})
+
+describe('lot E1 — un mandat qui n’est plus en vente ne se propose plus (décision 12a)', () => {
+  const vendu = bien('p9', { titre: 'Villa vendue', enVente: false, statut: 'sold' })
+  const champel = bien('p1', { titre: 'Champel', enVente: true, statut: 'active' })
+  const julie = acheteur('c9', { prenom: 'Julie', nom: 'Morand' })
+  const emma = acheteur('c7', { prenom: 'Emma', nom: 'Schneider' })
+  // Refusé pour le prix, revenu par une baisse : un match encore à proposer, qui garde son suivi.
+  const revenu: SuiviMatch = {
+    statut: 'suggested', proposeLe: '2026-09-01T10:00:00.000Z', reponduLe: '2026-09-02T10:00:00.000Z', motif: 'prix',
+    note: null, prixPropose: 3_450_000, apprisLe: null,
+  }
+
+  it('ni sa suggestion, ni son bien revenu, ni son reporté n’entrent dans « À proposer » ; le compte suit', () => {
+    const vue = construireFil([
+      match('m1', 95, vendu, julie),
+      match('m2', 92, vendu, emma, { suivi: revenu }),
+      match('m3', 88, vendu, emma, { reporteJusquau: '2026-09-30T00:00:00.000Z' }),
+      match('m4', 70, champel, julie),
+    ], SANS_FILTRE, MAINTENANT)
+    expect(vue.groupes.map((g) => g.bien.id)).toEqual(['p1'])
+    expect(vue.reportes).toEqual([])
+    expect(vue.compte).toBe(1)
+    expect(vue.ordre).toEqual(['bien:p1', 'm4'])
+  })
+
+  it('« Qui pour ce bien ? » ne s’offre plus : son en-tête n’est plus une ligne du fil', () => {
+    const vue = construireFil([match('m1', 95, vendu, julie)], SANS_FILTRE, MAINTENANT)
+    expect(vue.ordre).not.toContain(cleBien('p9'))
+    expect(vue.groupes).toEqual([])
+  })
+
+  it('seul `enVente: false` retire : un bien sans le drapeau (une annonce, un bien lu hors du fil) reste à proposer', () => {
+    expect(horsVente(vendu)).toBe(true)
+    expect(horsVente(champel)).toBe(false)
+    expect(horsVente(bien('p2'))).toBe(false)
+    expect(construireFil([match('m5', 80, bien('p2'), emma)], SANS_FILTRE, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
   })
 })
 

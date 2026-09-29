@@ -68,6 +68,14 @@ export interface FilBien {
   baisseLe?: string | null
   /** Lot C, signal : la signature du mandat ou sa mise en service, la plus récente des deux. */
   mandatLe?: string | null
+  /**
+   * Lot E1 (décision 12a). Un mandat EN VENTE : `active` et non supprimé, la règle du copilote WhatsApp (`occasion`,
+   * `get_matches`) — le fil ne lit pas un mandat supprimé. `false` : il ne se propose plus (`horsVente`). Absent : une
+   * annonce du marché, ou un bien lu hors du fil.
+   */
+  enVente?: boolean
+  /** Lot E1. Le statut d'un mandat (`properties.status`) : l'état qu'« En attente » et « À conclure » écrivent. */
+  statut?: string | null
 }
 
 /**
@@ -172,6 +180,16 @@ export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
 }
 
 /**
+ * Un mandat qui n'est plus en vente (lot E1, décision 12a, conception §5.3) : il ne se propose plus. Ses suggestions,
+ * ses biens revenus et ses reportés sortent d'« À proposer » (`construireFil`), et avec eux l'en-tête qui ouvre « Qui
+ * pour ce bien ? ». « En attente » et « À conclure » le gardent, son état écrit : une réponse en cours se consigne
+ * encore. Ses refus nourrissent encore « Apprendre » : un refus dit quelque chose de l'acheteur, pas du bien.
+ * ⚠ Un mandat LU et pas `active` : un mandat supprimé n'est pas lu du tout (`useMatchingFil`, comme `get_matches`) —
+ * il sort de tous les onglets, et ne doit pas y revenir par une lecture qui le garderait.
+ */
+export const horsVente = (b: FilBien): boolean => b.enVente === false
+
+/**
  * Le fil « À traiter » : groupes par bien, reportés à part, compte et ordre de lecture. L'ordre : score
  * décroissant, puis — à score égal — ce qui porte un signal (`signal`, lot C : `aUnSignal` de filSignaux.ts ;
  * absent, aucun), puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. Un groupe se
@@ -179,6 +197,7 @@ export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
  * ⚠ Le copilote WhatsApp (lot D2) recopie ce comparateur (`avant`, local, non exporté) dans `vueGetMatches`
  * (`_shared/whatsapp-matching.ts`) : confronté par `tests/unit/whatsapp-matching-fil.spec.ts`, par la sortie
  * publique de `construireFil` puisque `avant` lui-même ne l'est pas.
+ * ⚠ Lot E1 : un mandat qui n'est plus en vente n'y entre pas (`horsVente`), ni en ligne, ni en reporté.
  */
 export function construireFil(
   matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number, signal: (m: FilMatch) => boolean = () => false,
@@ -188,7 +207,7 @@ export function construireFil(
   const reportes: FilMatch[] = []
   const parBien = new Map<string, { bien: FilBien; matchs: FilMatch[] }>()
   for (const m of matchs) {
-    if (!passeFiltres(m, filtres)) continue
+    if (horsVente(m.bien) || !passeFiltres(m, filtres)) continue
     if (m.reporteJusquau != null && temps(m.reporteJusquau) > maintenant) {
       reportes.push(m)
       continue

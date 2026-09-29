@@ -4,6 +4,10 @@
  * (`QuiPourCeBien`, lot D1) — les acquéreurs compatibles, qu'on ouvre en un clic s'ils sont une ligne du fil, et les
  * anciens prospects. Les prescripteurs attendent le modèle relationnel (étape 6) : pas de section vide.
  *
+ * ⚠ Il ne s'ouvre que sur un mandat EN VENTE (lot E1) : un mandat qui ne l'est plus n'a plus d'en-tête dans « À
+ * proposer » (`horsVente`). D'où les anciens prospects demandés d'office (`avecAnciens`) : le moteur ne les note que
+ * pour un mandat actif.
+ *
  * ⚠ Les anciens prospects ne se demandent au moteur qu'après `DELAI_PROSPECTS` sur l'en-tête : parcourir le fil aux
  * flèches passe sur chaque en-tête, et chaque passage relirait les recherches closes de l'agence. Le panneau est remonté
  * à chaque ligne (`key` du conteneur, `MatchingFil`) : quitter l'en-tête avant le délai n'appelle rien.

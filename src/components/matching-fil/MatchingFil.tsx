@@ -13,6 +13,9 @@
  * feuille « Retours de … »), « À conclure » (une ligne par bien qui intéresse ; le panneau planifie la
  * visite). L'onglet est rangé dans l'ONGLET du CRM, comme les filtres ; la sélection reste locale.
  *
+ * ⚠ Lot E1 (décision 12a) : un mandat qui n'est plus en vente (`horsVente`) sort d'« À proposer », son en-tête et
+ * donc « Qui pour ce bien ? » avec lui ; « En attente » et « À conclure » le gardent, son état écrit.
+ *
  * ⚠ Le clavier est posé sur la RACINE du fil (`onKeyDown`), pas sur `window` : le fil est la page 0
  * d'un pager dont la page 1 reste montée, et plusieurs écrans d'onglet restent vivants. Un écouteur
  * global agirait depuis une page ou un onglet qu'on ne regarde pas ; celui-ci n'entend que ce qui a
@@ -63,7 +66,7 @@ import { useMatchingFil, versGeste } from '@/hooks/useMatchingFil'
 import { PAS_SELECTION, useSelectionMarche } from '@/hooks/useSelectionMarche'
 import { PendingRegistry, UNDO_WINDOW_MS } from '@/lib/matchingAnnulation'
 import {
-  bienDeCle, cleSelection, construireFil, construireSelections, contactDeSelection, optionsFiltres, precoches,
+  bienDeCle, cleSelection, construireFil, construireSelections, contactDeSelection, horsVente, optionsFiltres, precoches,
   type FilFiltres, type FilMatch,
 } from './filModele'
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
@@ -206,9 +209,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   const visibles = useMemo(() => matchs.filter((m) => visibleSelon(masques, m.id, chargeLe)), [matchs, masques, chargeLe])
   const visiblesBoucle = useMemo(() => boucle.filter((m) => visibleSelon(masques, m.id, chargeLe)), [boucle, masques, chargeLe])
   // Les acheteurs de la boucle comptent aussi, même sans rien à proposer ; le filtre Bien ne vise que les
-  // biens en mandat (`optionsFiltres`).
+  // biens en mandat (`optionsFiltres`). Un mandat qui n'est plus en vente n'y entre que par la boucle : ses matchs à
+  // proposer ne sont plus des lignes, un choix qui ne mènerait qu'à eux ne mènerait à rien.
   const options = useMemo(() => optionsFiltres(
-    [...matchs, ...boucle.filter((m) => !m.bien.marche)], selections, boucle.filter((m) => m.bien.marche).map((m) => m.acheteur),
+    [...matchs.filter((m) => !horsVente(m.bien)), ...boucle.filter((m) => !m.bien.marche)], selections,
+    boucle.filter((m) => m.bien.marche).map((m) => m.acheteur),
   ), [matchs, boucle, selections])
   // ⚠ CE QUE L'ONGLET RESTITUE PEUT ÊTRE PÉRIMÉ OU MALFORMÉ : un schéma antérieur, une écriture
   // interrompue. `texte` redevient une chaîne, `bienId`/`acheteurId` une chaîne ou `null` — mais un id

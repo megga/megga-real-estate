@@ -20,6 +20,8 @@
  *
  * ⚠ « Pas intéressé » (N) reste possible : un intérêt peut retomber, et sans ce geste la ligne n'aurait pas
  * de sortie.
+ *
+ * ⚠ Un mandat qui n'est plus en vente garde sa place (lot E1) : son état s'écrit avant son prix.
  */
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,7 +29,7 @@ import { addDays, format } from 'date-fns'
 import type { CrmPalette } from '@/components/crm/tokens'
 import type { VisiteAPlanifier } from '@/lib/matchingGestes'
 import { initiales, palierScore, type FilMatch } from './filModele'
-import type { MotifRefus } from './filBoucle'
+import { cleEtatMandat, type MotifRefus } from './filBoucle'
 import { dateCourte, encreAccent, MARGE_POINTS, prixBien } from './filAffichage'
 import { FilAvatar, FilBouton, FilScore, FilVignette } from './filAtomes'
 import FilMotifs from './FilMotifs'
@@ -66,6 +68,7 @@ export default function FilConclure({
   const [duree, setDuree] = useState(45)
   useEffect(() => { if (focusDate) dateRef.current?.focus() }, [focusDate])
   const { bien, acheteur } = m
+  const etat = cleEtatMandat(bien)
   const debut = date && heure ? new Date(`${date}T${heure}:00`) : null
   const valide = debut != null && Number.isFinite(debut.getTime()) && debut.getTime() > ouvertLe.getTime()
   const repondu = m.suivi?.reponduLe
@@ -102,7 +105,7 @@ export default function FilConclure({
             </span>
             <h2 style={{ margin: 0, marginTop: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink }}>{bien.titre}</h2>
             <p style={{ margin: 0, marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub }}>
-              {[prixBien(bien, t), bien.adresse, bien.ville].filter(Boolean).join(' · ')}
+              {[etat ? t(etat) : null, prixBien(bien, t), bien.adresse, bien.ville].filter(Boolean).join(' · ')}
             </p>
             {bien.marche
               ? lienAnnonce && (
