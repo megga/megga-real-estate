@@ -399,7 +399,7 @@ export async function execDismiss(ctx: GesteContext, buyer: AcheteurGeste): Prom
  *  La réponse est là : la relance de proposition du match (« Retour de … ») n'a plus d'objet et
  *  passe `done`. Sans ça, elle remontait dans « Aujourd'hui » pour un acheteur qui avait répondu.
  *  Un refus est signalé sans faire lever : la réponse, elle, est consignée.
- *  ⚠ Atelier et mobile seulement (inchangés au lot B) : le fil consigne par `execRepondre`, sans clore par
+ *  ⚠ L'écran mobile seulement (inchangé au lot B) : le fil consigne par `execRepondre`, sans clore par
  *  `match_id` — une sélection n'a qu'une relance, que le trigger clôt au dernier bien répondu. */
 export async function execReact(
   buyer: Pick<AcheteurGeste, 'matchId'>,

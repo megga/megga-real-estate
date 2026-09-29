@@ -7,10 +7,8 @@
  * stable (`lotsParPage`) — une page de plus ajoute une lecture sans relancer les autres.
  * ⚠ La clé vit SOUS le préfixe du fil (`CLE_FIL`), comme celles d'« Aujourd'hui » (`useMatchingDuJour`,
  * `useAbsenceSignals`) et des fiches (`useQuiPourCeBien`) : ce qui l'invalide rafraîchit les comptes. Aujourd'hui, c'est
- * l'ajout à la sélection d'un acheteur depuis cette Recherche même (`useAjouterSelection`), et chaque geste du FIL.
- * ⛔ Mais jusqu'au lot E, le pager de Matching monte l'ATELIER à côté de la Recherche, pas le fil (qui n'y vit qu'au
- * banc) — et l'atelier n'invalide pas `CLE_FIL` (`refresh` de `useAtelierMatching`) : un match écarté ou refusé dans
- * l'atelier ne change la pastille qu'à la prochaine relecture.
+ * l'ajout à la sélection d'un acheteur depuis cette Recherche même (`useAjouterSelection`), et chaque geste du FIL,
+ * la page voisine de cette Recherche dans le pager de Matching.
  * ⚠ `CLE_FIL` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
  * le module des gestes (`matchingGestes`) : la Recherche n'a pas à le charger pour une chaîne.
  */

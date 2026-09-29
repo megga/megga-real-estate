@@ -378,7 +378,7 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
   const CIBLE = /\/dashboard\/matching(?:\?|\$\{)|\/dashboard\/(?:listings|market)\/\$\{[^}]+\}\?\$\{PARAM_QUI_POUR\}=1|\/dashboard\/contacts\?nouveau=1/
   /** Les liens d'arrivée, par fichier. Un lien neuf s'inscrit ici — avec son jeton. */
   const SITES: Record<string, number> = {
-    // « Ajouter un acheteur », la couverture de premier lancement : celle du fil, et celle de l'atelier tant qu'il est monté.
+    // « Ajouter un acheteur », la couverture de premier lancement du fil.
     'src/components/matching-fil/MatchingFil.tsx': 1,
     'src/components/matching-recherche/MatchingRechercheHybride.tsx': 1,
     'src/pages/agent/ContactDetailPage.tsx': 2,
@@ -387,7 +387,6 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
     'src/pages/agent/ExternalListingDetailPage.tsx': 1,
     'src/pages/agent/ListingDetailPage.tsx': 1,
     'src/pages/agent/ListingsPage.tsx': 1,
-    'src/pages/agent/MatchingAtelierPage.tsx': 1,
     'src/pages/agent/NouveauBienPage.tsx': 1,
     'src/pages/agent/TodayPage.tsx': 3,
   }

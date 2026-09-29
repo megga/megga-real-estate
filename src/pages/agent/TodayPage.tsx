@@ -129,8 +129,8 @@ export default function TodayPage() {
       case 'visite-detail': navigate(ref ? `/dashboard/visits/${ref}` : '/dashboard/calendar'); break
       case 'biens-detail': navigate(ref ? `/dashboard/listings/${ref}` : '/dashboard/listings'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
-      // `?contact=` est le contrat que MatchingAtelierPage lit déjà pour
-      // focaliser un acheteur — pas une globale posée avant la navigation.
+      // `?contact=` est le contrat que le fil de matchs lit pour se filtrer
+      // sur un acheteur — pas une globale posée avant la navigation.
       case 'matching': navigate(ref ? `/dashboard/matching?contact=${ref}` : '/dashboard/matching', ref ? avecArrivee() : undefined); break
       // Lot D1 : une place précise du fil (la requête de `lienFil`), et la fiche d'un mandat défilée jusqu'à « Qui pour
       // ce bien ? ». ⛔ Gabarits ANCRÉS (`/dashboard/…`) : `redirection-ouverte.spec.ts` refuse un puits dynamique.

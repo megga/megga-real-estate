@@ -416,10 +416,10 @@ const ROUTES_TABLEAU_DE_BORD = (
   {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
   <Route path="import-lead" element={<ImportLeadPage />} />
   {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
-      page 0 = atelier triptyque « par score » · page 1 = recherche
-      hybride du marché (vente + location). Deep-links portés par
-      l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
-      Mobile (< 768px) : inbox acheteurs + focus. */}
+      page 0 = le fil de matchs, sur lequel « Matching » s'ouvre · page 1 =
+      recherche hybride du marché (vente + location). Liens d'arrivée du
+      fil (filLiens.ts) : ?contact=<id> · ?annonce=p:<id> · ?onglet= ·
+      ?ligne= · ?attente=. Mobile (< 768px) : inbox acheteurs + focus. */}
   <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPage />} mobile={<MobileMatchingPage />} />} />
   {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
   <Route path="journey" element={<ResponsiveRoute desktop={<JourneyPage />} mobile={<MobileJourneyPage />} />} />

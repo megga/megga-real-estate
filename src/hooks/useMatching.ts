@@ -292,7 +292,8 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
   // ── Réaction du client à un dossier envoyé (interested / visit_planned /
   // rejected). On ne pose PAS response_at ici : le trigger DB
   // (set_match_response_at) en est la source unique. Invalide les DEUX
-  // queryKeys car la page Atelier lit ['atelier-matches'] et useMatching ['matches'].
+  // queryKeys car l'écran mobile de Matching lit ['atelier-matches'] (`useAtelierMatching`) et
+  // useMatching ['matches'].
   const reactionMutation = useMutation({
     mutationFn: async ({ matchId, reaction }: { matchId: string; reaction: MatchReaction }) => {
       const { error } = await supabase

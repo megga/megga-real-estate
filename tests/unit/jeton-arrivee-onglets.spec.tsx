@@ -64,7 +64,7 @@ vi.mock('@/lib/supabase', () => {
 
 // Le pager de Matching sans ce qui l'entoure : son chrome, et ses deux pages — le banc fournit les siennes.
 vi.mock('@/components/crm/CrmWorkspace', () => ({ default: ({ children }: { children: ReactNode }) => children }))
-vi.mock('@/pages/agent/MatchingAtelierPage', () => ({ default: () => null }))
+vi.mock('@/components/matching-fil/MatchingFil', () => ({ default: () => null }))
 vi.mock('@/components/matching-recherche/MatchingRechercheHybride', () => ({ default: () => null }))
 
 import MatchingPage, { type MatchingPagerBanc } from '@/pages/agent/MatchingPage'
@@ -259,13 +259,15 @@ describe('une arrivée ne s’applique que dans l’onglet qui porte son adresse
   })
 
   it('… ni son pager : la page 0 de l’arrivée fermée ne s’écrit pas chez lui', async () => {
-    h.lecture = Promise.resolve(ligne([onglet('ta', A), onglet('tb', FIL)]))
+    // L'onglet qui prend la main avait laissé son pager sur la Recherche : c'est cette page qu'effacerait la page 0
+    // d'une arrivée écrite chez lui.
+    h.lecture = Promise.resolve(ligne([onglet('ta', A), onglet('tb', FIL, { [PAGE]: 1 })]))
     await rendre(<Arbre entree={lien('j1')} ecran={<MatchingPage banc={BANC} />} />)
     expect(pageMontree('ta')).toBe(0)
     expect(pageMontree('tb')).toBe(1)
     await geste(() => h.onglets!.fermer(0))
     expect(pageMontree('tb')).toBe(1)
-    expect(tranchee(PAGE, 'tb')).toBeUndefined()
+    expect(tranchee(PAGE, 'tb')).toBe(1)
     expect(tranchee(MARQUE_PAGER, 'tb')).toBeUndefined()
   })
 
@@ -374,25 +376,32 @@ describe('le rechargement : la marque revient avec la pile serveur', () => {
 
 describe('le pager de Matching : son arrivée attend la pile d’onglets, et d’être montré', () => {
   it('pendant le chargement de la pile, il montre la page 0 sans rien écrire ; la pile arrivée, il l’applique', async () => {
+    // La première image vient du miroir de session, puis l'hydratation le remplace par la ligne serveur : dans l'un
+    // comme dans l'autre, l'onglet est resté sur la Recherche — l'arrivée doit l'emporter sur cette page retrouvée.
+    const resteSurLaRecherche = onglet('ta', A, { [PAGE]: 1 })
+    session.setItem(cleDuCompte('megga.crm.tabs', 'u-1', 'ag-1'),
+      JSON.stringify({ tabs: [resteSurLaRecherche], active: 0, revision: null }))
     let servir: (r: { data: unknown; error: null }) => void = () => {}
     h.lecture = new Promise((r) => { servir = r })
     await rendre(<Arbre entree={lien('j1')} ecran={<MatchingPage banc={BANC} />} />)
     expect(h.onglets!.chargement).toBe(true)
     const [provisoire] = h.onglets!.tabs
     expect(pageMontree(provisoire.id)).toBe(0)
-    // Écrite ici, la page serait effacée par l'hydratation — et l'arrivée, rejouée.
-    expect(h.onglets!.tabs.flatMap((t) => Object.keys(t.ui ?? {}))).toEqual([])
-    await act(async () => { servir(ligne([onglet('ta', A)])) })
+    // Écrite ici, la page serait effacée par l'hydratation — et l'arrivée, rejouée : la tranche ne porte que la page
+    // retrouvée.
+    expect(h.onglets!.tabs.flatMap((t) => Object.entries(t.ui ?? {}))).toEqual([[PAGE, 1]])
+    await act(async () => { servir(ligne([resteSurLaRecherche])) })
     expect(pageMontree('ta')).toBe(0)
     expect(tranchee(PAGE, 'ta')).toBe(0)
     expect(tranchee(MARQUE_PAGER, 'ta')).toEqual({ jeton: 'j1', adresse: A })
   })
 
   it('caché, il n’applique rien ; montré par la barre, une fois — la page choisie ensuite survit aux bascules', async () => {
-    // L'onglet caché porte une adresse du fil jamais appliquée : sans jeton, sa clé est l'adresse.
-    h.lecture = Promise.resolve(ligne([onglet('ta', ACCUEIL), onglet('tb', A)]))
+    // L'onglet caché porte une adresse du fil jamais appliquée : sans jeton, sa clé est l'adresse. Son pager était
+    // resté sur la Recherche : montré, l'arrivée l'amène à la page 0, une fois.
+    h.lecture = Promise.resolve(ligne([onglet('ta', ACCUEIL), onglet('tb', A, { [PAGE]: 1 })]))
     await rendre(<Arbre entree={ACCUEIL} ecran={<MatchingPage banc={BANC} />} />)
-    expect(tranchee(PAGE, 'tb')).toBeUndefined()
+    expect(tranchee(PAGE, 'tb')).toBe(1)
     expect(tranchee(MARQUE_PAGER, 'tb')).toBeUndefined()
     await geste(() => h.onglets!.selectionner(1))
     expect(pageMontree('tb')).toBe(0)
@@ -405,9 +414,10 @@ describe('le pager de Matching : son arrivée attend la pile d’onglets, et d�
   })
 
   it('un lien suivi dans l’onglet : le pager naît sur la page 0, sans passer par la Recherche', async () => {
-    // L'arrivée se MONTRE dès le premier rendu, avant que la pile range l'adresse dans l'onglet : attendre pour la
-    // montrer ferait naître le pager sur la Recherche, puis le ferait glisser vers la page 0.
-    h.lecture = Promise.resolve(ligne([onglet('ta', ACCUEIL)]))
+    // L'onglet avait laissé son pager sur la Recherche. L'arrivée se MONTRE dès le premier rendu, avant que la pile
+    // range l'adresse dans l'onglet : attendre pour la montrer ferait naître le pager sur cette Recherche retrouvée,
+    // puis le ferait glisser vers la page 0.
+    h.lecture = Promise.resolve(ligne([onglet('ta', ACCUEIL, { [PAGE]: 1 })]))
     await rendre(<Arbre entree={ACCUEIL} ecran={<MatchingPage banc={BANC} />} temoin="ta" />)
     h.pages = []
     const clic = avecArrivee()

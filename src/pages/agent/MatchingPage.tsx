@@ -2,16 +2,16 @@
 //
 // Même grammaire que Today/Pipeline : un grand bento arrondi qui clippe 2 pages
 // glissant en translateY.
-//   Page 0 → Atelier triptyque « par score » (MatchingAtelierPage embarqué)
+//   Page 0 → le fil de matchs (MatchingFil), sur lequel « Matching » s'ouvre
 //   Page 1 → Recherche hybride du marché connecté (vente + location)
 // Molette / PageUp-PageDown / swipe tactile / points latéraux / indice bas.
 //
 // Différences avec le pager Today :
 //   - seuil molette élevé + refroidissement après un scroll interne arrivé en
-//     butée : l'atelier a des colonnes scrollables (file d'acheteurs) — un scroll
-//     léger défile la colonne, seul un geste franc bascule vers « Recherche ».
-//   - clavier = PageUp/PageDown UNIQUEMENT (les flèches restent à l'atelier :
-//     J/K/←/→ y déplacent la sélection ; seules `e` et `x` agissent).
+//     butée : le fil a des colonnes scrollables (sa liste, son panneau) — un
+//     scroll léger défile la colonne, seul un geste franc bascule vers « Recherche ».
+//   - clavier = PageUp/PageDown UNIQUEMENT (les flèches restent au fil : ↑/↓ y
+//     déplacent la sélection, ←/→ y changent d'onglet).
 //
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
@@ -21,7 +21,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
-import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
+import MatchingFil from '@/components/matching-fil/MatchingFil'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { estArriveeFil } from '@/components/matching-fil/filLiens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -35,14 +35,11 @@ const MATCHING_PAGES = [
   { id: 'recherche', labelKey: 'pager.recherche' },
 ]
 
-// Page d'atterrissage = « Recherche ». Les deux pages sont montées d'emblée, mais
-// celle-ci était positionnée une hauteur d'écran plus bas et clippée : le marché
-// connecté n'apparaissait qu'après un geste (molette / PageDown / point latéral).
-// L'Atelier « par score » reste à un cran vers le haut. Index DÉRIVÉ (pas `1` en
-// dur) pour ne pas atterrir sur la mauvaise page si l'ordre du pager change.
-const LANDING_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'recherche'))
-// La page « par score » (page 0), où atterrit toute arrivée du fil. Index DÉRIVÉ, comme `LANDING_PAGE`.
+// La page du fil de matchs (page 0) : « Matching » s'ouvre sur elle, et toute arrivée du fil y atterrit. Index
+// DÉRIVÉ (pas `0` en dur) pour ne pas atterrir sur la mauvaise page si l'ordre du pager change.
 const SCORE_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'score'))
+// La page Recherche (page 1), qu'ouvre « Voir le marché » du fil. Index DÉRIVÉ, comme `SCORE_PAGE`.
+const RECHERCHE_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'recherche'))
 
 // ─── Points de page (droite) ────────────────────────────────────────────
 function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
@@ -114,7 +111,8 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
 }
 
 /**
- * Contenus de substitution du banc `/dev/matching-atelier`, et rien d'autre.
+ * Contenus de substitution des bancs `/dev/crm` et `/dev/matching-atelier` : ils y
+ * injectent des données de démonstration, et rien d'autre.
  *
  * ⚠ La MÉCANIQUE reste celle de la production — chrome, molette, clavier, points
  * de page, bascule de thème de la barre latérale. C'est elle qu'on vient
@@ -160,11 +158,11 @@ export interface MatchingPagerBanc {
 }
 
 export default function MatchingPage(
-  { banc, atterrissage = 'recherche' }: {
+  { banc, atterrissage = 'score' }: {
     banc?: MatchingPagerBanc
     /**
-     * Page d'arrivée sans pivot. « recherche » en production tant que l'atelier tient la page 0 ;
-     * le banc du fil de matchs arrive sur « score » (lot 1). La bascule par défaut est au lot 3.
+     * La page où « Matching » s'ouvre quand ni une arrivée ni l'onglet n'en demandent une :
+     * le fil (« score ») par défaut.
      */
     atterrissage?: 'score' | 'recherche'
   } = {},
@@ -176,18 +174,19 @@ export default function MatchingPage(
   const lightMode = !dark
 
   // ─── Pager molette ──────────────────────────────────────────────────
-  // Arrivée pivotée (fiche deal V4 « Transmettre à … », fiche contact) : un
-  // lien d'arrivée du fil (`estArriveeFil` : `?contact=`, `?annonce=`, `?onglet=`,
-  // `?ligne=`, `?attente=`) cible la page 0 — on atterrit directement dessus
-  // au lieu de la page Recherche (le param était ignoré et l'atelier hors écran).
+  // Une arrivée — un lien d'arrivée du fil (`estArriveeFil` : `?contact=`, `?annonce=`,
+  // `?onglet=`, `?ligne=`, `?attente=`), suivi depuis une fiche deal ou contact,
+  // « Aujourd'hui », « Sa boucle » ou « Qui pour ce bien ? » — cible la page 0, le
+  // fil, même dans un onglet resté sur la Recherche. Sans arrivée, l'onglet rouvre la
+  // dernière page vue.
   const [searchParams] = useSearchParams()
-  const [pageStockee, setPage] = useTabScopedState('pager', atterrissage === 'score' ? SCORE_PAGE : LANDING_PAGE)
+  const [pageStockee, setPage] = useTabScopedState('pager', atterrissage === 'score' ? SCORE_PAGE : RECHERCHE_PAGE)
   /**
    * ⚠ UNE ARRIVÉE NEUVE L'EMPORTE SUR LA PAGE MÉMORISÉE — une fois.
    *
    * `useTabScopedState` rend la valeur STOCKÉE dès qu'elle existe. Dans un onglet
-   * qui avait déjà servi à Matching et bougé son pager, une arrivée pivotée
-   * (« Transmettre à … » depuis une fiche deal) atterrirait sur la page mémorisée
+   * qui avait déjà servi à Matching et bougé son pager, une arrivée (« Transmettre
+   * à … » depuis une fiche deal, par exemple) atterrirait sur la page mémorisée
    * au lieu de la page 0 : le geste qu'on vient de demander serait ignoré au
    * profit d'un souvenir.
    *
@@ -213,9 +212,10 @@ export default function MatchingPage(
     marquerAppliquee()
   }, [arriveeAAppliquer, setPage, marquerAppliquee])
   // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
-  // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
-  // une frame avant de glisser vers Recherche. ⚠ Il lit `page` : dans un onglet
-  // rouvert, la page RETROUVÉE est celle qu'il faut poser d'emblée.
+  // bas) : il doit démarrer sur la page montrée, sinon, dans un onglet resté sur la
+  // Recherche, on verrait le fil une frame avant de glisser vers elle. ⚠ Il lit
+  // `page` : dans un onglet rouvert, la page RETROUVÉE est celle qu'il faut poser
+  // d'emblée.
   const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -266,7 +266,7 @@ export default function MatchingPage(
   // APPELÉ pendant le rendu déclenche `react-hooks/refs`. Le stabiliser ici règle
   // le grief à sa source plutôt que de le taire — et évite au passage une
   // nouvelle fonction par rendu sur la page 0.
-  const openRecherche = useCallback(() => goTo(LANDING_PAGE), [goTo])
+  const openRecherche = useCallback(() => goTo(RECHERCHE_PAGE), [goTo])
 
   // Position initiale (sans animation) + repositionnement au resize.
   useLayoutEffect(() => {
@@ -284,7 +284,7 @@ export default function MatchingPage(
     const el = viewportRef.current
     if (!el) return
 
-    // Ancêtre scrollable (colonne de l'atelier, overlay…) capable de défiler
+    // Ancêtre scrollable (colonne du fil, overlay…) capable de défiler
     // encore dans le sens de la molette ? Si oui, scroll natif et on NE pagine PAS.
     const canScrollNatively = (node: EventTarget | null, dir: number) => {
       let n = node as HTMLElement | null
@@ -329,7 +329,7 @@ export default function MatchingPage(
     }
     el.addEventListener('wheel', onWheel, { passive: false })
 
-    // Clavier : PageUp/PageDown UNIQUEMENT — les flèches restent à l'atelier.
+    // Clavier : PageUp/PageDown UNIQUEMENT — les flèches restent au fil.
     const onKey = (e: KeyboardEvent) => {
       // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
       if (!ecranActifRef.current) return
@@ -371,9 +371,6 @@ export default function MatchingPage(
       color: sp.ink,
     }}>
       <style>{`
-        /* L'atelier (page 0) est un stage plein écran (position:fixed) : la classe
-           .atl-embedded le rend absolu pour qu'il glisse avec le track du pager,
-           embarqué dans le bento. */
         .matching-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .matching-scroll-hint:hover, .matching-scroll-hint:focus-visible { opacity: 1; }
         .matching-scroll-hint:hover .msh-mouse, .matching-scroll-hint:focus-visible .msh-mouse { color: ${sp.ink} !important; }
@@ -395,12 +392,12 @@ export default function MatchingPage(
                   pour la montrer — mise en page cassée. Et les raccourcis du fil (P, X, E), posés sur l'`onKeyDown`
                   de sa RACINE, triaient encore des matchs sur une page qu'on ne voyait plus. `inert` sort la page
                   du clavier, de Tab et de l'arbre d'accessibilité ; React 19 rend l'attribut (React 18 l'ignorait).
-                  ⚠ Il ne couvre que les gestionnaires liés au FOCUS : un écouteur posé sur `window` (comme celui
-                  de l'atelier) continue de recevoir toutes les touches, page inerte ou pas. */}
+                  ⚠ Il ne couvre que les gestionnaires liés au FOCUS : un écouteur posé sur `window` (comme le « / »
+                  de la Recherche) continue de recevoir toutes les touches, page inerte ou pas. */}
               <div inert={page !== 0} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc
                   ? <banc.Page0 dark={dark} onOpenRecherche={openRecherche} />
-                  : <MatchingAtelierPage embedded dark={dark} onOpenRecherche={openRecherche} />}
+                  : <MatchingFil dark={dark} onOpenRecherche={openRecherche} />}
               </div>
               <div inert={page !== 1} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc ? <banc.Page1 dark={dark} /> : <MatchingRechercheHybride dark={dark} />}

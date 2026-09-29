@@ -9,8 +9,8 @@
  * useOfferChain + useUpdateOfferStatus (accepter passe aussi status='completed' —
  * le deal gagné sort du board), prochaine action via useTransactionNextReminder,
  * matching lead = port exact de dsMatches sur le portefeuille actif (useListingsScreen,
- * % calculé jamais stocké), « Transmettre » → /dashboard/matching?contact= (l'atelier
- * lit déjà ce param). Fix hérité de la V3 : le deep-link KYC utilise ?openContactId=
+ * % calculé jamais stocké), « Transmettre » → /dashboard/matching?contact= (le fil de
+ * matchs s'y filtre sur l'acheteur). Fix hérité de la V3 : le deep-link KYC utilise ?openContactId=
  * (la page KYC ne lit pas ?contactId=).
  */
 

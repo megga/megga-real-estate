@@ -179,7 +179,7 @@ function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
 }
 
 /**
- * Ce que « Je l'ai proposé » lit d'un match du catalogue — la même forme que l'atelier et le fil
+ * Ce que « Je l'ai proposé » lit d'un match du catalogue — la même forme que le fil et le mobile
  * donnent à `execProposer`, et la même référence de bien (`refBienInterne` / `refAnnonceMarche`),
  * pour que le journal et la relance nomment le bien comme partout ailleurs.
  */
@@ -921,12 +921,12 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
   const sentRef = useRef<Set<string>>(new Set())
 
   // « Proposé » : toggle visuel + « Je l'ai proposé » la 1re fois, par `execProposer` — le MÊME
-  // exécuteur que l'atelier, le fil et le mobile, donc le même journal (`match_propose`), le même
+  // exécuteur que le fil et le mobile, donc le même journal (`match_propose`), le même
   // deal et la même relance à +3 jours. Il passait par un `update` direct de `matches` : ni
   // journal, ni relance. Rien ne part vers l'acheteur. Un match qui n'est plus à proposer n'écrit
   // rien (`deja`). Item seed (pas de matchId) → toggle local uniquement.
   // « Ouvrir dans Matching » : le contrat vivant est `/dashboard/matching?contact=<id>`
-  // (MatchingAtelierPage lit ce paramètre). Pas de globale `__sgaFocusBuyer`.
+  // (le fil de matchs s'y filtre sur l'acheteur). Pas de globale `__sgaFocusBuyer`.
   const openInMatching = (m: CatItem) => {
     if (!m.contactId) return
     setSel(null)

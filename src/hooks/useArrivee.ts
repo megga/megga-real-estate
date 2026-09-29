@@ -16,9 +16,9 @@
  * la tranche d'un onglet qui ne l'a jamais demandée. Elle attend donc que l'onglet porte l'adresse : un lien suivi dans
  * l'onglet s'applique au rendu où le gel continu de la pile (`useCrmTabs`) l'y range, et l'adresse d'un onglet fermé ne
  * rejoint jamais celui qui prend la main.
- * ⚠ `neuve`, lui, n'attend pas : un lien suivi dans l'onglet se montre dès son premier rendu, avant que la pile ait
- * rangé l'adresse — l'attendre ferait naître le pager sur la Recherche, puis glisser vers la page 0. Un lecteur n'en
- * tire qu'une image, jamais une écriture dans l'onglet.
+ * ⚠ `neuve`, lui, n'attend pas : un lien suivi dans l'onglet se montre dès son premier rendu, pile en chargement ou
+ * adresse pas encore rangée — l'attendre ferait naître le pager sur la page que l'onglet retenait (la Recherche, s'il y
+ * était resté), puis glisser vers la page 0. Un lecteur n'en tire qu'une image, jamais une écriture dans l'onglet.
  * ⚠ Sans onglet d'écran (`OngletEcranCtx` : hors coquille, bancs, pile vide) ni sur mobile, où la pile ne suit pas
  * l'adresse (le gel s'y tait), il n'y a pas d'adresse d'onglet à attendre.
  * ⚠ Chaque lecteur a SA clé dans la tranche : le pager et le fil appliquent la même navigation, chacun sa part.

@@ -66,10 +66,10 @@ const PAGES = new Set([
   // Née portée (16.09.2026) : la création d'annonce en quatre étapes, écrite en jetons.
   'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
-  // Le pager Matching et son conteneur d'atelier — les deux dernières surfaces
-  // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
-  // l'entrer quand même est ce qui empêche qu'il cesse de l'être.
-  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  // Le pager Matching, dernière surface du périmètre bureau. (`MatchingAtelierPage`,
+  // son conteneur d'atelier, en faisait partie ; il est parti avec l'atelier de
+  // bureau le 27.09.2026 : le fil de matchs tient la page 0, lot E1.)
+  'MatchingPage.tsx',
   // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferPage`
   // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer
   // quand même est ce qui empêche qu'il cesse de l'être.
@@ -126,7 +126,7 @@ const PAGES = new Set([
 const PAGES_ACQUISES = [
   'ListingDetailPage.tsx', 'ListingsPage.tsx', 'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
-  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  'MatchingPage.tsx',
   'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
   'TodayPage.tsx',
   'KycPage.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
@@ -544,7 +544,7 @@ const ZONES: RootSpec[] = [
   // sortir maintenant ferait de « c'est gelé » un motif d'exemption — le même
   // glissement que « c'est vert » en serait un. Ils sont entrés PROPRES, et une
   // zone propre reste au cliquet précisément pour qu'elle le demeure : c'est
-  // l'argument déjà écrit pour `MatchingAtelierPage` et `OfferPage`.
+  // l'argument déjà écrit pour `OfferPage`.
   // Les quatre exemptés, eux, le sont parce qu'ils SÈMENT un état (session,
   // intercepteur de fetch) — c'est ce qui les rend inexerçables, pas leur
   // absence du bundle.

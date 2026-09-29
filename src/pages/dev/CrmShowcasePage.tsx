@@ -101,7 +101,7 @@ const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
 const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 // Le Matching du banc est le FIL DE MATCHS (refonte, lot 1), sur les fixtures de ce banc-ci : ses
-// lectures traversent l'interception. L'atelier actuel garde son banc, `/dev/matching-atelier`.
+// lectures traversent l'interception. L'atelier garde son banc, `/dev/matching-atelier`.
 const MatchingFilBanc = lazy(() => import('@/pages/dev/matchingFilBanc'))
 const LabsPage = lazy(() => import('@/pages/agent/LabsPage'))
 
@@ -189,7 +189,7 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   { id: 'bien', chemin: '/dashboard/listings/p1', label: 'Bien · fiche', vague: null },
   // La création d'annonce en quatre étapes — elle a remplacé l'ancien wizard le 16.09.2026.
   { id: 'nouveau-bien', chemin: '/dashboard/listings/new', label: 'Nouveau bien', vague: null },
-  // Le fil de matchs (refonte, lot 1) — l'atelier actuel reste sur `/dev/matching-atelier`.
+  // Le fil de matchs (refonte, lot 1) — l'atelier reste sur `/dev/matching-atelier`.
   { id: 'matching', chemin: '/dashboard/matching', label: 'Matching · fil', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },

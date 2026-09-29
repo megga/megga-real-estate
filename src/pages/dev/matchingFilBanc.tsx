@@ -4,7 +4,7 @@
  * ⚠ Le vrai `MatchingPage` est monté — molette, clavier, points de page et thème viennent de la
  * production. Seules les deux pages passent par le slot `banc` : le fil y est le vrai composant (ses
  * lectures traversent l'interception comme Contacts et Mes biens), la Recherche reste en démo, faute
- * de fixtures du marché ici. L'atelier actuel garde son propre banc, `/dev/matching-atelier`.
+ * de fixtures du marché ici. L'atelier garde son propre banc, `/dev/matching-atelier`.
  *
  * ⚠ Composants de MODULE : une identité recréée à chaque rendu remonterait le fil et viderait sa
  * sélection (cf. `MatchingPagerBanc`).

@@ -69,7 +69,6 @@ const MATCHING = [
   // une page hôte : il prépare ce message pour un acheteur en deal ouvert, et c'est cette règle qui en décide.
   'src/components/crm/biens/fiche/visiteurs.ts',
   'src/pages/agent/MatchingPage.tsx',
-  'src/pages/agent/MatchingAtelierPage.tsx',
   'src/pages/agent/ExternalListingDetailPage.tsx',
   'src/components/crm/today/PageCatalogue.tsx',
   'src/components/crm/today/useFocusMatches.ts',

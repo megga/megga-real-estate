@@ -1,9 +1,8 @@
 // Atelier Matching — étage de présentation (triptyque + machine d'état triage).
-// Séparé du conteneur (MatchingAtelierPage = données réelles + gestes Supabase ;
-// /dev/matching-atelier = données mock du handoff + gestes stub) pour permettre
-// la QA visuelle hi-fi sans session — même pattern que le portail vendeur
-// (page de démo /dev). Toute la logique d'écran vit ici : onglets, recherche,
-// sélection, sorties animées, undo, parking, modals, raccourcis clavier.
+// Monté par son seul banc, /dev/matching-atelier (données mock du handoff +
+// gestes stub) : la page 0 de Matching est le fil de matchs. Toute la logique
+// d'écran vit ici : onglets, recherche, sélection, sorties animées, undo,
+// parking, modals, raccourcis clavier.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'

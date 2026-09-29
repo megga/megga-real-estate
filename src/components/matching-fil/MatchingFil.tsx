@@ -1,9 +1,11 @@
 /**
- * Matching — le FIL DE MATCHS (refonte de la page 0 du pager : lots 1 et 2, puis la boucle, lot B).
+ * Matching — le FIL DE MATCHS, la page 0 du pager de `/dashboard/matching` au bureau (`MatchingPage`), sur laquelle
+ * « Matching » s'ouvre (lots 1 et 2, puis la boucle, lot B).
  *
- * Conceptions : `docs/superpowers/specs/2026-09-17-matching-fil-design.md` et, pour la boucle,
- * `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md`. Il remplacera l'atelier
- * (`MatchingAtelierPage`) au lot E ; d'ici là il ne vit que sur le banc `/dev/crm`.
+ * Conceptions : `docs/superpowers/specs/2026-09-17-matching-fil-design.md`, pour la boucle
+ * `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md`, et pour le bureau
+ * `docs/superpowers/specs/2026-09-27-matching-lot-e1-bureau-design.md`. Au téléphone, la route rend l'écran mobile
+ * (`MobileMatchingPage`), qui ne monte pas le fil.
  *
  * Ce conteneur porte les données (`useMatchingFil`, `useSelectionMarche`), l'onglet, les filtres, la
  * sélection, les gestes, et le CLAVIER du fil entier.
@@ -154,10 +156,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   } = useMatchingFil()
   const recherches = useRecherchesActives()
 
-  // Les liens d'arrivée (`filLiens.ts`, conception de D1 §4) : `?contact=` et `?annonce=p:<uuid>` — ceux de l'atelier,
-  // qui gardent leur sens —, et `?onglet=`, `?ligne=<clé>`, `?attente=<contact>`. Une arrivée s'applique UNE fois par
-  // navigation (`useArrivee`) : revenir sur l'onglet, un retour arrière, une éviction au-delà de six écrans vivants ou un
-  // rechargement ne la rejouent pas ; un nouveau clic sur le même lien, si. ⛔ L'adresse n'est jamais réécrite.
+  // Les liens d'arrivée (`filLiens.ts`, conception de D1 §4) : `?contact=` (le fil filtré sur l'acheteur),
+  // `?annonce=p:<uuid>` (filtré sur le bien), `?onglet=`, `?ligne=<clé>`, `?attente=<contact>`. Une arrivée
+  // s'applique UNE fois par navigation (`useArrivee`) : revenir sur l'onglet, un retour arrière, une éviction au-delà
+  // de six écrans vivants ou un rechargement ne la rejouent pas ; un nouveau clic sur le même lien, si. ⛔ L'adresse
+  // n'est jamais réécrite.
   const arrivee = useMemo(() => lireArrivee(params), [params])
   const {
     neuve: arriveeNeuve, aAppliquer: arriveeAAppliquer, id: arriveeId, marquerAppliquee,
