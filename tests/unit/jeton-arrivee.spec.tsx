@@ -385,7 +385,8 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
     'src/pages/agent/ContactsPage.tsx': 1,
     'src/pages/agent/DealDetailPage.tsx': 1,
     'src/pages/agent/ExternalListingDetailPage.tsx': 1,
-    'src/pages/agent/ListingDetailPage.tsx': 1,
+    // « Qui pour ce bien ? » et « Proposer à des acheteurs ».
+    'src/pages/agent/ListingDetailPage.tsx': 2,
     'src/pages/agent/ListingsPage.tsx': 1,
     'src/pages/agent/NouveauBienPage.tsx': 1,
     'src/pages/agent/TodayPage.tsx': 2,

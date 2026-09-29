@@ -59,7 +59,7 @@ import { useLogAudit } from '@/hooks/useAuditLog'
 import { useQuiPourCeBien } from '@/hooks/useQuiPourCeBien'
 import { useArrivee } from '@/hooks/useArrivee'
 import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
-import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { lienFil, PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
 import { avecArrivee } from '@/lib/jetonArrivee'
 import { CLE_FIL } from '@/components/matching-fil/filModele'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -715,7 +715,11 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexShrink: 0, marginLeft: 'auto' }}>
                     <BfCta ghost vx={vx} onClick={planifierVisite}>{tr('detail.scheduleVisit')}</BfCta>
-                    <BfCta vx={vx} onClick={() => navigate('/dashboard/matching')}>{tr('fiche.cta.propose')}</BfCta>
+                    {/* Le fil filtré sur CE mandat : c'est à lui qu'on cherche des acheteurs, pas au portefeuille entier. Hors
+                        vente, le fil ne le propose plus (règle 12a) : le bouton n'y mènerait qu'à une liste vide. */}
+                    {bien.status === 'active' && (
+                      <BfCta vx={vx} onClick={() => navigate(`/dashboard/matching?${lienFil({ onglet: 'aProposer', bien: bien.id })}`, avecArrivee())}>{tr('fiche.cta.propose')}</BfCta>
+                    )}
                   </div>
                 </div>
 

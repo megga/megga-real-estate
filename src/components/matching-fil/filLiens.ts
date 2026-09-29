@@ -3,9 +3,9 @@
  * ni React, ni Supabase, ni traduction.
  *
  * Le fil LIT ses paramètres (`lireArrivee`) ; les surfaces qui y mènent — « Aujourd'hui », « Sa boucle », « Qui pour ce
- * bien ? » — les ÉCRIVENT par `lienFil` et `lienPlace`, jamais à la main : un paramètre renommé d'un côté ne survit pas
- * de l'autre. Elles y naviguent avec un jeton neuf (`avecArrivee`, `src/lib/jetonArrivee.ts`) : le fil n'applique une
- * arrivée qu'une fois par navigation (`useArrivee`).
+ * bien ? », « Proposer à des acheteurs » — les ÉCRIVENT par `lienFil` et `lienPlace`, jamais à la main : un paramètre
+ * renommé d'un côté ne survit pas de l'autre. Elles y naviguent avec un jeton neuf (`avecArrivee`,
+ * `src/lib/jetonArrivee.ts`) : le fil n'applique une arrivée qu'une fois par navigation (`useArrivee`).
  *
  * ⚠ Un lien d'arrivée l'emporte sur les filtres que l'onglet avait retenus : `lireArrivee` rend des filtres dès qu'un
  * seul paramètre du fil est là. Une ligne sans onglet ouvre « À proposer ».
@@ -36,6 +36,8 @@ interface CibleFil {
   attente?: string
   /** Filtre le fil sur l'acheteur. */
   contact?: string
+  /** Filtre le fil sur un mandat (`?annonce=p:`). */
+  bien?: string
 }
 
 /** Les paramètres du fil — ceux sur lesquels le pager de Matching atterrit aussi (`estArriveeFil`). */
@@ -86,6 +88,7 @@ export function lienFil(c: CibleFil): string {
     if (c.onglet && (c.onglet !== 'aProposer' || !c.ligne)) p.set('onglet', c.onglet)
     if (c.ligne) p.set('ligne', c.ligne)
     if (c.contact) p.set('contact', c.contact)
+    if (c.bien) p.set('annonce', `p:${c.bien}`)
   }
   return p.toString()
 }

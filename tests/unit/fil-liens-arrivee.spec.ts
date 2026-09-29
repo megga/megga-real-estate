@@ -2,6 +2,8 @@
  * Les liens d'arrivée du fil (lot D1, conception §4) : ce qu'une surface écrit, le fil le relit ; rien d'inconnu ne
  * casse le fil ; une ligne absente de l'ordre ne choisit rien d'autre que le défaut.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   estArriveeFil, lienFil, lienPlace, ligneCourante, lireArrivee, PARAM_QUI_POUR,
@@ -61,6 +63,19 @@ describe('lienFil ↔ lireArrivee', () => {
 
   it('« À proposer » ne s’écrit pas', () => {
     expect(lienFil({ onglet: 'aProposer', ligne: 'm5' })).toBe('ligne=m5')
+  })
+
+  it('un mandat : le fil filtré sur lui (`?annonce=p:`) ; `?attente=` l’emporte, comme sur le filtre acheteur', () => {
+    expect(lireArrivee(new URLSearchParams(lienFil({ onglet: 'aProposer', bien: 'b1' })))).toEqual({
+      filtres: { ...SANS, bienId: 'b1' }, onglet: 'aProposer', ligne: null,
+    })
+    expect(lienFil({ attente: 'c7', bien: 'b1' })).toBe('attente=c7')
+  })
+
+  it('« Proposer à des acheteurs », sur la fiche d’un mandat en vente, ouvre « À proposer » filtré sur lui', () => {
+    expect(readFileSync(join(process.cwd(), 'src/pages/agent/ListingDetailPage.tsx'), 'utf8')).toMatch(
+      /\{bien\.status === 'active' && \(\s*<BfCta vx=\{vx\} onClick=\{\(\) => navigate\(`\/dashboard\/matching\?\$\{lienFil\(\{ onglet: 'aProposer', bien: bien\.id \}\)\}`, avecArrivee\(\)\)\}>\{tr\('fiche\.cta\.propose'\)\}/,
+    )
   })
 
   it('le pager atterrit sur le fil pour chaque lien', () => {
