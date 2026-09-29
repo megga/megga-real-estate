@@ -789,6 +789,7 @@ npm run lint         # eslint          ·  lint:deadcode  ·  lint:prose (⚠ i1
 npm run lint:types-freshness  # database.ts vs prod : aucun client casté, aucune RPC hors types (#1064)
 npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/admin/visual)
 npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
+npm run lint:i18n-keys  # clé appelée mais inexistante (i18next l'afficherait en clair)
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Deux cibles Pages**,
 un workflow chacune : `deploy.yml` → getmegga.com (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
@@ -828,7 +829,7 @@ trois propriétés (aucun client casté dans `src/`, aucune RPC appelée hors de
 absente) — statique sur chaque PR, moitié production dans `migration-drift.yml`. ⚠ Elle ne compare PAS les
 fonctions : 770 vivantes contre 420 émises, le filtre du générateur nous échappe.
 
-**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur **9** familles CRM verrouillées : crm-mobile/crm/crm-dossiers/crm-wizard/**crm-identity**/matching-fil/ai-copilot/kyc-report + pages/agent ; `matching-fil` remplace `matching-atelier`, retiré au lot E1) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
+**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur **9** familles CRM verrouillées : crm-mobile/crm/crm-dossiers/crm-wizard/**crm-identity**/matching-fil/ai-copilot/kyc-report + pages/agent ; `matching-fil` remplace `matching-atelier`, retiré au lot E1) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n) · `lint:i18n-keys` (une clé APPELÉE qui n'existe dans aucune langue : `lint:i18n` cherche du texte en dur, `i18n:parity` compare les langues entre elles — une clé que personne n'a écrite est en parité parfaite, et i18next l'affiche en clair sans avertir ; résolution déléguée au vrai i18next, pluriels et clés plates à points compris, l'option `{ ns }` d'un appel honorée depuis le 28.09.2026 — écrit le 02.08.2026, il n'avait jamais atteint `main` faute de la connaître). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
 
 > ⛔ **CETTE LISTE VIT À DEUX ENDROITS, ET LE RENOMMAGE N'EN A CORRIGÉ QU'UN.** `eslint.config.js`
 > (`lockedFamilies`) décide de la SÉVÉRITÉ, `scripts/lint-i18n-hardcoded.mjs` (`LOCKED_GLOBS`) décide
