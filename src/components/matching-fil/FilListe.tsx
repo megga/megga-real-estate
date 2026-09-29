@@ -206,9 +206,10 @@ function Ligne({ sp, m, active, onChoisir }: { sp: CrmPalette; m: FilMatch; acti
   const lignes = lignesCriteres(m)
   const ecart = premierEcart(lignes)
   const signal = texteSignal(m, t, true)
+  // Sans écart, rien : l'alerte ne se lit que là où il y en a une.
   const resume = signal ?? (lignes.length === 0 ? t('fil.sansCriteres')
     : ecart ? t('fil.ecartSur', { critere: t(`fil.criteres.${ecart}`) })
-      : lignes.some((l) => l.ok === null) ? t('fil.nonEvalues') : t('fil.sansEcart'))
+      : lignes.some((l) => l.ok === null) ? t('fil.nonEvalues') : null)
   return (
     <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={m.id}
       className="fil-ligne" onClick={unSeulClic(() => onChoisir(m.id))} onFocus={() => onChoisir(m.id)} style={styleLigne(sp, active)}>
@@ -219,14 +220,16 @@ function Ligne({ sp, m, active, onChoisir }: { sp: CrmPalette; m: FilMatch; acti
         </span>
         {/* ⚠ Le résumé reste à l'encre sourde, l'écart est porté par l'icône : l'ambre en texte tombe
             à 4,29:1 sur la ligne choisie ou survolée, en clair. */}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-          {ecart && !signal && (
-            <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
-              <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
-            </span>
-          )}
-          {resume}
-        </span>
+        {resume && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
+            {ecart && !signal && (
+              <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
+                <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
+              </span>
+            )}
+            {resume}
+          </span>
+        )}
       </span>
       <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} />
     </button>

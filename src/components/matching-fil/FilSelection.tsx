@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { criteresNonTenus, initiales, lignesCriteres, palierScore, type FilMatch, type FilSelectionResume } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, teinteTenu, texteSignalMatch, unSeulClic } from './filAffichage'
+import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, texteSignalMatch, unSeulClic } from './filAffichage'
 import { FilAvatar, FilScore, FilVignette } from './filAtomes'
 import { resumeRecherche } from './filValeurs'
 
@@ -206,11 +206,12 @@ function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
     m.bien.pieces != null ? t('fil.selection.pieces', { count: m.bien.pieces, valeur: nombre(m.bien.pieces) }) : null,
     m.bien.surface != null ? t('fil.valeurs.m2', { valeur: nombre(m.bien.surface) }) : null,
   ].filter(Boolean).join(' · ')
+  // Sans écart, rien : l'alerte ne se lit que là où il y en a une.
   const resume = lignes.length === 0 ? t('fil.sansCriteres')
-    : aVerifier.length === 0 ? t('fil.sansEcart')
+    : aVerifier.length === 0 ? null
       : nonEvalues ? t('fil.nonEvalues')
         : t('fil.selection.ecarts', { liste: aVerifier.map((c) => t(`fil.criteres.${c}`)).join(', ') })
-  const icone = lignes.length === 0 || nonEvalues ? null : aVerifier.length > 0 ? 'alert' : 'check'
+  const alerte = lignes.length > 0 && !nonEvalues && aVerifier.length > 0
   return (
     <li style={{
       display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md)',
@@ -229,14 +230,16 @@ function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
           </span>
           <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{details}</span>
           {signal && <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.ink }}>{signal}</span>}
-          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-            {icone && (
-              <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
-                <MEIcon name={icone} size={12} color={icone === 'alert' ? teinteEcart(sp) : teinteTenu(sp)} />
-              </span>
-            )}
-            {resume}
-          </span>
+          {resume && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
+              {alerte && (
+                <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
+                  <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
+                </span>
+              )}
+              {resume}
+            </span>
+          )}
         </span>
       </label>
       <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} />

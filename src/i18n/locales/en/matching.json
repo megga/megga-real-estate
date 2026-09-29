@@ -382,7 +382,6 @@
     "listeAria": "Matches to propose",
     "acheteurs_one": "{{count}} buyer",
     "acheteurs_other": "{{count}} buyers",
-    "sansEcart": "No gaps flagged",
     "ecartSur": "{{critere}} to check",
     "nonEvalues": "Criteria not assessed",
     "sansCriteres": "No detailed criteria",
