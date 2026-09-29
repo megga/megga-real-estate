@@ -204,7 +204,10 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/auth', 4],
   ['src/types/visit.ts', 4],
   // 3 → 2 le 21.09.2026 : la feuille d'envoi `AtlSendSheet` est retirée.
-  ['src/components/matching-atelier', 2],
+  // 2 → 1 : la couverture de premier lancement (`MatchingFirstRun`) quitte l'atelier pour le fil, telle quelle.
+  ['src/components/matching-atelier', 1],
+  // La couverture, déplacée de l'atelier telle quelle : sa couleur hors barreaux (l'anneau de focus) la suit.
+  ['src/components/matching-fil', 1],
   ['src/components/admin', 2],
   ['src/components/layout', 1],
   ['src/components/ui', 1],

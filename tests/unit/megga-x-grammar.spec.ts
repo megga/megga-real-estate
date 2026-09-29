@@ -1059,8 +1059,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/map', { hors: 0, total: 4 }],
   // {37,50} -> {31,43} (21.09.2026) : la feuille d'envoi `AtlSendSheet` est retirée, « Je l'ai
   // proposé » n'envoie plus rien à l'acheteur.
-  ['src/components/matching-atelier', { hors: 31, total: 43 }],
-  ['src/components/matching-fil', { hors: 0, total: 0 }],
+  // {31,43} -> {23,33} : la couverture de premier lancement (`MatchingFirstRun`) quitte l'atelier pour le fil,
+  // telle quelle — ses littéraux la suivent.
+  ['src/components/matching-atelier', { hors: 23, total: 33 }],
+  // {0,0} -> {8,10} : la couverture, déplacée de l'atelier telle quelle, avec ses rayons et espacements littéraux.
+  ['src/components/matching-fil', { hors: 8, total: 10 }],
   // {123,185} -> {112,171} (21.09.2026) : la feuille d'envoi `MrhSendSheet` est retirée, la
   // Recherche ajoute à la sélection de l'acheteur au lieu de lui envoyer un lien.
   // {112,171} -> {106,165} (21.09.2026) : les groupes de segments de l'en-tête passent aux jetons

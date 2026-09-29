@@ -46,7 +46,7 @@
 import { createContext, useContext, useMemo, useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
-import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
+import MatchingFirstRun from '@/components/matching-fil/MatchingFirstRun'
 import type { AtelierGestes, PendingHandle } from '@/lib/matchingAnnulation'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import type { MrhDemoEtat } from '@/components/matching-recherche/mrhDemo'

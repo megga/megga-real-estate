@@ -33,7 +33,7 @@ import {
 import { useAtelierMatching } from '@/hooks/useAtelierMatching'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
-import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
+import MatchingFirstRun from '@/components/matching-fil/MatchingFirstRun'
 import { useCrmDark } from '@/lib/crmDark'
 import { PendingRegistry, type AtelierGestes } from '@/lib/matchingAnnulation'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
