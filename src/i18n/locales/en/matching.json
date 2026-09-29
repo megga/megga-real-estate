@@ -596,7 +596,7 @@
       "planifiee": "Viewing with {{prenom}} scheduled on {{date}}"
     },
     "signal": {
-      "baisseRefus": "Declined by {{prenom}} at {{prix}} · down {{montant}} since",
+      "baisseRefus": "Declined by {{prenom}} at {{prix}} · down {{montant}} since then",
       "baissePropose": "Price down {{montant}} since you proposed it",
       "court": "Price down {{montant}}",
       "baisseMarche": "Price down {{montant}} · last cut on {{date}}",

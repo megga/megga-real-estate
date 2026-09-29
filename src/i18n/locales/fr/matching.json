@@ -596,7 +596,7 @@
       "planifiee": "Visite planifiée avec {{prenom}} le {{date}}"
     },
     "signal": {
-      "baisseRefus": "Refusé par {{prenom}} à {{prix}} · baissé de {{montant}} depuis",
+      "baisseRefus": "Refusé par {{prenom}} à {{prix}} · baissé de {{montant}} depuis son refus",
       "baissePropose": "Prix baissé de {{montant}} depuis que vous l'avez proposé",
       "court": "Prix baissé de {{montant}}",
       "baisseMarche": "Prix baissé de {{montant}} · dernière baisse le {{date}}",
