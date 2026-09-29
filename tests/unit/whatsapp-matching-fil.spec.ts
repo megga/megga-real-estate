@@ -43,8 +43,9 @@ import { versBien, versBienMarche, type LigneAnnonce, type LigneBien } from '@/h
 import { versAction, ecrire, type LigneAction } from '@/components/crm/today/matchingDuJour'
 import { lireMatching } from '../../supabase/functions/_shared/morning-brief-data'
 // La forme du fil vient des fonctions de PRODUCTION ci-dessus (jamais d'une troisième copie écrite à la main) :
-// quatre mocks suffisent à charger `useMatchingFil.ts` sans toucher Supabase ni React Query — mêmes noms que
-// tests/unit/matching-whatsapp-sql.spec.ts et matching-fil-gestes.spec.ts, qui l'importent déjà sous Vitest.
+// quatre mocks suffisent à charger `useMatchingFil.ts` sans toucher Supabase ni React Query — les trois premiers
+// sont ceux des specs qui chargent le module des gestes (matching-whatsapp-sql, matching-fil-gestes) ; `useAuth` est
+// celui du hook.
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/intercom-milestones', () => ({ markIntercomMilestone: () => undefined }))
 vi.mock('@/lib/intercom', () => ({ INTERCOM_EVENTS: { FIRST_MATCH_SENT: 'first_match_sent' } }))

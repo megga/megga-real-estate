@@ -10,7 +10,7 @@
  * (`useAnciensProspects`). Sous une clé à part, une fiche gardée vivante montrait un acheteur « À proposer » jusqu'à
  * 30 s après qu'on l'avait proposé dans le fil.
  * ⚠ `CLE_FIL` et `lire` viennent du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
- * `useAtelierMatching` : une fiche n'a pas à le charger.
+ * le module des gestes (`matchingGestes`) : une fiche n'a pas à le charger.
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'

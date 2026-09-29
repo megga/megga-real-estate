@@ -17,7 +17,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
   execProposerSelection, execReact, execRelance, execRepondre, execSnooze,
-} from '@/hooks/useAtelierMatching'
+} from '@/lib/matchingGestes'
 
 type Genre = 'select' | 'insert' | 'update'
 interface Appel { table: string; genre: Genre; valeurs: unknown; filtres: string[] }
@@ -79,7 +79,6 @@ vi.mock('@/lib/supabase', () => {
 })
 vi.mock('@/lib/intercom-milestones', () => ({ markIntercomMilestone: () => undefined }))
 vi.mock('@/lib/intercom', () => ({ INTERCOM_EVENTS: { FIRST_MATCH_SENT: 'first_match_sent' } }))
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({}) }))
 
 const CTX = { agencyId: 'ag-1', userId: 'u-1' }
 const ACHETEUR = { id: 'c-1', matchId: 'm-1', first: 'Julie', last: 'Morand', email: null, score: 90 }

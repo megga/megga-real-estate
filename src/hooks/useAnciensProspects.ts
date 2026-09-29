@@ -8,8 +8,8 @@
  * le match né entre dans « À proposer », et la liste des prospects — sous la même clé — le perd. Un ÉCHEC relit la liste
  * seule : la ligne refusée était périmée (réactivée entre-temps, passée sous le seuil), elle doit disparaître au lieu
  * d'appeler un second refus.
- * ⚠ `CLE_FIL` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
- * `useAtelierMatching` : les deux fiches de bien montent ce hook (`QuiPourCeBien`) et n'ont pas à le charger.
+ * ⚠ `CLE_FIL` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement le module
+ * des gestes (`matchingGestes`) : les deux fiches de bien montent ce hook (`QuiPourCeBien`) et n'ont pas à le charger.
  * ⛔ Rien n'est écrit à l'acheteur : la seule fonction appelée est `matching-engine` (`matching-sans-sortie.spec.ts`).
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'

@@ -7,7 +7,7 @@
 // les composants via `t()` ; seul `mmPriceLabel` reçoit `t` pour « /mois »).
 
 import type { TFunction } from 'i18next'
-import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { isSnoozed } from '@/lib/matchingGestes'
 import type {
   AtelierBuyer,
   AtelierKyc,

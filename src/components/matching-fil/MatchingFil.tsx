@@ -58,10 +58,10 @@ import {
   execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
   execProposerSelection, execRepondre, execSnooze, execWake,
   type CorrectionGeste, type GesteContext, type ReponseAcheteur, type VisiteAPlanifier,
-} from '@/hooks/useAtelierMatching'
+} from '@/lib/matchingGestes'
 import { useMatchingFil, versGeste } from '@/hooks/useMatchingFil'
 import { PAS_SELECTION, useSelectionMarche } from '@/hooks/useSelectionMarche'
-import { PendingRegistry, UNDO_WINDOW_MS } from '@/components/matching-atelier/pendingTriage'
+import { PendingRegistry, UNDO_WINDOW_MS } from '@/lib/matchingAnnulation'
 import {
   bienDeCle, cleSelection, construireFil, construireSelections, contactDeSelection, optionsFiltres, precoches,
   type FilFiltres, type FilMatch,

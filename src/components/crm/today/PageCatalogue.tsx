@@ -21,7 +21,7 @@ import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useAuth } from '@/hooks/useAuth'
 import {
   execProposer, refAnnonceMarche, refBienInterne, type AcheteurGeste, type BienGeste, type GesteContext,
-} from '@/hooks/useAtelierMatching'
+} from '@/lib/matchingGestes'
 import { useToast } from '@/components/ui/Toast'
 import { useTodayNav } from './TodayNavContext'
 import { useEcranActif } from '@/hooks/useEcranActif'

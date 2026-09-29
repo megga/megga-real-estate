@@ -7,7 +7,7 @@
  * aussi dans le nom : un second bien créé sans remontage (« Créer un autre bien ») ferait rendre à realtime-js le canal
  * du premier, en cours de fermeture sous le même nom, et le nouvel abonnement resterait muet.
  * ⚠ `lire` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
- * `useAtelierMatching` : ni « Nouveau bien » ni Mes biens n'ont à le charger.
+ * le module des gestes (`matchingGestes`) : ni « Nouveau bien » ni Mes biens n'ont à le charger.
  */
 import { useEffect, useId, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'

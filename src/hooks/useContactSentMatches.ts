@@ -6,7 +6,7 @@
  * REVENUS de l'autre (`suggested` avec un prix de proposition : un bien revenu a forcément été proposé). Toutes deux
  * passent par des opérateurs que le banc sait appliquer ; `or` y reste en attente, et le dit en console.
  * ⚠ `lire` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
- * `useAtelierMatching` : la fiche n'a pas à le charger.
+ * le module des gestes (`matchingGestes`) : la fiche n'a pas à le charger.
  * ⛔ Rien ne part vers l'acheteur (21.09.2026) : la réponse est consignée par l'agent — ou par un collègue,
  * l'abonnement realtime la fait apparaître sans recharger la fiche.
  */

@@ -19,7 +19,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { CLE_FIL } from '@/hooks/useMatchingFil'
-import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { isSnoozed } from '@/lib/matchingGestes'
 import type { Json } from '@/types/database'
 
 export interface AjoutSelectionItem {

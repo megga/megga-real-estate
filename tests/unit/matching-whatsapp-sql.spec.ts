@@ -19,16 +19,15 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it, vi } from 'vitest'
 import { MOTIFS_REFUS } from '@/components/matching-fil/filBoucle'
-import { refAnnonceMarche, refBienInterne } from '@/hooks/useAtelierMatching'
+import { refAnnonceMarche, refBienInterne } from '@/lib/matchingGestes'
 import { LIMITE_ECHO, STATUTS_COMPATIBLES, STATUTS_DE_DEPART, STATUT_D_ARRIVEE } from '../../supabase/functions/_shared/whatsapp-matching'
 
-// Le hook n'est importé ici que pour ses deux fonctions PURES (refBienInterne, refAnnonceMarche) — ni l'une ni
-// l'autre ne touche `supabase`. Les mocks ne servent qu'à permettre le CHARGEMENT du module (mêmes noms que
-// tests/unit/matching-fil-gestes.spec.ts, qui importe déjà ce hook sous vitest).
+// Le module des gestes n'est importé ici que pour ses deux fonctions PURES (refBienInterne, refAnnonceMarche) — ni
+// l'une ni l'autre ne touche `supabase`. Les mocks ne servent qu'à permettre le CHARGEMENT du module (mêmes noms que
+// tests/unit/matching-fil-gestes.spec.ts, qui importe déjà ce module sous vitest).
 vi.mock('@/lib/supabase', () => ({ supabase: {} }))
 vi.mock('@/lib/intercom-milestones', () => ({ markIntercomMilestone: () => undefined }))
 vi.mock('@/lib/intercom', () => ({ INTERCOM_EVENTS: { FIRST_MATCH_SENT: 'first_match_sent' } }))
-vi.mock('@/hooks/useAuth', () => ({ useAuth: () => ({}) }))
 
 const DOSSIER = join(process.cwd(), 'supabase/migrations')
 
@@ -176,7 +175,7 @@ describe('lot D2 — la migration : consigner une réponse', () => {
 /**
  * Une copie n'a de sens que confrontée à l'original (conception, principe 4). Les deux copies du fil dans
  * `wa_matching_consigner` : la liste des motifs de refus (MOTIFS_REFUS, filBoucle) et la référence du bien
- * (refBienInterne / refAnnonceMarche, useAtelierMatching) — importées ici pour de vrai, jamais retapées.
+ * (refBienInterne / refAnnonceMarche, matchingGestes) — importées ici pour de vrai, jamais retapées.
  */
 describe('lot D2 — la migration : les copies du fil, confrontées à l’original', () => {
   const d2 = migration('_matching_whatsapp.sql')

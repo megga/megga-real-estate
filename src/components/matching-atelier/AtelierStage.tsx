@@ -19,9 +19,9 @@ import { atlMatchQuery, atlMatchTab } from './constants'
 import AtlCockpit from './AtlCockpit'
 import { AtlEmptyBody, AtlEmptyCockpit } from './AtlEmptyState'
 import { atlReturnDate } from './format'
-import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { isSnoozed } from '@/lib/matchingGestes'
 import { useEcranActif } from '@/hooks/useEcranActif'
-import type { AtelierGestes, PendingHandle } from './pendingTriage'
+import type { AtelierGestes, PendingHandle } from '@/lib/matchingAnnulation'
 import type { AtelierBuyer, AtelierPivot, AtelierPoolMatch, AtelierTab, TriageKind } from './types'
 
 interface AtelierToast {

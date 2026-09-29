@@ -28,14 +28,14 @@ import {
   execRelance,
   execSnooze,
   execWake,
-  useAtelierMatching,
   type GesteContext,
-} from '@/hooks/useAtelierMatching'
+} from '@/lib/matchingGestes'
+import { useAtelierMatching } from '@/hooks/useAtelierMatching'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
 import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
 import { useCrmDark } from '@/lib/crmDark'
-import { PendingRegistry, type AtelierGestes } from '@/components/matching-atelier/pendingTriage'
+import { PendingRegistry, type AtelierGestes } from '@/lib/matchingAnnulation'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
 import { useToast } from '@/components/ui/Toast'
 import '@/components/matching-atelier/atelier.css'

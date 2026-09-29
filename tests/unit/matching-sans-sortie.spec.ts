@@ -34,6 +34,9 @@ const MATCHING = [
   'src/components/matching-recherche',
   'src/components/crm-mobile/matching',
   'src/hooks/useAtelierMatching.ts',
+  // Lot E1 : les exécuteurs des gestes et la file d'annulation, que partagent le fil et le mobile.
+  'src/lib/matchingGestes.ts',
+  'src/lib/matchingAnnulation.ts',
   'src/hooks/useMatching.ts',
   'src/hooks/useMatchingFil.ts',
   'src/hooks/useMatchingRecherche.ts',

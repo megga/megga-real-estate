@@ -17,7 +17,7 @@
 //   7. Deal ↔ bien de veille : transactions.market_listing_id
 //   8. RLS : un client anonyme ne voit rien
 //
-// NB : les écritures reproduisent celles de src/hooks/useAtelierMatching.ts
+// NB : les écritures reproduisent celles de src/lib/matchingGestes.ts
 // (execProposer/execSnooze/execDismiss). On ne peut pas importer ces
 // exécuteurs ici : ils consomment le client navigateur '@/lib/supabase'
 // (URL prod). Ce spec fige donc le CONTRAT BASE (colonnes, contraintes,

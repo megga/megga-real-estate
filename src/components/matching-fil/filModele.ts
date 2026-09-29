@@ -27,8 +27,8 @@ import { splitZones } from '@/lib/contactCriteria'
 /**
  * Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes et « Aujourd'hui » (le
  * segment Matching, « Pendant ton absence »). Défini ICI, dans le module pur, et ré-exporté par `useMatchingFil` :
- * « Aujourd'hui » l'importe, et `useMatchingFil` tire statiquement `useAtelierMatching` — l'écran mobile le chargeait
- * pour une chaîne.
+ * « Aujourd'hui » l'importe, et `useMatchingFil` tire statiquement le module des gestes (`matchingGestes`) — l'écran
+ * mobile le chargeait pour une chaîne.
  */
 export const CLE_FIL = 'matching-fil'
 
@@ -460,7 +460,7 @@ export function precoches(matchs: readonly FilMatch[], max = 5): string[] {
 
 // Les aides de LECTURE, pures : le fil (`useMatchingFil`) et les surfaces du lot D1 — « Sa boucle », « Qui pour ce
 // bien ? » — les partagent. Elles vivent ici, pas dans un module de hook : `useMatchingFil` tire statiquement
-// `useAtelierMatching`, et une fiche n'a pas à le charger pour lire une ligne.
+// le module des gestes (`matchingGestes`), et une fiche n'a pas à le charger pour lire une ligne.
 
 /**
  * Les lignes d'une lecture PostgREST (ou du banc) ; son erreur est LEVÉE, pour que TanStack la tienne pour un échec.

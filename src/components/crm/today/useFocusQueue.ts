@@ -517,7 +517,7 @@ export function useFocusQueue({ matchs = true }: { matchs?: boolean } = {}): Use
   // d'acceptation complet ; le KYC reste non-bloquant ; l'offre se traite dans la
   // fiche, la visite dans l'agenda). Fire-and-forget : le refetch rafraîchit la file.
   // Consignation HITL du geste Focus dans la timeline (activity_events) — règle
-  // CLAUDE.md §5 « audit pour toute action ». Même pattern que useAtelierMatching
+  // CLAUDE.md §5 « audit pour toute action ». Même pattern que matchingGestes
   // (actor_kind 'user', actor_id = l'agent connecté, agency_id = son agence → RLS
   // events_insert). Fire-and-forget : ne bloque jamais le geste ; une erreur RLS est
   // tracée en console. N'effectue AUCUNE mutation métier — pur audit du clic agent.

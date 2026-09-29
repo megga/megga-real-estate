@@ -3,7 +3,7 @@
  * (biens internes + market_listings Flatfox), normalise les deux formes en une
  * forme unifiée `MatchResult`, et expose les gestes agent (ignore, réaction client,
  * relance du matching via l'Edge function `matching-engine`). « Je l'ai proposé »
- * n'est PAS ici : il passe par `execProposer` (useAtelierMatching), seul à poser le
+ * n'est PAS ici : il passe par `execProposer` (matchingGestes), seul à poser le
  * journal et la relance. Aucun geste n'écrit à l'acheteur.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'

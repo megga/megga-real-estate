@@ -248,7 +248,7 @@ revoke all on function public.matching_actions_du_jour(integer) from public, ano
 grant execute on function public.matching_actions_du_jour(integer) to authenticated;
 
 -- ── 2. Consigner une réponse (`record_match_outcome`, question Oui / Non) ────
--- Les règles des gestes du fil (`useAtelierMatching` : execProposer, execRepondre, execPasEncore), À L'IDENTIQUE,
+-- Les règles des gestes du fil (`matchingGestes` : execProposer, execRepondre, execPasEncore), À L'IDENTIQUE,
 -- chacune d'un bloc. Le statut de départ est une garde : si un collègue a consigné entre-temps, rien n'est réécrit et
 -- la réponse le dit (`deja`), avec le `statut` trouvé — absent d'un succès, que l'appelant lit par `ok`/`deja` seuls.
 -- Rendu : { ok, deja, statut?, deal_id, relance_id } ; `ok = false` quand le match, son acheteur, son bien
@@ -337,7 +337,7 @@ begin
     (select coalesce(nullif(ml.title, ''), ml.address, ml.city) from public.market_listings ml
       where ml.id = v_match.market_listing_id),
     'bien');
-  -- La référence du fil (`refBienInterne` / `refAnnonceMarche`, useAtelierMatching.ts) : la phrase de relance
+  -- La référence du fil (`refBienInterne` / `refAnnonceMarche`, matchingGestes.ts) : la phrase de relance
   -- désigne le bien par sa référence, jamais par son titre — le journal (object_label), lui, garde le titre.
   v_ref := coalesce(
     (select 'MG-IN-' || upper(left(p.id::text, 6)) from public.properties p

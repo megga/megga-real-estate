@@ -15,10 +15,10 @@ import {
   execRelance,
   execSnooze,
   execWake,
-  useAtelierMatching,
   type GesteContext,
-} from '@/hooks/useAtelierMatching'
-import { PendingRegistry, type AtelierGestes, type PendingHandle } from '@/components/matching-atelier/pendingTriage'
+} from '@/lib/matchingGestes'
+import { useAtelierMatching } from '@/hooks/useAtelierMatching'
+import { PendingRegistry, type AtelierGestes, type PendingHandle } from '@/lib/matchingAnnulation'
 import type { AtelierBuyer, AtelierListing, AtelierTab } from '@/components/matching-atelier/types'
 import { atlReturnDate } from '@/components/matching-atelier/format'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -49,7 +49,7 @@ const TOAST_MS = 4200 // < UNDO_WINDOW_MS (4500) — l'undo reste cliquable jusq
 
 /**
  * Matching mobile — inbox par ACHETEUR (VUE 1 liste ↔ VUE 2 focus). Réutilise
- * `useAtelierMatching` + ses exécuteurs purs via `PendingRegistry` (undo 5 s,
+ * `useAtelierMatching` + les exécuteurs purs de `matchingGestes` via `PendingRegistry` (undo 5 s,
  * flush au démontage = contrat audit). Aucune écriture directe sur `matches` ;
  * les gestes ciblent le matchId du BIEN concerné (un acheteur = N matchId).
  * KYC non-bloquant. Seeds derrière `demo` (harnais /dev/mobile, no-auth).

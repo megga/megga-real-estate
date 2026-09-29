@@ -1,14 +1,19 @@
-// Atelier Matching — exécution différée des gestes (undo 5 s, style Gmail).
-//
-// Un triage ne touche PAS la base tant que le toast offre « Annuler » :
-// l'UI sort la row immédiatement (état local), l'écriture réelle (match,
-// deal, timeline, relance interne) part à l'expiration de la fenêtre. Aucune
-// n'écrit à l'acheteur : le matching reste chez l'agent (21.09.2026).
-// Annuler = rien n'a jamais été écrit. « Voir le deal → » force l'exécution
-// immédiate (flushNow) pour obtenir l'id du deal. À la fermeture de la page,
-// tout ce qui est en attente est exécuté (l'agent n'a pas annulé).
-
-import type { ResultatProposition } from '@/hooks/useAtelierMatching'
+/**
+ * Matching — la file d'annulation des gestes : exécution différée (undo 5 s, style Gmail).
+ *
+ * Un triage ne touche PAS la base tant que le toast offre « Annuler » :
+ * l'UI sort la row immédiatement (état local), l'écriture réelle (match,
+ * deal, timeline, relance interne) part à l'expiration de la fenêtre. Aucune
+ * n'écrit à l'acheteur : le matching reste chez l'agent (21.09.2026).
+ * Annuler = rien n'a jamais été écrit. « Voir le deal → » force l'exécution
+ * immédiate (flushNow) pour obtenir l'id du deal. À la fermeture de la page,
+ * tout ce qui est en attente est exécuté (l'agent n'a pas annulé).
+ *
+ * Un seul mécanisme pour les écrans qui posent les gestes du matching (`matchingGestes`) : le fil de matchs et
+ * l'écran mobile y diffèrent les mêmes écritures, sous la même fenêtre (`UNDO_WINDOW_MS`) ; chacun tient son
+ * registre, monté et vidé avec lui.
+ */
+import type { ResultatProposition } from '@/lib/matchingGestes'
 
 export const UNDO_WINDOW_MS = 4500
 
@@ -82,7 +87,7 @@ export class PendingRegistry {
     }
   }
 
-  /** Exécute tout ce qui attend encore (fermeture de l'atelier) */
+  /** Exécute tout ce qui attend encore (fermeture de l'écran) */
   flushAll(): void {
     for (const run of Array.from(this.pending)) void run()
     this.pending.clear()

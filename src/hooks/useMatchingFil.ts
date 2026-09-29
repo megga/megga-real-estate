@@ -43,7 +43,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
 import {
   refAnnonceMarche, refBienInterne, STATUTS_RELANCE_OUVERTE, type AcheteurGeste, type BienGeste,
-} from '@/hooks/useAtelierMatching'
+} from '@/lib/matchingGestes'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycDossierStatus } from '@/types/kyc'
 import {
@@ -54,7 +54,7 @@ import type { RelanceProposition } from '@/components/matching-fil/filBoucle'
 
 // Le préfixe des clés du fil et `lire` vivent dans le module pur (`filModele`) : ré-exportés ici pour que leurs
 // importeurs ne changent pas. « Aujourd'hui » et « Sa boucle » les prennent à la source — ce module tire
-// `useAtelierMatching` statiquement.
+// statiquement celui des gestes (`matchingGestes`).
 export { CLE_FIL, lire } from '@/components/matching-fil/filModele'
 
 /** Ce qu'une ligne `matches` porte de son suivi (lot B). */
@@ -350,7 +350,7 @@ export function useMatchingFil(): DonneesFil & EtatFil {
   }
 }
 
-/** Ce que les exécuteurs de l'atelier lisent d'un match du fil : ils restent la source unique des écritures. */
+/** Ce que les exécuteurs de `matchingGestes` lisent d'un match du fil : ils restent la source unique des écritures. */
 export function versGeste(m: FilMatch): { acheteur: AcheteurGeste; bien: BienGeste } {
   const marche = m.bien.marche
   return {

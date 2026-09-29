@@ -12,7 +12,7 @@
  * banc) — et l'atelier n'invalide pas `CLE_FIL` (`refresh` de `useAtelierMatching`) : un match écarté ou refusé dans
  * l'atelier ne change la pastille qu'à la prochaine relecture.
  * ⚠ `CLE_FIL` vient du module pur du fil (`filModele`), pas de `useMatchingFil`, qui tire statiquement
- * `useAtelierMatching` : la Recherche n'a pas à le charger pour une chaîne.
+ * le module des gestes (`matchingGestes`) : la Recherche n'a pas à le charger pour une chaîne.
  */
 import { useQueries } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'

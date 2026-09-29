@@ -10,10 +10,10 @@ import AtlIcon from './AtlIcon'
 import AtlConfirm from './AtlConfirm'
 import { ATL_KYC } from './constants'
 import { fmtM, atlFmtCHF, atlInitials, atlReturnDate, atlScoreColor } from './format'
-import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { isSnoozed } from '@/lib/matchingGestes'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import type { AtelierBuyer, AtelierPoolMatch, TriageKind } from './types'
-import type { AtelierGestes, PendingHandle } from './pendingTriage'
+import type { AtelierGestes, PendingHandle } from '@/lib/matchingAnnulation'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /* ── Col 1 · rangée bien ─────────────────────────────────────────────── */
