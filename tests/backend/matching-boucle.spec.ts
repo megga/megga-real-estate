@@ -1,4 +1,4 @@
-// Matching · lot B, la boucle chez l'agent (migration 20260921140000_matching_boucle.sql).
+// Matching · lot B, la boucle chez l'agent (migration 20260930140000_matching_boucle.sql).
 //   B1  prix_propose posé par la base au passage à `sent` (nul pour un « prix sur demande ») ; la réponse
 //       d'avant effacée, SA DATE COMPRISE : reproposé, un bien date sa nouvelle réponse.
 //   B2  la relance d'une PROPOSITION se clôt quand plus aucun de ses biens n'est `sent` — repoussée depuis

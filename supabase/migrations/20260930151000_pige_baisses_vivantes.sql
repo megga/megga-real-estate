@@ -2,7 +2,7 @@
 -- Pige (étape 1b, 21.09.2026) : une annonce EN BAISSE reste vivante pour ses lecteurs SQL
 -- ══════════════════════════════════════════════════════════════════════════════
 --
--- La pige (20260921150000) étend `trg_ra_price_status` à Flatfox : une location dont le loyer descend
+-- La pige (20260930150000) étend `trg_ra_price_status` à Flatfox : une location dont le loyer descend
 -- sous son premier loyer passe `price_reduced`, comme une vente RealAdvisor depuis le 19.06.2026. Deux
 -- lecteurs SQL ne lisaient que `status = 'active'` et perdaient ces locations :
 --   · `market_rent_stats` (référence de loyer du matching) : chaque location en baisse sortait des
@@ -13,9 +13,9 @@
 --
 -- Index (CLAUDE.md §7) : le prédicat `status in ('active', 'price_reduced')` est, au mot près, celui des
 -- index partiels `idx_ml_active_tx_canton_type` (locations) et `idx_ml_flatfox_vivantes_vues`
--- (20260921145000, Flatfox). Les deux lecteurs tournent sous pg_cron, sans statement_timeout.
+-- (20260930145000, Flatfox). Les deux lecteurs tournent sous pg_cron, sans statement_timeout.
 --
--- ⚠ DATE-GUARD : horodatage ≥ au jour UTC de la fusion, APRÈS 20260921150000. Rejouable : CREATE OR
+-- ⚠ DATE-GUARD : horodatage ≥ au jour UTC de la fusion, APRÈS 20260930150000. Rejouable : CREATE OR
 -- REPLACE pour la fonction, DROP … IF EXISTS puis CREATE pour la vue (une vue matérialisée ne se remplace
 -- pas), index en IF NOT EXISTS.
 
@@ -51,7 +51,7 @@ begin
 end $$;
 
 comment on function public.flatfox_active_count_refresh() is
-  'Compte exact des annonces Flatfox VIVANTES (active ou price_reduced : une location en baisse reste en ligne, 20260921151000), écrit dans app_config.flatfox_active_count ({count, measured_at}). Tourne sous pg_cron toutes les heures : le count direct expirait sous le statement_timeout de PostgREST (20260913120200). Service_role ou postgres seuls.';
+  'Compte exact des annonces Flatfox VIVANTES (active ou price_reduced : une location en baisse reste en ligne, 20260930151000), écrit dans app_config.flatfox_active_count ({count, measured_at}). Tourne sous pg_cron toutes les heures : le count direct expirait sous le statement_timeout de PostgREST (20260913120200). Service_role ou postgres seuls.';
 
 -- ─── 2. La référence de loyer ─────────────────────────────────────────────────
 -- Même définition que 20260618210000 (niveaux, bornes, winsorisation, seg_key) ; seul le prédicat de
@@ -165,6 +165,6 @@ revoke all on public.market_rent_stats from public, anon, authenticated;
 grant select on public.market_rent_stats to service_role;
 
 comment on materialized view public.market_rent_stats is
-  'Loyers demandés par segment (canton, ville, NPA × type × surface), n ≥ 20. Comparables : les locations VIVANTES, active ou price_reduced (une location en baisse reste en ligne, 20260921151000). Rafraîchie chaque jour par pg_cron (market-rent-stats-refresh).';
+  'Loyers demandés par segment (canton, ville, NPA × type × surface), n ≥ 20. Comparables : les locations VIVANTES, active ou price_reduced (une location en baisse reste en ligne, 20260930151000). Rafraîchie chaque jour par pg_cron (market-rent-stats-refresh).';
 
 commit;

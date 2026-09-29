@@ -46,7 +46,7 @@ function fonction(sql: string, nom: string): { entete: string; corps: string } {
   return { entete: sql.slice(i, as), corps: sql.slice(as + 5, fin) }
 }
 
-/** Comme `fonction`, pour un corps délimité par `$function$` (log_match_reaction, 20260921140000_matching_boucle.sql). */
+/** Comme `fonction`, pour un corps délimité par `$function$` (log_match_reaction, 20260930140000_matching_boucle.sql). */
 function fonctionDollarFunction(sql: string, nom: string): { entete: string; corps: string } {
   const i = sql.indexOf(`create or replace function public.${nom}(`)
   expect(i, `${nom} introuvable`).toBeGreaterThanOrEqual(0)

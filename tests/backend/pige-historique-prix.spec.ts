@@ -1,4 +1,4 @@
-// Backend test — Pige lisible et historique des prix (migrations 20260921145000 et 20260921150000).
+// Backend test — Pige lisible et historique des prix (migrations 20260930145000 et 20260930150000).
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : la suite tourne contre un Supabase local fraîchement migré.
 //
@@ -263,7 +263,7 @@ describe.skipIf(!HAS_KEYS)('pige — historique des prix, retrait daté, flux «
   })
 
   // Balayage par lots : dans l'étape 1b par décision de Julien du 21.09.2026 (Question 1 du plan).
-  // Ce bloc va et vient avec la migration 20260921145000.
+  // Ce bloc va et vient avec la migration 20260930145000.
   describe('flatfox_balayer_retraits — le balayage par lots', () => {
     // Borne en l'an 2000 : seules les lignes semées ici ont une dernière vue plus ancienne.
     const BORNE = '2000-01-01T00:00:00Z'

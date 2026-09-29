@@ -64,7 +64,7 @@ export async function loadAgencyData(
     // production le 25.09.2026 (lecture seule) : 1 relance de proposition ouverte, 0 orpheline (aucune sans match
     // qui attend encore) — `reminders.match_ids` lui-même n'existe pas encore en production, il arrive avec la
     // migration du lot B (`…_matching_boucle.sql`), pas encore appliquée : à remesurer une fois la pile posée.
-    // `match_ids` est NULLABLE SANS DÉFAUT (migration 20260921140000, commentaire de colonne) : NULL pour une
+    // `match_ids` est NULLABLE SANS DÉFAUT (migration 20260930140000, commentaire de colonne) : NULL pour une
     // relance d'UN SEUL bien — c'est le cas courant, `match_id` seul la couvre alors. `{}` (vide, un état distinct
     // de NULL) ne couvre rien non plus, comme dans la CTE (`any('{}')` ne joint aucune ligne) — un `.is.null` seul
     // le raterait.

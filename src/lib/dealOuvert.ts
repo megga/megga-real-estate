@@ -14,7 +14,7 @@
  * rattacherait au deal perdu au lieu d'en ouvrir un.
  *
  * ⛔ CE MODULE EST LE MIROIR DU SQL : `wa_matching_consigner` et `wa_matching_visite` (le copilote WhatsApp, migration
- * `20260924200000_matching_whatsapp.sql`) appliquent la même règle ; `tests/unit/deal-ouvert.spec.ts` les confronte.
+ * `20260930200000_matching_whatsapp.sql`) appliquent la même règle ; `tests/unit/deal-ouvert.spec.ts` les confronte.
  */
 import type { Enums } from '@/types/database'
 

@@ -15,7 +15,7 @@ import { ROLES_CONTACT, ROLES_TRANSACTION } from '@/lib/contactRoles'
 
 const lire = (p: string): string => readFileSync(resolve(__dirname, '../..', p), 'utf8')
 const LANGUES = ['fr', 'de', 'en', 'it'] as const
-const MIGRATION = 'supabase/migrations/20260922180000_contacts_roles.sql'
+const MIGRATION = 'supabase/migrations/20260930180000_contacts_roles.sql'
 
 describe('les douze rôles sont déclarés pareil partout', () => {
   it('la contrainte SQL porte exactement les rôles du module', () => {

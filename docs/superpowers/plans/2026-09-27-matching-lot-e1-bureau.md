@@ -16,7 +16,7 @@
 
 > ⚠ **Les commits attendent le signal de Julien** (« committe ») : ils se jouent tous à la fin (tâche 17), **un commit par sujet**, dans l'ordre des tâches. Pendant l'exécution, on enchaîne sans commiter — et on prend une PHOTO de l'arbre après chaque tâche (`git write-tree` dans un index temporaire), qui servira à bâtir chaque commit à l'identique.
 
-> ⚠ **Aucune migration neuve.** La tâche 10 corrige en place deux fonctions de `20260924200000_matching_whatsapp.sql` (lot D2, pas en production), et la tâche 1 deux de ses commentaires : cette migration s'applique à la main AVANT la fusion, avec toute la pile, depuis l'état final de la branche. **À la fusion, sur accord de Julien :** la version du moteur passe à 4 (`app_config.matching_scoring_v2.version`, conception §5.7) ; la nuit suivante renote les couples « à proposer ».
+> ⚠ **Aucune migration neuve.** La tâche 10 corrige en place deux fonctions de `20260930200000_matching_whatsapp.sql` (lot D2, pas en production), et la tâche 1 deux de ses commentaires : cette migration s'applique à la main AVANT la fusion, avec toute la pile, depuis l'état final de la branche. **À la fusion, sur accord de Julien :** la version du moteur passe à 4 (`app_config.matching_scoring_v2.version`, conception §5.7) ; la nuit suivante renote les couples « à proposer ».
 
 > ⛔ **Rien ne part vers l'acheteur.** E1 n'ajoute aucune sortie et en retire une (le message pré-rempli de « Planifier une visite » pour un acquéreur compatible, tâche 5). `tests/unit/matching-sans-sortie.spec.ts` suit chaque fichier déplacé ou neuf.
 
@@ -46,7 +46,7 @@
 | `supabase/functions/_shared/whatsapp-matching-outils.ts`, `whatsapp-i18n.ts`, `whatsapp-matching.ts` | Le copilote refuse « proposé » sur un mandat hors vente. | 2, 7 |
 | `supabase/functions/_shared/matching-renotation.ts`, `supabase/functions/matching-engine/index.ts` | La renotation : `match-contact` et le rattrapage de nuit de `scan-all`. | 9 |
 | `src/lib/dealOuvert.ts` | **Créer.** Un deal ouvert : UNE définition, lue par la fiche et les gestes. | 10 |
-| `supabase/migrations/20260924200000_matching_whatsapp.sql` | Migration du lot D2 (pas en production) : deux fonctions corrigées en place (deal ouvert), deux commentaires. | 1, 10 |
+| `supabase/migrations/20260930200000_matching_whatsapp.sql` | Migration du lot D2 (pas en production) : deux fonctions corrigées en place (deal ouvert), deux commentaires. | 1, 10 |
 | `src/lib/jetonArrivee.ts`, `src/hooks/useArrivee.ts` | **Créer.** Une arrivée s'applique une fois par navigation. | 11 (12) |
 | `src/components/matching-fil/filLiens.ts`, `MatchingFil.tsx`, les pages qui ouvrent le fil ou la fiche avec une arrivée | Les liens d'arrivée portent un jeton ; les écrans le consomment. | 11, 12 |
 | `src/components/matching-fil/filDemarrage.ts` | **Créer.** L'état de la page 0 : chargement, erreur, couverture, aucun match, fil. | 12 |
@@ -79,7 +79,7 @@ Le fil de matchs emprunte à l'atelier de bureau ses exécuteurs de gestes, sa f
 - Déplacer : `src/components/matching-atelier/pendingTriage.ts` → `src/lib/matchingAnnulation.ts`
 - Modifier : `src/hooks/useAtelierMatching.ts`
 - Modifier (imports) : `src/components/matching-fil/MatchingFil.tsx`, `src/components/matching-fil/FilConclure.tsx`, `src/hooks/useMatchingFil.ts`, `src/hooks/useAjouterSelection.ts`, `src/components/crm/today/PageCatalogue.tsx`, `src/pages/agent/MatchingAtelierPage.tsx`, `src/components/matching-atelier/AtelierStage.tsx`, `src/components/matching-atelier/AtlAcheteurMode.tsx`, `src/pages/dev/MatchingShowcasePage.tsx`, `src/components/crm-mobile/matching/MmMatchingScreen.tsx`, `src/components/crm-mobile/matching/vm.ts`
-- Modifier (commentaires qui donnaient l'ancienne adresse) : `src/components/matching-fil/filModele.ts`, `src/hooks/useAnciensProspects.ts`, `src/hooks/useQuiPourCeBien.ts`, `src/hooks/useAcquereursNouveauMandat.ts`, `src/hooks/usePigeAcheteurs.ts`, `src/hooks/useContactSentMatches.ts`, `src/hooks/useMatching.ts`, `src/components/crm/today/useFocusQueue.ts`, `tests/backend/atelier-matching-loop.spec.ts`, `supabase/migrations/20260924200000_matching_whatsapp.sql`
+- Modifier (commentaires qui donnaient l'ancienne adresse) : `src/components/matching-fil/filModele.ts`, `src/hooks/useAnciensProspects.ts`, `src/hooks/useQuiPourCeBien.ts`, `src/hooks/useAcquereursNouveauMandat.ts`, `src/hooks/usePigeAcheteurs.ts`, `src/hooks/useContactSentMatches.ts`, `src/hooks/useMatching.ts`, `src/components/crm/today/useFocusQueue.ts`, `tests/backend/atelier-matching-loop.spec.ts`, `supabase/migrations/20260930200000_matching_whatsapp.sql`
 - Modifier (specs et garde) : `tests/unit/matching-fil-gestes.spec.ts`, `tests/unit/matching-whatsapp-sql.spec.ts`, `tests/unit/matching-sans-sortie.spec.ts`
 
 - [ ] **Étape 1 : Écrire le test qui échoue**
@@ -1508,7 +1508,7 @@ par :
 
 Deux commentaires de la migration du lot D2 (appliquée nulle part en production) ; `matching-whatsapp-sql.spec.ts` compare les corps sans leurs commentaires (`nu`), rien n'y change.
 
-Dans `supabase/migrations/20260924200000_matching_whatsapp.sql`, remplacer :
+Dans `supabase/migrations/20260930200000_matching_whatsapp.sql`, remplacer :
 
 ```sql
 -- Les règles des gestes du fil (`useAtelierMatching` : execProposer, execRepondre, execPasEncore), À L'IDENTIQUE,
@@ -1520,7 +1520,7 @@ par :
 -- Les règles des gestes du fil (`matchingGestes` : execProposer, execRepondre, execPasEncore), À L'IDENTIQUE,
 ```
 
-Dans `supabase/migrations/20260924200000_matching_whatsapp.sql`, remplacer :
+Dans `supabase/migrations/20260930200000_matching_whatsapp.sql`, remplacer :
 
 ```sql
   -- La référence du fil (`refBienInterne` / `refAnnonceMarche`, useAtelierMatching.ts) : la phrase de relance
@@ -5442,7 +5442,7 @@ Attendu : `Test Files  3 failed | 340 passed (343)` ; seuls les trois échecs lo
 
 ## Tâche 7 : Le copilote WhatsApp suit la même règle (décision 12a, conception §5.3)
 
-`get_matches` (copilote WhatsApp, lot D2) écarte déjà d'« à proposer » un bien qui n'est plus une OCCASION (`BienWa.occasion`, `whatsapp-matching.ts`) : une annonce que le marché a retirée, un mandat qui n'est pas `active` — et un mandat supprimé n'a pas de ligne (`lireBiens` lit `deleted_at is null`). C'est la règle « en vente » que le fil applique depuis la tâche 2, et que `whatsapp-matching-fil.spec.ts` confronte à `enVente`, statut par statut. Mais `record_match_outcome` ne la lisait pas : sa préparation (`prepareRecordMatchOutcome`, `whatsapp-matching-outils.ts`) ne retirait des biens que « propose » peut viser qu'une annonce retirée (`proposable` : `!(b.genre === 'annonce' && b.retire)`), et son commentaire disait que l'y étendre attendait l'accord de Julien. Décision de Julien du 27.09.2026 (conception §5.3) : il refuse « Je l'ai proposé » sur un mandat qui n'est plus en vente, comme `get_matches` l'écarte. `proposable` lit donc `occasion` — pour une annonce, `occasion` vaut exactement l'ancien test (`status !== 'removed'`) : rien ne change pour elles. Les deux refus qui nommaient des biens qui ne se proposent plus (une page complète où rien ne se propose, un texte qui n'a désigné que de tels biens) disaient « retirée du marché », faux pour un mandat : un refus neuf, `consignerPlusDisponible` (« n'est plus disponible », le mot de la fiche d'un mandat depuis la tâche 3 — « en vente » serait faux pour une location), en français et en anglais, au ton de son voisin, choisi par `refusNonProposables` ; des annonces seules gardent leur refus à l'identique. Les autres réponses (intéressé, pas intéressé, pas encore) se cherchent parmi les biens déjà proposés (`STATUTS_DE_DEPART`) et `aViser` ne filtre que pour « propose » : elles restent possibles sur un mandat vendu, qu'« En attente » et « À conclure » gardent. Relevé avant d'écrire : la fonction de base `wa_matching_consigner` (`20260924200000_matching_whatsapp.sql`) ne porte aucune garde de cet ordre — pour « propose », elle ne lit ni l'état du mandat ni celui de l'annonce, et `wa_matching_biens_de_l_acheteur` ne filtre pas non plus l'état — : la migration n'est pas touchée. `whatsapp-matching-fil.spec.ts` confronte `occasion` au fil ; `proposable` lit cette même règle, la confrontation reste vraie sans changer. Le refus neuf entre dans la liste des refus que la garde des confirmations simulées ne prend jamais pour une action (`whatsapp-phantom-action.test.ts`).
+`get_matches` (copilote WhatsApp, lot D2) écarte déjà d'« à proposer » un bien qui n'est plus une OCCASION (`BienWa.occasion`, `whatsapp-matching.ts`) : une annonce que le marché a retirée, un mandat qui n'est pas `active` — et un mandat supprimé n'a pas de ligne (`lireBiens` lit `deleted_at is null`). C'est la règle « en vente » que le fil applique depuis la tâche 2, et que `whatsapp-matching-fil.spec.ts` confronte à `enVente`, statut par statut. Mais `record_match_outcome` ne la lisait pas : sa préparation (`prepareRecordMatchOutcome`, `whatsapp-matching-outils.ts`) ne retirait des biens que « propose » peut viser qu'une annonce retirée (`proposable` : `!(b.genre === 'annonce' && b.retire)`), et son commentaire disait que l'y étendre attendait l'accord de Julien. Décision de Julien du 27.09.2026 (conception §5.3) : il refuse « Je l'ai proposé » sur un mandat qui n'est plus en vente, comme `get_matches` l'écarte. `proposable` lit donc `occasion` — pour une annonce, `occasion` vaut exactement l'ancien test (`status !== 'removed'`) : rien ne change pour elles. Les deux refus qui nommaient des biens qui ne se proposent plus (une page complète où rien ne se propose, un texte qui n'a désigné que de tels biens) disaient « retirée du marché », faux pour un mandat : un refus neuf, `consignerPlusDisponible` (« n'est plus disponible », le mot de la fiche d'un mandat depuis la tâche 3 — « en vente » serait faux pour une location), en français et en anglais, au ton de son voisin, choisi par `refusNonProposables` ; des annonces seules gardent leur refus à l'identique. Les autres réponses (intéressé, pas intéressé, pas encore) se cherchent parmi les biens déjà proposés (`STATUTS_DE_DEPART`) et `aViser` ne filtre que pour « propose » : elles restent possibles sur un mandat vendu, qu'« En attente » et « À conclure » gardent. Relevé avant d'écrire : la fonction de base `wa_matching_consigner` (`20260930200000_matching_whatsapp.sql`) ne porte aucune garde de cet ordre — pour « propose », elle ne lit ni l'état du mandat ni celui de l'annonce, et `wa_matching_biens_de_l_acheteur` ne filtre pas non plus l'état — : la migration n'est pas touchée. `whatsapp-matching-fil.spec.ts` confronte `occasion` au fil ; `proposable` lit cette même règle, la confrontation reste vraie sans changer. Le refus neuf entre dans la liste des refus que la garde des confirmations simulées ne prend jamais pour une action (`whatsapp-phantom-action.test.ts`).
 
 Choix à valider : le texte du refus — « « Villa · Cologny » n'est plus disponible : il ne se propose plus. Rien n'est consigné. » (pluriel « ne sont plus disponibles : ils ne se proposent plus »), en anglais « is no longer available: it can't be proposed any more. Nothing recorded. » —, sans l'état du mandat (vendu, réservé…), que `get_matches` donne déjà au modèle ; une annonce retirée visée avec un mandat hors vente est nommée dans le même refus « plus disponibles » ; `wa_matching_consigner` ne revérifie pas l'état du bien entre la question et le « oui » (pas plus pour une annonce retirée) : un mandat vendu dans cet intervalle serait encore consigné « proposé ».
 
@@ -7430,7 +7430,7 @@ Choix à valider : le module neuf (`src/lib/dealOuvert.ts`), qui entre dans le p
 - Modifier (tests) : `tests/unit/fiche-planifier-visite.spec.ts`, `tests/unit/matching-fil-gestes.spec.ts`, `tests/unit/matching-sans-sortie.spec.ts`
 - Créer (la règle) : `src/lib/dealOuvert.ts`
 - Modifier (ses lecteurs) : `src/components/crm/biens/fiche/visiteurs.ts`, `src/lib/matchingGestes.ts`
-- Modifier (la même règle en base) : `supabase/migrations/20260924200000_matching_whatsapp.sql`
+- Modifier (la même règle en base) : `supabase/migrations/20260930200000_matching_whatsapp.sql`
 - Modifier (commentaire) : `supabase/functions/_shared/whatsapp-agent-router.ts`
 - Modifier (spec de base) : `tests/backend/matching-whatsapp.spec.ts`
 
@@ -7730,7 +7730,7 @@ Créer `src/lib/dealOuvert.ts` :
  * d'en ouvrir un.
  *
  * ⛔ CE MODULE EST LE MIROIR DU SQL : `wa_matching_consigner` et `wa_matching_visite` (le copilote WhatsApp, migration
- * `20260924200000_matching_whatsapp.sql`) appliquent la même règle ; `tests/unit/deal-ouvert.spec.ts` les confronte.
+ * `20260930200000_matching_whatsapp.sql`) appliquent la même règle ; `tests/unit/deal-ouvert.spec.ts` les confronte.
  */
 import type { Enums } from '@/types/database'
 
@@ -7890,7 +7890,7 @@ par :
 
 La migration du lot D2 n'est pas en production : ses deux lectures du deal se corrigent en place. Le commentaire de `schedule_visit`, dans le routeur du copilote, suit.
 
-Dans `supabase/migrations/20260924200000_matching_whatsapp.sql`, remplacer :
+Dans `supabase/migrations/20260930200000_matching_whatsapp.sql`, remplacer :
 
 ```sql
     -- Le deal : l'actif le plus récent de l'acheteur (un mandat y est rattaché s'il n'en porte aucun, jamais
@@ -7916,7 +7916,7 @@ par :
      limit 1;
 ```
 
-Dans `supabase/migrations/20260924200000_matching_whatsapp.sql`, remplacer :
+Dans `supabase/migrations/20260930200000_matching_whatsapp.sql`, remplacer :
 
 ```sql
 -- match passe `visit_planned` et son deal (l'actif, sinon un `new_lead`) avance à `visit_planned` s'il était avant,
@@ -7928,7 +7928,7 @@ par :
 -- match passe `visit_planned` et son deal (l'ouvert, sinon un `new_lead`) avance à `visit_planned` s'il était avant,
 ```
 
-Dans `supabase/migrations/20260924200000_matching_whatsapp.sql`, remplacer :
+Dans `supabase/migrations/20260930200000_matching_whatsapp.sql`, remplacer :
 
 ```sql
     update public.matches set status = 'visit_planned' where id = v_match and status = 'interested';

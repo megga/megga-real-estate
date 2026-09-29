@@ -185,7 +185,7 @@ export interface BienWa {
   /**
    * L'ÉLIGIBILITÉ à « à proposer » et aux reportés — distincte de `retire` : une annonce non retirée ; un mandat
    * SEULEMENT `active` (`draft` et `reserved` en sont exclus SANS être dits « retirés »). Règle du point du matin de
-   * ce même copilote (`matching_actions_agence`, migration 20260924200000 : « un mandat vendu, retiré ou supprimé
+   * ce même copilote (`matching_actions_agence`, migration 20260930200000 : « un mandat vendu, retiré ou supprimé
    * n'est plus une occasion »). Le fil l'applique aussi (lot E1, décision 12a de Julien : `enVente`, `versBien`) ;
    * `tests/unit/whatsapp-matching-fil.spec.ts` confronte les deux. « propose » de `record_match_outcome` la lit
    * aussi (`proposable`, whatsapp-matching-outils.ts).
@@ -231,7 +231,7 @@ export function bienDeMandat(l: LigneMandat): BienWa {
     // dit pas s'il reste une occasion — `occasion`, juste en dessous, tranche cette question séparément.
     retire: l.status === 'sold' || l.status === 'archived',
     // ÉLIGIBILITÉ, pas étiquette : seul un mandat `active` est une occasion (règle de `matching_actions_agence`,
-    // migration 20260924200000 : « un mandat vendu, retiré ou supprimé n'est plus une occasion »). `draft` (pas
+    // migration 20260930200000 : « un mandat vendu, retiré ou supprimé n'est plus une occasion »). `draft` (pas
     // publié) et `reserved` (sous offre) en sont donc exclus SANS être dits « retirés » — ils gardent leur place en
     // cours s'ils y sont déjà. Le fil applique la même règle (lot E1, décision 12a).
     occasion: l.status === 'active',

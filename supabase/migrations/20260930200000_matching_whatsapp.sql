@@ -679,7 +679,7 @@ grant execute on function public.wa_matching_visite_annuler(uuid, uuid, jsonb) t
 -- 24.09.2026 1 818 des 1 828 matchs de la production visent une annonce du marché — journalisait donc `system`, jamais
 -- MEGGA AI.
 -- Corps du 15.09 À L'IDENTIQUE (garde, calcul des colonnes changées, forme de l'insertion), SAUF la détermination
--- de l'acteur, qui reprend EXACTEMENT celle de `log_match_reaction` (20260921140000_matching_boucle.sql) : les
+-- de l'acteur, qui reprend EXACTEMENT celle de `log_match_reaction` (20260930140000_matching_boucle.sql) : les
 -- trois réglages de transaction d'abord (`ai`/`system`/`user` explicite), sinon `system` sans jeton, sinon `user` ;
 -- `actor_id` posé pour `user` seul ; `via`/`profile_id` ajoutés aux métadonnées quand ils sont posés. Le principe ne
 -- bouge pas : le FAIT, jamais le contenu (D11) — cette redéfinition ne touche à rien de ce qui s'écrit, seulement à
@@ -778,7 +778,7 @@ revoke all on function public.calendar_events_journaliser() from public, anon, a
 --   · annonces — DEUX index partiels couvrent, CHACUN, une partie seulement des statuts compatibles :
 --     `idx_matches_agency_focus (agency_id, contact_id, score desc) where status = 'suggested'`
 --     (20260616120000_today_focus.sql) et `idx_matches_boucle (agency_id, status)
---     where status in ('sent', 'interested', 'rejected', 'visit_planned')` (20260921140000_matching_boucle.sql). Un
+--     where status in ('sent', 'interested', 'rejected', 'visit_planned')` (20260930140000_matching_boucle.sql). Un
 --     `status = any (array[...])` unique ne prouve à Postgres ni l'un ni l'autre prédicat ; écrit en deux branches OR
 --     (`status = 'suggested' or status in (...)`), chacune couvrant exactement le prédicat d'un des deux index (le
 --     `rejected` en trop dans `idx_matches_boucle` ne coûte rien, on ne le demande simplement pas), la requête

@@ -15,11 +15,11 @@
 ## Règles de ce chantier
 
 - **Commits : AU SIGNAL de Julien seulement** (« committe »), un commit PAR SUJET, jamais de push. Les « Point de commit » ne s'exécutent pas sans ce signal. Ce lot part de l'état des lots 1, 2 et A (étape 0 de la feuille de route, PR #1339) : il modifie des fichiers qu'ils créent.
-- **Production : aucune écriture.** La migration part avec la fusion (`deploy.yml`). Elle s'appelle `20260921140000_matching_boucle.sql` : après `20260921130000` (lot A), avant celles de la pige (`20260921145000`, `20260921150000`, étape 1b, dont elle ne dépend pas). **À renommer au jour de la fusion** si elle a lieu après le 21.09.2026 (date-guard), en gardant cet ordre.
+- **Production : aucune écriture.** La migration part avec la fusion (`deploy.yml`). Elle s'appelle `20260930140000_matching_boucle.sql` : après `20260930130000` (lot A), avant celles de la pige (`20260930145000`, `20260930150000`, étape 1b, dont elle ne dépend pas). **À renommer au jour de la fusion** si elle a lieu après le 21.09.2026 (date-guard), en gardant cet ordre.
 - **Grammaire MEGGA X** dans `src/components/matching-fil/` (cliquet `{ hors: 0, total: 0 }`) : aucun littéral de rayon, d'espacement ou de taille de texte — `var(--crm-radius-*)`, `var(--crm-space-*)`, `var(--crm-text-*)`, `0`, ou `calc()` de variables ; largeurs et hauteurs en pixels permises. Aucune couleur en dur (palette `sp.*`, `encreAccent`, `teinteEcart`, `teinteTenu`), graisse ≤ 600, pas de capitales CSS, aucune chaîne affichée hors `t()`. L'élément ACTIF porte l'accent.
 - **i18n** : `src/i18n/locales/*/matching.json` et `common.json` au format exact `json.dumps(d, ensure_ascii=False, indent=2) + '\n'`, modifiés par script python qui vérifie ce format D'ABORD. Aucun tiret cadratin ni demi-cadratin, aucun ß, l'italien au « Lei » dans les phrases (les boutons gardent l'impératif du fichier : « Scarta », « Mostra »).
 - **Rien ne sort vers le client.** `tests/unit/matching-sans-sortie.spec.ts` reste vert : la seule fonction serveur que le matching appelle est `matching-engine`. Une visite planifiée depuis le fil n'envoie rien : ni invitation, ni lien, ni rappel la veille — `reminder_sent` est posé à la création, sans quoi `visit-reminders-j1` écrirait au client par `send-visit-email` (CLAUDE.md §5 : aucun envoi au client sans validation de l'agent).
-- **Chantier parallèle (étape 1b, pige), DANS LE MÊME WORKTREE.** Ce plan ne touche PAS `src/components/matching-recherche/**`, `supabase/functions/flatfox-sync`, `supabase/functions/realadvisor-sync`, ni les migrations de la pige (`20260921145000_…`, `20260921150000_…`). Fichiers partagés que ce plan modifie : `src/i18n/locales/*/matching.json` (1b y ajoute des clés `recherche.*`), `src/pages/dev/crmFixtures.ts` (1b y ajoute des annonces du marché) — et, d'après le plan de la pige, `src/types/database.ts`, `docs/system-map.md` et `.claude-flow/knowledge/megga-memory.seed.json`. Leurs points de commit indexent, si la pige n'a pas encore commité, un blob intermédiaire (la version de `HEAD` plus les seules lignes de ce lot), jamais le fichier du worktree tel quel. ⛔ **Relire chacun JUSTE AVANT d'écrire, et ne modifier que ses propres sections** : les scripts i18n relisent le fichier à l'exécution et n'écrivent que sous `fil.*` ; les autres modifications se font par remplacements ciblés, ancre relue (une ancre changée par 1b se réadapte, elle ne s'écrase pas) ; jamais un fichier entier réécrit depuis une copie. Au 21.09.2026 au soir, 1b avait déjà modifié `src/types/database.ts` (`removed_at`, `market_price_history`) : ce plan n'y touche que `matches`, `reminders` et une fonction.
+- **Chantier parallèle (étape 1b, pige), DANS LE MÊME WORKTREE.** Ce plan ne touche PAS `src/components/matching-recherche/**`, `supabase/functions/flatfox-sync`, `supabase/functions/realadvisor-sync`, ni les migrations de la pige (`20260930145000_…`, `20260930150000_…`). Fichiers partagés que ce plan modifie : `src/i18n/locales/*/matching.json` (1b y ajoute des clés `recherche.*`), `src/pages/dev/crmFixtures.ts` (1b y ajoute des annonces du marché) — et, d'après le plan de la pige, `src/types/database.ts`, `docs/system-map.md` et `.claude-flow/knowledge/megga-memory.seed.json`. Leurs points de commit indexent, si la pige n'a pas encore commité, un blob intermédiaire (la version de `HEAD` plus les seules lignes de ce lot), jamais le fichier du worktree tel quel. ⛔ **Relire chacun JUSTE AVANT d'écrire, et ne modifier que ses propres sections** : les scripts i18n relisent le fichier à l'exécution et n'écrivent que sous `fil.*` ; les autres modifications se font par remplacements ciblés, ancre relue (une ancre changée par 1b se réadapte, elle ne s'écrase pas) ; jamais un fichier entier réécrit depuis une copie. Au 21.09.2026 au soir, 1b avait déjà modifié `src/types/database.ts` (`removed_at`, `market_price_history`) : ce plan n'y touche que `matches`, `reminders` et une fonction.
 - **L'atelier en production ne change pas** : ni son écran, ni ses gestes, ni le mobile, ni « Aujourd'hui ». Les exécuteurs partagés gagnent seulement `match_ids` sur leur relance ; les triggers valent pour tout écrivain (écarts assumés, écrits dans « En attente »).
 - **Tests : ciblés et SEULS** — jamais la suite complète en parallèle de `tsc` ou `eslint` ; la suite complète seule, à la fin (Task 18).
 - **Aucun export mort** (`npm run lint:deadcode`, `src/` seulement) : une fonction seulement lue par une spec n'est pas exportée.
@@ -48,7 +48,7 @@
 | Fichier | Rôle |
 |---|---|
 | `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md` (modifié) | §12, les précisions de ce plan |
-| `supabase/migrations/20260921140000_matching_boucle.sql` (créé) | Colonnes, CHECK, index, triggers, RPC de réévaluation |
+| `supabase/migrations/20260930140000_matching_boucle.sql` (créé) | Colonnes, CHECK, index, triggers, RPC de réévaluation |
 | `src/types/database.ts` (modifié) | `matches.prix_propose`, `matches.apprentissage_at`, `reminders.match_ids`, RPC |
 | `tests/backend/matching-boucle.spec.ts` (créé) | Triggers, RPC et mode `rescore-search` contre `supabase start` (CI) |
 | `supabase/functions/_shared/matching-renotation.ts` (créé) | Module PUR : renoter, comparer des critères, découper en lots |
@@ -119,7 +119,7 @@ git commit -m "docs(matching): plan du lot B, la boucle chez l'agent"
 ### Task 1 : La migration
 
 **Files :**
-- Create : `supabase/migrations/20260921140000_matching_boucle.sql`
+- Create : `supabase/migrations/20260930140000_matching_boucle.sql`
 - Modify : `src/types/database.ts`
 
 - [ ] **Step 1 : Vérifier qu'aucune migration ne redéfinit `log_match_reaction` après sa création**
@@ -129,7 +129,7 @@ Expected : seulement `supabase/migrations/20260617120000_match_reaction_response
 
 - [ ] **Step 2 : Écrire la migration**
 
-Créer `supabase/migrations/20260921140000_matching_boucle.sql` :
+Créer `supabase/migrations/20260930140000_matching_boucle.sql` :
 
 ```sql
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -412,7 +412,7 @@ commit;
 Run : `python3 $SCRATCH/types_boucle.py`
 
 ```python
-"""Lot B, Task 1 : les types de la migration 20260921140000 dans database.ts."""
+"""Lot B, Task 1 : les types de la migration 20260930140000 dans database.ts."""
 import os
 
 chemin = os.environ.get('CIBLE', 'src/types/database.ts')
@@ -490,7 +490,7 @@ Expected : `0` puis `fin` (colonnes ajoutées, aucun lecteur encore).
 - [ ] **Step 1 : Écrire la spec**
 
 ```ts
-// Matching · lot B, la boucle chez l'agent (migration 20260921140000_matching_boucle.sql).
+// Matching · lot B, la boucle chez l'agent (migration 20260930140000_matching_boucle.sql).
 //   B1  prix_propose posé par la base au passage à `sent` ; la réponse d'avant effacée.
 //   B2  la relance d'une PROPOSITION se clôt quand plus aucun de ses biens n'est `sent`.
 //   B3  une relance d'avant le lot B (sans match_ids) se clôt sur son match_id.
@@ -749,7 +749,7 @@ git show HEAD:src/types/database.ts > "$SCRATCH/database.head.ts"
 CIBLE="$SCRATCH/database.head.ts" python3 "$SCRATCH/types_boucle.py"
 git update-index --cacheinfo 100644,"$(git hash-object -w "$SCRATCH/database.head.ts")",src/types/database.ts
 git diff --cached src/types/database.ts   # 3 apprentissage_at, 3 prix_propose, 3 match_ids, matching_appliquer_notes : rien d'autre
-git add supabase/migrations/20260921140000_matching_boucle.sql tests/backend/matching-boucle.spec.ts
+git add supabase/migrations/20260930140000_matching_boucle.sql tests/backend/matching-boucle.spec.ts
 git commit -m "feat(db): la boucle du matching en base, prix proposé, relance d'une sélection, retour par baisse de prix"
 ```
 
@@ -1509,7 +1509,7 @@ export type FilOnglet = (typeof ONGLETS)[number]
 
 /**
  * Les motifs d'un refus (§4.4) — un geste, une puce —, dans l'ordre de l'écran et de leurs touches (1 à 8).
- * ⚠ Les codes du CHECK `matches_reaction_motif_check` (migration 20260921140000), qui y ajoute
+ * ⚠ Les codes du CHECK `matches_reaction_motif_check` (migration 20260930140000), qui y ajoute
  * `recherche_ajustee` : un match écarté par la réévaluation d'une recherche, pas par l'acheteur.
  */
 export const MOTIFS_REFUS = ['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements', 'etat', 'autre'] as const
@@ -6414,7 +6414,7 @@ BOUCLE = (
     "LA BOUCLE CHEZ L'AGENT, DANS LE FIL (lot B, 21.09.2026 ; conception docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md "
     "§4.3 à §4.6, §5 et §12 ; plan docs/superpowers/plans/2026-09-21-matching-lot-b-boucle.md). BANC SEUL (/dev/crm?entree=/dashboard/matching) : "
     "l'atelier en production ne change pas, le fil le remplace au lot E. "
-    "EN BASE (migration 20260921140000_matching_boucle ; à RENOMMER au jour de la fusion si elle a lieu après le 21.09, date-guard de deploy.yml, "
+    "EN BASE (migration 20260930140000_matching_boucle ; à RENOMMER au jour de la fusion si elle a lieu après le 21.09, date-guard de deploy.yml, "
     "en gardant l'ordre : après le lot A 130000, avant la pige 145000/150000) : matches.prix_propose posé par TRIGGER set_match_prix_propose au "
     "passage à sent (une sélection propose N biens en UNE écriture, à N prix, et quatre écrivains proposent ; la même transition efface motif, "
     "note et apprentissage_at) ; matches.apprentissage_at (un refus pris en compte par « Apprendre », correction validée OU ignorée) ; "

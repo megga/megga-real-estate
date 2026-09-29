@@ -38,7 +38,7 @@
 --
 -- ⚠ DATE-GUARD (`deploy.yml`) : appliquée seulement si son horodatage est ≥ au jour UTC de la fusion,
 -- et rejouée à chaque push de ce jour-là. Tout est rejouable (le relevé ne se fait qu'une fois). Renommer
--- au jour de la fusion si elle a lieu plus tard, APRÈS 20260921145000.
+-- au jour de la fusion si elle a lieu plus tard, APRÈS 20260930145000.
 -- ⚠ Pas de CONCURRENTLY : deploy.yml envoie le fichier en UNE requête, où chaque instruction tombe dans
 -- un bloc transactionnel (explicite ou implicite) — ce que CONCURRENTLY refuse.
 
@@ -189,7 +189,7 @@ comment on function public.ml_historique_prix() is
   'Écrivain unique de market_price_history : apparition à l''insertion, puis retrait, baisse / hausse / prix, retour ou statut à chaque changement RÉEL (clause WHEN du déclencheur de mise à jour). Pige, 21.09.2026.';
 
 -- SECURITY DEFINER : personne ne l'appelle, elle ne sert qu'aux déclencheurs (qui ne vérifient pas ce
--- droit). Comme les déclencheurs du lot B (20260921140000).
+-- droit). Comme les déclencheurs du lot B (20260930140000).
 revoke all on function public.ml_historique_prix() from public, anon, authenticated;
 
 drop trigger if exists trg_ml_historique_ins on public.market_listings;

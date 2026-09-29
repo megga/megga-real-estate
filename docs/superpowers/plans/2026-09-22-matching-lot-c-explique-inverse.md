@@ -15,7 +15,7 @@
 ## Règles de ce chantier
 
 - **Branche `megga/matching-lot-c`**, partie de `megga/matching-boucle-et-pige` (1a et 1b commités). **Commits : AU SIGNAL de Julien seulement** (« committe »), un commit PAR SUJET, jamais de push. Les « Point de commit » ne s'exécutent pas sans ce signal.
-- **Fusion : à la fin** (Julien, 22.09.2026). La migration de ce lot s'appelle `20260922160000_matching_explique.sql` : après toutes celles des lots précédents. Le jour de la fusion finale, toutes les migrations des lots sont redatées à ce jour, dans leur ordre (date-guard de `deploy.yml`).
+- **Fusion : à la fin** (Julien, 22.09.2026). La migration de ce lot s'appelle `20260930160000_matching_explique.sql` : après toutes celles des lots précédents. Le jour de la fusion finale, toutes les migrations des lots sont redatées à ce jour, dans leur ordre (date-guard de `deploy.yml`).
 - ⛔ **Aucune migration de ce lot ne change le type de retour d'une fonction qu'une migration du même jour crée par `CREATE OR REPLACE`.** Le date-guard rejoue chaque migration du jour à CHAQUE push ; la migration du lot 2 (`…_matching_fil_marche.sql`) recréerait `matching_fil_marche()` à quatre colonnes par-dessus une version à six, et échouerait sur `cannot change return type of existing function` — `set -e` emporterait les migrations suivantes et les edges. D'où une RPC NEUVE, `matching_fil_marche_resume()`, et l'ancienne retirée APRÈS elle dans l'ordre des fichiers (son rejeu la recrée, le nôtre la retire de nouveau).
 - **Production : aucune écriture.** Toutes les requêtes de production de ce plan sont en lecture seule.
 - **Grammaire MEGGA X** dans `src/components/matching-fil/` (cliquet `{ hors: 0, total: 0 }`, `megga-x-grammar.spec.ts`) : aucun littéral de rayon, d'espacement ou de taille de texte — `var(--crm-radius-*)`, `var(--crm-space-*)`, `var(--crm-text-*)`, `0`, ou `calc()` de variables ; largeurs et hauteurs en pixels permises. Aucune couleur en dur (`couleur-barreaux.spec.ts` : palette `sp.*`, `encreAccent`, `teinteEcart`, `teinteTenu`), graisse ≤ 600, pas de capitales CSS, aucune chaîne affichée hors `t()`. L'élément ACTIF porte l'accent.
@@ -50,7 +50,7 @@
 | `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md` (modifié) | §13, les précisions de ce plan |
 | `supabase/functions/_shared/matching-normalize.ts` (modifié) | Trois axes, `etatDuBien`, `axesComplementaires`, échelle ancrée |
 | `tests/unit/matching-criteres-explique.spec.ts` (créé) | Le moteur du lot C, et son invariance |
-| `supabase/migrations/20260922160000_matching_explique.sql` (créé) | `off_market`, son trigger, `match_candidate_listings`, `matching_fil_marche_resume` |
+| `supabase/migrations/20260930160000_matching_explique.sql` (créé) | `off_market`, son trigger, `match_candidate_listings`, `matching_fil_marche_resume` |
 | `src/types/database.ts` (modifié) | `properties.off_market`, les deux RPC |
 | `tests/backend/matching-explique.spec.ts` (créé), `tests/backend/matching-fil-marche.spec.ts` (modifié) | La migration contre `supabase start` (CI) |
 | `supabase/functions/matching-engine/index.ts` (modifié) | Colonnes lues ; modes `prospects` et `reactiver-prospect` |
@@ -472,14 +472,14 @@ git commit -m "feat(matching): chambres, état et off-market au moteur, sans tou
 ### Task 2 : La migration — `off_market`, son trigger, le pré-filtre, le résumé du marché
 
 **Files :**
-- Create : `supabase/migrations/20260922160000_matching_explique.sql`
+- Create : `supabase/migrations/20260930160000_matching_explique.sql`
 - Modify : `src/types/database.ts`
 - Create : `tests/backend/matching-explique.spec.ts`
 - Modify : `tests/backend/matching-fil-marche.spec.ts`
 
 - [ ] **Step 1 : Écrire la migration**
 
-Créer `supabase/migrations/20260922160000_matching_explique.sql` :
+Créer `supabase/migrations/20260930160000_matching_explique.sql` :
 
 ```sql
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -726,7 +726,7 @@ Dans `Functions`, dans le `Returns` de `match_candidate_listings`, insérer à l
 Elle vise désormais `matching_fil_marche_resume()`. Remplacer la première ligne du fichier par :
 
 ```ts
-// Le fil de matchs, lots 2 et C : la RPC `matching_fil_marche_resume()` (migration 20260922160000), une ligne
+// Le fil de matchs, lots 2 et C : la RPC `matching_fil_marche_resume()` (migration 20260930160000), une ligne
 ```
 
 remplacer `interface LigneMarche { contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] }` par :
@@ -785,7 +785,7 @@ Enfin, avant le test « un anonyme ne l’appelle pas », ajouter :
 Créer `tests/backend/matching-explique.spec.ts` :
 
 ```ts
-// Matching · lot C (migration 20260922160000_matching_explique.sql).
+// Matching · lot C (migration 20260930160000_matching_explique.sql).
 //   E1  `properties.off_market` : faux par défaut ; un mandat ACTIF qui bascule voit supprimés ses matchs jamais
 //       proposés (le moteur les recrée), pas ceux qui ont une histoire ; un brouillon qui bascule, rien.
 //   E2  `match_candidate_listings` rend chambres et années.
@@ -988,7 +988,7 @@ Expected : PASS avec les clés `SUPABASE_TEST_*` (E3 et E4 attendent la Task 5) 
 - [ ] **Step 7 : Point de commit (au signal de Julien)**
 
 ```bash
-git add supabase/migrations/20260922160000_matching_explique.sql src/types/database.ts tests/backend/matching-explique.spec.ts tests/backend/matching-fil-marche.spec.ts
+git add supabase/migrations/20260930160000_matching_explique.sql src/types/database.ts tests/backend/matching-explique.spec.ts tests/backend/matching-fil-marche.spec.ts
 git commit -m "feat(matching): off-market d'un mandat, pré-filtre élargi et résumé du marché avec ses signaux"
 ```
 

@@ -2,7 +2,7 @@
  * Le vocabulaire des rôles d'un contact et ses dérivations (étape 3).
  *
  * ⛔ CES RÈGLES SONT CELLES DU DÉCLENCHEUR SQL (`contacts_roles_sync`, migration
- * `20260922180000_contacts_roles.sql`). Deux dérivations qui divergent donneraient un écran
+ * `20260930180000_contacts_roles.sql`). Deux dérivations qui divergent donneraient un écran
  * qui dit « Vendeur » sur un contact que la base compte comme acheteur.
  */
 import { describe, expect, it } from 'vitest'

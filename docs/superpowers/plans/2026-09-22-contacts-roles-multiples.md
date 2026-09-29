@@ -22,7 +22,7 @@
 
 | Fichier | Responsabilité |
 |---|---|
-| `supabase/migrations/20260922180000_contacts_roles.sql` | **Créer.** La colonne, sa contrainte, l'index GIN, la fonction d'ordre, le déclencheur de synchro, le remplissage initial. |
+| `supabase/migrations/20260930180000_contacts_roles.sql` | **Créer.** La colonne, sa contrainte, l'index GIN, la fonction d'ordre, le déclencheur de synchro, le remplissage initial. |
 | `src/lib/contactRoles.ts` | **Créer.** Le vocabulaire, l'ordre, les familles et les dérivations — module PUR, miroir du SQL. |
 | `src/types/contact.ts` | `Contact.roles`. |
 | `src/types/database.ts` | La colonne `roles` dans Row / Insert / Update de `contacts`. |
@@ -59,7 +59,7 @@
  * Le vocabulaire des rôles d'un contact et ses dérivations (étape 3).
  *
  * ⛔ CES RÈGLES SONT CELLES DU DÉCLENCHEUR SQL (`contacts_roles_sync`, migration
- * `20260922180000_contacts_roles.sql`). Deux dérivations qui divergent donneraient un écran
+ * `20260930180000_contacts_roles.sql`). Deux dérivations qui divergent donneraient un écran
  * qui dit « Vendeur » sur un contact que la base compte comme acheteur.
  */
 import { describe, expect, it } from 'vitest'
@@ -159,7 +159,7 @@ Attendu : échec — `Failed to resolve import "@/lib/contactRoles"`.
  * reste écrit, parce que le reste du CRM le lit (KYC, pipeline, relances, trois politiques RLS).
  *
  * ⛔ CE MODULE EST LE MIROIR DU SQL : `contacts_roles_ordonnes` et `contacts_roles_sync`
- * (migration `20260922180000_contacts_roles.sql`) appliquent les mêmes règles, dans le même
+ * (migration `20260930180000_contacts_roles.sql`) appliquent les mêmes règles, dans le même
  * ordre. `contacts-roles-vocabulaire.spec.ts` confronte les deux listes, plus les 4 langues.
  */
 import type { ContactType } from '@/types/contact'
@@ -250,12 +250,12 @@ l'inscrire au registre d'exceptions pour le faire taire entre-temps.
 ## Tâche 2 : la base — colonne, déclencheur, remplissage
 
 **Fichiers :**
-- Créer : `supabase/migrations/20260922180000_contacts_roles.sql`
+- Créer : `supabase/migrations/20260930180000_contacts_roles.sql`
 - Créer : `tests/backend/contacts-roles.spec.ts`
 
 - [ ] **Étape 1 : écrire la migration**
 
-`supabase/migrations/20260922180000_contacts_roles.sql` :
+`supabase/migrations/20260930180000_contacts_roles.sql` :
 
 ```sql
 -- Les rôles multiples d'un contact (étape 3, 22.09.2026).
@@ -540,7 +540,7 @@ const LANGUES = ['fr', 'de', 'en', 'it'] as const
 
 describe('les douze rôles sont déclarés pareil partout', () => {
   it('la contrainte SQL porte exactement les rôles du module', () => {
-    const sql = lire('supabase/migrations/20260922180000_contacts_roles.sql')
+    const sql = lire('supabase/migrations/20260930180000_contacts_roles.sql')
     // ⛔ S'ancrer sur `add constraint …`, PAS sur le seul nom de la contrainte : il est cité DEUX
     // fois (la garde `pg_constraint`, puis l'ALTER), et découper sur la première occurrence rend
     // un fragment vide — une assertion qui ne mesure rien et passe au vert.
@@ -552,7 +552,7 @@ describe('les douze rôles sont déclarés pareil partout', () => {
   })
 
   it('la fonction d’ordre porte les mêmes, dans l’ordre du module', () => {
-    const sql = lire('supabase/migrations/20260922180000_contacts_roles.sql')
+    const sql = lire('supabase/migrations/20260930180000_contacts_roles.sql')
     const bloc = sql.split('contacts_roles_ordonnes')[1]!.split('$$')[1] ?? ''
     const ordre = [...bloc.matchAll(/\('([a-z_]+)',\s*\d+\)/g)].map((m) => m[1]!)
     expect(ordre).toEqual([...ROLES_CONTACT])

@@ -1,4 +1,4 @@
-// Le fil de matchs, lots 2 et C : la RPC `matching_fil_marche_resume()` (migration 20260922160000), une ligne
+// Le fil de matchs, lots 2 et C : la RPC `matching_fil_marche_resume()` (migration 20260930160000), une ligne
 // « Marché » par acheteur. Cloisonnement par agence, ce qu'une ligne compte (report futur exclu, échu
 // inclus, annonce `removed` exclue), les trois vignettes et leur ordre, le refus d'`anon`.
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés.
@@ -28,7 +28,7 @@ describe.skipIf(!HAS_KEYS)('matching_fil_marche_resume — une ligne « Marché 
 
   /**
    * ⚠ Les champs de la pige se posent À L'INSERTION : `trg_ra_price_status` (BEFORE UPDATE, étendu à Flatfox par
-   * 20260921150000) remet `first_seen_at`, `price_at_first_seen` et `price_reduced_at` à leur valeur d'avant sur
+   * 20260930150000) remet `first_seen_at`, `price_at_first_seen` et `price_reduced_at` à leur valeur d'avant sur
    * tout UPDATE — celui d'un test serait défait sans bruit. Il ne tourne pas à l'INSERT.
    */
   const mkAnnonce = async (tag: string, champs: {

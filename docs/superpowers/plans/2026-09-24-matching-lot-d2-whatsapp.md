@@ -31,7 +31,7 @@
 
 | Fichier | Responsabilité |
 |---|---|
-| `supabase/migrations/20260924200000_matching_whatsapp.sql` | **Créer.** `matching_actions_agence` (et `matching_actions_du_jour`, son enveloppe) ; `wa_matching_consigner` ; `wa_matching_visite`, `wa_matching_visite_annuler`. |
+| `supabase/migrations/20260930200000_matching_whatsapp.sql` | **Créer.** `matching_actions_agence` (et `matching_actions_du_jour`, son enveloppe) ; `wa_matching_consigner` ; `wa_matching_visite`, `wa_matching_visite_annuler`. |
 | `src/types/database.ts` | Les quatre fonctions. |
 | `tests/unit/matching-whatsapp-sql.spec.ts` | **Créer.** La migration lue : le corps de D1 recopié à l'identique, MEGGA AI qui signe, l'agence revérifiée, le suffixe. |
 | `tests/backend/matching-whatsapp.spec.ts` | **Créer.** Les fonctions contre une base locale (CI). |
@@ -61,7 +61,7 @@
 Le point du matin et les copilotes lisent par le rôle de service, où `get_user_agency_id()` est nul : `matching_actions_du_jour` (lot D1) n'y rend rien. Son corps passe, à l'identique, dans `matching_actions_agence(p_agency, p_limite)`, et `matching_actions_du_jour` en devient l'enveloppe — une seule définition des quatre sortes d'actions pour « Aujourd'hui », le point du matin et son détail (conception §4.2).
 
 **Fichiers :**
-- Créer : `supabase/migrations/20260924200000_matching_whatsapp.sql`
+- Créer : `supabase/migrations/20260930200000_matching_whatsapp.sql`
 - Créer : `tests/unit/matching-whatsapp-sql.spec.ts`
 - Créer : `tests/backend/matching-whatsapp.spec.ts`
 - Modifier : `src/types/database.ts`
@@ -142,7 +142,7 @@ Attendu : ÉCHEC : `_matching_whatsapp.sql` introuvable (`expected [] to have a 
 
 L'en-tête et la section 1. ⚠ Le corps de `matching_actions_agence` est celui de `matching_actions_du_jour` dans `…_matching_surfaces.sql`, recopié caractère pour caractère, sauf `select public.get_user_agency_id() as id`, devenu `select p_agency as id`.
 
-Créer `supabase/migrations/20260924200000_matching_whatsapp.sql` :
+Créer `supabase/migrations/20260930200000_matching_whatsapp.sql` :
 
 ```sql
 -- Matching · lot D2 (24.09.2026) — le copilote WhatsApp : le point du matin, `get_matches`, `get_buyers_for_property`,
@@ -568,7 +568,7 @@ La spec de base (`npx vitest run --config=vitest.backend.config.ts tests/backend
 `record_match_outcome` écrit par une fonction de base qui pose `app.actor_kind = 'ai'` : les déclencheurs de la boucle (réponse datée, journal et motif, clôture de la relance) attribuent alors l'écriture à MEGGA AI, et le geste s'écrit d'un bloc. Une écriture directe par PostgREST serait journalisée `system` (conception §4.1). Les quatre réponses suivent À L'IDENTIQUE les gestes du fil : `execProposer`, `execRepondre`, `execPasEncore` (`src/hooks/useAtelierMatching.ts`).
 
 **Fichiers :**
-- Modifier : `supabase/migrations/20260924200000_matching_whatsapp.sql`
+- Modifier : `supabase/migrations/20260930200000_matching_whatsapp.sql`
 - Modifier : `tests/unit/matching-whatsapp-sql.spec.ts`
 - Modifier : `tests/backend/matching-whatsapp.spec.ts`
 - Modifier : `src/types/database.ts`
@@ -620,7 +620,7 @@ Attendu : ÉCHEC : `wa_matching_consigner introuvable`.
 > pas « l'actif » sur le statut seul — « Marquer perdu » n'écrit que l'étape `lost`. Le texte ci-dessous est celui du
 > lot D2.
 
-Ajouter à la fin de `supabase/migrations/20260924200000_matching_whatsapp.sql` :
+Ajouter à la fin de `supabase/migrations/20260930200000_matching_whatsapp.sql` :
 
 ```sql
 
@@ -904,7 +904,7 @@ Attendu : Sortie 0.
 La règle de « Planifier une visite » (`execPlanifierVisite` du fil) : un acheteur « intéressé » passe `visit_planned`, son deal avance ; un mandat reçoit une ligne `visits`, une annonce du marché un événement d'agenda. ⛔ `reminder_sent = true` à la création : `visit-reminders-j1` écrit au client la veille de toute visite dont le rappel n'est pas parti, alors que l'outil promet de ne RIEN lui envoyer (conception §2, §5.4). Son annulation (« /annuler ») rend d'un bloc ce que la visite a posé.
 
 **Fichiers :**
-- Modifier : `supabase/migrations/20260924200000_matching_whatsapp.sql`
+- Modifier : `supabase/migrations/20260930200000_matching_whatsapp.sql`
 - Modifier : `tests/unit/matching-whatsapp-sql.spec.ts`
 - Modifier : `tests/backend/matching-whatsapp.spec.ts`
 - Modifier : `src/types/database.ts`
@@ -946,7 +946,7 @@ Attendu : ÉCHEC : `wa_matching_visite introuvable`.
 > l'OUVERT le plus récent (`status in ('active', 'on_hold') and stage <> 'lost'`), comme pour `wa_matching_consigner`.
 > Le texte ci-dessous est celui du lot D2.
 
-Ajouter à la fin de `supabase/migrations/20260924200000_matching_whatsapp.sql` :
+Ajouter à la fin de `supabase/migrations/20260930200000_matching_whatsapp.sql` :
 
 ```sql
 
@@ -4989,7 +4989,7 @@ docs(matching): le lot D2 — conception, plan, carte et cerveau                
 
 *Avant la fusion — à dire à Julien*
 - ⛔ **D2 ne part pas sans le lot E** : il fusionne avec toute la pile, à la fin, sur `megga/matching-lot-d1` dont il réécrit la fonction (D1 ne part pas sans le lot E).
-- **La migration `20260924200000_matching_whatsapp.sql` s'applique à la main AVANT la fusion**, avec l'accord de Julien, après celle de D1 ; au redatage, un suffixe POSTÉRIEUR à `…190000_matching_surfaces` (elle réécrit `matching_actions_du_jour` et lit les colonnes du lot B : `prix_propose`, `match_ids`, `sent_via = 'agent'`).
+- **La migration `20260930200000_matching_whatsapp.sql` s'applique à la main AVANT la fusion**, avec l'accord de Julien, après celle de D1 ; au redatage, un suffixe POSTÉRIEUR à `…190000_matching_surfaces` (elle réécrit `matching_actions_du_jour` et lit les colonnes du lot B : `prix_propose`, `match_ids`, `sent_via = 'agent'`).
 - ⛔ **La SQL du lot n'a JAMAIS tourné** (le port 54321 est pris sur cette machine) : les specs de la base W1 à W6 (`tests/backend/matching-whatsapp.spec.ts`) et les deux réparées (`whatsapp-matches-enrich`, `whatsapp-antifab`) se jouent contre une base locale (`npm run test:backend`) AVANT d'appliquer la migration, puis se voient vertes dans la CI de la PR (`backend.yml` ne tourne que sur une PR ou un push vers `main`). W6 est la seule preuve que le filtre `.or(…)` des relances est valide : une faute y rendrait une erreur 400, donc plus AUCUN point du matin.
 - **Un EXPLAIN des deux désignations** sur la même base locale : pour `wa_matching_biens_designes` (§5 de la migration), la branche `suggested` sur `idx_matches_agency_focus` et la branche `in (…)` sur `idx_matches_boucle`, plutôt qu'un balayage de `matches` ; pour `wa_matching_biens_de_l_acheteur` (§6), une lecture menée par `contact_id`. Attendu, non vérifié.
 - **Remesurer les relances « orphelines »** — ouvertes, échues, dont aucun match n'est plus `sent` — APRÈS l'application de la pile : le filtre des relances les sort de « À relancer » sans que la section Matching les porte ; les clore si besoin. Mesuré le 25.09.2026 : `reminders.match_ids` n'existe pas encore en production (la migration du lot B n'y est pas appliquée), 1 relance de proposition ouverte, aucune orpheline.

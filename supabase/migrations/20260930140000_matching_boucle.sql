@@ -367,7 +367,7 @@ end;
 $function$;
 
 comment on function public.purge_stale_market_matches() is
-  'Supprime les matchs SUGGESTED JAMAIS PROPOSÉS (sent_at nul) dont la market_listing est removed. Self-healing via daily_matching_scan. Cron purge-stale-matches 04:50. Ne touche jamais un match proposé ou revenu par une baisse (lot B, 20260921140000). Voir 20260717232500.';
+  'Supprime les matchs SUGGESTED JAMAIS PROPOSÉS (sent_at nul) dont la market_listing est removed. Self-healing via daily_matching_scan. Cron purge-stale-matches 04:50. Ne touche jamais un match proposé ou revenu par une baisse (lot B, 20260930140000). Voir 20260717232500.';
 
 revoke execute on function public.purge_stale_market_matches() from public, anon, authenticated;
 grant execute on function public.purge_stale_market_matches() to service_role;

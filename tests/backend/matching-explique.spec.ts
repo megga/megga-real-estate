@@ -1,4 +1,4 @@
-// Matching · lot C (migration 20260922160000_matching_explique.sql).
+// Matching · lot C (migration 20260930160000_matching_explique.sql).
 //   E1  `properties.off_market` : faux par défaut ; un mandat ACTIF qui bascule voit supprimés les matchs jamais
 //       proposés des acheteurs qui DEMANDENT l'off-market (le moteur les recrée) — ni ceux qui ont une histoire, ni
 //       ceux des autres acheteurs, dont la note ne bouge pas ; un brouillon qui bascule, ou qui est publié

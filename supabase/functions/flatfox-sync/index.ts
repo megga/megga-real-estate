@@ -602,7 +602,7 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 const SWEEP_LOT = 500
 /**
  * Part du vivier au-delà de laquelle un balayage est un INCIDENT et ne retire rien : la même que le
- * rattrapage de la migration 20260921145000. Un passage retirait 400 à 1 400 annonces par nuit avant la
+ * rattrapage de la migration 20260930145000. Un passage retirait 400 à 1 400 annonces par nuit avant la
  * panne du 05.09.2026, sur ~36 000.
  */
 const SWEEP_PART_MAX = 0.4

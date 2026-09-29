@@ -13,7 +13,7 @@
 
 begin;
 
--- L'ALTER de `properties` prend un verrou exclusif à CHAQUE rejeu du jour : échouer vite (précédent 20260921140000).
+-- L'ALTER de `properties` prend un verrou exclusif à CHAQUE rejeu du jour : échouer vite (précédent 20260930140000).
 set local lock_timeout = '5s';
 
 -- ── 1. L'off-market d'un mandat : un interrupteur de l'agent (décision de Julien, 22.09.2026) ──

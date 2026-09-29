@@ -17,7 +17,7 @@
 - **Commits : AU SIGNAL de Julien seulement** (« committe »), un commit PAR SUJET, jamais de push. Chaque tâche finit par un « point de commit (au signal) » qui dit quoi grouper.
 - **Production : aucune écriture pendant le chantier.** Les deux migrations partent à la fusion (`deploy.yml`). Les requêtes de la Task 16 sont en LECTURE seule.
 - **Date-guard de `deploy.yml` :** une migration n'est appliquée que si ses 8 premiers chiffres sont ≥ au jour UTC de la fusion, et elle est rejouée à chaque push de ce jour-là. Les deux fichiers sont datés `20260921` : si la fusion a lieu plus tard, **les renommer tous les deux au jour de la fusion** (`git mv`), en gardant `…145000` AVANT `…150000` (l'ordre compte, cf. Task 2), et corriger les noms cités dans ce plan, dans `tests/unit/pige-sql.spec.ts` (il les cherche par suffixe, rien à changer) et dans les commentaires SQL.
-- **Chantier parallèle (étape 1a, lot B du matching) :** il touche `src/components/matching-fil/**`, `src/hooks/useAtelierMatching.ts`, `src/hooks/useMatchingFil.ts`, `src/hooks/useSelectionMarche.ts`, `supabase/functions/matching-engine`, des migrations `20260921140000_…`. **Ce plan n'y touche pas.** Fichiers PARTAGÉS : `src/i18n/locales/*/matching.json`, `src/pages/dev/crmFixtures.ts`, `src/types/database.ts`, `docs/system-map.md`, `CLAUDE.md`, `.claude-flow/knowledge/megga-memory.seed.json`, `tests/unit/megga-x-grammar.spec.ts`. Pour chacun : **le relire juste avant d'écrire, ne modifier que ses propres sections**, jamais réécrire le fichier entier depuis une copie ancienne.
+- **Chantier parallèle (étape 1a, lot B du matching) :** il touche `src/components/matching-fil/**`, `src/hooks/useAtelierMatching.ts`, `src/hooks/useMatchingFil.ts`, `src/hooks/useSelectionMarche.ts`, `supabase/functions/matching-engine`, des migrations `20260930140000_…`. **Ce plan n'y touche pas.** Fichiers PARTAGÉS : `src/i18n/locales/*/matching.json`, `src/pages/dev/crmFixtures.ts`, `src/types/database.ts`, `docs/system-map.md`, `CLAUDE.md`, `.claude-flow/knowledge/megga-memory.seed.json`, `tests/unit/megga-x-grammar.spec.ts`. Pour chacun : **le relire juste avant d'écrire, ne modifier que ses propres sections**, jamais réécrire le fichier entier depuis une copie ancienne.
 - **Grammaire MEGGA X** (`CLAUDE.md` §3) : couleurs par la palette (`sp.*`, `surf.*`, `mrhPriceDropInk`), aucune couleur hexadécimale neuve, graisse ≤ 600, aucune capitale, tailles en `var(--crm-text-*)`, rayons et espacements en `var(--crm-radius-*)` / `var(--crm-space-*)` : **aucun littéral neuf** (le cliquet `megga-x-grammar.spec.ts` compte ceux du dossier `matching-recherche` et de `src/pages/agent`).
 - **i18n** dans les 4 langues par script python qui vérifie d'abord le format `json.dumps(d, ensure_ascii=False, indent=2) + '\n'`, sans tiret cadratin ni demi-cadratin, sans ß, italien au « Lei ».
 - **Performance** (`CLAUDE.md` §7) : jamais de `count: 'exact'` ni de `count(` dans le flux, un index qui couvre le WHERE et l'ORDER BY, aucune colonne lourde en liste.
@@ -63,7 +63,7 @@
 
 | Zone | Fichiers |
 |---|---|
-| Données | `supabase/migrations/20260921145000_flatfox_balayage_par_lots.sql` (créé, Question 1), `supabase/migrations/20260921150000_pige_historique_prix.sql` (créé), `src/types/database.ts` |
+| Données | `supabase/migrations/20260930145000_flatfox_balayage_par_lots.sql` (créé, Question 1), `supabase/migrations/20260930150000_pige_historique_prix.sql` (créé), `src/types/database.ts` |
 | Edge | `supabase/functions/flatfox-sync/index.ts` (Question 1), `supabase/functions/market-scraper/index.ts` |
 | Modèle et données front | `src/components/matching-recherche/pige.ts` (créé), `src/hooks/usePige.ts` (créé), `src/components/matching-recherche/types.ts`, `src/hooks/useMatchingRecherche.ts`, `src/hooks/useMarketListing.ts` |
 | Écrans | `src/components/matching-recherche/MrhBouge.tsx` (créé), `src/components/matching-recherche/MrhHistoriquePrix.tsx` (créé), `MatchingRechercheHybride.tsx`, `MrhExtDetail.tsx`, `RechIcon.tsx`, `mrh.css`, `src/pages/agent/ExternalListingDetailPage.tsx` |
@@ -104,7 +104,7 @@ Expected : tsc sans erreur, les deux specs PASS. Noter tout rouge préexistant p
 - [ ] **Step 1 : Écrire la spec backend**
 
 ```ts
-// Backend test — Pige lisible et historique des prix (migrations 20260921145000 et 20260921150000).
+// Backend test — Pige lisible et historique des prix (migrations 20260930145000 et 20260930150000).
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : la suite tourne contre un Supabase local fraîchement migré.
 //
@@ -446,7 +446,7 @@ Si la pile locale tourne (`npx supabase start`, puis les variables `SUPABASE_TES
 ### Task 2 : Migration Flatfox — rattrapage et balayage par lots (Question 1)
 
 **Files :**
-- Create : `supabase/migrations/20260921145000_flatfox_balayage_par_lots.sql`
+- Create : `supabase/migrations/20260930145000_flatfox_balayage_par_lots.sql`
 
 ⚠ **Sur accord de Julien seulement (Question 1).** Sans accord : ne pas créer ce fichier, sauter la Task 5, retirer le dernier `describe` de la spec backend et les deux premiers `it` de `pige-sql.spec.ts`, et laisser le point 12 des décisions en attente.
 
@@ -469,7 +469,7 @@ Si la pile locale tourne (`npx supabase start`, puis les variables `SUPABASE_TES
 -- 1. Un index partiel des Flatfox vivantes par dernière vue : le balayage n'y lit que les candidates, au
 --    lieu de traverser les ~94 000 retirées de `idx_ml_flatfox_sync` avec un accès au tas chacune.
 -- 2. Rattrapage : ces annonces passent `removed`, UNE fois, AVANT que la migration de la pige
---    (20260921150000) ne pose ses déclencheurs. Disparues avant la mise en service, elles gardent
+--    (20260930150000) ne pose ses déclencheurs. Disparues avant la mise en service, elles gardent
 --    removed_at NULL et n'écrivent aucun historique, comme toute annonce retirée avant elle ; sans cet
 --    ordre, « Retirés » les daterait toutes du jour de la fusion.
 -- 3. flatfox_balayer_retraits() : un lot borné par appel ; `flatfox-sync` rappelle tant qu'un lot revient
@@ -595,7 +595,7 @@ Expected : sortie sans « non rejouable ».
 ### Task 3 : Migration de la pige — historique, retrait daté, flux
 
 **Files :**
-- Create : `supabase/migrations/20260921150000_pige_historique_prix.sql`
+- Create : `supabase/migrations/20260930150000_pige_historique_prix.sql`
 
 - [ ] **Step 1 : Écrire la migration**
 
@@ -630,7 +630,7 @@ Expected : sortie sans « non rejouable ».
 --
 -- ⚠ DATE-GUARD (`deploy.yml`) : appliquée seulement si son horodatage est ≥ au jour UTC de la fusion,
 -- et rejouée à chaque push de ce jour-là. Tout est rejouable (le relevé saute les annonces qui ont déjà
--- une ligne). Renommer au jour de la fusion si elle a lieu plus tard, APRÈS 20260921145000.
+-- une ligne). Renommer au jour de la fusion si elle a lieu plus tard, APRÈS 20260930145000.
 -- ⚠ Pas de CONCURRENTLY : deploy.yml envoie le fichier en un seul bloc transactionnel.
 
 begin;
@@ -3071,7 +3071,7 @@ Expected : `seed ok N` ; la recherche rend `megga/pige-historique-prix` en tête
 
 - [ ] **Step 1 : Le jour de la fusion**
 
-Dans les journaux de `deploy.yml` : `HTTP 201` pour `20260921145000_flatfox_balayage_par_lots.sql` puis `20260921150000_pige_historique_prix.sql` (ou leurs noms renommés). Puis, en lecture seule (éditeur SQL ou MCP `execute_sql`) :
+Dans les journaux de `deploy.yml` : `HTTP 201` pour `20260930145000_flatfox_balayage_par_lots.sql` puis `20260930150000_pige_historique_prix.sql` (ou leurs noms renommés). Puis, en lecture seule (éditeur SQL ou MCP `execute_sql`) :
 
 ```sql
 select tgname from pg_trigger

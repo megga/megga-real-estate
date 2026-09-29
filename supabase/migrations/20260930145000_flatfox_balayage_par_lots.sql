@@ -15,7 +15,7 @@
 -- 1. Un index partiel des Flatfox vivantes par dernière vue : le balayage n'y lit que les candidates, au
 --    lieu de traverser les ~94 000 retirées de `idx_ml_flatfox_sync` avec un accès au tas chacune.
 -- 2. Rattrapage : ces annonces passent `removed`, UNE fois, AVANT que la migration de la pige
---    (20260921150000) ne pose ses déclencheurs. Disparues avant la mise en service, elles gardent
+--    (20260930150000) ne pose ses déclencheurs. Disparues avant la mise en service, elles gardent
 --    removed_at NULL et n'écrivent aucun historique, comme toute annonce retirée avant elle ; sans cet
 --    ordre, « Retirés » les daterait toutes du jour de la fusion.
 -- 3. flatfox_balayer_retraits() : un lot borné par appel ; `flatfox-sync` rappelle tant qu'un lot revient

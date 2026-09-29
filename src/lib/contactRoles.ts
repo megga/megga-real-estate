@@ -6,7 +6,7 @@
  * reste écrit, parce que le reste du CRM le lit (KYC, pipeline, relances, trois politiques RLS).
  *
  * ⛔ CE MODULE EST LE MIROIR DU SQL : `contacts_roles_ordonnes` et `contacts_roles_sync`
- * (migration `20260922180000_contacts_roles.sql`) appliquent les mêmes règles, dans le même
+ * (migration `20260930180000_contacts_roles.sql`) appliquent les mêmes règles, dans le même
  * ordre. `contacts-roles-vocabulaire.spec.ts` confronte les deux listes, plus les 4 langues.
  */
 import type { ContactType } from '@/types/contact'
