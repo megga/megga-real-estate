@@ -23,12 +23,19 @@
   flex-shrink: 0;
 }
 
-/* signup.html — la case de consentement occupe sa propre ligne sous les quatre
-   champs (Nom | E-mail / Mot de passe | Agence). `1 / -1` plutôt que `span 2` :
-   sous 767px la grille passe à une colonne, et un `span 2` y créerait une
-   colonne implicite qui rétrécirait tous les autres champs de moitié. */
+/* signup.html — les cases de consentement occupent leur propre ligne sous les
+   quatre champs (Nom | E-mail / Mot de passe | Agence). `1 / -1` plutôt que
+   `span 2` : sous 767px la grille passe à une colonne, et un `span 2` y créerait
+   une colonne implicite qui rétrécirait tous les autres champs de moitié.
+
+   Une case par document — conditions générales, politique de confidentialité —
+   empilées dans UNE cellule de la grille : en deux cellules, elles hériteraient
+   de l'écart des champs (24 px) et se liraient comme deux blocs sans rapport. */
 .megga-signup__consent {
   grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--main-spacers--3x-extra-small);
 }
 
 /* Écran de confirmation des pages d'authentification (.w-form-done).

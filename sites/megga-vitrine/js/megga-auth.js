@@ -60,7 +60,7 @@
       captchaInteractive: "Confirmez que vous n’êtes pas un robot.",
       serviceFail: "Connexion impossible. Réessayez.",
       existingAccount: "Un compte existe déjà avec cet e-mail.",
-      consent: "Acceptez les conditions pour continuer.",
+      consent: "Acceptez les conditions générales et la politique de confidentialité pour continuer.",
       patientez: "Patientez…",
       loginRequis: "E-mail et mot de passe requis.",
       emailRequis: "Indiquez votre e-mail.",
@@ -82,7 +82,7 @@
       captchaInteractive: "Bestätigen Sie, dass Sie kein Roboter sind.",
       serviceFail: "Verbindung nicht möglich. Versuchen Sie es erneut.",
       existingAccount: "Mit dieser E-Mail-Adresse besteht bereits ein Konto.",
-      consent: "Akzeptieren Sie die Bedingungen, um fortzufahren.",
+      consent: "Akzeptieren Sie die Allgemeinen Geschäftsbedingungen und die Datenschutzerklärung, um fortzufahren.",
       patientez: "Einen Moment…",
       loginRequis: "E-Mail und Passwort erforderlich.",
       emailRequis: "Geben Sie Ihre E-Mail-Adresse an.",
@@ -104,7 +104,7 @@
       captchaInteractive: "Confirm that you are not a robot.",
       serviceFail: "Connection failed. Try again.",
       existingAccount: "An account already exists with this email address.",
-      consent: "Accept the terms to continue.",
+      consent: "Accept the terms and conditions and the privacy policy to continue.",
       patientez: "One moment…",
       loginRequis: "Email and password required.",
       emailRequis: "Enter your email address.",
@@ -126,7 +126,7 @@
       captchaInteractive: "Confermi di non essere un robot.",
       serviceFail: "Connessione non riuscita. Riprovi.",
       existingAccount: "Esiste già un account con questa e-mail.",
-      consent: "Accetti le condizioni per continuare.",
+      consent: "Accetti le condizioni generali e l'informativa sulla privacy per continuare.",
       patientez: "Un istante…",
       loginRequis: "E-mail e password obbligatorie.",
       emailRequis: "Indichi il suo indirizzo e-mail.",
@@ -307,19 +307,35 @@
       });
   }
 
-  function $(sel, root) { return (root || document).querySelector(sel); }
   function byId(id) { return document.getElementById(id); }
 
   /**
-   * Case « J'accepte les conditions… » de signup.html, ou `null` ailleurs.
+   * Cases de consentement de signup.html — une par document : conditions
+   * générales, politique de confidentialité. Liste vide ailleurs.
    *
-   * ⚠ Surtout PAS par son id : le template Webflow a nommé `checkbox-3` la
+   * ⚠ Surtout PAS par id : le template Webflow a nommé `checkbox-3` la
    * première case de chaque page, et sur login.html c'est « Rester connecté ».
    * Chercher par id ferait dépendre la connexion Google d'une case « rester
-   * connecté » décochée. On passe donc par la ligne de consentement, qui
+   * connecté » décochée. On passe donc par le bloc de consentement, qui
    * n'existe que sur signup.html.
    */
-  function consentCheckbox() { return $('.megga-signup__consent input[type="checkbox"]'); }
+  function consentCheckboxes() {
+    return Array.prototype.slice.call(
+      document.querySelectorAll('.megga-signup__consent input[type="checkbox"]'),
+    );
+  }
+
+  /**
+   * Toutes les cases de consentement de la page sont-elles cochées ? Vrai sur
+   * une page qui n'en porte aucune (login.html).
+   *
+   * On exige ce que la page porte au lieu de nommer les deux cases : un
+   * signup.html servi depuis un cache d'avant la séparation n'en a qu'une, qui
+   * couvre les deux documents, et doit rester utilisable avec ce fichier-ci.
+   */
+  function consentementComplet() {
+    return consentCheckboxes().every(function (c) { return c.checked; });
+  }
 
   // Champ mot de passe de la page de connexion, re-typé au besoin.
   //
@@ -481,15 +497,15 @@
       if (!provider) return;
       btn.addEventListener('click', function (e) {
         e.preventDefault();
-        // La case de consentement gouverne AUSSI ces boutons. Ils créent un
+        // Les cases de consentement gouvernent AUSSI ces boutons. Ils créent un
         // compte sans passer par le formulaire : sans ce test, « Continuer avec
         // Google » ouvrait la seule porte d'inscription sans consentement, et
-        // l'obligation posée sur le formulaire n'aurait été qu'un décor. La case
-        // n'existe que sur signup.html — login.html n'est pas concerné.
-        var consentement = consentCheckbox();
-        if (consentement && !consentement.checked) {
-          var hote = btn.closest('form');
-          if (hote) return showError(hote, m('consent'));
+        // l'obligation posée sur le formulaire n'aurait été qu'un décor. Les
+        // cases n'existent que sur signup.html — login.html n'est pas concerné.
+        if (!consentementComplet()) {
+          var hote = btn.closest('form') || byId('wf-form-Sign-Up-Form');
+          if (hote) showError(hote, m('consent'));
+          return;
         }
         client.auth.signInWithOAuth({
           provider: provider,
@@ -611,24 +627,22 @@
       // que le navigateur affiche là n'est ni garanti ni identique d'un moteur à
       // l'autre. Sans ce relais, le bouton principal aurait pu rester sans
       // réaction visible. `invalid` est émis avant la bulle, sur la case elle-même.
-      var caseConsentement = consentCheckbox();
-      if (caseConsentement) {
+      consentCheckboxes().forEach(function (caseConsentement) {
         caseConsentement.addEventListener('invalid', function () { showError(signupForm, m('consent')); });
-      }
+      });
       signupForm.addEventListener('submit', function (e) {
         e.preventDefault(); e.stopPropagation(); clearError(signupForm);
         var name = (byId('Name') && byId('Name').value || '').trim();
         var email = (byId('Email') && byId('Email').value || '').trim();
         var pwd = (byId('Password') && byId('Password').value) || '';
         var agency = (byId('Phone') && byId('Phone').value || '').trim(); // 4e champ = "Nom de votre agence"
-        var consentement = consentCheckbox();
         if (!name || !email || !pwd) return showError(signupForm, m('signupRequis'));
         if (pwd.length < 8) return showError(signupForm, m('motDePasseCourt'));
         // Le `required` du HTML porte déjà le blocage natif ; ce test le double
         // côté script parce que la page et ce fichier sont mis en cache
         // séparément — un HTML servi depuis un cache d'avant l'attribut
         // laisserait passer l'inscription sans consentement.
-        if (consentement && !consentement.checked) return showError(signupForm, m('consent'));
+        if (!consentementComplet()) return showError(signupForm, m('consent'));
         setBusy(signupForm, true);
         getCaptchaToken(signupForm, function () { showCaptchaPrompt(signupForm); }).then(function (captchaToken) {
           clearError(signupForm);
@@ -645,12 +659,16 @@
               // (AuthBentoApp). Sans ça, le trigger handle_new_user retombe sur
               // 'buyer' et l'inscrit vitrine part dans le mauvais parcours.
               //
-              // legal_consent : la case obligatoire ci-dessus, vérifiée juste
-              // avant. Le trigger en fait une preuve datée dans user_consents
-              // (migration 20260731210000) avec LA VERSION QU'IL CONNAÎT — sans
-              // elle, le CRM redemandait la même acceptation à la première
-              // session, trente secondes plus tard. On déclare que l'agent a
-              // accepté, jamais ce qu'il aurait accepté.
+              // legal_consent : les cases obligatoires ci-dessus, une par
+              // document, vérifiées juste avant — on n'arrive ici que si toutes
+              // sont cochées, d'où UN seul drapeau. Le trigger en fait une
+              // preuve datée dans user_consents (migration 20260731210000) pour
+              // chaque document de legal_document_versions, avec LA VERSION
+              // QU'IL CONNAÎT — sans elle, le CRM redemandait la même
+              // acceptation à la première session, trente secondes plus tard.
+              // On déclare que l'agent a accepté, jamais ce qu'il aurait accepté.
+              // ⚠ Le trigger couvre TOUS les documents de cette table : en
+              // ajouter un exige d'ajouter sa case sur signup.html.
               data: {
                 full_name: name,
                 agency_name: agency,

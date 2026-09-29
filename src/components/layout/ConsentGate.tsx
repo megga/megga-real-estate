@@ -5,10 +5,10 @@
  * d'identité à moitié visible, ce qui se lisait comme une interruption plutôt
  * que comme une étape.
  *
- * Il ne se déclenche plus au premier passage du cas courant : la case cochée
- * sur getmegga.com/signup est désormais enregistrée à la création du compte
- * (trigger `handle_new_user`, migration 20260731210000). Restent deux cas, tous
- * deux légitimes :
+ * Il ne se déclenche plus au premier passage du cas courant : les cases cochées
+ * sur getmegga.com/signup (une par document) sont désormais enregistrées à la
+ * création du compte (trigger `handle_new_user`, migration 20260731210000).
+ * Restent deux cas, tous deux légitimes :
  *   * inscription par Google/Microsoft — le parcours quitte getmegga.com avant que
  *     le compte existe et `signInWithOAuth` ne transporte pas de métadonnées,
  *     la preuve ne peut donc pas être écrite à la création ;
