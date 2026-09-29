@@ -287,6 +287,11 @@ envoie **le lien** par Resend, dans la langue du contact (cf. `docs/email-i18n-h
 
 Chaque lot est visible sur le banc `/dev/crm` (surface « Matching ») avant d'être fusionné.
 
+⚠ **Numérotation périmée (29.09.2026).** « En attente » et « À conclure » sont venus avec la boucle chez l'agent
+(lot B, 21.09.2026) ; la bascule en production annoncée au « lot 3 » est le **lot E1**, qui retire aussi l'atelier de
+bureau (29.09.2026, sur branche, fusion à la fin) ; le mobile du « lot 4 » est le **lot E2**. Conception :
+[`2026-09-27-matching-lot-e1-bureau-design.md`](2026-09-27-matching-lot-e1-bureau-design.md).
+
 ⚠ **L'atelier reste en production jusqu'à la fin du lot 3.** Le fil ne remplace la page 0 (et ne
 devient la page d'atterrissage) qu'une fois « Marché », « En attente » et « Réponses » livrés :
 un lot 1 seul retirerait aux agents la vue des 1 618 matchs du marché. D'ici là, le fil vit derrière
@@ -314,8 +319,9 @@ par bien. Sont reportés au lot 3, parce qu'ils accompagnent la bascule de produ
 marquant les matchs envoyés), l'état « aucun acheteur avec critères », `MatchingFirstRun` et le
 journal de « Réactiver ». L'atterrissage sur le fil ne vaut que pour le banc.
 
-**Précisions du plan du lot 2 (17.09.2026).** Un envoi de sélection est UN suivi : un deal (l'actif,
-sinon un `new_lead` sur le meilleur bien), UNE relance à +5 j et UNE ligne `dossier_envoye` qui liste
+**Précisions du plan du lot 2 (17.09.2026).** Un envoi de sélection est UN suivi : un deal (l'ouvert
+— un deal perdu, étape `lost`, n'en est pas un depuis le lot E1 : `dealOuvert` —, sinon un `new_lead` sur le meilleur
+bien), UNE relance à +5 j et UNE ligne `dossier_envoye` qui liste
 les `match_ids` (`execEnvoyerSelection`). Le lien « Chercher plus loin dans Recherche » est reporté au
 lot 3 : Recherche ne sait pas s'ouvrir sur un acheteur, et on n'y touche pas. Sur une ligne « Marché »,
 `E` envoie les biens cochés ; `P` et `X` n'y font rien. Un filtre « Bien » masque les lignes « Marché ».

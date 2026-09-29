@@ -16,18 +16,18 @@
       "untranslated": 4
     },
     "common": {
-      "total": 548,
+      "total": 561,
       "sameAsEn": 36,
       "untranslated": 6
     },
     "contacts": {
-      "total": 902,
-      "sameAsEn": 118,
+      "total": 892,
+      "sameAsEn": 116,
       "untranslated": 16
     },
     "dashboard": {
-      "total": 563,
-      "sameAsEn": 41,
+      "total": 513,
+      "sameAsEn": 35,
       "untranslated": 5
     },
     "kyc": {
@@ -41,14 +41,14 @@
       "untranslated": 5
     },
     "listings": {
-      "total": 1531,
-      "sameAsEn": 126,
+      "total": 1535,
+      "sameAsEn": 125,
       "untranslated": 18
     },
     "matching": {
-      "total": 462,
-      "sameAsEn": 23,
-      "untranslated": 2
+      "total": 577,
+      "sameAsEn": 13,
+      "untranslated": 0
     },
     "messages": {
       "total": 347,
@@ -88,18 +88,18 @@
       "untranslated": 0
     },
     "common": {
-      "total": 548,
+      "total": 561,
       "sameAsEn": 34,
       "untranslated": 1
     },
     "contacts": {
-      "total": 902,
-      "sameAsEn": 111,
-      "untranslated": 6
+      "total": 892,
+      "sameAsEn": 110,
+      "untranslated": 5
     },
     "dashboard": {
-      "total": 563,
-      "sameAsEn": 44,
+      "total": 513,
+      "sameAsEn": 38,
       "untranslated": 4
     },
     "kyc": {
@@ -113,14 +113,14 @@
       "untranslated": 2
     },
     "listings": {
-      "total": 1531,
-      "sameAsEn": 120,
+      "total": 1535,
+      "sameAsEn": 119,
       "untranslated": 5
     },
     "matching": {
-      "total": 462,
-      "sameAsEn": 24,
-      "untranslated": 2
+      "total": 577,
+      "sameAsEn": 17,
+      "untranslated": 0
     },
     "messages": {
       "total": 347,

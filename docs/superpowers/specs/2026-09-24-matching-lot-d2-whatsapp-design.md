@@ -107,7 +107,7 @@ La branche est `megga/matching-lot-d2`, partie de `megga/matching-lot-d1`.
 
 | Réponse | Statut cherché | Ce qui s'écrit, d'un bloc, sur « Oui » |
 |---|---|---|
-| Proposé | `suggested` | Le match passe `sent` (`sent_via = 'agent'`) ; le deal : l'actif, sinon un `new_lead` sur ce bien ; UNE relance à +3 jours (canal `task`) ; `match_propose` au journal |
+| Proposé | `suggested` | Le match passe `sent` (`sent_via = 'agent'`) ; le deal : l'ouvert (lot E1 : jamais un deal perdu, étape `lost`), sinon un `new_lead` sur ce bien ; UNE relance à +3 jours (canal `task`) ; `match_propose` au journal |
 | Intéressé | `sent` | `interested` ; les déclencheurs datent la réponse, la journalisent, et closent la relance quand plus aucun bien n'attend |
 | Pas intéressé | `sent` ou `interested` | `rejected`, le motif, la note ; même chaîne |
 | Pas encore | `sent` | Rien sur le match ; la relance qui couvre le bien est repoussée de 3 jours, ou posée ; `match_pas_encore` au journal |
@@ -130,13 +130,13 @@ La branche est `megga/matching-lot-d2`, partie de `megga/matching-lot-d1`.
   ⚠ **À l'exécution** : « Je consigne que … », et non « Je note que … » (le plan), pour « proposé » et « pas encore » : sans mot d'action, une imitation de la question par le modèle, privée de son suffixe « (« oui » / « non ») », passait la garde des confirmations simulées (§8).
 - **Sur « Oui »**, `wa_matching_consigner` écrit, avec le même statut de départ en garde : si un collègue a consigné entre-temps, rien n'est réécrit et le copilote le dit.
   ⚠ **À l'exécution, trois comptes rendus quand rien n'est écrit** : « déjà consignée » quand le match porte ce que la réponse écrit ; « … a changé entre-temps » quand il a bougé ailleurs (pour « pas encore », qui n'écrit aucun statut, tout mouvement) — « déjà consignée » y serait faux ; et « Non confirmée — vérifie la fiche » sur une panne de transport, sans code Postgres : la base a pu écrire avant que la réponse ne se perde, « rien n'a été écrit » serait parfois faux.
-- ⚠ **À l'exécution : une annonce retirée ne se « propose » pas.** La consigner créerait un deal et une relance sur un bien parti, et le fil n'en offre aucune à proposer ; le refus la nomme, rien n'est écrit. Un mandat garde sa place quel que soit son statut, comme dans le fil (décision 12 du lot D1).
+- ⚠ **À l'exécution : une annonce retirée ne se « propose » pas.** La consigner créerait un deal et une relance sur un bien parti, et le fil n'en offre aucune à proposer ; le refus la nomme, rien n'est écrit. Un mandat garde sa place quel que soit son statut, comme dans le fil (décision 12 du lot D1). ⛔ **Plus depuis le lot E1** (décision 12a, 27.09.2026 ; sur branche) : un mandat qui n'est plus en vente (`active` et non supprimé) ne se « propose » pas non plus — le fil ne l'offre plus, et `record_match_outcome` le refuse comme une annonce retirée ; les autres réponses le gardent.
 - **Rien ne part vers l'acheteur**, et le copilote ne prétend jamais l'avoir prévenu.
 
 ### 5.4 `schedule_visit` — « organise une visite de l'attique avec Julie mardi 14h » (automatique, « /annuler » pendant 30 s)
 
 - **Un mandat ou une annonce du marché.** Comme dans le fil : un mandat reçoit une ligne `visits` ; une annonce, que l'agence ne détient pas, un événement `visite` de l'agenda (`calendar_events`).
-- **Si l'acheteur est « intéressé » par ce bien** : le match passe `visit_planned`, le deal est rattaché (l'actif, sinon un `new_lead`) et avance à `visit_planned` s'il était avant, jamais en arrière — la règle de « Planifier une visite ». La visite d'un mandat porte le deal (`visits.transaction_id`) ; l'événement d'agenda d'une annonce n'a pas de colonne pour lui, comme dans le fil.
+- **Si l'acheteur est « intéressé » par ce bien** : le match passe `visit_planned`, le deal est rattaché (l'ouvert, sinon un `new_lead` — un deal perdu, étape `lost`, n'en est pas un depuis le lot E1) et avance à `visit_planned` s'il était avant, jamais en arrière — la règle de « Planifier une visite ». La visite d'un mandat porte le deal (`visits.transaction_id`) ; l'événement d'agenda d'une annonce n'a pas de colonne pour lui, comme dans le fil.
 - **S'il n'est que « proposé »** : la visite est posée sans toucher au match, et le copilote demande si l'acheteur est intéressé (`record_match_outcome`). Sans match : une visite, comme aujourd'hui.
 - ⛔ **`reminder_sent` est posé à vrai à la création, pour toute visite du copilote** : l'outil promet de ne rien envoyer au client, et `visit-reminders-j1` lui écrivait la veille. Même règle que le fil.
 - ⚠ **À l'exécution — l'étape d'un deal avance sans « oui ».** `schedule_visit` est automatique (« /annuler » 30 s) et fait avancer à `visit_planned` le deal d'un acheteur intéressé, jamais en arrière, quand `update_pipeline` demande une confirmation au nom du garde-fou « jamais sans action humaine ». Exception décidée par Julien le 24.09.2026, écrite dans le routeur (`whatsapp-agent-router.ts`).

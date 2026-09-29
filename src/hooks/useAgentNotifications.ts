@@ -67,9 +67,10 @@ interface RawEvent {
 }
 
 /**
- * Le type de chaque action CONNUE — les 100 de la table du journal (`common:audit.action`)
- * et celles que la production écrit sans y figurer. Explicite plutôt que deviné : l'ancien
- * classement par motifs rangeait `match_suggested` en « Système », et `lead` en « IA ».
+ * Le type de chaque action CONNUE — les 125 de la table du journal (`common:audit.action`, 29.09.2026),
+ * moins les six que la cloche écarte : le courrier (`HORS_CLOCHE`) et le technique (`TECHNIQUE`).
+ * Une action hors de la table tombe sur le repli par motifs (`KIND_PAR_MOTIF`). Explicite plutôt que
+ * deviné : l'ancien classement par motifs rangeait `match_suggested` en « Système », et `lead` en « IA ».
  */
 const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // Contacts et leads entrants

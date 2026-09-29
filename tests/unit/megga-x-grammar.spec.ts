@@ -68,7 +68,7 @@ const PAGES = new Set([
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
   // Le pager Matching, dernière surface du périmètre bureau. (`MatchingAtelierPage`,
   // son conteneur d'atelier, en faisait partie ; il est parti avec l'atelier de
-  // bureau le 27.09.2026 : le fil de matchs tient la page 0, lot E1.)
+  // bureau au lot E1, le 29.09.2026 : le fil de matchs tient la page 0.)
   'MatchingPage.tsx',
   // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferPage`
   // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer

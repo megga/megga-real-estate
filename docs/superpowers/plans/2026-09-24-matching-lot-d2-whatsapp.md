@@ -615,6 +615,11 @@ Attendu : ÉCHEC : `wa_matching_consigner introuvable`.
 
 - [ ] **Étape 2 : Ajouter la section 2 à la migration**
 
+> ⚠ **Corrigé en place par le lot E1 (29.09.2026, sur branche) :** le deal que `wa_matching_consigner` rattache est
+> l'OUVERT le plus récent (`status in ('active', 'on_hold') and stage <> 'lost'`, la règle de `src/lib/dealOuvert.ts`),
+> pas « l'actif » sur le statut seul — « Marquer perdu » n'écrit que l'étape `lost`. Le texte ci-dessous est celui du
+> lot D2.
+
 Ajouter à la fin de `supabase/migrations/20260924200000_matching_whatsapp.sql` :
 
 ```sql
@@ -936,6 +941,10 @@ npx vitest run tests/unit/matching-whatsapp-sql.spec.ts
 Attendu : ÉCHEC : `wa_matching_visite introuvable`.
 
 - [ ] **Étape 2 : Ajouter la section 3 à la migration**
+
+> ⚠ **Corrigé en place par le lot E1 (29.09.2026, sur branche) :** le deal que `wa_matching_visite` fait avancer est
+> l'OUVERT le plus récent (`status in ('active', 'on_hold') and stage <> 'lost'`), comme pour `wa_matching_consigner`.
+> Le texte ci-dessous est celui du lot D2.
 
 Ajouter à la fin de `supabase/migrations/20260924200000_matching_whatsapp.sql` :
 
@@ -4992,7 +5001,7 @@ docs(matching): le lot D2 — conception, plan, carte et cerveau                
 - `get_buyers_for_property` garde « précise l'adresse » sur un écho coupé (outil de lecture, rappelable par l'identifiant de `get_matches`), là où `record_match_outcome` renvoie au CRM.
 - La garde d'écho de `candidats` ne voit que les biens de la lecture en cours (risque nul au 25.09.2026 : aucune annonce suivie n'a de « · » dans son titre).
 - `wa_matching_consigner` rend `ok: false` sans raison pour un profil hors de l'agence : le copilote répond « ce bien n'est plus dans la boucle de ton agence ».
-- La règle `occasion` des mandats (actif seul) : `get_matches` ne propose qu'un mandat `active` ; `record_match_outcome` et le fil gardent tous les mandats. À trancher avec la décision 12 du lot D1 avant de la généraliser.
+- La règle `occasion` des mandats (actif seul) : `get_matches` ne propose qu'un mandat `active` ; `record_match_outcome` et le fil gardent tous les mandats. À trancher avec la décision 12 du lot D1 avant de la généraliser. ✅ **Tranché par le lot E1** (décision 12a de Julien, 27.09.2026 ; sur branche) : un mandat qui n'est plus en vente ne se propose plus, ni dans le fil ni par `record_match_outcome` ; « En attente » et « À conclure » le gardent.
 - `create_reminder` lit une heure sans décalage comme de l'UTC (`new Date(when)`, antérieur au lot) : partager `debutDe` réglerait tous les outils datés.
 - La branche `schedule_visit` de `rollbackAutoAction` (`whatsapp-webhook`) n'a aucun test : la fonction n'est pas exportée.
 - Une heure DOUBLÉE (bascule d'automne) écrite avec un décalage genevois explicite se lit comme sa seconde occurrence : une nuit par an, entre 02:00 et 02:59.
