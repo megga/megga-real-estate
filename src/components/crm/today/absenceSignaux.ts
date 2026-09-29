@@ -69,6 +69,14 @@ export interface OutilsSignalAbsence {
   dataUpdatedAt: number
 }
 
+/**
+ * « Pendant ton absence », au BUREAU : sans les relances de PROPOSITION, que le segment Matching d'« Aujourd'hui » porte
+ * déjà (« Retour à consigner ») — dites deux fois, sous deux verbes. Le téléphone, qui n'a pas ce segment, les garde.
+ */
+export function absenceDuBureau<S extends { retoursDe: string | null }>(signaux: readonly S[]): S[] {
+  return signaux.filter((s) => s.retoursDe == null)
+}
+
 /** Une ligne de `today_absence()` → son signal : la phrase, l'horodatage, le geste et sa cible. */
 export function versSignalAbsence(
   r: AbsenceRow, { t, relative, timeOnly, dayAndTime, dataUpdatedAt }: OutilsSignalAbsence,

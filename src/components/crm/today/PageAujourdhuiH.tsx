@@ -22,7 +22,7 @@ import EtatVide from '@/components/crm/EtatVide'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { lienFil } from '@/components/matching-fil/filLiens'
-import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 // `motion/react` = la voie du dépôt (18 fichiers, dont le voisin FocusMode).
 import { AnimatePresence, motion } from 'motion/react'
@@ -39,6 +39,7 @@ import type { ActionMatching } from './matchingDuJour'
 import { useListingActions } from './useListingActions'
 import { useTodayH, type TodayHBlock, type TodayHDay } from './useTodayH'
 import { useAbsenceSignals, type AbsenceGroup, type AbsenceSignal } from './useAbsenceSignals'
+import { absenceDuBureau } from './absenceSignaux'
 import { useTodayNav } from './TodayNavContext'
 import { useAuth } from '@/hooks/useAuth'
 import { useEcranActif } from '@/hooks/useEcranActif'
@@ -625,9 +626,16 @@ export function PageAujourdhuiH() {
   // Lot 1 — « Pendant ton absence » : réactions acheteur et rappels échus réels,
   // bornés par la présence de l'agent.
   const {
-    signals: absenceSignals, groups: absenceGroups, total: absenceTotal,
+    signals: tousSignaux, groups: tousGroupes,
     sinceLabel, markAllSeen, resumeReminder, isError: absenceError,
   } = useAbsenceSignals()
+  // Au bureau, une relance de proposition se consigne depuis le segment Matching : elle sort d'ici (`absenceDuBureau`).
+  const absenceSignals = useMemo(() => absenceDuBureau(tousSignaux), [tousSignaux])
+  const absenceGroups = useMemo(
+    () => tousGroupes.map((g) => ({ ...g, items: absenceDuBureau(g.items) })).filter((g) => g.items.length > 0),
+    [tousGroupes],
+  )
+  const absenceTotal = absenceSignals.length
   // Lot 3 — Dossiers (file Focus, déterministe) et Annonces (complétude +
   // état de diffusion). Les deux dernières zones de démonstration tombent.
   const { deals: hotDeals, isError: dealsError } = useHotDeals()
@@ -680,12 +688,6 @@ export function PageAujourdhuiH() {
   // recalcul du moteur de matching — et surtout, la base ne contient AUCUNE
   // réaction acheteur, donc aucun des deux ne pourrait être éprouvé aujourd'hui.
   const onSignal = async (s: AbsenceSignal) => {
-    // Lot D1 : une relance de proposition s'ouvre dans « Retours de … », sans rien écrire — elle se clôt quand les
-    // réponses sont consignées. La passer à `done` ici laissait ses biens `sent` sans échéance.
-    if (s.retoursDe) {
-      nav('matching-fil', lienFil({ attente: s.retoursDe }))
-      return
-    }
     if (s.type === 'rappel') {
       const ok = await resumeReminder(s)
       if (!ok) { say(t('today.h.toast.resumeFailed')); return }

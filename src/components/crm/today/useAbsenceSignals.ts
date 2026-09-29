@@ -14,8 +14,8 @@
 // ⛔ LOT D1 : une relance de PROPOSITION (`follow_up_sent_property`) n'est pas un rappel qu'on « reprend » : elle se
 // clôt quand ses réponses sont consignées (`fermer_relance_proposition`). La passer à `done` d'ici laissait ses biens
 // `sent` sans relance : « En attente » gardait la ligne — elle vit tant qu'un bien est `sent` — mais perdait son
-// échéance (conception §2 et §5.3). `retoursDe` la désigne : le bureau ouvre « Retours de … » dans le fil, le mobile
-// ouvre la fiche du contact, et aucun des deux n'écrit.
+// échéance (conception §2 et §5.3). `retoursDe` la désigne : le bureau ne la montre pas — son segment Matching la porte
+// déjà (`absenceDuBureau`) —, le mobile ouvre la fiche du contact, et aucun des deux n'écrit.
 //
 // La traduction d'une ligne en signal vit dans `absenceSignaux.ts`, PURE, éprouvée seule.
 

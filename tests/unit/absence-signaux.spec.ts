@@ -11,7 +11,7 @@
  * et la couverture i18n.
  */
 import { describe, expect, it } from 'vitest'
-import { versSignalAbsence, type AbsenceRow, type OutilsSignalAbsence } from '@/components/crm/today/absenceSignaux'
+import { absenceDuBureau, versSignalAbsence, type AbsenceRow, type OutilsSignalAbsence } from '@/components/crm/today/absenceSignaux'
 
 /** La clé — préfixée de son espace de noms s'il en porte un —, puis ses valeurs en JSON. */
 const t = (cle: string, valeurs?: Record<string, unknown>): string => {
@@ -66,6 +66,12 @@ describe('versSignalAbsence — une relance de proposition se consigne, elle ne 
   it('un rappel qui porte un bien le nomme', () => {
     const s = versSignalAbsence(ligne({ reminder_type: 'custom', subject: 'Villa · Cologny' }), outils)
     expect(s.text).toBe('today.h.absence.reminderDueSubject {"subject":"Villa · Cologny"}')
+  })
+
+  it('au bureau, la relance de proposition sort de « Pendant ton absence » : le segment Matching la porte', () => {
+    const relance = versSignalAbsence(ligne({ reminder_type: 'follow_up_sent_property', nb_biens: 2 }), outils)
+    const rappel = versSignalAbsence(ligne({ id: 'reminder:r2', reminder_type: 'custom', ref_id: 'r2' }), outils)
+    expect(absenceDuBureau([relance, rappel]).map((s) => s.id)).toEqual(['reminder:r2'])
   })
 
   it('une base d’avant la migration (clés absentes) retombe sur l’ancien rappel', () => {
