@@ -10,8 +10,8 @@
 // raisons, et un barème changé laisserait les siens aux matchs déjà notés. Ce module rejoue le VRAI barème
 // (`calculateScoreV2`) sur les matchs encore à proposer — d'une recherche corrigée (« Apprendre »), d'une
 // recherche dont les critères ont changé (`match-contact`), et, chaque nuit, de ceux qu'une version antérieure
-// du barème a notés (`aRattraper`, `scan-all`) ; l'edge en fait les lectures et les écritures (RPC
-// `matching_appliquer_notes`, puis `matching_ajuster_recherche`).
+// du barème a notés (`aRattraper`, `scan-all`) —, et, pour une recherche, sur ceux que le moteur en a écartés ;
+// l'edge en fait les lectures et les écritures (RPC `matching_appliquer_notes`, puis `matching_ajuster_recherche`).
 //
 // Mêmes règles qu'à la création : pour une annonce du MARCHÉ, le pré-filtre DUR de
 // `match_candidate_listings` (statut vivant, transaction, qualité, prix > 0, budget à 15 % près, cantons) ;
@@ -26,22 +26,42 @@
 // noté AVANT les versions (juin 2026) n'en a pas non plus, mais il porte ses axes dans `reasons` : lui se
 // renote (`ajouteALaMain`).
 //
-// ⛔ SEUL UN MATCH À PROPOSER (`suggested`) SE RENOTE : un bien proposé, répondu ou en visite garde la note
-// qu'il avait quand on l'a proposé, et un match écarté la sienne.
+// ⛔ SE RENOTENT UN MATCH À PROPOSER (`suggested`), ET UN MATCH QUE LE MOTEUR A ÉCARTÉ — rien d'autre. Un bien
+// proposé, répondu ou en visite garde la note qu'il avait quand on l'a proposé. Un match que l'AGENT a écarté
+// (« Écarter » écrit `ignored` et efface le motif, `execDismiss`) ou que l'acheteur a refusé (« Pas intéressé » :
+// `rejected`) garde la sienne, et ne revient jamais : c'est une décision humaine.
+//
+// ⛔ L'ÉCART DU MOTEUR SE DÉFAIT (décision de Julien, 29.09.2026). Un match qu'une renotation a sorti des
+// propositions (`ignored`, motif `recherche_ajustee`) et que la renotation suivante de SA recherche retient à
+// nouveau — au seuil, et dans le pré-filtre — revient à proposer, motif effacé (`revient`, puis
+// `matching_appliquer_notes`). Sans cela l'écart serait définitif : une renotation qui ne relirait que les matchs à
+// proposer ne le reverrait jamais, et le moteur ne recrée jamais une paire existante (`ON CONFLICT DO NOTHING`). Or
+// les critères d'une recherche changent aussi SANS l'agent — une extraction WhatsApp, un `qualify_lead`, un import — :
+// une fiche changée par erreur puis rétablie laisserait ses biens écartés pour toujours. Seules les renotations d'une
+// RECHERCHE relisent ses écartés (`match-contact`, `rescore-search` : `RELUS_D_UNE_RECHERCHE`) ; la nuit (`scan-all`)
+// ne lit que les matchs à proposer, par son index partiel, et un écarté revient à la renotation suivante de sa
+// recherche.
 //
 // ⚠ UN BIEN REVENU EST À PROPOSER, DONC IL SE RENOTE. Refusé pour le prix puis revenu par une baisse
 // (`match_retour_prix_*`), il est `suggested` et garde son `sent_at` et son motif `prix` : il se renote comme les
 // autres, et, écarté, son motif `prix` — le refus de l'acheteur — cède la place à `recherche_ajustee`
-// (`matching_appliquer_notes`).
+// (`matching_appliquer_notes`). Revenu de cet écart, il n'a plus de motif ; son `sent_at` et son prix proposé
+// restent.
 //
 // ⛔ UNE NOTE QUI NE CHANGE RIEN NE S'ÉCRIT PAS (`notesAEcrire`). `match-contact` renote TOUTES les recherches
 // actives du contact quand une seule a changé, et celui qu'une correction d'« Apprendre » déclenche renote les
 // mêmes matchs aux mêmes notes : réécrites à l'identique, elles coûteraient chacune un UPDATE, et un événement
 // Realtime à la fiche ouverte. Seule part sans rien changer d'autre la note qui TAMPONNE la version du barème :
-// sans elle, la nuit suivante la reprendrait, sans fin.
+// sans elle, la nuit suivante la reprendrait, sans fin. Un match écarté que la renotation écarte encore ne part
+// pas : il reste hors des propositions, rien ne change pour l'agent.
+//
+// ⚠ UN ÉCARTÉ NE REVIENT QUE SUR UN BIEN QUI SE PROPOSE : une annonce vivante (le pré-filtre, `annonceRetenue`), un
+// mandat en vente — `active` et non supprimé, la règle du fil et du copilote (décision 12a). Le moteur ne note que
+// ceux-là à la création ; revenu sur un mandat vendu, le match serait « à proposer » là où rien ne se propose. Il
+// reste alors écarté, et revient à une renotation où le mandat est de nouveau en vente.
 //
 // ⚠ UNE RENOTATION QUI NE CHANGE RIEN NE SE JOURNALISE PAS (`aJournaliser`) : sans score ni statut changé, une
-// ligne ne dirait rien — une version tamponnée seule non plus.
+// ligne ne dirait rien — une version tamponnée seule non plus. Un retour, lui, change le statut.
 //
 // ⛔ LA CORRECTION EST UNE CLÉ, PAS UN INSTANTANÉ. L'écran envoie la seule clé corrigée ; elle est fusionnée
 // dans les critères d'AUJOURD'HUI (`fusionnerCorrection`, et `matching_ajuster_recherche` à l'identique
@@ -58,8 +78,13 @@ export interface MatchARenoter {
   id: string
   property_id: string | null
   market_listing_id: string | null
-  /** Seul un match à proposer (`suggested`) se renote. */
+  /** Se renote à proposer (`suggested`), ou écarté par le moteur (`ignored` et {@link ECART_DU_MOTEUR}). */
   status: string
+  /**
+   * Le motif de la réponse de l'acheteur, ou de l'écart : {@link ECART_DU_MOTEUR} quand une renotation l'a sorti des
+   * propositions — le seul écart qui se défait.
+   */
+  reaction_motif: string | null
   /**
    * La note qu'il porte — avec sa version et ses raisons, ce qu'une renotation compare pour savoir si elle change
    * quelque chose (`notesAEcrire`, `aJournaliser`).
@@ -77,9 +102,28 @@ export interface NoteMatch {
   score: number
   reasons: MatchReasons
   score_version: number
-  /** Sous le seuil, ou hors du pré-filtre du moteur : le match sort des propositions. */
+  /** Sous le seuil, ou hors du pré-filtre du moteur : le match sort des propositions, ou n'y revient pas. */
   ecarte: boolean
+  /** Écarté par le moteur et retenu à nouveau : il revient à proposer, motif effacé. */
+  revient: boolean
 }
+
+/** Le motif que pose une renotation qui écarte un match (`matching_appliquer_notes`) : aucun geste de l'agent ne l'écrit. */
+export const ECART_DU_MOTEUR = 'recherche_ajustee'
+
+/**
+ * Ce qu'une renotation d'UNE recherche relit (`match-contact`, `rescore-search`), en filtre PostgREST (`.or`) : ses
+ * matchs à proposer, et ceux que le moteur a écartés — `ignored` ET {@link ECART_DU_MOTEUR}, jamais un autre motif.
+ * Un match que l'agent a écarté (`ignored`, motif effacé par `execDismiss`) ou que l'acheteur a refusé (`rejected`)
+ * n'y entre pas : il ne revient jamais.
+ */
+export const RELUS_D_UNE_RECHERCHE = `status.eq.suggested,and(status.eq.ignored,reaction_motif.eq.${ECART_DU_MOTEUR})`
+
+/** Un match que le moteur a sorti des propositions : le seul écart qui se défait. */
+const ecarteParLeMoteur = (m: MatchARenoter): boolean => m.status === 'ignored' && m.reaction_motif === ECART_DU_MOTEUR
+
+/** Un mandat en vente : `active` et non supprimé (lu avec `status` et `deleted_at`). */
+const mandatEnVente = (bien: Record<string, unknown>): boolean => bien.status === 'active' && bien.deleted_at == null
 
 const nombre = (v: unknown): number | null => {
   if (v == null || v === '') return null
@@ -127,13 +171,14 @@ function ajouteALaMain(m: MatchARenoter): boolean {
   return !(r != null && typeof r === 'object' && !Array.isArray(r) && AXES_MOTEUR.some((axe) => axe in r))
 }
 
-/** Un match qui se renote : à proposer, et noté par le moteur. */
-const renotable = (m: MatchARenoter): boolean => m.status === 'suggested' && !ajouteALaMain(m)
+/** Un match qui se renote : noté par le moteur, à proposer ou écarté par lui. */
+const renotable = (m: MatchARenoter): boolean => (m.status === 'suggested' || ecarteParLeMoteur(m)) && !ajouteALaMain(m)
 
 /**
- * Les notes des matchs à proposer d'une recherche, avec ses critères du moment (CORRIGÉS, pour « Apprendre »).
- * `biens` : les mandats et les annonces par id, colonnes du barème et du pré-filtre ; `refLoyer` : la position
- * loyer d'une annonce du marché. Ni un ajout à la main, ni un bien déjà proposé n'y ont de note.
+ * Les notes des matchs à proposer d'une recherche, et de ceux que le moteur en a écartés, avec ses critères du moment
+ * (CORRIGÉS, pour « Apprendre »). `biens` : les mandats et les annonces par id, colonnes du barème et du pré-filtre ;
+ * `refLoyer` : la position loyer d'une annonce du marché. Ni un ajout à la main, ni un bien déjà proposé, ni un match
+ * que l'agent a écarté n'y ont de note.
  */
 export function renoter(
   matchs: readonly MatchARenoter[],
@@ -155,13 +200,15 @@ export function renoter(
     const retenu = marche
       ? annonceRetenue(bien, criteres, tx)
       : !(typeof bien.transaction_type === 'string' && bien.transaction_type !== tx)
+    const ecarte = !retenu || note.total < cfg.threshold
     notes.push({
       id: m.id,
       // Hors du pré-filtre, le moteur ne l'aurait jamais noté : pas de note, comme à la création.
       score: retenu ? note.total : 0,
       reasons: note.reasons,
       score_version: cfg.version,
-      ecarte: !retenu || note.total < cfg.threshold,
+      ecarte,
+      revient: !ecarte && ecarteParLeMoteur(m) && (marche || mandatEnVente(bien)),
     })
   }
   return notes
@@ -189,27 +236,35 @@ function memeJson(a: unknown, b: unknown): boolean {
  * change, il sort d'« À proposer »), ou qui lui donne un autre score, une autre version du barème ou d'autres raisons
  * — comparées comme la base les rend (`memeJson`). Une note identique ne part pas : réécrite, elle ne coûterait
  * qu'un UPDATE et un événement Realtime. Celle qui ne fait que TAMPONNER la version (même score, mêmes raisons,
- * version antérieure ou nulle) part : sans elle, la nuit suivante la reprendrait, sans fin. Une note dont le match
- * n'est pas dans `lus` part aussi : rien ne dit qu'elle ne change rien. `lus` : les matchs tels que lus avant de les
- * renoter ; l'ordre des notes est gardé.
+ * version antérieure ou nulle) part : sans elle, la nuit suivante la reprendrait, sans fin. Un match que le moteur a
+ * écarté ne part que s'il REVIENT : encore écarté, il reste hors des propositions, rien ne change. Une note dont le
+ * match n'est pas dans `lus` part aussi : rien ne dit qu'elle ne change rien. `lus` : les matchs tels que lus avant
+ * de les renoter ; l'ordre des notes est gardé.
  */
 export function notesAEcrire(lus: readonly MatchARenoter[], notes: readonly NoteMatch[]): NoteMatch[] {
   const parId = new Map(lus.map((m) => [m.id, m]))
   return notes.filter((n) => {
     const lu = parId.get(n.id)
-    return lu === undefined || n.ecarte || lu.score !== n.score || lu.score_version !== n.score_version
-      || !memeJson(lu.reasons, n.reasons)
+    if (lu === undefined) return true
+    // Retenu mais sur un mandat qui n'est plus en vente, il ne revient pas : l'écrivain, lui, le ferait revenir.
+    if (ecarteParLeMoteur(lu)) return n.revient
+    return n.ecarte || lu.score !== n.score || lu.score_version !== n.score_version || !memeJson(lu.reasons, n.reasons)
   })
 }
 
 /**
- * Une renotation qui change quelque chose : une note écarte son match (il sort d'« À proposer »), ou lui donne un
- * autre score que celui lu avant d'écrire. Sinon, rien à journaliser — une version du barème tamponnée seule ne dit
- * rien à l'agent. `lus` : les matchs tels que lus ; `notes` : celles que la base a écrites.
+ * Une renotation qui change quelque chose : une note écarte un match à proposer (il sort d'« À proposer »), en fait
+ * revenir un que le moteur avait écarté, ou lui donne un autre score que celui lu avant d'écrire. Sinon, rien à
+ * journaliser — une version du barème tamponnée seule ne dit rien à l'agent, un écarté qui le reste non plus. `lus` :
+ * les matchs tels que lus ; `notes` : celles que la base a écrites.
  */
 export function aJournaliser(lus: readonly MatchARenoter[], notes: readonly NoteMatch[]): boolean {
-  const scores = new Map(lus.map((m) => [m.id, m.score]))
-  return notes.some((n) => n.ecarte || scores.get(n.id) !== n.score)
+  const parId = new Map(lus.map((m) => [m.id, m]))
+  return notes.some((n) => {
+    const lu = parId.get(n.id)
+    if (lu !== undefined && ecarteParLeMoteur(lu)) return n.revient
+    return n.ecarte || lu?.score !== n.score
+  })
 }
 
 /** Au plus tant de couples renotés par agence à chaque scan (`scan-all`, la nuit) : de quoi tenir le temps d'une fonction. */
@@ -225,7 +280,8 @@ export interface MatchARattraper extends MatchARenoter {
  * (`version` est la courante) ou sans version — hors ajouts à la main —, d'une recherche ACTIVE. Dans l'ordre de
  * lecture, `plafond` au plus : les suivants attendent la nuit d'après, qui ne relit plus ceux-ci (renotés, ils
  * portent la version courante). Ni une recherche close ou supprimée, ni un match sans recherche : ses critères et
- * son écrivain (`matching_appliquer_notes`) passent par elle.
+ * son écrivain (`matching_appliquer_notes`) passent par elle. Ni un match que le moteur a écarté : la nuit ne lit que
+ * les matchs à proposer, et un écarté revient à la renotation suivante de sa recherche.
  */
 export function aRattraper(
   matchs: readonly MatchARattraper[],
@@ -239,7 +295,7 @@ export function aRattraper(
     if (pris >= plafond) break
     const recherche = m.client_search_id
     if (recherche == null || !actives.has(recherche)) continue
-    if ((m.score_version != null && m.score_version >= version) || !renotable(m)) continue
+    if ((m.score_version != null && m.score_version >= version) || m.status !== 'suggested' || !renotable(m)) continue
     const groupe = parRecherche.get(recherche)
     if (groupe) groupe.push(m)
     else parRecherche.set(recherche, [m])
@@ -253,7 +309,8 @@ export function aRattraper(
  * absente, texte illisible : le moteur tourne sur ses défauts (`parseScoringConfig`), barème et version. Un texte
  * lisible sans version est lu pour ce qu'il porte — poids, seuil — : seule sa version vient des défauts. Dans les
  * deux cas, de quoi créer, pas de quoi renoter : la version par défaut ferait « antérieurs » des couples notés par la
- * vraie, et un barème par défaut écarterait, pour de bon, ce que le vrai garde.
+ * vraie, et un barème par défaut écarterait ce que le vrai garde — un écart qui ne se défait qu'à la renotation
+ * suivante de sa recherche.
  */
 export function baremeLisible(texte: unknown): boolean {
   if (typeof texte !== 'string' || texte === '') return false

@@ -22,8 +22,8 @@
  *   react        → Intéressé / Pas intéressé : matches.status + relance de proposition close
  *   snooze       → matches.snoozed_until=+7 j + reminder 'custom' à échéance
  *                  (la ligne « de retour » remonte dans Aujourd'hui) + 'match_reporte'
- *   dismiss      → matches.status='ignored' (le moteur ne re-propose jamais
- *                  un couple existant — aucun deal) + activity_events 'match_ecarte'
+ *   dismiss      → matches.status='ignored', motif effacé (le moteur ne fait revenir que ses propres
+ *                  écarts, `recherche_ajustee` — aucun deal) + activity_events 'match_ecarte'
  *   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue) + 'match_reactive'
  *   repondre     → (fil, lot B) Intéressé / Pas intéressé + motif : matches.status, motif, note ; la
  *                  relance de la PROPOSITION se clôt par trigger quand plus aucun de ses biens n'attend
@@ -380,9 +380,12 @@ export async function execSnooze(ctx: GesteContext, buyer: AcheteurGeste): Promi
 
 /** « Écarter » (X) — le couple n'est plus jamais proposé. Aucun deal ; consigné au journal. */
 export async function execDismiss(ctx: GesteContext, buyer: AcheteurGeste): Promise<void> {
+  // Le motif part avec : un match que le moteur vient d'écarter (`recherche_ajustee`), encore à l'écran, garderait
+  // sinon la marque qui le fait revenir à la renotation suivante de sa recherche — l'écart de l'agent, lui, est
+  // définitif. Le motif d'un écarté n'a pas d'autre lecteur (le retour par une baisse de prix ne relit que les refus).
   const { error } = await supabase
     .from('matches')
-    .update({ status: 'ignored' })
+    .update({ status: 'ignored', reaction_motif: null })
     .eq('id', buyer.matchId)
   if (error) throw error
 

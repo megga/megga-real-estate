@@ -121,7 +121,7 @@ describe('gestes du matching — le journal', () => {
   it('Écarter ignore le match ET écrit `match_ecarte`', async () => {
     await execDismiss(CTX, ACHETEUR)
     expect(seq()).toEqual(['update:matches', 'insert:activity_events'])
-    expect(ecritures()[0]!.valeurs).toEqual({ status: 'ignored' })
+    expect(ecritures()[0]!.valeurs).toEqual({ status: 'ignored', reaction_motif: null })
     expect(ecritures()[1]!.valeurs).toMatchObject({ action: 'match_ecarte', entity_id: 'c-1', metadata: { match_id: 'm-1', score: 90 } })
   })
 

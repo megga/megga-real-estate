@@ -14,7 +14,7 @@ import {
 } from '../_shared/matching-normalize.ts'
 import {
   aJournaliser, aRattraper, baremeLisible, estUuid, fusionnerCorrection, lireCorrection, lireRefus, notesAEcrire,
-  PLAFOND_RATTRAPAGE, renoter, REFUS_MAX, tranches, type MatchARattraper, type MatchARenoter,
+  PLAFOND_RATTRAPAGE, RELUS_D_UNE_RECHERCHE, renoter, REFUS_MAX, tranches, type MatchARattraper, type MatchARenoter,
 } from '../_shared/matching-renotation.ts'
 import {
   candidatsProspects, debutFenetreDeal, noterProspects, type OrigineProspect, type RechercheClose,
@@ -75,16 +75,19 @@ const numOrNull = (v: unknown): number | null => {
 // colonnes lues par le scoring (jamais description/photos — règles perf §7)
 // Lot C : chambres, état (saisi, ou déduit de l'année de construction) et l'interrupteur off-market.
 const PROP_COLS = 'id, transaction_type, price, type, canton, city, rooms, surface_m2, features, bedrooms, condition, year_built, off_market'
+/** Ce que la renotation lit d'un mandat : le barème, et de quoi savoir s'il est en vente — un écarté n'y revient qu'alors. */
+const COLS_MANDAT_NOTE = `${PROP_COLS}, status, deleted_at`
 /**
  * Ce que le barème lit d'une annonce du marché — ce que rend `match_candidate_listings` —, et ce que son
  * pré-filtre dur trie (`quality_score`) : la renotation le rejoue (`renoter`).
  */
 const COLS_ANNONCE_NOTE = 'id, price, current_price, type, canton, city, rooms, surface_m2, features, status, price_at_first_seen, transaction_type, quality_score, bedrooms, year_built, year_renovated'
 /**
- * Ce que la renotation lit d'un match : son bien, de quoi savoir s'il se renote (`renoter`), et sa note — score,
- * version, raisons —, pour savoir si la nouvelle change quelque chose (`notesAEcrire`, `aJournaliser`).
+ * Ce que la renotation lit d'un match : son bien, de quoi savoir s'il se renote (`renoter` : son statut, et son motif
+ * — écarté par le moteur ou non), et sa note — score, version, raisons —, pour savoir si la nouvelle change quelque
+ * chose (`notesAEcrire`, `aJournaliser`).
  */
-const COLS_MATCH_NOTE = 'id, property_id, market_listing_id, status, score, score_version, reasons'
+const COLS_MATCH_NOTE = 'id, property_id, market_listing_id, status, reaction_motif, score, score_version, reasons'
 /** Les motifs qu'« Apprendre » chiffre (le CHECK `matches_reaction_motif_check` en porte d'autres). */
 const MOTIFS_CORRECTION = new Set(['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements'])
 /** `max_rows` de PostgREST : au-delà, une lecture tronque EN SILENCE. */
@@ -118,17 +121,25 @@ const refLoyer = (rentIndex: RentStatsIndex) => (a: Record<string, unknown>) => 
   loyer: numOrNull(a.current_price) ?? numOrNull(a.price),
 }, rentIndex)
 
-/** Ce que les notes d'une recherche ont produit : les matchs réécrits, et ceux qu'elles ont sortis d'« À proposer ». */
+/**
+ * Ce que les notes d'une recherche ont produit : les matchs réécrits, ceux qu'elles ont sortis d'« À proposer », et
+ * ceux que le moteur en avait sortis et qu'elles y ont fait revenir.
+ */
 interface NotesEcrites {
   reevalues: number
   ecartes: string[]
+  retours: string[]
   /** Un match réécrit a changé de note ou de statut (`aJournaliser`) : c'est ce qu'une ligne au journal dirait. */
   aJournaliser: boolean
 }
 
-const aucuneNote = (): NotesEcrites => ({ reevalues: 0, ecartes: [], aJournaliser: false })
+const aucuneNote = (): NotesEcrites => ({ reevalues: 0, ecartes: [], retours: [], aJournaliser: false })
 
-/** Les matchs à proposer d'une recherche, page par page (`idx_matches_agency_focus`). */
+/**
+ * Les matchs qu'une renotation de cette recherche relit (`RELUS_D_UNE_RECHERCHE`) : ses matchs à proposer, et ceux que
+ * le moteur en a écartés — jamais un match que l'agent a écarté, ni un refus de l'acheteur. Page par page
+ * (`idx_matches_client_search`).
+ */
 function matchsDeLaRecherche(
   supabase: SupabaseClient, agencyId: string, recherche: { id: string; contact_id: string },
 ): Promise<MatchARenoter[]> {
@@ -138,7 +149,7 @@ function matchsDeLaRecherche(
     .eq('agency_id', agencyId)
     .eq('contact_id', recherche.contact_id)
     .eq('client_search_id', recherche.id)
-    .eq('status', 'suggested')
+    .or(RELUS_D_UNE_RECHERCHE)
     .order('id')
     .range(depuis, jusqua))
 }
@@ -146,9 +157,10 @@ function matchsDeLaRecherche(
 /**
  * Renote des matchs d'UNE recherche avec `criteres` — le vrai barème et son pré-filtre (`renoter`) — puis écrit celles
  * de leurs notes qui changent quelque chose (`notesAEcrire` ; `matching_appliquer_notes`, qui ne réécrit qu'un match
- * encore à proposer de cette recherche et de l'agence) : sous le seuil, ou hors du pré-filtre, un match sort
- * d'« À proposer ». Leurs biens sont lus d'abord, colonnes du barème seulement. `ecrites`, le bilan de CETTE recherche,
- * vide à l'appel, se remplit lot par lot : une écriture qui échoue en route laisse lisible ce que la base a déjà écrit.
+ * de cette recherche et de l'agence encore à proposer, ou écarté par le moteur) : sous le seuil, ou hors du
+ * pré-filtre, un match sort d'« À proposer » ; retenu à nouveau, un match que le moteur en avait sorti y revient.
+ * Leurs biens sont lus d'abord, colonnes du barème seulement. `ecrites`, le bilan de CETTE recherche, vide à l'appel,
+ * se remplit lot par lot : une écriture qui échoue en route laisse lisible ce que la base a déjà écrit.
  */
 async function ecrireNotes(
   supabase: SupabaseClient,
@@ -163,7 +175,7 @@ async function ecrireNotes(
   const biens = new Map<string, Record<string, unknown>>()
   const mandats = [...new Set(matchs.map((m) => m.property_id).filter((id): id is string => id != null))]
   for (const lot of tranches(mandats, LOT_IDS)) {
-    const { data, error } = await supabase.from('properties').select(PROP_COLS).eq('agency_id', agencyId).in('id', lot)
+    const { data, error } = await supabase.from('properties').select(COLS_MANDAT_NOTE).eq('agency_id', agencyId).in('id', lot)
     if (error) throw error
     for (const p of (data ?? []) as Record<string, unknown>[]) biens.set(p.id as string, p)
   }
@@ -176,6 +188,7 @@ async function ecrireNotes(
 
   // Rien à écrire, aucun appel — et donc aucune ligne au journal, qui se juge sur ce que la base a écrit.
   const notes = notesAEcrire(matchs, renoter(matchs, biens, criteres, cfg, refLoyer(rentIndex)))
+  const revenants = new Set(notes.filter((n) => n.revient).map((n) => n.id))
   const reecrits = new Set<string>()
   for (const lot of tranches(notes, LOT_NOTES)) {
     const { data, error } = await supabase.rpc('matching_appliquer_notes', {
@@ -185,6 +198,7 @@ async function ecrireNotes(
     for (const l of (data ?? []) as { id: string; status: string }[]) {
       reecrits.add(l.id)
       if (l.status === 'ignored') ecrites.ecartes.push(l.id)
+      else if (l.status === 'suggested' && revenants.has(l.id)) ecrites.retours.push(l.id)
     }
     ecrites.reevalues = reecrits.size
   }
@@ -196,11 +210,13 @@ async function ecrireNotes(
 
 /** Le bilan d'une renotation, que `matching_ajuster_recherche` recopie au journal. */
 const bilanDes = (n: NotesEcrites, cfg: ScoringConfig, mode: RequestBody['mode']) => ({
-  mode, reevalues: n.reevalues, ecartes: n.ecartes.length, match_ids_ecartes: n.ecartes.slice(0, 50), score_version: cfg.version,
+  mode, reevalues: n.reevalues, ecartes: n.ecartes.length, match_ids_ecartes: n.ecartes.slice(0, 50),
+  retours: n.retours.length, match_ids_retours: n.retours.slice(0, 50), score_version: cfg.version,
 })
 
 /**
- * `rescore-search` — la réévaluation des matchs à proposer d'une recherche ajustée (lot B, « Apprendre »).
+ * `rescore-search` — la réévaluation des matchs à proposer d'une recherche ajustée, et de ceux que le moteur en a
+ * écartés (lot B, « Apprendre »).
  *
  * ⚠ L'ORDRE EST LE CONTRAT. (1) renoter EN MÉMOIRE avec les critères d'aujourd'hui où la seule clé corrigée
  * est remplacée ; (2) écrire les notes (`matching_appliquer_notes`) ; (3) d'UN BLOC, `matching_ajuster_recherche` :
@@ -213,10 +229,10 @@ const bilanDes = (n: NotesEcrites, cfg: ScoringConfig, mode: RequestBody['mode']
  *
  * ⚠ La mise à jour des critères déclenche `trigger_matching_on_search_updated`, qui relance le moteur en
  * `match-contact` (pg_net, asynchrone) : les biens que la recherche corrigée retient DE PLUS y naissent, et ses
- * matchs à proposer y sont renotés une seconde fois, aux mêmes notes — rien ne s'y réécrit (`notesAEcrire`), et
- * aucune ligne ne suit celle-ci au journal pour ELLE. Mais `match-contact` renote aussi les AUTRES recherches actives
- * du contact, avec leurs propres critères : une note qui y a changé s'écrit, et sa recherche a sa ligne
- * `matchs_reevalues`.
+ * matchs à proposer, comme ceux qu'elle a écartés, y sont renotés une seconde fois, aux mêmes notes — rien ne s'y
+ * réécrit (`notesAEcrire`), et aucune ligne ne suit celle-ci au journal pour ELLE. Mais `match-contact` renote aussi
+ * les AUTRES recherches actives du contact, avec leurs propres critères : une note qui y a changé s'écrit, et sa
+ * recherche a sa ligne `matchs_reevalues`.
  */
 async function renoterRecherche(
   supabase: SupabaseClient,
@@ -247,8 +263,8 @@ async function renoterRecherche(
   const criteres = correction ? fusionnerCorrection(avant, correction) : avant
   if (!criteres) return { statut: 400, corps: { error: 'invalid_body' } }
 
-  // 1-2. Les matchs à proposer de la recherche, notés par le VRAI barème sur les critères corrigés — AVANT de les
-  //      poser —, et leurs notes écrites.
+  // 1-2. Les matchs à proposer de la recherche, et ceux que le moteur en a écartés, notés par le VRAI barème sur
+  //      les critères corrigés — AVANT de les poser —, et leurs notes écrites.
   const ecrites = await ecrireNotes(
     supabase, agencyId, recherche.id, await matchsDeLaRecherche(supabase, agencyId, recherche), criteres, cfg, rentIndex,
   )
@@ -272,7 +288,10 @@ async function renoterRecherche(
 
   return {
     statut: 200,
-    corps: { reevalues: ecrites.reevalues, ecartes: ecrites.ecartes.length, mode: 'rescore-search', scoreVersion: cfg.version },
+    corps: {
+      reevalues: ecrites.reevalues, ecartes: ecrites.ecartes.length, retours: ecrites.retours.length,
+      mode: 'rescore-search', scoreVersion: cfg.version,
+    },
   }
 }
 
@@ -287,9 +306,10 @@ interface RechercheActive {
  * Une recherche renotée par le moteur lui-même, avec ses critères du moment — `match-contact` quand ils ont changé,
  * `scan-all` pour une version antérieure du barème : les notes de `matchs` qui changent quelque chose, puis UNE ligne
  * `matchs_reevalues` au journal, avec son bilan (`matching_ajuster_recherche` sans clé ni refus : rien d'autre n'est
- * posé). La ligne ne s'écrit que si un match a changé de note ou de statut (`aJournaliser`) ; une note qui ne fait
- * que tamponner la version du barème s'écrit sans ligne — la nuit suivante ne la reprend pas. Une recherche sans
- * critères n'est pas notée, comme à la création. `ecrites` : son bilan, vide à l'appel (`ecrireNotes`).
+ * posé). La ligne ne s'écrit que si un match a changé de note ou de statut — écarté, ou revenu — (`aJournaliser`) ;
+ * une note qui ne fait que tamponner la version du barème s'écrit sans ligne — la nuit suivante ne la reprend pas.
+ * Une recherche sans critères n'est pas notée, comme à la création. `ecrites` : son bilan, vide à l'appel
+ * (`ecrireNotes`).
  */
 async function reevaluerRecherche(
   supabase: SupabaseClient,
@@ -318,10 +338,11 @@ async function reevaluerRecherche(
   if (error) throw error
 }
 
-/** Ce que la renotation d'un appel a produit : les matchs réécrits, les écartés, et les recherches en échec. */
+/** Ce que la renotation d'un appel a produit : les matchs réécrits, les écartés, les revenus, et les recherches en échec. */
 interface Renotation {
   reevalues: number
   ecartes: number
+  retours: number
   echecs: number
   /** Le message caviardé du premier échec (`redactedErrorMessage`) : la cause que le signalement nomme. */
   premierEchec: string | null
@@ -345,7 +366,7 @@ async function reevaluerRecherches(
   rentIndex: RentStatsIndex,
   mode: RequestBody['mode'],
 ): Promise<Renotation> {
-  const bilan: Renotation = { reevalues: 0, ecartes: 0, echecs: 0, premierEchec: null }
+  const bilan: Renotation = { reevalues: 0, ecartes: 0, retours: 0, echecs: 0, premierEchec: null }
   for (const recherche of recherches) {
     const ecrites = aucuneNote()
     try {
@@ -357,11 +378,12 @@ async function reevaluerRecherches(
       bilan.premierEchec ??= message
       console.error('[matching-engine] renotation en échec :', {
         mode, agency_id: agencyId, client_search_id: recherche.id,
-        reevalues: ecrites.reevalues, ecartes: ecrites.ecartes.length,
+        reevalues: ecrites.reevalues, ecartes: ecrites.ecartes.length, retours: ecrites.retours.length,
       }, message)
     }
     bilan.reevalues += ecrites.reevalues
     bilan.ecartes += ecrites.ecartes.length
+    bilan.retours += ecrites.retours.length
   }
   return bilan
 }
@@ -371,7 +393,8 @@ async function reevaluerRecherches(
  * du barème a notés, ou sans version, et qui ont une recherche — sans elle, un couple ne se renote jamais —, lus page
  * par page dans l'ordre de `idx_matches_agency_focus` (`agency_id, contact_id, score desc`, à proposer). Chaque page
  * ne garde que ce qui se choisit, dans ce qui reste du plafond : la mémoire n'en porte pas davantage, et la lecture
- * s'arrête quand il est atteint — les suivants attendent la nuit d'après.
+ * s'arrête quand il est atteint — les suivants attendent la nuit d'après. Jamais un match que le moteur a écarté :
+ * l'index ne porte que les matchs à proposer, et un écarté revient à la renotation suivante de sa recherche.
  */
 async function couplesARattraper(
   supabase: SupabaseClient, agencyId: string, version: number, actives: ReadonlySet<string>,
@@ -657,13 +680,15 @@ serve(async (req) => {
     }
 
     // ⛔ UNE RENOTATION NE TOURNE PAS SUR DES DONNÉES DE REPLI. Barème par défaut, ou index des loyers illisible (le
-    // bonus de position perdu) : elle écarterait à tort des couples que le vrai barème garde — et pour de bon, un match
-    // sorti d'« À proposer » ne se renote plus. La création, elle, ne change pas.
+    // bonus de position perdu) : elle écarterait à tort des couples que le vrai barème garde, et un match sorti
+    // d'« À proposer » n'y revient qu'à la renotation suivante de sa recherche — au prochain changement de ses
+    // critères. La création, elle, ne change pas.
     // ⚠ Sautée, elle attend un passage où les deux lectures ont abouti — en `scan-all` SEULEMENT, dont les couples
     // gardent leur version antérieure : la nuit suivante les reprend, comme ceux d'une renotation en échec. En
     // `match-contact`, sautée ou en échec, PERSONNE ne la rejoue — la nuit ne rattrape que les versions antérieures, et
     // ces couples portent la courante — : leurs notes attendent le prochain changement de critères, ou de version du
-    // barème. `rescore-search`, lui, refuse (503).
+    // barème ; un écarté qui devait revenir, le prochain changement de critères seulement (la nuit ne relit pas les
+    // écartés). `rescore-search`, lui, refuse (503).
     const replis = [...(baremeLu ? [] : ['bareme']), ...(loyersLus ? [] : ['loyers'])]
 
     // ⛔ UNE RENOTATION QUI N'A PAS TOURNÉ SE SIGNALE. La nuit et le déclencheur passent par pg_net, dont personne ne
@@ -680,10 +705,12 @@ serve(async (req) => {
 
     let newMatches = 0
     let newMarketMatches = 0
-    // Ce que la renotation a produit (`match-contact`, `scan-all`) : les matchs réécrits, ceux qu'elle a écartés, les
-    // recherches en échec (`reevaluerRecherches`) et la cause de la première, et si elle a été sautée (`replis`).
+    // Ce que la renotation a produit (`match-contact`, `scan-all`) : les matchs réécrits, ceux qu'elle a écartés, ceux
+    // qu'elle a fait revenir, les recherches en échec (`reevaluerRecherches`) et la cause de la première, et si elle a
+    // été sautée (`replis`).
     let reevalues = 0
     let ecartes = 0
+    let retours = 0
     let echecs = 0
     let premierEchec: string | null = null
     let renotationSautee = false
@@ -867,15 +894,16 @@ serve(async (req) => {
       if (searchError) throw searchError
       if (!searches || searches.length === 0) {
         return new Response(JSON.stringify({
-          newMatches: 0, reevalues: 0, ecartes: 0, echecs: 0, renotationSautee: false, message: 'No active searches',
+          newMatches: 0, reevalues: 0, ecartes: 0, retours: 0, echecs: 0, renotationSautee: false, message: 'No active searches',
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
       }
 
-      // Ses critères ont pu changer (`on_search_criteria_updated`) : les matchs à proposer de chaque recherche active
-      // sont renotés avec ceux du moment, AVANT la création — ceux qu'elle fait naître sont déjà notés, le bilan ne les
-      // compte pas, et un échec de la renotation ne la prive de rien (`reevaluerRecherches`).
+      // Ses critères ont pu changer (`on_search_criteria_updated`) : les matchs à proposer de chaque recherche active, et
+      // ceux que le moteur en a écartés, sont renotés avec ceux du moment, AVANT la création — ceux qu'elle fait naître
+      // sont déjà notés, le bilan ne les compte pas, et un échec de la renotation ne la prive de rien
+      // (`reevaluerRecherches`). Un écarté que la renotation fait revenir n'est pas recréé : la paire existe.
       if (replis.length > 0) {
         renotationSautee = true
         console.warn('[matching-engine] renotation sautée, données de repli :', { mode, agency_id, contact_id, replis })
@@ -886,6 +914,7 @@ serve(async (req) => {
         )
         reevalues += r.reevalues
         ecartes += r.ecartes
+        retours += r.retours
         echecs += r.echecs
         premierEchec = r.premierEchec
       }
@@ -923,9 +952,9 @@ serve(async (req) => {
       await matchSearchesAgainstMarket(searches || [], (s) => s.contact_id as string)
 
       // ── Le rattrapage : les matchs à proposer qu'une version antérieure du barème a notés (sans version compris),
-      // PLAFOND_RATTRAPAGE au plus, recherche par recherche. Après la création : ceux qu'elle vient de noter portent la
-      // version courante, et un échec ici ne coûte pas à la nuit ses nouveaux matchs — il se compte dans la réponse, et
-      // se signale (`signalerRenotation`).
+      // PLAFOND_RATTRAPAGE au plus, recherche par recherche — jamais un écarté (`couplesARattraper`). Après la
+      // création : ceux qu'elle vient de noter portent la version courante, et un échec ici ne coûte pas à la nuit ses
+      // nouveaux matchs — il se compte dans la réponse, et se signale (`signalerRenotation`).
       const actives = (searches ?? []) as RechercheActive[]
       if (replis.length > 0) {
         renotationSautee = true
@@ -938,6 +967,7 @@ serve(async (req) => {
           )
           reevalues += r.reevalues
           ecartes += r.ecartes
+          retours += r.retours
           echecs += r.echecs
           premierEchec = r.premierEchec
         } catch (error) {
@@ -949,10 +979,10 @@ serve(async (req) => {
       }
       await signalerRenotation()
     } else if (mode === 'rescore-search' || mode === 'prospects' || mode === 'reactiver-prospect') {
-      // ⛔ « Apprendre » ÉCRIT ce qu'il renote : sur des données de repli, un couple proche du seuil sortirait pour de
-      // bon (`recherche_ajustee`), ou garderait une version par défaut que la nuit ne reverrait jamais. Il rend donc 503
-      // AVANT toute écriture — ni notes, ni clé corrigée, ni journal — : la correction reste à l'écran, et la même
-      // validation se rejoue.
+      // ⛔ « Apprendre » ÉCRIT ce qu'il renote : sur des données de repli, un couple proche du seuil sortirait
+      // d'« À proposer » (`recherche_ajustee`) jusqu'au prochain changement de critères de sa recherche, ou garderait une
+      // version par défaut que la nuit ne reverrait jamais. Il rend donc 503 AVANT toute écriture — ni notes, ni clé
+      // corrigée, ni journal — : la correction reste à l'écran, et la même validation se rejoue.
       if (mode === 'rescore-search' && replis.length > 0) {
         await signaler(`renotation refusée (${mode}), lecture illisible : ${replis.join(', ')}`)
         return new Response(JSON.stringify({ error: 'renotation_indisponible', illisibles: replis }), {
@@ -972,7 +1002,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      newMatches, newMarketMatches, reevalues, ecartes, echecs, renotationSautee, mode, scoreVersion: cfg.version,
+      newMatches, newMarketMatches, reevalues, ecartes, retours, echecs, renotationSautee, mode, scoreVersion: cfg.version,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

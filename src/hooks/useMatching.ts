@@ -279,9 +279,10 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
 
   const ignoreMatchMutation = useMutation({
     mutationFn: async (matchId: string) => {
+      // Le motif part avec, comme dans « Écarter » (`execDismiss`) : un écart du moteur resté à l'écran reviendrait.
       const { error } = await supabase
         .from('matches')
-        .update({ status: 'ignored' })
+        .update({ status: 'ignored', reaction_motif: null })
         .eq('id', matchId)
       if (error) throw error
     },

@@ -10,6 +10,11 @@
 //   R3  `scan-all` en renote au plus 2 000 par agence et par nuit ; le reste attend la nuit d'après.
 //   R4  un second `match-contact` sur les mêmes critères n'écrit rien : aucune note — pas même celles des matchs que
 //       le premier a fait naître, la création et la renotation notant pareil — et aucune ligne au journal.
+//   R5  l'écart du moteur se défait (décision de Julien, 29.09.2026) : des critères changés écartent un match
+//       (`recherche_ajustee`), rétablis le font revenir à proposer, motif effacé, à la note du barème ; un match que
+//       l'agent a écarté (« Écarter » : `ignored`, motif effacé — en défense, un écart d'agent resté avec son motif
+//       `prix`) ou que l'acheteur a refusé (`rejected`) ne bouge pas. Le journal dit l'écart, puis le retour.
+//   R5b la même chose par `rescore-search` (« Apprendre »), qui ne crée rien : ses comptes se lisent à l'unité.
 // Une renotation en échec ne rend pas de 500 — le moteur la compte (`echecs`) et crée quand même : chaque cas exige
 // `echecs: 0`, sans quoi elle ne se lirait qu'à des notes restées en place.
 // Le moteur est appelé comme ses appelants de la base (le déclencheur des critères, le scan de nuit) : le secret de
@@ -100,10 +105,29 @@ describe.skipIf(!HAS_KEYS)('matching · lot E1 — la renotation dans le moteur'
     if (error) throw new Error(`market_listings: ${error.message}`)
     return calculateScoreV2(data as Record<string, unknown>, criteres, cfg)
   }
-  const journal = async (contactId: string) =>
+  const journal = async (contactId: string, action = 'matchs_reevalues') =>
     ((await svc.from('activity_events').select('actor_kind, category, metadata')
-      .eq('action', 'matchs_reevalues').eq('entity_id', contactId)).data ?? []) as
+      .eq('action', action).eq('entity_id', contactId)).data ?? []) as
       { actor_kind: string; category: string; metadata: Record<string, unknown> }[]
+  /** Les critères d'une recherche, posés comme les poserait n'importe quel écrivain (fiche, WhatsApp, import). */
+  const poserCriteres = async (recherche: string, criteria: Record<string, unknown>) => {
+    const { error } = await svc.from('client_searches').update({ criteria }).eq('id', recherche)
+    if (error) throw new Error(`client_searches: ${error.message}`)
+  }
+  /**
+   * Ce que les gestes de l'agent et de l'acheteur laissent sur une même recherche : « Écarter » (`ignored`, motif
+   * effacé — et, en défense, un écart d'agent resté avec son motif `prix`), « Pas intéressé » (`rejected` et son motif).
+   * Chacun sur une annonce que le barème garderait : rien, sinon, ne distinguerait un refus de relire d'un écart.
+   */
+  const mkDecisionsHumaines = async (contactId: string, recherche: string, tag: string) => [
+    await mkMatch(s.agencyAId, contactId, recherche, await mkAnnonce(`${tag}-agent`, 1_500_000), { status: 'ignored' }),
+    await mkMatch(s.agencyAId, contactId, recherche, await mkAnnonce(`${tag}-agent-prix`, 1_500_000), {
+      status: 'ignored', reaction_motif: 'prix', sent_via: 'agent', sent_at: new Date().toISOString(), prix_propose: 1_550_000,
+    }),
+    await mkMatch(s.agencyAId, contactId, recherche, await mkAnnonce(`${tag}-refuse`, 1_500_000), {
+      status: 'rejected', reaction_motif: 'quartier', sent_via: 'agent', sent_at: new Date().toISOString(),
+    }),
+  ]
 
   // Le démarrage à froid du worker se paie ici, une fois (`waitForEdgeWorker`, qui n'échoue jamais) : un 503 du runtime
   // local n'est pas un verdict du moteur.
@@ -306,5 +330,90 @@ describe.skipIf(!HAS_KEYS)('matching · lot E1 — la renotation dans le moteur'
     expect(second.body).toMatchObject({ reevalues: 0, ecartes: 0, echecs: 0, renotationSautee: false })
     expect(await journal(c)).toHaveLength(1)
     expect([await lire(plantee), await lire(ancienne)]).toEqual(notes)
+  }, 60_000)
+
+  it('R5 — match-contact : des critères changés écartent, rétablis font revenir ; l’écart de l’agent ne bouge pas', async () => {
+    const c = await mkContact(s.agencyAId, 'R5')
+    const r = await mkRecherche(s.agencyAId, c, CRITERES)
+    const aRevient = await mkAnnonce('r5-revient', 1_500_000)
+    const revient = await mkMatch(s.agencyAId, c, r, aRevient)
+    const humaines = await mkDecisionsHumaines(c, r, 'r5')
+    const lireHumaines = () => Promise.all(humaines.map(lire))
+    const avant = await lireHumaines()
+
+    // 1. Des critères changés sans l'agent — une extraction erronée, par exemple : 1'500'000 dépasse 1'100'000 à 15 %
+    //    près, le match sort du pré-filtre.
+    await poserCriteres(r, { ...CRITERES, budget_max: 1_100_000 })
+    const ecart = await moteur({ mode: 'match-contact', contact_id: c, agency_id: s.agencyAId })
+    expect(ecart.status, JSON.stringify(ecart.body)).toBe(200)
+    // Le seul match à proposer de la recherche : les décisions humaines ne sont pas relues.
+    expect(ecart.body).toMatchObject({ reevalues: 1, ecartes: 1, retours: 0, echecs: 0, renotationSautee: false })
+    expect(await lire(revient)).toMatchObject({ status: 'ignored', reaction_motif: 'recherche_ajustee', score: 0 })
+
+    // 2. Rétablis : l'écarté revient à proposer, motif effacé, à la note du barème.
+    await poserCriteres(r, CRITERES)
+    const retour = await moteur({ mode: 'match-contact', contact_id: c, agency_id: s.agencyAId })
+    expect(retour.status, JSON.stringify(retour.body)).toBe(200)
+    // Ce que la création du premier passage a fait naître (le marché de la base locale) se renote aussi : seul le
+    // retour se compte ici à l'unité.
+    expect(retour.body).toMatchObject({ retours: 1, echecs: 0, renotationSautee: false })
+    const n = await noteDe(aRevient, CRITERES)
+    expect(n.total).toBeGreaterThanOrEqual(cfg.threshold)
+    expect(await lire(revient)).toMatchObject({
+      status: 'suggested', reaction_motif: null, score: n.total, reasons: n.reasons, score_version: cfg.version,
+    })
+    // L'écart de l'agent et le refus de l'acheteur : ni statut, ni motif, ni note n'ont bougé.
+    expect(await lireHumaines()).toEqual(avant)
+
+    // Le journal dit l'écart, puis le retour.
+    const lignes = await journal(c)
+    expect(lignes).toHaveLength(2)
+    expect(lignes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ metadata: expect.objectContaining({
+        client_search_id: r, mode: 'match-contact', ecartes: 1, match_ids_ecartes: [revient], retours: 0,
+      }) }),
+      expect.objectContaining({ metadata: expect.objectContaining({
+        client_search_id: r, mode: 'match-contact', retours: 1, match_ids_retours: [revient],
+      }) }),
+    ]))
+  }, 60_000)
+
+  it('R5b — rescore-search (« Apprendre ») : une correction écarte, la correction inverse fait revenir ; l’écart de l’agent ne bouge pas', async () => {
+    const c = await mkContact(s.agencyAId, 'R5b')
+    const r = await mkRecherche(s.agencyAId, c, CRITERES)
+    const aRevient = await mkAnnonce('r5b-revient', 1_500_000)
+    const revient = await mkMatch(s.agencyAId, c, r, aRevient)
+    const humaines = await mkDecisionsHumaines(c, r, 'r5b')
+    const lireHumaines = () => Promise.all(humaines.map(lire))
+    const avant = await lireHumaines()
+    const corriger = (valeur: number) => moteur({
+      mode: 'rescore-search', client_search_id: r, correction: { cle: 'budget_max', valeur }, agency_id: s.agencyAId,
+    })
+
+    const ecart = await corriger(1_100_000)
+    expect(ecart.status, JSON.stringify(ecart.body)).toBe(200)
+    // `rescore-search` ne crée rien : ses comptes sont exacts.
+    expect(ecart.body).toMatchObject({ reevalues: 1, ecartes: 1, retours: 0 })
+    expect(await lire(revient)).toMatchObject({ status: 'ignored', reaction_motif: 'recherche_ajustee', score: 0 })
+
+    const retour = await corriger(CRITERES.budget_max)
+    expect(retour.status, JSON.stringify(retour.body)).toBe(200)
+    expect(retour.body).toMatchObject({ reevalues: 1, ecartes: 0, retours: 1 })
+    const n = await noteDe(aRevient, CRITERES)
+    expect(await lire(revient)).toMatchObject({
+      status: 'suggested', reaction_motif: null, score: n.total, reasons: n.reasons, score_version: cfg.version,
+    })
+    expect(await lireHumaines()).toEqual(avant)
+
+    const lignes = await journal(c, 'recherche_ajustee')
+    expect(lignes).toHaveLength(2)
+    expect(lignes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ metadata: expect.objectContaining({
+        cle: 'budget_max', mode: 'rescore-search', ecartes: 1, match_ids_ecartes: [revient], retours: 0,
+      }) }),
+      expect.objectContaining({ metadata: expect.objectContaining({
+        cle: 'budget_max', mode: 'rescore-search', ecartes: 0, retours: 1, match_ids_retours: [revient],
+      }) }),
+    ]))
   }, 60_000)
 })

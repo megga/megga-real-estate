@@ -36,8 +36,10 @@
 --    bien : sur 96 511 annonces actives, le coût est celui des baisses du jour, pas celui du catalogue. Un
 --    prix nul (« prix sur demande ») n'est pas une baisse ; un prix qui RÉAPPARAÎT après lui se compare au
 --    prix proposé comme une baisse, sans quoi « 0 → 1'400'000 » sous un refus à 1'500'000 passait.
--- 9. `matching_appliquer_notes` — les notes d'une recherche ajustée, écrites en lot par l'edge
---    `matching-engine` (mode `rescore-search`, le score est du TypeScript) : service_role seul.
+-- 9. `matching_appliquer_notes` — les notes d'une recherche renotée, écrites en lot par l'edge
+--    `matching-engine` (le score est du TypeScript) : sous le seuil, un match à proposer est écarté
+--    (`recherche_ajustee`) ; retenu à nouveau, un match que le moteur avait écarté revient à proposer. Jamais
+--    un match que l'agent a écarté. service_role seul.
 -- 10. `trigger_matching_on_price_change` — ne supprime plus que les matchs à proposer JAMAIS proposés
 --    (`sent_at` nul) : à la baisse suivante, il effaçait un bien revenu par une baisse, son motif et son
 --    prix proposé avec lui, que le moteur recréait nu. Et, sans configuration pour rappeler le moteur, il
@@ -370,10 +372,18 @@ comment on function public.purge_stale_market_matches() is
 revoke execute on function public.purge_stale_market_matches() from public, anon, authenticated;
 grant execute on function public.purge_stale_market_matches() to service_role;
 
--- ── 9. Les notes d'une recherche ajustée ─────────────────────────────────────
+-- ── 9. Les notes d'une recherche renotée ─────────────────────────────────────
 -- SECURITY INVOKER, appelée par l'edge en service_role (RLS contournée) : le cloisonnement vient des
--- filtres EXPLICITES — l'agence tirée du JWT de l'agent, la recherche visée, et `suggested` seulement
--- (un match proposé, répondu ou écarté entre-temps n'est jamais réécrit).
+-- filtres EXPLICITES — l'agence tirée du JWT de l'agent, la recherche visée, et un match encore à proposer
+-- (`suggested`) ou écarté par le moteur (`ignored` ET `recherche_ajustee`) : un match proposé, répondu, ou
+-- écarté par l'agent entre-temps n'est jamais réécrit.
+-- L'écart du moteur se défait, celui de l'agent jamais (décision de Julien, 29.09.2026) : les critères
+-- changent aussi sans l'agent (extraction WhatsApp, `qualify_lead`, import), et le moteur ne recrée jamais une
+-- paire existante — sans retour, une fiche changée par erreur puis rétablie perdrait ses biens pour toujours.
+-- « Écarter » écrit `ignored` et efface le motif (`execDismiss`), « Pas intéressé » écrit `rejected` : aucun
+-- n'entre dans le `where`.
+-- Dans `set`, `m.status` et `m.reaction_motif` sont ceux d'AVANT l'écriture ; la seule ligne `ignored` que le
+-- `where` laisse passer est un écart du moteur.
 create or replace function public.matching_appliquer_notes(p_agency_id uuid, p_client_search_id uuid, p_notes jsonb)
 returns table (id uuid, status text)
 language sql
@@ -384,18 +394,22 @@ as $$
      set score          = (n->>'score')::int,
          reasons        = coalesce(n->'reasons', '{}'::jsonb),
          score_version  = nullif(n->>'score_version', '')::int,
-         status         = case when (n->>'ecarte')::boolean then 'ignored' else m.status end,
-         reaction_motif = case when (n->>'ecarte')::boolean then 'recherche_ajustee' else m.reaction_motif end
+         status         = case when (n->>'ecarte')::boolean then 'ignored'
+                               when m.status = 'ignored' then 'suggested'
+                               else m.status end,
+         reaction_motif = case when (n->>'ecarte')::boolean then 'recherche_ajustee'
+                               when m.status = 'ignored' then null
+                               else m.reaction_motif end
     from jsonb_array_elements(p_notes) as n
    where m.id = (n->>'id')::uuid
      and m.agency_id = p_agency_id
      and m.client_search_id = p_client_search_id
-     and m.status = 'suggested'
+     and (m.status = 'suggested' or (m.status = 'ignored' and m.reaction_motif = 'recherche_ajustee'))
   returning m.id, m.status;
 $$;
 
 comment on function public.matching_appliquer_notes(uuid, uuid, jsonb) is
-  'Lot B « Apprendre » : les notes d''une recherche ajustée (edge matching-engine, mode rescore-search). Sous le seuil : ignored, motif recherche_ajustee.';
+  'Notes d''une recherche renotée (edge matching-engine : rescore-search, match-contact, scan-all). Réécrit un match suggested, ou écarté par le moteur (ignored + recherche_ajustee) — jamais un écart de l''agent. Sous le seuil : ignored, motif recherche_ajustee ; un écarté retenu à nouveau revient à suggested, motif effacé.';
 
 revoke all on function public.matching_appliquer_notes(uuid, uuid, jsonb) from public, anon, authenticated;
 grant execute on function public.matching_appliquer_notes(uuid, uuid, jsonb) to service_role;
@@ -405,7 +419,7 @@ grant execute on function public.matching_appliquer_notes(uuid, uuid, jsonb) to 
 -- correction à l'écran, et la même validation renote puis écrit tout. SECURITY INVOKER, service_role seul,
 -- cloisonnée par l'agence tirée du JWT (mêmes filtres explicites que ci-dessus). `p_cle` nul : aucune
 -- correction, seulement les refus pris en compte et `matchs_reevalues` au journal. `p_bilan` : ce que la
--- renotation a produit (réévalués, écartés), recopié au journal. Rend `{ apres }`, ou NULL si la recherche
+-- renotation a produit (réévalués, écartés, revenus), recopié au journal. Rend `{ apres }`, ou NULL si la recherche
 -- n'est pas de cette agence.
 create or replace function public.matching_ajuster_recherche(
   p_agency_id uuid,

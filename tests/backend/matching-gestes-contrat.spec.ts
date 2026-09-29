@@ -13,7 +13,7 @@
 //      NOUVELLE — avant, consignation silencieusement perdue) + reminder
 //      follow_up_sent_property à +3 j. Rien ne part vers l'acheteur.
 //   5. Plus tard : snoozed_until +7 j + reminder custom ; réactivation
-//   6. Écarter : status=ignored, le couple reste en base (jamais re-proposé)
+//   6. Écarter : status=ignored, motif effacé, le couple reste en base (jamais re-proposé)
 //   7. Deal ↔ bien de veille : transactions.market_listing_id
 //   8. RLS : un client anonyme ne voit rien
 //
@@ -343,12 +343,21 @@ describe.skipIf(!HAS_KEYS)('Gestes du matching — le contrat base', () => {
   })
 
   // ── 6. Geste « Écarter » : définitif, le couple reste en base ───────────
-  it('Écarter : status=ignored — le couple (contact, bien) reste réservé', async () => {
+  it('Écarter : status=ignored, motif effacé — le couple (contact, bien) reste réservé', async () => {
+    // Le cas qui compte : le moteur venait d'écarter ce match (`recherche_ajustee`), encore à l'écran. L'écart de
+    // l'agent efface la marque qui le ferait revenir à la renotation suivante de sa recherche.
+    const { error: ecartMoteur } = await service
+      .from('matches')
+      .update({ status: 'ignored', reaction_motif: 'recherche_ajustee' })
+      .eq('id', internalMatchId)
+    expect(ecartMoteur).toBeNull()
     const { error } = await agent
       .from('matches')
-      .update({ status: 'ignored' })
+      .update({ status: 'ignored', reaction_motif: null })
       .eq('id', internalMatchId)
     expect(error).toBeNull()
+    const { data: apres } = await service.from('matches').select('status, reaction_motif').eq('id', internalMatchId).single()
+    expect(apres).toEqual({ status: 'ignored', reaction_motif: null })
 
     // Le moteur vérifie l'existence AVANT d'insérer (toute statut confondu) :
     // la row écartée bloque toute re-proposition du couple.

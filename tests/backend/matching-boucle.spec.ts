@@ -11,7 +11,8 @@
 //   B5b un mandat ACTIF : `trigger_matching_on_price_change` ne supprime que les matchs jamais proposés —
 //       le bien revenu survit à la baisse suivante — ; la purge nocturne non plus.
 //   B6  matching_appliquer_notes : service_role seul ; ne touche que les `suggested` de la recherche
-//       et de l'agence visées.
+//       et de l'agence visées, et ceux que le moteur en a écartés (`recherche_ajustee`) — retenus à nouveau, ils
+//       reviennent à proposer, motif effacé ; jamais un match que l'agent a écarté (29.09.2026).
 //   B7  l'edge matching-engine, mode rescore-search : renote par le vrai barème ET son pré-filtre, écarte,
 //       ne touche pas un match ajouté à la main, fusionne la SEULE clé corrigée (ce qu'un collègue a changé
 //       sur une autre reste), pose la fiche identique, prend les refus en compte — plus de 50 —, écrit au
@@ -289,7 +290,7 @@ describe.skipIf(!HAS_KEYS)('matching · lot B — la boucle chez l’agent', () 
     expect(await lireMatch(garde)).toMatchObject({ status: 'suggested', reaction_motif: 'prix' })
   })
 
-  it('B6 — matching_appliquer_notes : refusée à un agent ; ne réécrit que les `suggested` de la recherche visée', async () => {
+  it('B6 — matching_appliquer_notes : refusée à un agent ; ne réécrit que les `suggested` de la recherche visée, et les écarts du moteur', async () => {
     const c = await mkContact(s.agencyAId, 'B6')
     const { data: rs, error: re } = await svc.from('client_searches')
       .insert({ agency_id: s.agencyAId, contact_id: c, criteria: CRITERES, is_active: false }).select('id').single()
@@ -297,17 +298,39 @@ describe.skipIf(!HAS_KEYS)('matching · lot B — la boucle chez l’agent', () 
     const recherche = rs.id as string
     const vise = await mkMatch(c, { annonce: await mkAnnonce('b6a', 1_000_000) }, { client_search_id: recherche })
     const repondu = await mkMatch(c, { annonce: await mkAnnonce('b6b', 1_000_000) }, { client_search_id: recherche, status: 'interested' })
+    // Écartés par le moteur : l'un est retenu à nouveau (il revient), l'autre non (il reste écarté, à sa nouvelle note).
+    const ecartMoteur = { client_search_id: recherche, status: 'ignored', reaction_motif: 'recherche_ajustee', score: 0 }
+    const revenu = await mkMatch(c, { annonce: await mkAnnonce('b6c', 1_000_000) }, ecartMoteur)
+    const resteEcarte = await mkMatch(c, { annonce: await mkAnnonce('b6d', 1_000_000) }, ecartMoteur)
+    // Écartés par l'agent (« Écarter » : `ignored`, motif effacé ; en défense, un écart d'agent resté avec son motif
+    // `prix`) : jamais réécrits, même par une note qui les garderait.
+    const ecarteAgent = await mkMatch(c, { annonce: await mkAnnonce('b6e', 1_000_000) }, { client_search_id: recherche, status: 'ignored' })
+    const ecarteAgentPrix = await mkMatch(c, { annonce: await mkAnnonce('b6f', 1_000_000) }, {
+      client_search_id: recherche, status: 'ignored', reaction_motif: 'prix',
+    })
     const notes = [
       { id: vise, score: 42, reasons: { budget: { match: false, score: 0, detail: 'x' } }, score_version: 4, ecarte: true },
       { id: repondu, score: 42, reasons: {}, score_version: 4, ecarte: true },
+      { id: revenu, score: 91, reasons: {}, score_version: 4, ecarte: false },
+      { id: resteEcarte, score: 30, reasons: {}, score_version: 4, ecarte: true },
+      { id: ecarteAgent, score: 91, reasons: {}, score_version: 4, ecarte: false },
+      { id: ecarteAgentPrix, score: 91, reasons: {}, score_version: 4, ecarte: false },
     ]
     const refus = await s.clientA.rpc('matching_appliquer_notes', { p_agency_id: s.agencyAId, p_client_search_id: recherche, p_notes: notes })
     expect(refus.error?.code).toBe('42501')
     const { data, error } = await svc.rpc('matching_appliquer_notes', { p_agency_id: s.agencyAId, p_client_search_id: recherche, p_notes: notes })
     expect(error).toBeNull()
-    expect(data).toEqual([{ id: vise, status: 'ignored' }])
+    // `returning` ne promet pas d'ordre.
+    const parId = (lignes: { id: string; status: string }[]) => [...lignes].sort((a, b) => a.id.localeCompare(b.id))
+    expect(parId(data as { id: string; status: string }[])).toEqual(parId([
+      { id: vise, status: 'ignored' }, { id: revenu, status: 'suggested' }, { id: resteEcarte, status: 'ignored' },
+    ]))
     expect(await lireMatch(vise)).toMatchObject({ status: 'ignored', reaction_motif: 'recherche_ajustee', score: 42, score_version: 4 })
     expect(await lireMatch(repondu)).toMatchObject({ status: 'interested', score: 80 })
+    expect(await lireMatch(revenu)).toMatchObject({ status: 'suggested', reaction_motif: null, score: 91, score_version: 4 })
+    expect(await lireMatch(resteEcarte)).toMatchObject({ status: 'ignored', reaction_motif: 'recherche_ajustee', score: 30 })
+    expect(await lireMatch(ecarteAgent)).toMatchObject({ status: 'ignored', reaction_motif: null, score: 80 })
+    expect(await lireMatch(ecarteAgentPrix)).toMatchObject({ status: 'ignored', reaction_motif: 'prix', score: 80 })
     const autreAgence = await svc.rpc('matching_appliquer_notes', { p_agency_id: s.agencyBId, p_client_search_id: recherche, p_notes: notes })
     expect(autreAgence.data).toEqual([])
   })
