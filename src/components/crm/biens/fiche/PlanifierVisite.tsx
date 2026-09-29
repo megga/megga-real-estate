@@ -9,20 +9,28 @@
  * `qualification.automations`, sans lecteur. Ce formulaire ne promet que ce qui a lieu.
  *
  * ── CE QU'UN AGENT FAIT QUAND IL POSE UNE VISITE, DANS L'ORDRE DE L'ÉCRAN ────
- *   1. Qui    — d'abord les gens DÉJÀ liés au bien (acheteurs en cours, suggestions
- *               MEGGA AI), puis tout le carnet, ou un visiteur neuf créé sur place.
+ *   1. Qui    — d'abord les gens DÉJÀ liés au bien (acheteurs en deal ouvert, acquéreurs
+ *               compatibles), puis tout le carnet, ou un visiteur neuf créé sur place.
  *   2. Quand  — un CALENDRIER mensuel (une visite se pose souvent à une date précise, des
  *               semaines à l'avance — la bande de 14 jours du premier jet ne le permettait
  *               pas), les heures au quart d'heure, ou une heure libre ; les visites de
  *               l'agence sont MONTRÉES (un conflit se signale, il ne bloque pas).
  *   3. Où     — sur place (adresse du bien + point de rendez-vous / accès) ou en visio.
- *   4. Après  — bon de visite prêt à signer ; la visite rejoint le deal du visiteur
- *               sur ce bien s'il en a un, et le Calendrier (qui lit `visits`).
+ *   4. Après  — bon de visite prêt à signer ; la visite rejoint le deal OUVERT du
+ *               visiteur sur ce bien s'il en a un, et le Calendrier (qui lit `visits`).
  *   5. Confirmer au client — WhatsApp ou e-mail PRÉ-REMPLIS, que l'agent envoie
  *               lui-même : aucun envoi automatique (validation humaine, CLAUDE.md §5).
+ *               Jamais pour un acquéreur du matching : ni message, ni rappel la veille.
  *
  * ⚠ Le point de rendez-vous est rangé dans `qualification.rendezVous` : il n'a pas de
  * colonne, et il sert d'abord au message de confirmation, où le client en a besoin.
+ *
+ * ⚠ Lot E1 (conception §5.6) : qui est proposé, à qui un message est préparé et ce que
+ * fait la création se décident dans `visiteurs.ts`, pur — la règle du fil et du copilote
+ * WhatsApp. Un acquéreur INTÉRESSÉ, deal ouvert compris, passe par l'écrivain du fil
+ * (`execPlanifierVisite`) : son match passe « visite planifiée », son deal s'ouvre ou avance,
+ * et les détails du formulaire (visio, bon, point de rendez-vous) entrent dans sa visite
+ * (`detailsVisite`).
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -31,31 +39,24 @@ import { VxAvatar, VxPhoto } from '@/components/crm-dossiers/vitrine/vitrineKit'
 import type { VxPalette } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 import { crmVoileAssombrissant, type CrmPalette } from '@/components/crm/tokens'
 import { useContacts, useCreateContact } from '@/hooks/useContacts'
-import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
+import { detailsVisite, useCreateAgentVisit, type CreateVisitInput } from '@/hooks/useVisitDetail'
 import { useVisits } from '@/hooks/useVisits'
 import { useAuth } from '@/hooks/useAuth'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { pickAvatarBg } from '@/lib/crmAdapters'
+import { execPlanifierVisite, refBienInterne } from '@/lib/matchingGestes'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import { majusculeInitiale } from '@/lib/utils'
 import type { Property } from '@/types/listing'
-
-/** Une personne déjà liée au bien : acheteur d'un deal, ou suggestion du moteur. */
-export interface VisiteurLie {
-  contactId: string
-  nom: string
-  /** Deal de CE contact sur CE bien — la visite s'y rattache. */
-  dealId?: string | null
-  /** Score MEGGA AI (estimation), pour une suggestion. */
-  score?: number | null
-}
+import { creationVisite, preRemplissagePermis, visiteursLies, type ContexteVisite } from './visiteurs'
 
 interface Props {
   bien: Property
   dark: boolean
   sp: CrmPalette
   vx: VxPalette
-  liees: VisiteurLie[]
+  /** Les gens liés au bien : ses deals, ses acquéreurs compatibles, son état (`visiteurs.ts`). */
+  contexte: ContexteVisite
   onClose: () => void
   onPlanned: () => void
   onOpenVisit: (visitId: string) => void
@@ -121,7 +122,7 @@ function Champ({ value, onChange, placeholder, icon, type = 'text', autoFocus, l
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, onPlanned, onOpenVisit, demo }: Props) {
+export default function PlanifierVisite({ bien, dark, sp, vx, contexte, onClose, onPlanned, onOpenVisit, demo }: Props) {
   const { t, i18n } = useTranslation('listings')
   const locale = `${(i18n.language || 'fr').slice(0, 2)}-CH`
   const { profile } = useAuth()
@@ -154,10 +155,17 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
   // ── Envoi ──
   const [enCours, setEnCours] = useState(false)
   const [erreur, setErreur] = useState<string | null>(null)
-  const [planifiee, setPlanifiee] = useState<{ id: string | null } | null>(null)
+  // `preRempli` : le message de confirmation est-il préparé — décidé à l'écriture (`planifier`).
+  const [planifiee, setPlanifiee] = useState<{ id: string | null; preRempli: boolean } | null>(null)
 
   const isRent = bien.transaction_type === 'rent'
   const adresse = [bien.address, [bien.postal_code, bien.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+  // Le nom d'un acheteur en deal, lu dans le carnet : absent, il n'est pas proposé.
+  const nomDe = (id: string) => {
+    const c = (contacts ?? []).find((x) => x.id === id)
+    return c ? `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() : null
+  }
+  const liees = visiteursLies(contexte, nomDe)
   const lieeDe = (id: string | null) => (id ? liees.find((l) => l.contactId === id) ?? null : null)
 
   // Le carnet, sans les vendeurs et bailleurs : on ne fait pas visiter un bien à qui le vend.
@@ -231,6 +239,11 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
     if (!pret || !debut) return
     setEnCours(true); setErreur(null)
     try {
+      // Le visiteur CHOISI ; un visiteur créé sur place n'a pas encore d'id : il n'est pas du matching (`null`).
+      const choisi = visiteur?.id ?? null
+      // Décidé à l'écriture, une fois : relu ensuite, le deal que cette visite vient d'ouvrir ferait paraître le message.
+      const preRempli = preRemplissagePermis(choisi, contexte)
+      const creation = creationVisite(choisi, contexte)
       let v = visiteur
       if (!v && nouveau) {
         v = { id: null, prenom: nouveau.prenom.trim(), nom: nouveau.nom.trim(), phone: nouveau.phone.trim() || null, email: nouveau.email.trim() || null }
@@ -245,12 +258,12 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
         }
         setVisiteur(v)
       }
-      if (demo || !v?.id) { setPlanifiee({ id: null }); return }
+      if (demo || !v?.id) { setPlanifiee({ id: null, preRempli }); return }
       const extra = accompagnants.split(',').map((s) => s.trim()).filter(Boolean)
-      const creee = await creerVisite({
+      const entree: CreateVisitInput = {
         bienId: bien.id,
         contactId: v.id,
-        dealId: lieeDe(v.id)?.dealId ?? null,
+        dealId: creation.dealId,
         scheduledAt: debut.toISOString(),
         durationMinutes: duree,
         generateBon: bon,
@@ -259,8 +272,22 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
         visitType: mode,
         videoLink: mode === 'video' ? lienVisio.trim() : null,
         rendezVous: mode === 'sur_place' ? rendezVous.trim() || null : null,
-      })
-      setPlanifiee({ id: creee?.id ?? null })
+        reminderSent: !creation.rappelVeille,
+      }
+      // Un acquéreur intéressé : l'écrivain du fil. S'il ne l'est plus (`deja`), la visite s'écrit quand même, sans
+      // toucher son match — la règle de `wa_matching_visite`.
+      let parLeFil: { id: string | null } | null = null
+      if (creation.fil && profile?.agency_id) {
+        const r = await execPlanifierVisite(
+          { agencyId: profile.agency_id, userId: profile.id },
+          creation.fil,
+          { kind: 'property', id: bien.id, ref: refBienInterne(bien.id), title: bien.title },
+          { debut: entree.scheduledAt, dureeMinutes: duree, lieu: adresse || null, details: detailsVisite(entree), deal: creation.dealId },
+        )
+        if (!r.deja) parLeFil = { id: r.visiteId }
+      }
+      const creee = parLeFil ?? await creerVisite(entree)
+      setPlanifiee({ id: creee.id, preRempli })
       onPlanned()
     } catch (e) {
       setErreur(e instanceof Error ? e.message : t('fiche.visite.erreur'))
@@ -269,8 +296,8 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
     }
   }
 
-  // ── Message de confirmation — l'agent l'ENVOIE lui-même ──
-  const message = debut && visiteur ? t(mode === 'video' ? 'fiche.visite.message.video' : 'fiche.visite.message.surPlace', {
+  // ── Message de confirmation — l'agent l'ENVOIE lui-même ; jamais à un acquéreur du matching (`preRempli`) ──
+  const message = planifiee?.preRempli && debut && visiteur ? t(mode === 'video' ? 'fiche.visite.message.video' : 'fiche.visite.message.surPlace', {
     prenom: visiteur.prenom,
     bien: bien.title,
     // Casse NATIVE de la langue : « jeudi » en français, « Donnerstag » en allemand.
@@ -347,30 +374,38 @@ export default function PlanifierVisite({ bien, dark, sp, vx, liees, onClose, on
                 <div style={{ marginTop: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', color: vx.muted }}>
                   {demo ? t('fiche.visite.demo') : t('fiche.visite.dansCalendrier')}
                 </div>
+                {!planifiee.preRempli && (
+                  <div style={{ marginTop: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-md)', color: vx.muted }}>
+                    {t('fiche.visite.rienEnvoye', { prenom: visiteur?.prenom.trim() || nomVisiteur })}
+                  </div>
+                )}
               </div>
             </div>
 
-            <Section n={5} titre={t('fiche.visite.confirmer.titre')} vx={vx}>
-              <div style={{ fontSize: 'var(--crm-text-md)', color: vx.muted, marginTop: 'calc(-1 * var(--crm-space-md))' }}>{t('fiche.visite.confirmer.aide')}</div>
-              <div style={{ padding: 'var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', background: vx.cardSub, color: vx.inkSoft, fontSize: 'var(--crm-text-lg)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
-                {message}
-              </div>
-              <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
-                {visiteur?.phone ? (
-                  <a href={buildWaMeUrl(visiteur.phone, message)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: vx.black, color: vx.onAccent, fontSize: 'var(--crm-text-md)', fontWeight: 600, textDecoration: 'none' }}>
-                    <MEIcon name="message" size={14} />{t('fiche.visite.confirmer.whatsapp')}
-                  </a>
-                ) : null}
-                {mailto ? (
-                  <a href={mailto} className="pv-puce" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: vx.cardSub, color: vx.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600, textDecoration: 'none' }}>
-                    <MEIcon name="mail" size={14} />{t('fiche.visite.confirmer.email')}
-                  </a>
-                ) : null}
-                {!visiteur?.phone && !mailto && (
-                  <span style={{ fontSize: 'var(--crm-text-md)', color: vx.muted }}>{t('fiche.visite.confirmer.aucunCanal')}</span>
-                )}
-              </div>
-            </Section>
+            {/* Un acquéreur du matching n'a ni message, ni bouton, ni lien (`preRemplissagePermis`). */}
+            {planifiee.preRempli && (
+              <Section n={5} titre={t('fiche.visite.confirmer.titre')} vx={vx}>
+                <div style={{ fontSize: 'var(--crm-text-md)', color: vx.muted, marginTop: 'calc(-1 * var(--crm-space-md))' }}>{t('fiche.visite.confirmer.aide')}</div>
+                <div style={{ padding: 'var(--crm-space-xl)', borderRadius: 'var(--crm-radius-lg)', background: vx.cardSub, color: vx.inkSoft, fontSize: 'var(--crm-text-lg)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                  {message}
+                </div>
+                <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+                  {visiteur?.phone ? (
+                    <a href={buildWaMeUrl(visiteur.phone, message)} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: vx.black, color: vx.onAccent, fontSize: 'var(--crm-text-md)', fontWeight: 600, textDecoration: 'none' }}>
+                      <MEIcon name="message" size={14} />{t('fiche.visite.confirmer.whatsapp')}
+                    </a>
+                  ) : null}
+                  {mailto ? (
+                    <a href={mailto} className="pv-puce" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', background: vx.cardSub, color: vx.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600, textDecoration: 'none' }}>
+                      <MEIcon name="mail" size={14} />{t('fiche.visite.confirmer.email')}
+                    </a>
+                  ) : null}
+                  {!visiteur?.phone && !mailto && (
+                    <span style={{ fontSize: 'var(--crm-text-md)', color: vx.muted }}>{t('fiche.visite.confirmer.aucunCanal')}</span>
+                  )}
+                </div>
+              </Section>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-md)' }}>
               {planifiee.id && (

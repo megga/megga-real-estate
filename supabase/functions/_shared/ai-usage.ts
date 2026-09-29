@@ -100,8 +100,7 @@ export function logAIUsageWith(client: SupabaseClient, input: AIUsageInput): voi
       )
     // En Edge Function : garder l'isolat vivant jusqu'à la fin de l'INSERT, sinon le
     // DERNIER log d'une requête (chemin mono-tour, le plus fréquent) est perdu quand
-    // l'isolat gèle juste après la réponse HTTP. Convention repo (buyer-reception,
-    // flatfox-sync…). Inerte sous Node/Vitest → typeof EdgeRuntime === 'undefined'.
+    // l'isolat gèle juste après la réponse HTTP. Convention repo (flatfox-sync…). Inerte sous Node/Vitest → typeof EdgeRuntime === 'undefined'.
     const edge = (globalThis as { EdgeRuntime?: { waitUntil(p: Promise<unknown>): void } }).EdgeRuntime
     // .then() de supabase-js rend un PromiseLike → Promise.resolve pour le type waitUntil.
     edge?.waitUntil(Promise.resolve(pending))

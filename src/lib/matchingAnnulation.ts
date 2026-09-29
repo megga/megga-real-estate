@@ -1,0 +1,78 @@
+/**
+ * Matching — la file d'annulation des gestes : exécution différée (undo 5 s, style Gmail).
+ *
+ * Un triage ne touche PAS la base tant que le toast offre « Annuler » :
+ * l'UI sort la row immédiatement (état local), l'écriture réelle (match,
+ * deal, timeline, relance interne) part à l'expiration de la fenêtre. Aucune
+ * n'écrit à l'acheteur : le matching reste chez l'agent (21.09.2026).
+ * Annuler = rien n'a jamais été écrit. « Voir le deal → » force l'exécution
+ * immédiate (flushNow) pour obtenir l'id du deal. À la fermeture de la page,
+ * tout ce qui est en attente est exécuté (l'agent n'a pas annulé).
+ *
+ * Un seul mécanisme pour les écrans qui posent les gestes du matching (`matchingGestes`) : le fil de matchs et
+ * l'écran mobile y diffèrent les mêmes écritures, sous la même fenêtre (`UNDO_WINDOW_MS`) ; chacun tient son
+ * registre, monté et vidé avec lui.
+ */
+import type { ResultatProposition } from '@/lib/matchingGestes'
+
+export const UNDO_WINDOW_MS = 4500
+
+export interface PendingHandle {
+  cancel: () => void
+  /** force l'exécution immédiate et renvoie le résultat (null si annulé/échec) */
+  flushNow: () => Promise<ResultatProposition | null>
+}
+
+interface DeferOptions {
+  onSettled?: () => void
+  onError?: (err: unknown) => void
+}
+
+/** Registre des écritures en attente — flush global au démontage de la page */
+export class PendingRegistry {
+  private pending = new Set<() => Promise<unknown>>()
+
+  defer(exec: () => Promise<ResultatProposition | null>, opts: DeferOptions = {}): PendingHandle {
+    let cancelled = false
+    let started = false
+    let resultPromise: Promise<ResultatProposition | null> | null = null
+
+    const run = (): Promise<ResultatProposition | null> => {
+      if (cancelled) return Promise.resolve(null)
+      if (!started) {
+        started = true
+        this.pending.delete(run)
+        resultPromise = exec()
+          .catch((err: unknown) => {
+            console.error('[matching] geste différé en échec', err)
+            opts.onError?.(err)
+            return null
+          })
+          .finally(() => opts.onSettled?.())
+      }
+      return resultPromise ?? Promise.resolve(null)
+    }
+
+    this.pending.add(run)
+    const timer = setTimeout(() => { void run() }, UNDO_WINDOW_MS)
+
+    return {
+      cancel: () => {
+        if (started) return // trop tard — déjà parti
+        cancelled = true
+        clearTimeout(timer)
+        this.pending.delete(run)
+      },
+      flushNow: () => {
+        clearTimeout(timer)
+        return run()
+      },
+    }
+  }
+
+  /** Exécute tout ce qui attend encore (fermeture de l'écran) */
+  flushAll(): void {
+    for (const run of Array.from(this.pending)) void run()
+    this.pending.clear()
+  }
+}

@@ -28,7 +28,6 @@ import { meggaProse } from './megga-prose.ts'
 import { readDocument, isReadableDocMime } from './vision.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, type LearnedStyle } from './agent-style.ts'
 import { buildInsightContext } from './whatsapp-followup-draft.ts'
-import { firstListingPhotoUrl, type ListingPhotoRow } from './whatsapp-format.ts'
 import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
@@ -38,6 +37,7 @@ import { redactPII } from './pii-redaction.ts'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 import { urlFonction } from './function-url.ts'
 import { sendRelanceEmail } from './relance-email-send.ts'
+import { bienDansMessage, refusBienDansMessage } from './message-sans-bien.ts'
 import { composeBriefDetail, briefVisitsForAgent, zurichDayBoundsUtc } from './morning-brief.ts'
 import { loadAgencyData } from './morning-brief-data.ts'
 
@@ -356,7 +356,8 @@ export async function execListFollowups(ctx: ActionCtx, _a: Args): Promise<strin
 
 // Résout titre/montant/ville/pièces d'une liste de matches en 2 requêtes BATCH (pas de N+1),
 // via le projecteur PUR projectMatchListing (champ absent → omis, jamais inventé). Property
-// prioritaire sur market_listing. Partagé par execGetMatches ET execPrepareMeeting.
+// prioritaire sur market_listing. Sert execPrepareMeeting ; `get_matches` a son propre exécuteur depuis le
+// lot D2 (`whatsapp-matching-outils.ts`), qui lit aussi l'état et l'explication de chaque bien.
 async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]): Promise<ResolvedMatchView[]> {
   const propIds = [...new Set(matches.map((m) => m.property_id).filter((x): x is string => !!x))]
   const mlIds = [...new Set(matches.map((m) => m.market_listing_id).filter((x): x is string => !!x))]
@@ -386,29 +387,12 @@ async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]
   )
 }
 
-/** Biens correspondant à un contact (moteur de matching). */
-export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id)
-  if (!contactId) return 'Erreur: contact_id requis.'
-  const { data, error } = await ctx.supabase
-    .from('matches').select('score, status, market_listing_id, property_id')
-    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
-    .order('score', { ascending: false }).limit(5)
-  if (error) return `Erreur: ${error.message}`
-  if (!data?.length) return 'Aucun bien correspondant (recherche peut-être pas encore lancée).'
-  // Enrichi (titre/montant/ville/pièces réels) : l'id reste l'UUID du bien (clé pour send_listings),
-  // mais il n'est plus SEUL — accompagné des vraies données, le modèle n'a plus à inventer un bien.
-  // Un bien non résolu ne porte que id/score/statut (jamais de titre/ville inventés).
-  const biens = await resolveMatchListings(ctx, data as MatchListingInput[])
-  return JSON.stringify({ biens })
-}
-
 /**
- * Point du jour : les MÊMES cinq sections que le push de 07h30 (visites, rendez-vous du
- * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs), lues par le même
- * `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du jour », que
- * le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
+ * Point du jour : les MÊMES six sections que le push de 07h30 (visites, rendez-vous du
+ * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs, actions de matching),
+ * lues par le même `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du
+ * jour », que le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit
+ * s'y retrouver.
  */
 export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
@@ -433,7 +417,9 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 // ── Phase 4C / C4 : outils ACTION (tier 🟢 auto — état CRM interne, réversible) ─
 // Aucun envoi client / KYC / argent / signature ici (→ tiers confirm/never).
 
-const frDateTime = (iso: string): string =>
+/** Une date ISO en clair, à la suisse (jour.mois.année heure:minute), toujours à l'heure de Genève — quel que soit
+ *  le fuseau du runtime qui l'appelle. */
+export const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
 /** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
@@ -469,38 +455,6 @@ async function resolveContactDeal(
   const p = Array.isArray(row.properties) ? (row.properties[0] ?? null) : row.properties
   const party: 'buyer' | 'seller' = row.contact_seller_id === contactId ? 'seller' : 'buyer'
   return { id: row.id, label: p?.title || p?.address || p?.city || 'dossier', stage: row.stage, party }
-}
-
-/** Planifie une visite (table visits). property_id ET contact_id obligatoires (NOT NULL). */
-export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id), propertyId = s(a.property_id), when = s(a.scheduled_at)
-  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
-  if (!propertyId) return 'Erreur: pour quel bien ? (property_id requis, via get_matches ou demande à l’agent).'
-  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date/heure (scheduled_at, ISO 8601) requise.'
-  const contact = await contactInAgency(ctx, contactId)
-  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
-  const { data: prop } = await ctx.supabase
-    .from('properties').select('id, title').eq('id', propertyId).eq('agency_id', ctx.agencyId).maybeSingle()
-  if (!prop) return 'Erreur: bien introuvable dans votre agence.'
-  const propTitle = (prop as { title: string | null }).title ?? 'bien'
-
-  const visitType = s(a.visit_type) === 'video' ? 'video' : 'sur_place'
-  const buyerName = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || null
-  const iso = new Date(when).toISOString()
-  const row: Record<string, unknown> = {
-    agency_id: ctx.agencyId, agent_id: ctx.profileId,
-    property_id: propertyId, contact_id: contactId,
-    scheduled_at: iso, status: 'planned', visit_type: visitType, buyer_name: buyerName,
-  }
-  if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
-  if (visitType === 'video') row.video_platform = 'google_meet'
-  const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
-  if (error) return `Erreur planification: ${error.message}`
-  await logTimeline(ctx, 'visit_scheduled', `${propTitle} — ${frDateTime(iso)}`, contactId)
-  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
-  const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
-  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */
@@ -776,7 +730,7 @@ function zoneToCantonCode(zone: string): string | null {
   return CANTON_BY_NAME[k] ?? null
 }
 
-/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : eq(status)+eq(transaction_type)
+/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : statut vivant + eq(transaction_type)
  *  sur index, tri quality_score (indexé). Géo INDEXÉE : une zone reconnue comme canton → `canton IN`
  *  (idx_ml_active_tx_canton_type) ; une commune → `city ILIKE` servi par le GIN trigram
  *  idx_ml_city_trgm (sinon scan de ~34k lignes = timeout). Total via count:'estimated' (jamais
@@ -788,7 +742,12 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   let q = ctx.supabase
     .from('market_listings')
     .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url', { count: 'estimated' })
-    .eq('status', 'active')
+    // ⛔ Vivante = `active` OU `price_reduced` : une annonce en baisse reste en vente. `eq('active')`
+    // écartait les ventes RealAdvisor en baisse (depuis le 19.06.2026) et, avec la pige du 21.09.2026,
+    // les locations Flatfox en baisse — les plus intéressantes à proposer. Ce `in` est au mot près le
+    // prédicat partiel de idx_ml_active_tx_canton_type, idx_ml_city_trgm et
+    // idx_market_listings_quality_score (le tri).
+    .in('status', ['active', 'price_reduced'])
     .eq('transaction_type', txType)
 
   const type = canonicalPropertyType(s(a.property_type))
@@ -952,6 +911,9 @@ export async function prepareSendClientMessage(ctx: ActionCtx, a: Args): Promise
   const contact = found.contact
   if (!s(contact.phone)) return { ok: false, error: t(lang, 'contactNoPhoneSend') }
   const body = String(a.body ?? '')
+  // ⛔ Aucun bien dans un message au client, même sur demande de l'agent (21.09.2026) : refusé
+  // AVANT le « oui », pour que l'agent ne valide jamais un envoi que l'exécuteur refuserait.
+  if (bienDansMessage(body)) return { ok: false, error: refusBienDansMessage(lang) }
   const fullName = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
   // Prénom seul si dispo — plus naturel dans un aperçu de message ; nom complet en repli.
   const who = (contact.first_name ?? '').trim() || fullName || (lang === 'en' ? 'this client' : 'ce client')
@@ -972,126 +934,6 @@ export async function prepareUpdatePipeline(ctx: ActionCtx, a: Args): Promise<Pr
   const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
   const who = name ? pipelineWhoNamed(lang, name) : pipelineWhoDefault(lang)
   return { ok: true, prompt: confirmUpdatePipeline(lang, who, stageLabel(stage, lang)), payload: { contact_id: contact.id, stage } }
-}
-
-type ListingRow = {
-  title: string | null; transaction_type: string | null; price: number | null
-  rent?: number | null; rent_chf?: number | null; rooms: number | null
-  surface_m2: number | null; city: string | null; source_url?: string | null
-}
-
-function listingPriceLabel(l: ListingRow, lang: WaLang): string {
-  const amount = l.transaction_type === 'rent' ? (l.rent_chf ?? l.rent ?? l.price ?? 0) : (l.price ?? 0)
-  const perMonth = lang === 'en' ? '/mo' : '/mois'
-  const onReq = lang === 'en' ? 'price on request' : 'prix sur demande'
-  return amount ? (l.transaction_type === 'rent' ? `${fmtCHF(amount)}${perMonth}` : fmtCHF(amount)) : onReq
-}
-
-function formatListing(l: ListingRow, lang: WaLang = 'fr'): string {
-  const price = listingPriceLabel(l, lang)
-  const roomsU = lang === 'en' ? 'rm' : 'p.'
-  const facts = [l.rooms ? `${l.rooms} ${roomsU}` : null, l.surface_m2 ? `${Math.round(l.surface_m2)} m²` : null, l.city]
-    .filter(Boolean).join(' · ')
-  let line = `• ${l.title ?? (lang === 'en' ? 'Property' : 'Bien')} — ${price}${facts ? ` (${facts})` : ''}`
-  if (l.source_url) line += `\n  ${l.source_url}`
-  return line
-}
-
-/** Prépare le message « sélection de biens » à partir de VRAIES données (jamais halluciné).
- *  Biens = listing_ids fournis, sinon top correspondances du contact. */
-export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prepared> {
-  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
-  const lang = ctx.lang ?? 'fr'
-  const contactId = s(a.contact_id)
-  if (!contactId) return { ok: false, error: lang === 'en' ? 'Which client should I send listings to?' : 'Pour quel client veux-tu envoyer des biens ?' }
-  const { data: cRow } = await ctx.supabase.from('contacts')
-    .select('first_name, phone').eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
-  const contact = cRow as { first_name: string | null; phone: string | null } | null
-  if (!contact) return { ok: false, error: lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.' }
-  if (!contact.phone) return { ok: false, error: lang === 'en' ? "This contact has no WhatsApp number, I can't message them." : "Ce contact n'a pas de numéro WhatsApp, je ne peux pas lui écrire." }
-
-  let ids: string[] = Array.isArray(a.listing_ids)
-    ? (a.listing_ids as unknown[]).filter((x): x is string => typeof x === 'string')
-    : []
-  ids = ids.filter((id) => UUID_RE.test(id))
-  if (!ids.length) {
-    const { data: ms } = await ctx.supabase.from('matches')
-      .select('market_listing_id, property_id, score')
-      .eq('agency_id', ctx.agencyId).eq('contact_id', contactId)
-      .order('score', { ascending: false }).limit(3)
-    ids = ((ms ?? []) as Array<{ market_listing_id: string | null; property_id: string | null }>)
-      .map((m) => m.market_listing_id || m.property_id || '').filter((x) => UUID_RE.test(x))
-  }
-  if (!ids.length) return { ok: false, error: lang === 'en' ? 'No listing to send (run matching first, or specify the listings).' : "Aucun bien à envoyer (lance d'abord le matching, ou précise les biens)." }
-
-  // Texte + photos : la 1re photo de chaque bien part en message image (lien R2,
-  // légende = titre + prix pour rattacher la photo à sa ligne). Un bien sans photo
-  // n'empêche rien : il reste dans le texte, simplement sans image.
-  // On n'envoie QUE des photos que NOUS hébergeons : le repli source tiers (URL d'annonce
-  // Flatfox non vérifiée) est écarté, jamais relayé au client sous l'identité WhatsApp de
-  // l'agence. Hôtes autorisés : R2 (img.getmegga.com) + Storage Supabase (staging des uploads
-  // agents, utilisé tel quel quand le miroir R2 a échoué). Sans env → https seul (repli).
-  const allowedHosts: string[] = []
-  for (const base of [Deno.env.get('R2_PUBLIC_BASE'), Deno.env.get('SUPABASE_URL')]) {
-    if (base) { try { allowedHosts.push(new URL(base).host) } catch { /* ignore */ } }
-  }
-  const requireHost = allowedHosts.length ? allowedHosts : null
-  const lines: string[] = []
-  const images: Array<{ url: string; caption: string }> = []
-  const pushImage = (row: ListingRow & ListingPhotoRow) => {
-    const url = firstListingPhotoUrl(row, { requireHost })
-    if (!url) return
-    const title = row.title ?? (lang === 'en' ? 'Property' : 'Bien')
-    images.push({ url, caption: `${title} — ${listingPriceLabel(row, lang)}` })
-  }
-  for (const id of ids.slice(0, 5)) {
-    const { data: ml } = await ctx.supabase.from('market_listings')
-      .select('title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, source_url, photos_cf, photos')
-      .eq('id', id).maybeSingle()
-    if (ml) {
-      const row = ml as unknown as ListingRow & ListingPhotoRow
-      lines.push(formatListing(row, lang)); pushImage(row); continue
-    }
-    // properties porte AUSSI photos_cf (miroir R2, migration 20260620130000) → on le
-    // charge pour préférer la variante detail 1200px, comme pour market_listings.
-    const { data: pr } = await ctx.supabase.from('properties')
-      .select('title, transaction_type, price, rooms, surface_m2, city, photos_cf, photos')
-      .eq('id', id).eq('agency_id', ctx.agencyId).maybeSingle()
-    if (pr) {
-      const row = pr as unknown as ListingRow & ListingPhotoRow
-      lines.push(formatListing(row, lang)); pushImage(row)
-    }
-  }
-  if (!lines.length) return { ok: false, error: lang === 'en' ? 'The specified listings were not found.' : 'Les biens indiqués sont introuvables.' }
-
-  // Message destiné au CLIENT (WYSIWYG) : rédigé dans la langue de travail de l'agent.
-  const hi = contact.first_name
-    ? (lang === 'en' ? `Hello ${contact.first_name},` : `Bonjour ${contact.first_name},`)
-    : (lang === 'en' ? 'Hello,' : 'Bonjour,')
-  const text = lang === 'en'
-    ? `${hi}\n\nHere is a selection that might interest you:\n\n${lines.join('\n\n')}\n\nLet me know if you'd like to visit any of these.`
-    : `${hi}\n\nVoici une sélection qui pourrait vous intéresser :\n\n${lines.join('\n\n')}\n\nDites-moi si vous souhaitez visiter l'un de ces biens.`
-  const who = contact.first_name ?? (lang === 'en' ? 'this client' : 'ce client')
-  // WYSIWYG : les photos ne sont pas prévisualisables en texte → on les ANNONCE
-  // dans le prompt de confirmation (jamais une surprise pour l'agent). Le libellé est
-  // fidèle à la distribution : si tous les biens n'ont pas de photo exploitable, on dit
-  // « N des M biens » plutôt que « chaque bien » (sinon l'agent croit chaque bien illustré).
-  const partial = images.length < lines.length
-  const nPhotos = `${images.length} photo${images.length > 1 ? 's' : ''}`
-  const photoNote = images.length
-    ? (lang === 'en'
-        ? `\n\n(+ ${nPhotos} — ${partial ? `first photo of ${images.length} of the ${lines.length} listings` : 'the first of each listing'})`
-        : `\n\n(+ ${nPhotos} — ${partial ? `la première de ${images.length} des ${lines.length} biens` : 'la première de chaque bien'})`)
-    : ''
-  const prompt = lang === 'en'
-    ? `Here's what I'd send to ${who}:\n\n${text}${photoNote}\n\nSend it? ("yes" / "no")`
-    : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}${photoNote}\n\nJ'envoie ? (« oui » / « non »)`
-  // listing_ids figés dans le payload → permettent, à l'envoi confirmé, de marquer
-  // les matches correspondants comme 'sent' (capture de sent_at, instrumentation).
-  // ⛔ Le numéro n'est PLUS figé dans le payload : entre cette proposition et le « oui »
-  // de l'agent il peut s'écouler quinze minutes, et une fiche corrigée entre-temps faisait
-  // partir le message à l'ANCIEN numéro. L'exécution le relit, scopé à l'agence.
-  return { ok: true, prompt, payload: { contact_id: contactId, text, listing_ids: ids.slice(0, 5), images } }
 }
 
 /**
@@ -1860,6 +1702,7 @@ RÈGLES ABSOLUES (s'imposent à tout le reste) :
 - Français soigné et sobre, adapté à l'immobilier suisse.
 - Aucune promesse non tenable, aucun chiffre ou donnée inventé.
 - Pas de jargon technique ni d'identifiant brut.
+- AUCUN BIEN dans l'email, même si l'instruction de l'agent en demande : ni annonce, ni bien en mandat, ni prix de bien, ni lien d'annonce, ni référence (MG-…). Le matching reste chez l'agent, qui présente les biens lui-même ; parle du projet, d'une visite déjà fixée, d'un rendez-vous, jamais d'un bien à découvrir.
 - Email personnalisé selon l'instruction de l'agent et la compréhension du fil.
 - Longueur adaptée à l'objet : ni trop court ni trop long.${styleBlock ? `\n\nTon ADDITIF de cet agent (nuance uniquement la chaleur/concision/traits, sans jamais déroger au vouvoiement ni aux règles ci-dessus) :${styleBlock}` : ''}${voiceBlock}
 
@@ -1914,6 +1757,9 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`).
   if (!subject || !body) {
     return { ok: false, error: lang === 'en' ? "I couldn't draft the email — try again or rephrase." : "Je n'ai pas réussi à rédiger l'email, tu peux reformuler ?" }
   }
+  // ⛔ Aucun bien dans l'email (21.09.2026) : le prompt l'interdit, la garde le VÉRIFIE, avant que
+  // l'agent ne valide un brouillon que `sendRelanceEmail` refuserait de toute façon.
+  if (bienDansMessage(subject, body)) return { ok: false, error: refusBienDansMessage(lang) }
 
   // 6. Payload WYSIWYG figé — ce que l'agent valide est exactement ce qui partira.
   const who = firstName || (lang === 'en' ? 'this client' : 'ce client')
@@ -1926,17 +1772,20 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`).
 
 /**
  * Refus de la garde de sortie qui se disent à l'agent sans code brut. Ce sont des RÉPONSES,
- * pas des pannes : un STOP ou un plafond ne se contourne pas en renvoyant depuis le CRM, qui
- * refuserait de même. Les autres motifs (panne, fournisseur) gardent leur code.
+ * pas des pannes : un STOP, un plafond ou un bien dans le message (`property_in_message`, garde
+ * `message-sans-bien.ts`) ne se contourne pas en renvoyant depuis le CRM, qui refuserait de même.
+ * Les autres motifs (panne, fournisseur) gardent leur code.
  */
 const REFUS_RELANCE: Record<'fr' | 'en', Record<string, (qui: string) => string>> = {
   fr: {
     unsubscribed: (qui) => `Rien n'est parti — ${qui} a demandé à ne plus recevoir d'e-mails.`,
+    property_in_message: () => refusBienDansMessage('fr'),
     hourly_cap: () => "L'email n'est pas parti — ton agence a atteint son plafond horaire d'e-mails. Réessaie dans une heure.",
     daily_cap: () => "L'email n'est pas parti — ton agence a atteint son plafond quotidien d'e-mails.",
   },
   en: {
     unsubscribed: (who) => `Nothing was sent — ${who} asked to stop receiving emails.`,
+    property_in_message: () => refusBienDansMessage('en'),
     hourly_cap: () => "The email didn't go out — your agency reached its hourly email cap. Try again in an hour.",
     daily_cap: () => "The email didn't go out — your agency reached its daily email cap.",
   },
@@ -2543,7 +2392,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
 // prepare_meeting (read-tier, agent-facing) : pour UN contact, MEGGA rend une synthèse de
 // préparation de RDV — fiche + où on en est + biens correspondants + visite à venir + 3 points
 // concrets à aborder. Agrégation des MÊMES requêtes que execGetContactBrief (fiche + recherches
-// actives + timeline + compréhension), execGetMatches (biens) et execGetDailyBrief (table visits),
+// actives + timeline + compréhension), l'ancien execGetMatches (biens) et execGetDailyBrief (table visits),
 // puis une petite couche DeepSeek pour les 3 points (ancrés UNIQUEMENT sur le contexte fourni).
 // Rien n'est envoyé : le résultat revient à l'agent dans son 1:1. Accès DB scopé agence → garde
 // hasAgency. NE DOIT JAMAIS throw : runTool n'a pas de try/catch → toute erreur renvoie une chaîne
@@ -2612,7 +2461,7 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
-  // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
+  // 3. Biens correspondants (matches top 5) — la requête de l'ancien execGetMatches (avant le lot D2), enrichis
   //    best-effort des titres/prix via properties / market_listings (champ absent → omis).
   const { data: matchRows } = await ctx.supabase
     .from('matches').select('score, status, market_listing_id, property_id')

@@ -93,14 +93,16 @@ test('la recherche lit le texte affiché — « contact cree » trouve « Contac
 /**
  * « Tout » dépasse une page : une requête ne rend jamais plus de 1000 lignes (max_rows
  * de PostgREST). Le banc porte une longue traîne de 1 100 gestes anciens (`TRAINE_JOURNAL`)
- * pour que la pagination s'y éprouve : 1 124 évènements en tout.
+ * pour que la pagination s'y éprouve : 1 131 évènements en tout, dont les 7 faits d'étape du
+ * Pipeline (`FAITS_DEALS`, 27.09.2026) — tous plus récents que la traîne, qui commence donc sa
+ * page 2 au n° 970.
  */
 test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la demande', async ({ page }) => {
   await ecran(page).getByRole('button', { name: 'Tout', exact: true }).click()
   const plusAnciens = ecran(page).getByRole('button', { name: 'Charger les évènements plus anciens' })
   await expect(plusAnciens).toHaveCount(1)
-  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 976' })).toHaveCount(1)
-  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 977' }), 'la 1001ᵉ ligne est sur la page 2').toHaveCount(0)
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 969' })).toHaveCount(1)
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 970' }), 'la 1001ᵉ ligne est sur la page 2').toHaveCount(0)
 
   // La recherche ne voit que le CHARGÉ — et le dit, là où l'œil cherche le résultat.
   const recherche = ecran(page).getByLabel('Rechercher une action, un objet…')
@@ -115,7 +117,7 @@ test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la 
 
   // Tout est chargé : la liste va jusqu'au plus ancien, et le bouton s'efface.
   await recherche.fill('')
-  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 977' })).toHaveCount(1)
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 970' })).toHaveCount(1)
   await expect(plusAnciens).toHaveCount(0)
 })
 

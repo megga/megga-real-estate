@@ -1,7 +1,6 @@
 // MEGGA — send-relance-email Edge Function
 // Wires DBRelanceSession's "Envoyer & suivant" CTA to real Resend sends.
-// Companion of send-property-email (which has a fixed property-card template).
-// This one accepts a free-form subject + body composed by the agent (or by
+// It accepts a free-form subject + body composed by the agent (or by
 // MEGGA AI in the relance editor) so the agent owns the wording.
 //
 // L'envoi lui-même — validation, garde de sortie, gabarit, Resend — vit dans

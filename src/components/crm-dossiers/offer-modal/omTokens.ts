@@ -50,7 +50,11 @@ export interface OmPalette {
   err: string
 }
 
-/** Voir `dealTokens` : ce sont les `--color-*-dark` de `globals.css`. */
+/**
+ * Teintes sémantiques — ⚠ AUCUNE N'EST INVENTÉE : ce sont les `--color-*-dark` de `globals.css`,
+ * le système de couleurs que le dépôt possède déjà. L'ancien vert `#059669` rendait 3,77:1 sur la
+ * carte blanche ; ces valeurs rendent 6,47 et 5,48 en clair, 7,46 et 10,73 en sombre.
+ */
 const OK = { clair: STATUT_CLAIR.okInk, sombre: '#34D399' }
 const WARN = { clair: '#F59E0B', sombre: '#FBBF24' }
 const ERR = { clair: STATUT_CLAIR.errInk, sombre: '#F87171' }

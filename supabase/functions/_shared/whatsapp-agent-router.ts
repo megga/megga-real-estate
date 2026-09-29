@@ -27,6 +27,8 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   get_contact_brief: 'read',
   list_followups: 'read',
   get_matches: 'read',
+  // get_buyers_for_property : lecture seule (lot D2) — le matching inversé d'un bien, rendu à l'agent seul.
+  get_buyers_for_property: 'read',
   get_daily_brief: 'read',
   search_listings: 'read',
   get_kyc_status: 'read',
@@ -53,6 +55,11 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   file_document: 'auto',
   create_contact: 'auto',
   add_note: 'auto',
+  // schedule_visit : planifie EN INTERNE (CRM), jamais un envoi client → auto, comme les autres écritures d'état
+  // réversibles. ⚠ Exception nommée au garde-fou de update_pipeline plus bas : un acheteur intéressé par ce bien voit
+  // AUSSI son deal avancer à visit_planned, jamais en arrière — décision de Julien du 24.09.2026, annulable 30 s
+  // comme toute action auto. Le deal peut aussi être CRÉÉ (à new_lead, faute d'un deal ouvert) plutôt que simplement
+  // avancé ; « /annuler » ne défait alors que le passage à visit_planned — le deal créé, lui, reste à new_lead.
   schedule_visit: 'auto',
   create_reminder: 'auto',
   qualify_lead: 'auto',
@@ -71,10 +78,18 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   send_client_email: 'confirm',
   // update_pipeline modifie l'étape pipeline → garde-fou absolu du cerveau
   // (ai-guardrails : « jamais sans action humaine ») ⇒ confirm (le « oui » de l'agent).
+  // ⚠ Le garde-fou n'est plus absolu au sens strict : schedule_visit (ci-dessus, 'auto') avance lui aussi une étape,
+  // à visit_planned seulement et jamais en arrière — décidé par Julien le 24.09.2026, annulable 30 s.
   update_pipeline: 'confirm',
   send_client_message: 'confirm',
-  send_listings: 'confirm',
+  // L'envoi d'une sélection de biens au client (send_listings) n'est plus au registre depuis
+  // le 21.09.2026 : le matching reste chez l'agent. Hors registre, le nom retombe sur le défaut
+  // 'confirm' SANS être dans CONFIRM_TOOLS : stashPending le refuse avant toute question.
   record_offer: 'confirm',
+  // record_match_outcome : consigne la réponse d'un acheteur (lot D2). Question [Oui] [Non] AVANT d'écrire
+  // (décision de Julien, 24.09.2026) : une réponse déclenche une chaîne qu'une annulation ne remettrait pas en
+  // l'état — journal, clôture de relance, deal et relance pour « proposé » —, et le bien est retrouvé d'après un texte.
+  record_match_outcome: 'confirm',
   // delete_contact : suppression DÉFINITIVE d'une fiche contact → confirm obligatoire
   // (destructif + irréversible, jamais dans la boucle). Le socle légal ne peut jamais
   // quitter confirm (canLeaveConfirm ne renvoie true que pour update_pipeline).
@@ -124,8 +139,8 @@ export function normalizePortal(raw: string): string {
 }
 
 // SEUL outil 'confirm' qui peut passer en auto (Palier 3) : update_pipeline — réversible
-// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/send_listings/
-// record_offer/open_kyc_case) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
+// (undo) + audité, aucun flux client/argent. Le socle légal (send_client_message/record_offer/
+// open_kyc_case/send_client_email) renvoie false ICI quel que soit l'agent → ne quitte JAMAIS confirm.
 export function canLeaveConfirm(tool: string): boolean {
   return tool === 'update_pipeline'
 }

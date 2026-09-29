@@ -30,28 +30,27 @@
  * haut dans `App()`.
  *
  * ⛔ Données de DÉMONSTRATION, et rien n'écrit : l'intercepteur répond aussi aux
- * POST (dépôt de pièce, réservation, réaction acheteur).
+ * POST (dépôt de pièce, réservation, geste sur une visite).
  */
 import { useEffect, useState } from 'react'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import KycPublicPage from '@/pages/public/KycPublicPage'
 import AppointmentManagePage from '@/pages/public/AppointmentManagePage'
-import BuyerReceptionPage from '@/pages/public/BuyerReceptionPage'
 import VisitManagePage from '@/pages/public/VisitManagePage'
 import VisitFeedbackPage from '@/pages/public/VisitFeedbackPage'
 import AcceptInvitePage from '@/pages/public/AcceptInvitePage'
 import { installerBanc, reglerBanc } from './bancSupabase'
-import { apptCreneaux, apptVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
+import { apptCreneaux, apptVue, invitationVue, mlkVue, visiteVue, type PublicEtat } from './publicFixtures'
 
 const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
   { id: 'nominal', label: 'Nominal', titre: 'Le parcours tel que le client l’ouvre' },
-  { id: 'termine', label: 'Terminé', titre: 'Pièces déposées · rendez-vous pris · sélection traitée' },
-  { id: 'expire', label: 'Expiré', titre: 'Lien périmé, rendez-vous annulé, sélection close' },
+  { id: 'termine', label: 'Terminé', titre: 'Pièces déposées · rendez-vous pris' },
+  { id: 'expire', label: 'Expiré', titre: 'Lien périmé, rendez-vous annulé' },
 ]
 
 /**
  * ⚠ `chemin` PORTE SON JETON SOUS LA FORME QUE LA PAGE LIT, et les deux formes
- * coexistent : les trois premières prennent le leur dans le CHEMIN
+ * coexistent : KYC, rendez-vous et invitation prennent le leur dans le CHEMIN
  * (`useParams`), les deux visites dans la QUERY (`searchParams.get('token')`).
  * Monter une visite en `visite/banc` la laisserait sans jeton — elle rendrait
  * son écran « lien invalide », et on croirait regarder un défaut de fixture.
@@ -59,7 +58,6 @@ const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
 const SURFACES = [
   { chemin: 'kyc/banc', label: 'KYC · parcours client', route: '/kyc/:token' },
   { chemin: 'rendez-vous/banc', label: 'Rendez-vous', route: '/rendez-vous/:token' },
-  { chemin: 'reception/banc', label: 'Réception acheteur', route: '/reception/:token' },
   // Lot 6 (15 août 2026) — les trois pages CLIENTES qu'aucun banc ne montrait,
   // et que la passe B2/B3 doit repeindre. Les regarder est le préalable.
   { chemin: 'visite?token=banc', label: 'Visite · modifier', route: '/visit/:id/edit' },
@@ -107,8 +105,6 @@ function poserContrat(etat: PublicEtat) {
         'appointment-manage': apptVue(etat),
         'appointment-slots': apptCreneaux(),
         'appointment-book': { ok: true },
-        'buyer-reception-get': receptionVue(etat),
-        'buyer-reception-react': { ok: true },
         'accept-team-invite': invitationVue(etat),
         // Les gestes des deux visites : rien n'écrit, mais sans fixture le banc
         // SIGNALE la fonction et l'écran montre une erreur au lieu d'un succès.
@@ -173,7 +169,6 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
         <Routes>
           <Route path="kyc/:token" element={<KycPublicPage />} />
           <Route path="rendez-vous/:token" element={<AppointmentManagePage />} />
-          <Route path="reception/:token" element={<BuyerReceptionPage />} />
           <Route path="visite" element={<VisitManagePage />} />
           <Route path="avis" element={<VisitFeedbackPage />} />
           <Route path="invitation/:token" element={<AcceptInvitePage />} />

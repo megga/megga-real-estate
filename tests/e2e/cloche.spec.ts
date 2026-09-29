@@ -4,6 +4,7 @@
  * fixtures portent un événement système ou IA par type de notification.
  */
 import { test, expect, type Page } from '@playwright/test'
+import { attendreRideauLeve } from './helpers/rideau'
 
 // Chaque écran d'onglet vivant a SA bande, donc sa cloche. Les écrans cachés portent
 // `aria-hidden` sur leur conteneur (`data-onglet`) : on vise celle de l'écran MONTRÉ.
@@ -18,6 +19,8 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 })
   await page.goto('/dev/crm')
   await cloche(page).waitFor({ timeout: 30_000 })
+  // Le cadre se mesure par `elementFromPoint` : sous le rideau, il rendait le rideau.
+  await attendreRideauLeve(page)
 })
 
 test('la cloche s’ouvre dans le coin du cadre, au même rayon que lui', async ({ page }) => {

@@ -28,7 +28,6 @@ function gardeDeIndexHtml(): RegExp {
 const TOKENISEES = [
   '/kyc/abc123',
   '/kyc-report/abc123',
-  '/reception/abc123',
   '/accept-invite/abc123',
   '/rendez-vous/abc123', // gestion de RDV KYC — jeton dans le CHEMIN (appointment-book)
   // Appel d'accueil, chemin DISTINCT du précédent : `/rendez-vous/` lui était disputé
@@ -74,7 +73,7 @@ describe('routes tokenisées — les deux gardes disent la même chose', () => {
 describe('scrubSecretUrl', () => {
   it('caviarde le token quand il est dans le CHEMIN', () => {
     expect(scrubSecretUrl('https://app.getmegga.com/kyc/eyJpZCI6.c2ln')).toBe('https://app.getmegga.com/kyc/[redacted]')
-    expect(scrubSecretUrl('https://app.getmegga.com/reception/eyJpZCI6.c2ln')).toBe('https://app.getmegga.com/reception/[redacted]')
+    expect(scrubSecretUrl('https://app.getmegga.com/rendez-vous/eyJpZCI6.c2ln')).toBe('https://app.getmegga.com/rendez-vous/[redacted]')
     expect(scrubSecretUrl('https://app.getmegga.com/accept-invite/9c2f')).toBe('https://app.getmegga.com/accept-invite/[redacted]')
   })
 

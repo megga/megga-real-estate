@@ -2,8 +2,9 @@ import { test, expect, type Page } from '@playwright/test'
 import { collectConsoleErrors } from './helpers/console'
 
 // La refonte « Aujourd'hui » (juin 2026) remplace l'écran KPI simple par un
-// cockpit data-heavy (colonne Focus, Relances IA, Objectif, Pipeline, Agenda +
-// page Catalogue montée dans le pager). Deux conséquences pour ce smoke :
+// cockpit data-heavy (colonne Focus, Relances IA, Objectif, Pipeline, Agenda ;
+// la page Catalogue que montait son pager est retirée au lot E1, 29.09.2026 :
+// l'écran n'a plus qu'une page). Deux conséquences pour ce smoke :
 //   1. `networkidle` n'est plus atteignable (nombreuses requêtes Supabase +
 //      modules Vite dev en parallèle gardent le réseau actif) — même problème
 //      déjà rencontré sur la marketplace publique. On attend donc le RENDU d'un

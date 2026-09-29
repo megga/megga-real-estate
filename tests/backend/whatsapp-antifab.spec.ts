@@ -22,9 +22,10 @@ describe('anti-fabrication — description schedule_visit (n\'envoie rien au cli
     expect(desc).toContain("n'envoie rien")
   })
 
-  it('required schedule_visit inchangé (le fix ne touche que la description)', () => {
+  it('required schedule_visit : un bien se désigne par property_id (mandat) OU market_listing_id (annonce), donc aucun des deux n\'est requis seul (lot D2)', () => {
     const tool = WHATSAPP_TOOLS.find(t => t.function.name === 'schedule_visit')
-    const params = tool!.function.parameters as { required?: string[] }
-    expect([...(params.required ?? [])].sort()).toEqual(['contact_id', 'property_id', 'scheduled_at'])
+    const params = tool!.function.parameters as { properties?: Record<string, unknown>; required?: string[] }
+    expect(Object.keys(params.properties ?? {})).toEqual(expect.arrayContaining(['property_id', 'market_listing_id']))
+    expect([...(params.required ?? [])].sort()).toEqual(['contact_id', 'scheduled_at'])
   })
 })

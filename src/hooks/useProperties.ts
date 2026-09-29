@@ -37,6 +37,7 @@ import { supabase } from '@/lib/supabase'
 import { INTERCOM_EVENTS } from '@/lib/intercom'
 import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
+import { CLE_FIL } from '@/components/matching-fil/filModele'
 import type { Property } from '@/types/listing'
 import type { PropertyStatus } from '@/lib/constants'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
@@ -130,6 +131,8 @@ export interface CreatePropertyInput {
   published_at?: string
   /** Agence partenaire en co-mandat ; NULL = l'agence du compte. */
   partner_agency?: string | null
+  /** Off-market (lot C) : l'interrupteur de l'agent ; le moteur renote le bien quand il bascule. */
+  off_market?: boolean
 }
 
 /** Insertion d'un bien ; injecte `agency_id`/`created_by` depuis le profil et renvoie `{ id, updated_at }`. */
@@ -215,6 +218,9 @@ export function useUpdateProperty() {
       queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
       queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
       queryClient.invalidateQueries({ queryKey: ['listings'] })
+      // Le fil de matchs ne propose qu'un mandat en vente (lot E1, décision 12a) : un statut changé doit le relire,
+      // sans quoi un onglet gardé vivant proposerait encore, jusqu'à 2 min, un bien vendu ou archivé.
+      queryClient.invalidateQueries({ queryKey: [CLE_FIL] })
       // Jalon Intercom : le brouillon du wizard devient un bien à sa publication.
       // Les sauvegardes du brouillon (statut 'draft') et les éditions sans statut ne comptent pas.
       if (variables.status && variables.status !== 'draft') {
@@ -252,6 +258,8 @@ export function useDeleteProperty() {
       queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
       queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
       queryClient.invalidateQueries({ queryKey: ['listings'] })
+      // Un mandat supprimé n'est plus lu par le fil de matchs (ni ses matchs) : même relecture qu'au changement de statut.
+      queryClient.invalidateQueries({ queryKey: [CLE_FIL] })
     },
   })
 }

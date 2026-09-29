@@ -17,7 +17,7 @@ interface MmMatchCardProps {
 
 /**
  * Bien correspondant dans le focus — photo + verdict qualitatif, prix, et les
- * deux gestes par bien : Planifier (visite, ghost) + Envoyer/Envoyé (dossier).
+ * deux gestes par bien : Planifier (visite, ghost) + « Je l'ai proposé » / Proposé.
  * Raisons masquées au v1 (vivent dans la fiche annonce, différée).
  */
 export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, canSchedule }: MmMatchCardProps) {
@@ -121,15 +121,18 @@ export default function MmMatchCard({ m, sent, scheduled, onSend, onSchedule, ca
               {scheduled ? t('mobile.visitPlanned') : t('mobile.schedule')}
             </button>
           ) : null}
+          {/* Proposé : le bouton se ferme. Il rouvrait la confirmation et reproposait le bien —
+              un deuxième journal, une deuxième relance pour la même proposition. */}
           <button
             type="button"
-            onClick={onSend}
+            onClick={sent ? undefined : onSend}
+            disabled={sent}
             style={{
               flex: 1,
               height: 40,
               borderRadius: 'var(--crm-radius-pill)',
               border: 0,
-              cursor: 'pointer',
+              cursor: sent ? 'default' : 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-md)',
               fontWeight: 600,

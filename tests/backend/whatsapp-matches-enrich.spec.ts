@@ -1,16 +1,19 @@
-// Backend test (live CI) — Anti-fabrication LOT 1 : enrichissement des retours d'outils
-// (execGetMatches + execGetMyAgenda dans _shared/whatsapp-actions.ts).
+// Backend test (live CI) — Anti-fabrication : enrichissement des retours d'outils
+// (execGetMatches — lot D2, _shared/whatsapp-matching-outils.ts — et execGetMyAgenda,
+// _shared/whatsapp-actions.ts).
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI : exécuté contre un Supabase local seedé. C'est le SEUL
-// test qui exerce réellement les exécuteurs whatsapp-actions (import Deno https résolu par le
-// harnais backend) → il vérifie aussi que l'embed PostgREST FK est CORRECT (un mauvais nom de
-// FK ferait planter l'outil au runtime, pas au build).
+// test qui exerce réellement les exécuteurs whatsapp-matching-outils / whatsapp-actions (import
+// Deno https résolu par le harnais backend) → il vérifie aussi que l'embed PostgREST FK est
+// CORRECT (un mauvais nom de FK ferait planter l'outil au runtime, pas au build).
 //
 // Couvre :
-//   E1 get_matches : retour enrichi {biens:[{titre,montant,ville,...}]} — PLUS d'UUID nus
-//      (le modèle ne peut plus inventer un bien sur un id seul). property résolue.
+//   E1 get_matches : le bien résolu sort ENRICHI — son id est présent AVEC son titre, sa ville et
+//      son prix au format réel, jamais l'id SEUL (conception D2 §5.1 : schedule_visit et
+//      get_buyers_for_property s'en servent). Aucune clé property_id/market_listing_id nue.
 //   E2 get_matches : un match dont le bien ne résout PAS (property d'une AUTRE agence, filtrée par
-//      .eq(agency_id)) → objet {id,score,statut} SANS titre/montant inventés (branche non résolue réelle).
+//      .eq(agency_id)) → le bien est ÉCARTÉ de la réponse (depuis le lot D2, plus de coquille
+//      {id,score,statut} : rien de réel à en dire, donc rien n'est rendu — anti-fabrication).
 //   E3 get_my_agenda : l'embed contacts/properties (FK visits_contact_id_fkey / _property_id_fkey)
 //      résout le client + le bien ; aucun UUID ni buyer_name nu dans le retour.
 
@@ -18,7 +21,9 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { serviceRoleClient } from './helpers/supabase'
-import { execGetMatches, execGetMyAgenda, type ActionCtx } from '../../supabase/functions/_shared/whatsapp-actions'
+import { execGetMyAgenda, type ActionCtx } from '../../supabase/functions/_shared/whatsapp-actions'
+import { execGetMatches } from '../../supabase/functions/_shared/whatsapp-matching-outils'
+import { prixEnClair } from '../../supabase/functions/_shared/whatsapp-matching'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
@@ -50,19 +55,26 @@ describe.skipIf(!HAS_KEYS)('anti-fabrication LOT 1 — enrichissement get_matche
     svc = serviceRoleClient()
     ctx = { supabase: svc, profileId: setup.agentAId, agencyId: setup.agencyAId, lang: 'fr' }
 
+    // status ACTIVE : whatsapp-matching.ts (bienDeMandat) ne compte un mandat comme une « occasion »
+    // que s'il est `active` (règle D1). Le match seedé plus bas est `suggested` (« à proposer »,
+    // jamais « en cours ») : un mandat `draft` en sortirait donc écarté par vueGetMatches, et E1 ne
+    // testerait plus rien de réel.
     const { data: prop, error: pe } = await svc.from('properties').insert({
       agency_id: setup.agencyAId, title: `Appartement ENRICH ${setup.stamp}`,
-      type: 'apartment', status: 'draft', transaction_type: 'buy', price: 1850000, city: 'Genève', rooms: 4,
+      type: 'apartment', status: 'active', transaction_type: 'buy', price: 1850000, city: 'Genève', rooms: 4,
     }).select('id').single()
     if (pe) throw new Error(`property: ${pe.message}`)
     propId = prop.id
 
-    // Bien de l'AGENCE B : FK matches_property_id_fkey satisfaite (la property existe), mais
-    // resolveMatchListings filtre properties par .eq('agency_id', agencyA) → ce bien n'est JAMAIS
-    // résolu pour un match de l'agence A. C'est l'orphelin réel (branche non résolue de projectMatchListing).
+    // Bien de l'AGENCE B, ACTIF : FK matches_property_id_fkey satisfaite (la property existe), mais
+    // lireBiens (whatsapp-matching-outils.ts) filtre properties par .eq('agency_id', agencyA) → ce
+    // bien n'est JAMAIS résolu pour un match de l'agence A. C'est l'orphelin réel (branche non
+    // résolue de lireBiens). ⚠ ACTIF, pas `draft` : un mandat `draft` est déjà écarté par
+    // vueGetMatches côté RÈGLE D'OCCASION, MÊME SI le filtre d'agence était retiré par erreur — E2
+    // passerait alors à vide sans rien prouver sur la garde de tenant.
     const { data: propB, error: pbe } = await svc.from('properties').insert({
       agency_id: setup.agencyBId, title: `Bien AUTRE AGENCE ${setup.stamp}`,
-      type: 'apartment', status: 'draft', transaction_type: 'buy', price: 999000, city: 'Lausanne',
+      type: 'apartment', status: 'active', transaction_type: 'buy', price: 999000, city: 'Lausanne',
     }).select('id').single()
     if (pbe) throw new Error(`propertyB: ${pbe.message}`)
     propBId = propB.id
@@ -103,34 +115,34 @@ describe.skipIf(!HAS_KEYS)('anti-fabrication LOT 1 — enrichissement get_matche
     await setup.cleanup()
   })
 
-  it('E1 — get_matches renvoie des biens ENRICHIS (titre/montant/ville), plus d\'UUID nus', async () => {
+  it('E1 — get_matches renvoie le bien résolu ENRICHI (id + titre + ville + prix), jamais l\'id seul', async () => {
     const raw = await execGetMatches(ctx, { contact_id: cMatch })
     const out = JSON.parse(raw) as { biens: Array<Record<string, unknown>> }
     expect(Array.isArray(out.biens)).toBe(true)
-    expect(out.biens.length).toBeGreaterThanOrEqual(1)
+    expect(out.biens.length).toBe(1)
     const b = out.biens[0]
+    // L'identifiant est présent AVEC son titre, jamais seul (conception D2 §5.1) : schedule_visit
+    // et get_buyers_for_property s'en servent.
+    expect(b.id).toBe(propId)
+    expect(b.genre).toBe('mandat')
     expect(b.titre).toBe(`Appartement ENRICH ${setup.stamp}`)
-    expect(b.montant).toBe(1850000)
     expect(b.ville).toBe('Genève')
+    // Prix au format réel du module (CHF à l'apostrophe suisse) — lu via prixEnClair, jamais
+    // écrit de mémoire : c'est LUI qui fait foi sur la forme exacte.
+    expect(b.prix).toBe(prixEnClair({ prix: 1850000, location: false }))
     // anti-fabrication : aucune clé d'UUID brut exposée au modèle.
     expect(b).not.toHaveProperty('property_id')
     expect(b).not.toHaveProperty('market_listing_id')
   })
 
-  it('E2 — bien non résolu (autre agence) → AUCUN titre/montant inventé (que id/score/statut)', async () => {
+  it('E2 — bien non résolu (autre agence) → le match est ÉCARTÉ, aucun titre/prix/ville inventé', async () => {
     const raw = await execGetMatches(ctx, { contact_id: cOrphan })
+    // Rien de réel à dire sur un bien non résolu : depuis le lot D2, l'exécuteur l'écarte plutôt
+    // que de rendre une coquille {id,score,statut} — l'ancien contrat, qui exposait encore l'UUID
+    // étranger. L'identifiant du bien de l'agence B ne doit apparaître NULLE PART dans la réponse.
+    expect(raw).not.toContain(propBId)
     const out = JSON.parse(raw) as { biens: Array<Record<string, unknown>> }
-    expect(out.biens.length).toBe(1)
-    const b = out.biens[0]
-    // Le bien de l'agence B n'est pas résolu côté A → le modèle ne reçoit RIEN à habiller.
-    expect(b).not.toHaveProperty('titre')
-    expect(b).not.toHaveProperty('montant')
-    expect(b).not.toHaveProperty('ville')
-    // …mais jamais une clé vide : ce qui est présent est réel (id/score/statut).
-    expect(typeof b.id).toBe('string')
-    expect(b.score).toBe(88)
-    expect(b.statut).toBe('suggested')
-    for (const k of Object.keys(b)) expect(b[k]).not.toBeNull()
+    expect(out.biens).toEqual([])
   })
 
   it('E3 — get_my_agenda : embed FK résout client + bien, aucun UUID/buyer_name nu', async () => {

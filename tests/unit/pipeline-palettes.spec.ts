@@ -18,6 +18,10 @@
  *     garde de contraste du lot 1 ne voyait pas : elle ne connaissait que
  *     `ink`/`soft`/`muted`, et personne ne lui avait nommé `err`/`ok`.
  *
+ * ⚠ `DsLIGHT/DsDARK` — la palette de l'ancienne fiche deal, devenue `dsPalette` — est partie
+ * avec elle le 27.09.2026 : la fiche d'affaire qui la remplace lit `crmPalette` et ses jetons,
+ * sans palette locale. Reste la modale d'offre.
+ *
  * ⚠ CE QUE CETTE GARDE NE FAIT PAS. Elle ne vérifie AUCUN contraste — c'est le
  * travail de `pipeline-contraste.spec.ts`, et les deux se complètent :
  * celle-ci dit d'où vient une valeur, l'autre si elle est lisible. Une couleur
@@ -28,7 +32,6 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 import { crmPalette } from '@/components/crm/tokens'
-import { dsPalette } from '@/components/crm-dossiers/dealTokens'
 import { omPalette } from '@/components/crm-dossiers/offer-modal/omTokens'
 
 /** Tout ce qu'une palette d'écran a le droit de contenir, sans le nommer. */
@@ -83,8 +86,6 @@ const NOIR_SUGAR = /#0B0C0E\b|#0A0A0F\b|#0A0B0D\b|rgba?\(\s*11\s*,\s*12\s*,\s*14
 const GRIS_BLEU = /rgba?\(\s*15\s*,\s*23\s*,\s*42\b/i
 
 const PALETTES = [
-  { nom: 'fiche deal · clair', p: dsPalette(false, crmPalette(false)) as Record<string, string> },
-  { nom: 'fiche deal · sombre', p: dsPalette(true, crmPalette(true)) as Record<string, string> },
   { nom: 'modale d’offre · clair', p: omPalette(false, crmPalette(false)) as unknown as Record<string, string> },
   { nom: 'modale d’offre · sombre', p: omPalette(true, crmPalette(true)) as unknown as Record<string, string> },
 ]
@@ -173,14 +174,14 @@ describe('Pipeline — les palettes d’écran ne portent que des barreaux MEGGA
   })
 
   /**
-   * ⛔ LE CLIQUET : les deux palettes doivent rester des FONCTIONS de la palette
+   * ⛔ LE CLIQUET : la palette de la modale d'offre doit rester une FONCTION de la palette
    * MEGGA X. Un objet figé rouvrirait la porte à la recopie — c'est exactement
    * ce qu'étaient `DsLIGHT` et `OM_LIGHT`, et pourquoi le noir Sugar y avait
    * survécu à deux campagnes de retrait.
    */
   it('les palettes dérivent de la palette MEGGA X, elles ne la recopient pas', () => {
-    const clair = dsPalette(false, crmPalette(false))
-    const sombre = dsPalette(true, crmPalette(true))
+    const clair = omPalette(false, crmPalette(false))
+    const sombre = omPalette(true, crmPalette(true))
     expect(clair.ink).toBe(crmPalette(false).ink)
     expect(sombre.ink).toBe(crmPalette(true).ink)
     expect(clair.card).toBe(crmPalette(false).cardBg)

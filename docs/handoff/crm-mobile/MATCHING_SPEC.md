@@ -4,13 +4,20 @@
 > Réutilise `useAtelierMatching` + ses gestes purs **tel quel** (zéro régression backend).
 > Styles inline + tokens `useMobileTokens`, i18n `t()` (lint `no-literal-string`), primitives P1 existantes.
 > KYC **non-bloquant**. Undo 5 s + flush au démontage **obligatoires** (contrat audit).
+>
+> ⚠ **État au 29.09.2026 (lot E1, sur branche, fusion à la fin).** La page de bureau `MatchingAtelierPage` est
+> **retirée** : au bureau, `/dashboard/matching` monte le fil de matchs (`MatchingPage`), au téléphone
+> `MobileMatchingPage`, sous un `ResponsiveRoute`. **Le téléphone garde son écran, sur le modèle de l'atelier,
+> jusqu'au lot E2.** Les renvois à `MatchingAtelierPage` ci-dessous (§0, §3, §5) désignent un fichier qui n'existe
+> plus, et les exécuteurs du §3 datent d'avant le 21.09.2026 (plus rien ne part vers l'acheteur) : la source est
+> `src/lib/matchingGestes.ts`.
 
 ---
 
 ## 0. Constat de départ (vérifié dans le code)
 
-- Hook données + gestes : `src/hooks/useAtelierMatching.ts` — **seul** hook du Matching, à réutiliser. Gestes = fonctions **pures** exportées (`execSendDossier/execRelance/execSnooze/execDismiss/execReact/execWake`), pas des hooks.
-- Undo Gmail-style : `src/components/matching-atelier/pendingTriage.ts` (`PendingRegistry`, `UNDO_WINDOW_MS = 4500`, `AtelierGestes`). À **réinstancier** côté mobile, à **flush** au démontage.
+- Hook données : `src/hooks/useAtelierMatching.ts` — depuis le lot E1, la seule lecture de l'écran mobile (retirée au lot E2). Gestes = fonctions **pures** exportées de `src/lib/matchingGestes.ts` depuis le lot E1, partagées avec le fil de matchs (`execProposer/execRelance/execSnooze/execDismiss/execReact/execWake`), pas des hooks. ⚠ `execSendDossier` n'existe plus : « Je l'ai proposé » (`execProposer`) l'a remplacé le 21.09.2026.
+- Undo Gmail-style : `src/lib/matchingAnnulation.ts` depuis le lot E1, ex-`matching-atelier/pendingTriage.ts` (`PendingRegistry`, `UNDO_WINDOW_MS = 4500`) ; le type `AtelierGestes` vit avec l'écran mobile (`crm-mobile/matching/types.ts`). À **réinstancier** côté mobile, à **flush** au démontage.
 - Câblage de référence (à recopier mentalement) : `src/pages/agent/MatchingAtelierPage.tsx` (l.54‑156) — `registryRef`, `useEffect(() => () => registry.flushAll(), [registry])`, construction de `GesteContext`, `matchIndex`, `gestes = useMemo(...)`, scan `matching-engine`.
 - i18n : namespace `matching` **complet FR/DE/EN/IT** (`src/i18n/locales/*/matching.json`). Sous-arbre utile = `matching.atelier.*`, `matching.tabs.*`, `matching.atelierKyc.*`, `matching.confirm.*`, `matching.aiHint.*`. **Ne pas** toucher `matching.scoreCard/panel/send.*` (ancien écran retiré).
 - Routing : **`App.tsx:510` `<Route path="matching" element={<MatchingAtelierPage />} />` n'est PAS dans un `ResponsiveRoute`.** Les mobiles voient aujourd'hui le triptyque desktop. Le port doit envelopper cette route comme `pipeline` (l.490).
@@ -109,7 +116,7 @@ const ctx: GesteContext | null = useMemo(() => profile?.agency_id ? {
 | **Plus tard** (`MmBuyerCard` menu / focus) | report +7j | `registry.defer(async () => { await execSnooze(ctx, buyer); return null })` | `matches.update{snoozed_until:+7j}` + `reminders.insert type 'custom' channel 'notification' +7j`. |
 | **Écarter** (menu kebab → `SgConfirmDestructive`) | retirer de la liste | `registry.defer(async () => { await execDismiss(buyer); return null })` | `matches.update{status:'ignored'}` **uniquement**. Aucun deal/timeline. |
 | **Intéressé / Pas intéressé** | **NON exposé sur cet écran** | `execReact` existe mais l'engagement ici est **reçu** (statuts `liked/viewed` via `mapStatus`), pas émis par l'agent. Ne **pas** ajouter de boutons réaction. | (réservé à la réception/desktop) |
-| **Réactiver** (un reporté) | hors queue, immédiat | `execWake(matchId).then(refresh)` | `matches.update{snoozed_until:null}` + `reminders.update{status:'cancelled'}`. Pas de `defer`. |
+| **Réactiver** (un reporté) | hors queue, immédiat | `execWake(ctx, buyer).then(refresh)` | `matches.update{snoozed_until:null}` + `reminders.update{status:'cancelled'}` + `activity_events 'match_reactive'` (depuis le lot E1, comme « Plus tard » et « Écarter »). Pas de `defer`. |
 | **Visite** (`MmVisitModal`) | si `listing.kind==='property'` | `registry.flushAll(); navigate('/dashboard/visits/new?bienId=<L.id>&contactId=<buyer.id>')` | **Aucune écriture DB ici.** Router vers le flux visite (mobile s'il existe, sinon route desktop partagée). |
 | **Scan** (état vide) | bouton « Lancer un scan » | `supabase.functions.invoke('matching-engine',{body:{mode:'scan-all',agency_id:ctx.agencyId}})` puis `refresh()` | Seul appel edge depuis la page. |
 

@@ -10,8 +10,9 @@
 // sauts de ligne de l'agent sont conservés tels quels. C'est ce qui fait qu'une relance
 // écrite à la main ressemble à un message écrit à la main, et non à un publipostage.
 //
-// ⚠ COMME `property-email`, IL PORTE UNE DÉSINSCRIPTION : c'est un envoi commercial. Sa
-// mention de pied ne peut donc pas être celle des transactionnels.
+// ⚠ IL PORTE UNE DÉSINSCRIPTION : c'est un envoi commercial (le seul, depuis le retrait de
+// `property-email` le 21.09.2026). Sa mention de pied ne peut donc pas être celle des
+// transactionnels.
 
 import { MUTED, BODY_INK, CARD_BORDER, FONT, escapeHtml, shell } from './email-shell.ts'
 

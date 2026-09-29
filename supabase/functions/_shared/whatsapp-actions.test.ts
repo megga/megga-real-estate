@@ -11,9 +11,12 @@
  *
  * La lecture passe par le client service-role (RLS contournée) : le `.eq('agency_id', …)` est
  * la seule garde de tenant. Le faux client ENREGISTRE chaque filtre pour qu'un test puisse la voir.
+ *
+ * En fin de fichier, la recherche d'annonces des copilotes (`execSearchListings`) : une annonce en
+ * baisse reste une annonce à proposer (pige, 21.09.2026).
  */
 import { describe, it, expect } from 'vitest'
-import { prepareSendClientMessage, prepareUpdatePipeline, type ActionCtx } from './whatsapp-actions'
+import { execSearchListings, prepareSendClientMessage, prepareUpdatePipeline, type ActionCtx } from './whatsapp-actions'
 import { t, confirmSendClient, confirmUpdatePipeline, pipelineWhoNamed, type WaLang } from './whatsapp-i18n'
 import { stageLabel } from './whatsapp-agent-router'
 
@@ -162,5 +165,28 @@ describe('prepareUpdatePipeline — même garde, pour un geste qui n’envoie ri
     const p = await prepareUpdatePipeline(h.ctx, { contact_id: CONTACT, stage: 'visit_planned' })
     const prompt = confirmUpdatePipeline('fr', pipelineWhoNamed('fr', 'Test Boutous'), stageLabel('visit_planned', 'fr'))
     expect(p).toEqual({ ok: true, prompt, payload: { contact_id: CONTACT, stage: 'visit_planned' } })
+  })
+})
+
+describe('execSearchListings — une annonce en baisse reste une annonce à proposer', () => {
+  /** Faux client qui enregistre chaque maillon de la requête et rend une page vide. */
+  const rechercher = async (args: Record<string, unknown>) => {
+    const maillons: Array<{ m: string; args: unknown[] }> = []
+    const requete: Record<string, unknown> = {}
+    for (const m of ['select', 'in', 'eq', 'gte', 'lte', 'gt', 'or', 'ilike', 'order', 'limit']) {
+      requete[m] = (...a: unknown[]) => { maillons.push({ m, args: a }); return requete }
+    }
+    requete.then = (ok: (r: unknown) => unknown) => Promise.resolve({ data: [], count: 0, error: null }).then(ok)
+    const ctx: ActionCtx = { supabase: { from: () => requete } as never, profileId: 'p-1', agencyId: AGENCY, lang: 'fr' }
+    await execSearchListings(ctx, args)
+    return maillons
+  }
+
+  it('⛔ lit les vivantes, `active` ET `price_reduced` : une location en baisse n’est plus écartée', async () => {
+    for (const transaction_type of ['rent', 'buy']) {
+      const maillons = await rechercher({ transaction_type, zones: 'Genève' })
+      expect(maillons, transaction_type).toContainEqual({ m: 'in', args: ['status', ['active', 'price_reduced']] })
+      expect(maillons.some((x) => x.m === 'eq' && x.args[0] === 'status'), transaction_type).toBe(false)
+    }
   })
 })

@@ -28,8 +28,9 @@ describe('purposeLisible — ce qui est lisible statiquement', () => {
   })
 
   it('accepte un ternaire de littéraux et ÉNUMÈRE ses deux valeurs', () => {
-    // Forme réellement présente au dépôt (whatsapp-webhook, envoi de template).
-    expect(purposeLisible("key === 'new_listings' ? 'marketing' : 'utility'"))
+    // Forme présente au dépôt jusqu'au 21.09.2026 (envoi de template du webhook, retirée avec
+    // `new_listings`) : la porte doit toujours savoir la lire, le jour où elle revient.
+    expect(purposeLisible("key === 'annonce' ? 'marketing' : 'utility'"))
       .toEqual(['marketing', 'utility'])
   })
 

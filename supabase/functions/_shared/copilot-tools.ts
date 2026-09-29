@@ -30,11 +30,27 @@ export const SHARED_READ_TOOLS = [
 ] as const
 
 // Descriptions à ajuster pour le web : on retire les références aux outils
-// WhatsApp absents du catalogue web (ex. send_listings) pour ne pas inviter le
-// modèle à appeler un outil qui n'existe pas ici.
+// WhatsApp absents du catalogue web pour ne pas inviter le modèle à appeler un outil
+// qui n'existe pas ici. ⚠ `search_listings` n'y figure plus : sa surcharge ne retirait
+// que le renvoi à `send_listings`, et la description WhatsApp l'a perdu avec l'outil
+// (21.09.2026) — la garder aurait fait deux copies d'un même texte, prêtes à diverger.
+// get_matches (lot D2) : la description WhatsApp renvoie vers schedule_visit et get_buyers_for_property, absents du
+// catalogue web (ni SHARED_READ_TOOLS ni SHARED_WRITE_TOOLS) — même défaut que search_listings/send_listings
+// ci-dessus. DÉRIVÉE de la description WhatsApp (jamais recopiée à la main : la
+// mise en garde ci-dessus, pour search_listings, vaut ici aussi — deux copies d'un même texte, prêtes à diverger) en
+// retirant la seule phrase qui invite à un outil absent. ⛔ Jamais d'exception ici : levée au chargement du module,
+// elle ferait tomber le copilote web entier pour une retouche de texte. Si la phrase a changé, le web garde le texte
+// WhatsApp tel quel, et c'est `copilot-tools.test.ts` qui rougit (il exige la phrase dans la source).
+const GET_MATCHES_PHRASE_OUTILS_ABSENTS =
+  " L'id de chaque bien sert à schedule_visit (property_id d'un mandat, market_listing_id d'une annonce) et à get_buyers_for_property."
+function descriptionWebDerivee(nom: string, phraseARetirer: string): string | null {
+  const texte = WHATSAPP_TOOLS.find((t) => t.function.name === nom)?.function.description
+  return texte ? texte.replace(phraseARetirer, '') : null
+}
+const GET_MATCHES_WEB = descriptionWebDerivee('get_matches', GET_MATCHES_PHRASE_OUTILS_ABSENTS)
+
 const WEB_DESCRIPTION_OVERRIDES: Record<string, string> = {
-  search_listings:
-    "Recherche des biens sur le marché (annonces) par critères. Pour « trouve un 3,5 pièces à Carouge en location sous 2500 », « des bureaux à Lausanne », « combien d'appartements à Lausanne ». Interroge l'inventaire MARCHÉ réel (les annonces du marché, PAS le CRM de l'agence). Renvoie le NOMBRE TOTAL ESTIMÉ de biens correspondants (champ `total`) en plus d'un échantillon de biens réels (`biens`) ; annonce ce total à l'agent. N'invente jamais de bien.",
+  ...(GET_MATCHES_WEB ? { get_matches: GET_MATCHES_WEB } : {}),
   // Réécrits pour le web. Les photos se joignent DANS LE CHAT (attach_property_photos,
   // comme WhatsApp) : le frontend les stage, l'outil les attache au bien résolu.
   attach_property_photos:

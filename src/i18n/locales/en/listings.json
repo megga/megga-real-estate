@@ -74,17 +74,10 @@
     "aggregator": "Aggregator",
     "matchFor": "Match for",
     "actions": "Actions",
-    "emailSentSuccess": "Email sent successfully",
-    "sendByEmail": "Send by email",
-    "clientEmail": "Client email",
-    "customMessage": "Custom message (optional)",
-    "sending": "Sending...",
-    "send": "Send",
     "importToPortfolio": "Import to my portfolio",
     "viewOriginal": "View original listing",
     "copied": "Copied",
     "copyLink": "Copy link",
-    "sendHistory": "Send history",
     "location": "Location",
     "canton": "Canton",
     "postalCode": "Postal code",
@@ -111,8 +104,6 @@
     },
     "photoAlt": "Property",
     "aggregatorValue": "RealAdvisor ({{count}} portals)",
-    "channelEmail": "Email",
-    "channelMessaging": "Messaging",
     "loading": "Loading listing…",
     "loadError": "This listing could not be loaded."
   },
@@ -738,8 +729,6 @@
       "title": "Active buyers",
       "pipeline": "Pipeline",
       "buyerFallback": "Buyer",
-      "matchAffinity": "MEGGA AI match · {{score}}% fit",
-      "propose": "Propose",
       "kycNotice": "<0>KYC to complete</0> for a buyer, optional at this stage, required before signing.",
       "startKyc": "Start"
     },
@@ -804,7 +793,11 @@
       "publishedTitle": "Listing published",
       "updatedTitle": "Listing updated",
       "statusActive": "Status set to active",
-      "auditAdded": "Entry added to the nFADP audit log"
+      "auditAdded": "Entry added to the nFADP audit log",
+      "offMarketTitle": "Property taken off-market",
+      "publicTitle": "Property made public",
+      "renote": "The matches for this property are recalculated",
+      "offMarketErreur": "The listing visibility could not be changed. Try again."
     },
     "c2paAlert": {
       "title": "Photos without authenticity certification",
@@ -1761,7 +1754,6 @@
     "visits": {
       "eyebrow": "Visits",
       "none": "No visit scheduled.",
-      "plan": "Schedule",
       "past_one": "{{count}} past visit",
       "past_other": "{{count}} past visits"
     },
@@ -1778,7 +1770,10 @@
       "publicPreview": "View public listing",
       "previewToastTitle": "Public preview",
       "previewOnlineLine": "The listing is live on immobilier.ch.",
-      "previewOfflineLine": "The listing is not published publicly yet."
+      "previewOfflineLine": "The listing is not published publicly yet.",
+      "offMarketLigne": "Offered to your buyers only, never advertised",
+      "passerOffMarket": "Take off-market",
+      "rendrePublic": "Make public"
     },
     "back": "Back to My properties",
     "cta": {
@@ -1789,10 +1784,6 @@
       "mandateExpires_other": "{{type}} mandate · expires in {{count}} days",
       "mandateOverdue_one": "{{type}} mandate · expired {{count}} day ago",
       "mandateOverdue_other": "{{type}} mandate · expired {{count}} days ago"
-    },
-    "suggestions": {
-      "title": "MEGGA AI suggestions",
-      "affinity": "{{score}}% estimated affinity"
     },
     "photos": {
       "none": "No photos",
@@ -1809,6 +1800,7 @@
       "enCours": "Scheduling…",
       "erreur": "The viewing could not be saved.",
       "dansCalendrier": "It appears in your Calendar and in the property’s viewings.",
+      "rienEnvoye": "Nothing is sent to {{prenom}}.",
       "demo": "Preview: nothing was saved.",
       "ouvrir": "Open the viewing",
       "termine": "Done",
@@ -1885,7 +1877,7 @@
     "modifier": "Edit",
     "continuer": "Continue",
     "retour": "Back",
-    "garder": "Save without publishing",
+    "garder": "Save as draft",
     "publier": "Publish the listing",
     "enCours": "Saving…",
     "adresseAvant": "Add an address first.",
@@ -2012,12 +2004,23 @@
     },
     "fini": {
       "publie": "Listing published",
-      "garde": "Property saved",
+      "garde": "Draft saved",
       "publieAide": "“{{titre}}” is live in My properties.",
-      "gardeAide": "“{{titre}}” is saved Off-market. Publish it from its page when it is ready.",
+      "gardeAide": "“{{titre}}” is saved as a draft. Publish it from its page when it is ready.",
       "ouvrir": "Open the property page",
       "autre": "Create another property",
-      "retour": "Back to My properties"
-    }
+      "retour": "Back to My properties",
+      "offMarket": "Property off-market",
+      "offMarketAide": "“{{titre}}” is live: it is offered to your buyers and never advertised.",
+      "acquereurs": {
+        "recherche": "Looking for matching buyers…",
+        "trouves_one": "{{count}} matching buyer",
+        "trouves_other": "{{count}} matching buyers",
+        "aucun": "No matching buyer for now",
+        "erreur": "Matching buyers are listed on its page.",
+        "voir": "See who"
+      }
+    },
+    "proposerOffMarket": "Offer off-market"
   }
 }

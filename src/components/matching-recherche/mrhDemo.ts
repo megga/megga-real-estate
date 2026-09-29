@@ -1,13 +1,12 @@
 /**
- * Fixtures du mode `demo` de « Recherche hybride » — banc `/dev/matching-atelier`.
+ * Fixtures du mode `demo` de « Recherche hybride » — banc `/dev/crm`, page 1 du Matching.
  *
  * POURQUOI CE FICHIER EXISTE. `MatchingRechercheHybride` porte ses propres hooks
  * (`useAuth`, `useMatchingSearch`, `useMatchingSearchTotal`, `useMatchingBuyers`,
- * `useCitySuggest`), tous gatés sur la session. Contrairement à `AtelierStage`,
- * qui est présentationnel et qu'un banc peut alimenter par ses props, cette
- * moitié-là — la plus lourde du périmètre bureau — n'avait AUCUN banc : sans
- * session, ses cinq requêtes sont désactivées et l'écran ne montre qu'un état
- * bloqué. On ne pouvait donc pas la regarder avant de la repeindre.
+ * `useCitySuggest`) : un banc ne peut pas l'alimenter par ses props, et `/dev/crm`
+ * n'a pas de fixtures du marché — ses requêtes, interceptées, y reviendraient
+ * vides. Sans ce mode, cette moitié-là, la plus lourde du périmètre bureau, n'aurait
+ * AUCUN banc.
  *
  * ⚠ Ne PAS contourner en injectant une session : une session injectée rend la
  * page sans qu'aucun appel Supabase ne parte — on croit voir des données réelles
@@ -18,9 +17,10 @@
  *
  * ⛔ Rien ici ne vient de la base et rien n'écrit. Les valeurs sont plausibles
  * mais inventées : c'est un banc visuel, pas un aperçu du marché.
+ * « Ce qui a bougé » et l'historique du prix (pige, 21.09.2026) y ont leurs fixtures, en fin de fichier.
  */
 import type { CityHit } from '@/hooks/useMatchingRecherche'
-import type { SendSelectionResult } from '@/hooks/useSendReceptionSelection'
+import { joursEntre, type MouvementPige, type PointPrix } from './pige'
 import type { MrhBien, MrhBienDetail, MrhContact } from './types'
 
 /**
@@ -40,6 +40,9 @@ export type MrhDemoEtat = 'ok' | 'vide' | 'erreur' | 'bloque'
 const PHOTO = (id: string, n = 1200) =>
   `https://images.unsplash.com/photo-${id}?w=${n}&q=80&auto=format&fit=crop`
 
+/** « il y a N jours (et H heures) », relatif à l'ouverture du banc : les libellés restent vrais d'un jour sur l'autre. */
+const ILYA = (jours: number, heures = 0) => new Date(Date.now() - (jours * 24 + heures) * 3_600_000).toISOString()
+
 function bien(p: Partial<MrhBien> & Pick<MrhBien, 'id' | 'title' | 'addr' | 'type' | 'typeLabel' | 'transaction'>): MrhBien {
   const dom = p.days_on_market ?? 9
   return {
@@ -52,6 +55,8 @@ function bien(p: Partial<MrhBien> & Pick<MrhBien, 'id' | 'title' | 'addr' | 'typ
     postedAt: dom <= 0 ? "aujourd'hui" : dom === 1 ? 'hier' : dom < 7 ? `il y a ${dom} j` : dom < 30 ? `il y a ${Math.round(dom / 7)} sem` : `il y a ${Math.round(dom / 30)} mois`,
     postedRank: dom,
     photos: [],
+    enLigneDepuis: ILYA(dom),
+    retireeLe: null,
     ...p,
   }
 }
@@ -265,16 +270,88 @@ export const MRH_DEMO_DETAIL: MrhBienDetail = {
   agency_reference: 'RDR-2026-0412',
 }
 
+/** Une annonce du banc par son id — les mouvements ci-dessous n'en inventent pas de nouvelles. */
+const annonceDemo = (id: string): MrhBien => {
+  const b = MRH_DEMO_BIENS.find((x) => x.id === id)
+  if (!b) throw new Error(`mrhDemo : annonce ${id} introuvable`)
+  return b
+}
+
 /**
- * Lien de réception simulé — ouvre `MrhSendSheet` sans rien minter.
- *
- * ⚠ Le jeton n'est PAS un jeton : il ne survivrait à aucune vérification de
- * signature. C'est voulu — la feuille se regarde, elle ne se suit pas.
+ * Une retirée du flux : l'annonce passe `removed` à cette date, et le mouvement porte les jours que la fiche
+ * comptera pour elle (publication → retrait). Écrits à la main, les deux chiffres se contredisaient d'un écran
+ * à l'autre (« après 41 jours » sur la ligne, « 40 jours » sur la fiche). Même compte pour `days_on_market`,
+ * que les caractéristiques de la fiche affichent : `mapListingRow` l'arrête au retrait, le banc aussi.
  */
-export const MRH_DEMO_SEND: SendSelectionResult = {
-  url: 'https://app.getmegga.com/reception/demo-banc-essai',
-  token: 'demo-banc-essai',
-  phone: '+41 79 000 00 00',
-  firstName: 'Marie',
-  count: 2,
+const retiree = (mv: string, id: string, quand: string): MouvementPige => {
+  const vivante = annonceDemo(id)
+  const jours = joursEntre(vivante.enLigneDepuis, quand)
+  const bien: MrhBien = { ...vivante, status: 'removed', retireeLe: quand, days_on_market: jours }
+  const prix = (bien.transaction === 'location' ? bien.rent : bien.price) ?? null
+  return { id: mv, genre: 'retrait', quand, ancienPrix: prix, prix, variationPct: null, joursSurMarche: jours, bien }
+}
+
+/**
+ * « Ce qui a bougé » au banc : deux mouvements par flux, pris parmi les neuf annonces ci-dessus.
+ * ⚠ Dates RELATIVES à l'ouverture du banc, pour que « aujourd'hui » et « hier » restent vrais d'un jour
+ * sur l'autre. Les retirées portent `status` et `retireeLe` : la fiche ouverte depuis le flux doit dire
+ * « retirée le … ». ⛔ Inventés, comme le reste de ce fichier.
+ */
+export const MRH_DEMO_MOUVEMENTS: MouvementPige[] = [
+  { id: 'demo-mv-01', genre: 'apparition', quand: ILYA(0, 3), ancienPrix: null, prix: 980000, variationPct: null, joursSurMarche: 4, bien: annonceDemo('demo-ml-02') },
+  { id: 'demo-mv-02', genre: 'apparition', quand: ILYA(1, 2), ancienPrix: null, prix: 1980, variationPct: null, joursSurMarche: 0, bien: annonceDemo('demo-ml-09') },
+  { id: 'demo-mv-03', genre: 'baisse', quand: ILYA(0, 5), ancienPrix: 1145000, prix: 1100000, variationPct: -3.93, joursSurMarche: 12, bien: annonceDemo('demo-ml-01') },
+  { id: 'demo-mv-04', genre: 'baisse', quand: ILYA(3), ancienPrix: 1220000, prix: 1180000, variationPct: -3.28, joursSurMarche: 11, bien: annonceDemo('demo-ml-03') },
+  retiree('demo-mv-05', 'demo-ml-04', ILYA(0, 6)),
+  retiree('demo-mv-06', 'demo-ml-07', ILYA(2)),
+]
+
+/** Lot D1 : les acheteurs compatibles de deux annonces du flux de démonstration — la pastille se voit au banc. */
+export const MRH_DEMO_ACHETEURS: ReadonlyMap<string, number> = new Map([['demo-ml-02', 3], ['demo-ml-01', 1]])
+
+/** Début FICTIF du suivi au banc, en jours : la frontière entre un relevé initial et une apparition. */
+const DEBUT_SUIVI_JOURS = 40
+
+/**
+ * Historique d'une annonce du banc : son premier point, sa baisse si elle en porte une, son retrait si
+ * elle est retirée.
+ * ⚠ Le premier point suit la règle de la production : une annonce DÉJÀ en ligne au début du suivi ouvre
+ * sa série par un relevé (`suivi`) ; une annonce publiée depuis, par son apparition. Un relevé posé avant
+ * la publication ferait dire à la fiche « suivi depuis » une date où l'annonce n'existait pas.
+ */
+function historiqueDemo(b: MrhBien): PointPrix[] {
+  const actuel = (b.transaction === 'location' ? b.rent : b.price) ?? null
+  const premier = b.price_original ?? actuel
+  // Même date que le mouvement du flux quand il existe : la fiche ne contredit pas la ligne qu'on a cliquée.
+  const duFlux = (genre: MouvementPige['genre']) => MRH_DEMO_MOUVEMENTS.find((m) => m.bien.id === b.id && m.genre === genre)?.quand
+  const debutSuivi = ILYA(DEBUT_SUIVI_JOURS)
+  const dejaEnLigne = !b.enLigneDepuis || b.enLigneDepuis <= debutSuivi
+  const points: PointPrix[] = [
+    dejaEnLigne
+      ? { id: `${b.id}-suivi`, genre: 'suivi', quand: debutSuivi, ancienPrix: null, prix: premier, variationPct: null, statut: 'active' }
+      : { id: `${b.id}-apparition`, genre: 'apparition', quand: duFlux('apparition') ?? b.enLigneDepuis ?? debutSuivi, ancienPrix: null, prix: premier, variationPct: null, statut: 'active' },
+  ]
+  if (b.price_original && actuel && b.price_original > actuel) {
+    const quand = duFlux('baisse') ?? ILYA(6)
+    points.push({ id: `${b.id}-baisse`, genre: 'baisse', quand, ancienPrix: b.price_original, prix: actuel, variationPct: Math.round(((actuel - b.price_original) / b.price_original) * 10000) / 100, statut: 'price_reduced' })
+  }
+  if (b.retireeLe) {
+    points.push({ id: `${b.id}-retrait`, genre: 'retrait', quand: b.retireeLe, ancienPrix: actuel, prix: actuel, variationPct: null, statut: 'removed' })
+  }
+  return points
+}
+
+/**
+ * Historiques calculés UNE fois au chargement du module — les calculer au rendu lirait l'horloge pendant
+ * le rendu. DEUX tables : une annonce retirée du flux partage son id avec sa version vivante de la grille,
+ * et une seule table ferait porter un retrait à la fiche ouverte depuis la grille.
+ */
+const HISTORIQUES_VIVANTES: Record<string, PointPrix[]> = Object.fromEntries(MRH_DEMO_BIENS.map((b) => [b.id, historiqueDemo(b)]))
+const HISTORIQUES_RETIREES: Record<string, PointPrix[]> = Object.fromEntries(
+  MRH_DEMO_MOUVEMENTS.filter((m) => m.bien.retireeLe).map((m) => [m.bien.id, historiqueDemo(m.bien)]),
+)
+
+/** L'historique du prix d'une annonce du banc, selon qu'elle est ouverte vivante (grille) ou retirée (flux). */
+export function historiqueDuBanc(b: MrhBien): PointPrix[] {
+  return (b.retireeLe ? HISTORIQUES_RETIREES[b.id] : HISTORIQUES_VIVANTES[b.id]) ?? []
 }

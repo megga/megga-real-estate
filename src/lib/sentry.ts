@@ -1,7 +1,7 @@
 /**
  * Initialisation Sentry (monitoring erreurs + session replay) du frontend.
  *
- * Scrub obligatoire des capability tokens (/kyc/, /kyc-report/, /reception/) et des
+ * Scrub obligatoire des capability tokens (/kyc/, /kyc-report/, /rendez-vous/…) et des
  * query strings — c'est la query qui porte le `?token=` des pages de visite — avant
  * tout envoi au tiers Sentry (cf. audit S27) ; PII désactivée, replay masqué ET non
  * embarqué sur les routes tokenisées. `initSentry()` est idempotent (appelé une fois
@@ -22,24 +22,26 @@ let sentryInitialized = false
 /**
  * Retire les capability tokens des URLs avant tout envoi à Sentry (tiers). cf. audit S27.
  *
- * Le segment qui suit `/kyc`, `/kyc-report`, `/reception`, `/rendez-vous` ou
- * `/accept-invite` est le token lui-même. Les
+ * Le segment qui suit `/kyc`, `/kyc-report`, `/rendez-vous` ou `/accept-invite` est
+ * le token lui-même. Les
  * pages de visite, elles, portent le leur en query : c'est le strip `[?#].*$` qui les
  * couvre — ne pas le retirer en croyant qu'il ne sert qu'à raccourcir.
  *
  * ⚠ `kyc-report` est listé À PART : l'alternation impose un `/` immédiatement après le
  * mot, donc une branche `kyc` seule ne couvre pas `/kyc-report/<token>`.
  * `/portail/` a été retiré — le portail vendeur n'existe plus depuis juillet 2026.
+ * `/reception/` aussi, le 21.09.2026 : la page de réception acheteur est retirée (le
+ * matching reste chez l'agent), et aucun de ses liens n'avait jamais été émis.
  */
 export function scrubSecretUrl(u: string): string {
   return u
-    .replace(/\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
+    .replace(/\/(kyc-report|kyc|rendez-vous-accueil|rendez-vous|accept-invite)\/[^/?#]+/gi, '/$1/[redacted]')
     .replace(/[?#].*$/, '')
 }
 
 /**
  * Routes publiques porteuses d'un capability token : `/kyc/<token>`,
- * `/kyc-report/<token>`, `/reception/<token>`, `/rendez-vous/<token>` (gestion d'un RDV
+ * `/kyc-report/<token>`, `/rendez-vous/<token>` (gestion d'un RDV
  * KYC, émis par `appointment-book`), `/accept-invite/<token>` (token dans le
  * CHEMIN) et `/visit/:id/edit|feedback` (token dans la QUERY). `visite` = alias FR,
  * normalement redirigé au bord, gardé ici parce que le SPA sert aussi ces chemins hors
@@ -56,7 +58,7 @@ export function scrubSecretUrl(u: string): string {
  * `tests/unit/token-routes.spec.ts` compare les deux sources.
  */
 export function isTokenBearingPath(pathname: string): boolean {
-  return /^\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
+  return /^\/(kyc-report|kyc|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(pathname)
 }
 
 /** Surface d'où part l'événement. Une seule application, deux publics. */
@@ -180,7 +182,7 @@ export function initSentry() {
       'Non-Error promise rejection captured',
     ],
     // Scrub des capability tokens (cf. `scrubSecretUrl` : segment de chemin pour /kyc/,
-    // /kyc-report/, /reception/, /accept-invite/ ; query et fragment pour les pages de
+    // /kyc-report/, /rendez-vous/, /accept-invite/ ; query et fragment pour les pages de
     // visite et /auth/callback) dans les URLs des événements, breadcrumbs et transactions
     // avant envoi au tiers.
     beforeSend(event) {

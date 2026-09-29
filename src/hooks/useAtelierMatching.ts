@@ -1,42 +1,33 @@
-// Atelier Matching — données + gestes métier (contrat HANDOFF_MATCHING_COUTURES).
-//
-// Données : matches (+ contact + property/market_listing) groupés par annonce
-// pivot (`p:<uuid>` interne / `m:<uuid>` veille marché) + KYC du dernier
-// dossier acheteur par contact. Le mode « Par acheteur » réutilise les mêmes
-// matches re-groupés par contact (poolFor).
-//
-// Gestes (exécutés par la page APRÈS la fenêtre d'annulation de 5 s — undo
-// Gmail-style : rien n'est écrit tant que le toast offre « Annuler ») :
-//   sendDossier  → matches.status='sent' + Deal new_lead (créé ou rattaché) +
-//                  activity_events 'dossier_envoye' + reminder +5 j +
-//                  send-property-email (si email) + jalon Intercom first_match_sent
-//   relance      → matches.sent_at=now + activity_events 'relance' +
-//                  reminder repoussé +5 j + send-relance-email (si email)
-//   snooze       → matches.snoozed_until=+7 j + reminder 'custom' à échéance
-//                  (la ligne « de retour » remonte dans Aujourd'hui)
-//   dismiss      → matches.status='ignored' (le moteur ne re-propose jamais
-//                  un couple existant — aucune écriture deal/timeline)
-//   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue)
+/**
+ * Matching au téléphone — la lecture de l'écran mobile (`MobileMatchingScreen`, contrat HANDOFF_MATCHING_COUTURES), et
+ * d'elle seule : l'atelier de bureau, qui la partageait, est retiré (lot E1) ; elle part avec l'écran mobile au lot E2
+ * (conception `2026-09-27-matching-lot-e1-bureau-design.md` §6.2). Son retour se borne à ce que l'écran lit.
+ *
+ * Données : matches (+ contact + property/market_listing) groupés par annonce pivot (`p:<uuid>` interne / `m:<uuid>`
+ * veille marché) + KYC du dernier dossier acheteur par contact. La vue focus du mobile réutilise les mêmes matches
+ * regroupés par contact (`poolFor`, `buyerFor`).
+ *
+ * Les gestes que l'agent pose sur ces matchs ne sont pas ici : ils vivent dans `@/lib/matchingGestes`, que le fil de
+ * matchs partage — un seul écrivain par geste.
+ */
 
 import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { INTERCOM_EVENTS } from '@/lib/intercom'
-import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
-import type { Json, TablesInsert } from '@/types/database'
+import { isSnoozed, refAnnonceMarche, refBienInterne } from '@/lib/matchingGestes'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
-import { composeAiHint } from '@/components/matching-atelier/composeAiHint'
-import { fmtBudgetRange } from '@/components/matching-atelier/format'
+import { composeAiHint } from '@/components/crm-mobile/matching/composeAiHint'
+import { fmtBudgetRange } from '@/components/crm-mobile/matching/format'
 import type {
   AtelierBuyer,
   AtelierListing,
   AtelierPivot,
   AtelierPoolMatch,
   AtelierReason,
-} from '@/components/matching-atelier/types'
+} from '@/components/crm-mobile/matching/types'
 
 // ─── Rows Supabase (snake_case, embeds) ─────────────────────────────────
 interface RawContact {
@@ -157,7 +148,7 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
     key: `m:${row.id}`,
     id: row.id,
     kind: 'market',
-    ref: `MG-${row.source_portal === 'flatfox' ? 'FL' : 'MK'}-${row.source_id ?? row.id.slice(0, 6)}`,
+    ref: refAnnonceMarche(row.source_portal, row.source_id, row.id),
     title: row.title ?? 'Annonce',
     addr: [row.address, [row.postal_code, row.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),
     canton: row.canton ?? '',
@@ -201,7 +192,7 @@ export function mapProperty(row: RawPropertyRow): AtelierListing {
     key: `p:${row.id}`,
     id: row.id,
     kind: 'property',
-    ref: `MG-IN-${row.id.slice(0, 6).toUpperCase()}`,
+    ref: refBienInterne(row.id),
     title: row.title ?? 'Bien',
     addr: [row.address, [row.postal_code, row.city].filter(Boolean).join(' ')].filter(Boolean).join(', '),
     canton: row.canton ?? '',
@@ -258,8 +249,8 @@ function mapReasons(raw: RawMatch['reasons']): AtelierReason[] {
 // ─── Statut DB → statut atelier + libellé d'engagement ──────────────────
 function mapStatus(m: RawMatch): { status: AtelierBuyer['status']; engage: string } {
   switch (m.status) {
-    case 'sent': return { status: 'no-reply', engage: 'Envoyé · sans retour' }
-    case 'interested': return { status: 'engaged', engage: 'Dossier consulté' }
+    case 'sent': return { status: 'no-reply', engage: 'Proposé · sans retour' }
+    case 'interested': return { status: 'engaged', engage: 'Intéressé' }
     case 'visit_planned': return { status: 'engaged', engage: 'Visite planifiée' }
     default: return { status: 'to-send', engage: 'Nouveau match' }
   }
@@ -284,20 +275,18 @@ const MATCH_SELECT =
 
 export interface UseAtelierMatchingReturn {
   isLoading: boolean
-  /** true si la query matches ou kyc a échoué — état d'erreur de l'atelier. */
+  /** true si la query matches ou kyc a échoué — état d'erreur de l'écran mobile. */
   isError: boolean
   pivots: AtelierPivot[]
-  pivotByKey: Map<string, AtelierPivot>
-  defaultPivotKey: string | null
-  /** Tous les biens matchés d'un acheteur (mode « Par acheteur »), score desc */
+  /** Tous les biens matchés d'un acheteur (vue focus du mobile), score desc */
   poolFor: (contactId: string, currentKey: string | null) => AtelierPoolMatch[]
-  /** Profil acheteur (meilleur match) — deep-link ?contact= */
+  /** Profil acheteur (meilleur match) — la vue focus du mobile */
   buyerFor: (contactId: string) => AtelierBuyer | null
   refresh: () => void
 }
 
 /**
- * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * Données de l'écran mobile de Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
  * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
  * Les couples écartés/rejetés sont exclus de la file.
  */
@@ -386,7 +375,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [])
 
   // Groupes par annonce pivot — écartés/rejetés exclus de la file
-  const { pivots, pivotByKey } = useMemo(() => {
+  const pivots = useMemo(() => {
     const groups = new Map<string, AtelierPivot>()
     for (const m of rawMatches) {
       if (m.status === 'ignored' || m.status === 'rejected') continue
@@ -403,10 +392,9 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
       if (m.status === 'suggested' && !isSnoozed(b.snoozedUntil)) entry.actionable++
       groups.set(L.key, entry)
     }
-    const list = Array.from(groups.values())
+    return Array.from(groups.values())
       .map(g => ({ ...g, buyers: g.buyers.sort((a, z) => z.score - a.score) }))
       .sort((a, z) => z.actionable - a.actionable || z.buyers.length - a.buyers.length)
-    return { pivots: list, pivotByKey: new Map(list.map(g => [g.listing.key, g])) }
   }, [rawMatches, listingOf, toBuyer])
 
   const poolFor = useCallback((contactId: string, currentKey: string | null): AtelierPoolMatch[] => {
@@ -444,300 +432,12 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
 
   return {
     // Idem useContactsScreen : le KYC n'alimente qu'un badge, il ne doit pas
-    // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
+    // remettre tout l'écran en chargement quand il se rafraîchit.
     isLoading: matchesLoading,
     isError: matchesError || kycError,
     pivots,
-    pivotByKey,
-    defaultPivotKey: pivots[0]?.listing.key ?? null,
     poolFor,
     buyerFor,
     refresh,
   }
-}
-
-/** true tant que le report (snooze) d'un match n'est pas échu. */
-export const isSnoozed = (until: string | null): boolean =>
-  until != null && new Date(until).getTime() > Date.now()
-
-// ═══════════════════ Gestes métier (exécuteurs) ═══════════════════════════
-// Appelés par la page APRÈS la fenêtre d'annulation (5 s) — cf. en-tête.
-
-export interface GesteContext {
-  agencyId: string
-  userId: string
-  agentName: string
-  agentPhone: string | null
-}
-
-export interface SendResult {
-  dealId: string | null
-  emailSent: boolean
-}
-
-/** « Envoyer le dossier » (E) — deal + timeline + nextAction + notification */
-export async function execSendDossier(
-  ctx: GesteContext,
-  buyer: AtelierBuyer,
-  listing: AtelierListing,
-  channel: 'email' | 'reception' = 'email',
-): Promise<SendResult> {
-  const viaReception = channel === 'reception'
-  // 1. Match → sent (canal 'reception' = lien privé déjà transmis, pas d'email)
-  const { error: mErr } = await supabase
-    .from('matches')
-    .update({ status: 'sent', sent_via: viaReception ? 'reception' : 'email', sent_at: new Date().toISOString() })
-    .eq('id', buyer.matchId)
-  if (mErr) throw mErr
-  // Jalon Intercom (un envoi par agent). Signal seul : ni le bien ni l'acheteur ne partent.
-  void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
-
-  // 2. Deal : rattacher au deal actif existant, sinon créer en new_lead
-  let dealId: string | null = null
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id, property_id')
-    .eq('agency_id', ctx.agencyId)
-    .eq('contact_buyer_id', buyer.id)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (existing && existing.length > 0) {
-    dealId = (existing[0] as { id: string; property_id: string | null }).id
-    // Rattacher le bien si le deal n'en porte pas encore (jamais d'écrasement)
-    if (listing.kind === 'property' && !(existing[0] as { property_id: string | null }).property_id) {
-      await supabase.from('transactions').update({ property_id: listing.id }).eq('id', dealId)
-    }
-  } else {
-    const insert: TablesInsert<'transactions'> = {
-      agency_id: ctx.agencyId,
-      contact_buyer_id: buyer.id,
-      assigned_to: ctx.userId,
-      stage: 'new_lead',
-      status: 'active',
-    }
-    if (listing.kind === 'property') insert.property_id = listing.id
-    else insert.market_listing_id = listing.id
-    const { data: created, error: dErr } = await supabase
-      .from('transactions')
-      .insert(insert)
-      .select('id')
-      .single()
-    if (dErr) throw dErr
-    dealId = (created as { id: string }).id
-  }
-
-  // 3. Timeline contact (consignation systématique)
-  await logEvent(ctx, {
-    action: 'dossier_envoye',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last} · ${listing.title}`,
-    metadata: {
-      match_id: buyer.matchId,
-      deal_id: dealId,
-      bien_ref: listing.ref,
-      bien_key: listing.key,
-      canal: viaReception ? 'reception' : (buyer.email ? 'email' : 'aucun'),
-      score: buyer.score,
-    },
-  })
-
-  // 4. nextAction +5 j (remonte dans « Aujourd'hui » à échéance ; la même
-  // entrée bloque le doublon +3 j de l'automation-engine — dédup par match_id)
-  await supabase.from('reminders').insert({
-    agency_id: ctx.agencyId,
-    contact_id: buyer.id,
-    property_id: listing.kind === 'property' ? listing.id : null,
-    transaction_id: dealId,
-    match_id: buyer.matchId,
-    type: 'follow_up_sent_property',
-    trigger_rule: 'manual',
-    trigger_days: 5,
-    trigger_at: inDays(5),
-    status: 'pending',
-    channel: 'task',
-    message_template: `Sans réponse au dossier ${listing.ref} — relancer ${buyer.first} ${buyer.last}`,
-  })
-
-  // 5. Notification e-mail (l'agent a validé dans la confirmation — human-in-the-loop).
-  // Canal 'reception' : le lien privé A DÉJÀ été transmis (WhatsApp / lien copié) → pas d'email.
-  let emailSent = false
-  if (!viaReception && buyer.email) {
-    const { error: eErr } = await supabase.functions.invoke('send-property-email', {
-      body: {
-        to: buyer.email,
-        contactFirstName: buyer.first,
-        agentName: ctx.agentName,
-        agentPhone: ctx.agentPhone ?? '',
-        property: {
-          title: listing.title,
-          price: listing.price,
-          address: listing.addr,
-          city: '',
-          rooms: listing.rooms ?? 0,
-          surface_m2: listing.area ?? 0,
-          type: listing.type,
-          photo_url: listing.gallery[0]?.url ?? null,
-          source_url: listing.sourceUrl,
-          source_agency: listing.agency.name,
-          source_portal: null,
-        },
-      },
-    })
-    emailSent = !eErr
-  }
-
-  return { dealId, emailSent }
-}
-
-/** « Relancer · autre canal » (R) — pas de nouveau deal, nextAction repoussée */
-export async function execRelance(
-  ctx: GesteContext,
-  buyer: AtelierBuyer,
-  listing: AtelierListing,
-): Promise<SendResult> {
-  // 1. Dernière sollicitation = maintenant (le match reste 'sent' / sans retour)
-  const { error: mErr } = await supabase
-    .from('matches')
-    .update({ sent_at: new Date().toISOString() })
-    .eq('id', buyer.matchId)
-  if (mErr) throw mErr
-
-  // 2. Timeline
-  await logEvent(ctx, {
-    action: 'relance',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last} · ${listing.title}`,
-    metadata: { match_id: buyer.matchId, bien_ref: listing.ref, canal: buyer.email ? 'email' : 'aucun' },
-  })
-
-  // 3. nextAction repoussée +5 j (reminder existant du match, sinon créé)
-  const { data: pending } = await supabase
-    .from('reminders')
-    .select('id')
-    .eq('match_id', buyer.matchId)
-    .in('status', ['pending', 'triggered'])
-    .limit(1)
-  if (pending && pending.length > 0) {
-    await supabase
-      .from('reminders')
-      .update({ trigger_at: inDays(5), status: 'pending', message_template: `Relance 2 — toujours sans réponse de ${buyer.first} ${buyer.last} (${listing.ref})` })
-      .eq('id', (pending[0] as { id: string }).id)
-  } else {
-    await supabase.from('reminders').insert({
-      agency_id: ctx.agencyId,
-      contact_id: buyer.id,
-      match_id: buyer.matchId,
-      type: 'follow_up_sent_property',
-      trigger_rule: 'manual',
-      trigger_days: 5,
-      trigger_at: inDays(5),
-      status: 'pending',
-      channel: 'task',
-      message_template: `Relance 2 — toujours sans réponse de ${buyer.first} ${buyer.last} (${listing.ref})`,
-    })
-  }
-
-  // 4. Relance douce par e-mail
-  let emailSent = false
-  if (buyer.email) {
-    const { error: eErr } = await supabase.functions.invoke('send-relance-email', {
-      body: {
-        to: buyer.email,
-        subject: `Toujours disponible — ${listing.title}`,
-        body: `Bonjour ${buyer.first},\n\nJe me permets de revenir vers vous au sujet du bien « ${listing.title} » (${listing.addr}) que je vous ai transmis récemment.\n\nIl est toujours disponible et correspond bien à votre recherche. Souhaitez-vous le visiter ou en discuter ?\n\nBien à vous,`,
-        agentName: ctx.agentName,
-        leadId: buyer.id,
-        agencyId: ctx.agencyId,
-      },
-    })
-    emailSent = !eErr
-  }
-
-  return { dealId: null, emailSent }
-}
-
-/** « Plus tard » (P) — snooze +7 j sur le match, retour visible dans Aujourd'hui */
-export async function execSnooze(ctx: GesteContext, buyer: AtelierBuyer): Promise<void> {
-  const until = inDays(7)
-  const { error } = await supabase
-    .from('matches')
-    .update({ snoozed_until: until })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-
-  await supabase.from('reminders').insert({
-    agency_id: ctx.agencyId,
-    contact_id: buyer.id,
-    match_id: buyer.matchId,
-    type: 'custom',
-    trigger_rule: 'manual',
-    trigger_days: 7,
-    trigger_at: until,
-    status: 'pending',
-    channel: 'notification',
-    message_template: `${buyer.first} ${buyer.last} — acheteur reporté, de retour dans la file matching`,
-  })
-}
-
-/** « Écarter » (X) — le couple n'est plus jamais proposé. Aucune écriture deal/timeline. */
-export async function execDismiss(buyer: AtelierBuyer): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ status: 'ignored' })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-}
-
-/** Réaction du client à un dossier envoyé (HITL, Intéressé/Pas intéressé). Pose
- *  matches.status -> déclenche set_match_response_at (response_at) + log_match_reaction
- *  (audit) — ferme la boucle de réactivité depuis la route live. */
-export async function execReact(
-  buyer: AtelierBuyer,
-  reaction: 'interested' | 'rejected',
-): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ status: reaction })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-}
-
-/** Réactivation manuelle anticipée d'un reporté (parking) — immédiat */
-export async function execWake(matchId: string): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ snoozed_until: null })
-    .eq('id', matchId)
-  if (error) throw error
-  await supabase
-    .from('reminders')
-    .update({ status: 'cancelled' })
-    .eq('match_id', matchId)
-    .eq('type', 'custom')
-    .in('status', ['pending', 'triggered'])
-}
-
-// ─── privé ──────────────────────────────────────────────────────────────
-const inDays = (d: number): string => new Date(Date.now() + d * 864e5).toISOString()
-
-async function logEvent(
-  ctx: GesteContext,
-  e: { action: string; contactId: string; label: string; metadata: Record<string, unknown> },
-): Promise<void> {
-  const { error } = await supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId,
-    actor_id: ctx.userId,
-    actor_kind: 'user',
-    action: e.action,
-    entity_type: 'contact',
-    entity_id: e.contactId,
-    category: 'deal',
-    severity: 'info',
-    object_label: e.label,
-    metadata: e.metadata as Json,
-  })
-  // Consignation = exigence du contrat ; une erreur RLS ne doit pas passer inaperçue
-  if (error) console.error('[atelier] activity_events insert failed', error)
 }

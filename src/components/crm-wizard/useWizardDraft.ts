@@ -116,6 +116,8 @@ export function wizardPayload(data: WizardData, status: 'draft' | 'active'): Cre
     postal_code: data.postCode,
     features: data.features,
     partner_agency: data.partnerAgency ?? null,
+    // « Réseau Off-market » (étape Mandat) : proposé aux seuls acheteurs de l'agence (lot C).
+    off_market: data.visibility === 'network',
   }
 }
 

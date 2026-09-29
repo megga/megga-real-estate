@@ -4,8 +4,8 @@
  * ⛔ Mesuré en production le 14.09.2026 : l'événement le plus fréquent de la cloche,
  * `match_suggested` (6 116 lignes), n'avait pas de type à lui et tombait en « Système »,
  * sous une cloche ; `lead` était rangé en « IA ». Le classement est désormais une table
- * explicite (`toKind`), confrontée ici aux 100 actions de la table du journal et aux actions
- * que la production écrit.
+ * explicite (`toKind`), confrontée ici aux actions de la table du journal (125 au 29.09.2026) et aux
+ * actions que la production écrit.
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'

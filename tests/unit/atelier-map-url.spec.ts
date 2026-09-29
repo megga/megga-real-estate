@@ -1,5 +1,5 @@
-// Unit test — helpers purs Mapbox partagés (@/lib/mapbox), utilisés par TOUTES les
-// cartes (Atelier mini-carte, ListingForm, fiche bien). Déplacés depuis l'Atelier en B4.
+// Unit test — helpers purs Mapbox partagés (@/lib/mapbox), utilisés par les cartes
+// du CRM (celle de `ListingFormPage`, « Nouveau bien »). Déplacés depuis l'Atelier en B4.
 // Verrou anti-régression sur les invariants faciles à casser par accident :
 //   - l'ORDRE lng/lat (Mapbox veut lng,lat ; la DB stocke lat + lng séparés —
 //     une inversion donne une carte plausible mais fausse, sans erreur)

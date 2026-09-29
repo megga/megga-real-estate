@@ -1,26 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "À traiter",
-    "likedTitle": "A liké {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}} %",
     "proposeVisit": "Proposer la visite",
-    "later": "Plus tard",
-    "handled": "Visite en préparation · consignée dans sa fiche",
-    "filEyebrow": "Sa réception",
-    "filTitle": "Dossiers transmis",
-    "filMeta": "{{sent}} transmis · {{opened}} ouverts",
-    "openAtelier": "Ouvrir l'atelier",
-    "empty": "Aucun dossier transmis pour l'instant.",
-    "pillLiked": "Liké",
-    "pillSeen": "Vu",
-    "pillSent": "Transmis",
-    "pillDismissed": "Écarté",
-    "metaLiked": "Transmis {{sent}} · ouvert · liké {{when}}",
-    "metaSeen": "Transmis {{sent}} · ouvert · sans réaction",
-    "metaSent": "Transmis {{sent}} · pas encore ouvert",
-    "metaDismissed": "Motif consigné · recalibre le matching",
-    "motif": "« {{motif}} »"
+    "etat": {
+      "propose": "Proposé",
+      "interesse": "Intéressé·e",
+      "visite": "Visite planifiée",
+      "refuse": "Pas intéressé·e",
+      "revenu": "Revenu"
+    },
+    "compteurs": {
+      "proposes_one": "Proposé",
+      "proposes_other": "Proposés",
+      "interesses_one": "Intéressé",
+      "interesses_other": "Intéressés",
+      "refuses_one": "Pas intéressé",
+      "refuses_other": "Pas intéressés"
+    },
+    "detail": {
+      "propose": "Proposé le {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposé le {{date}}",
+      "interesse": "Intéressé·e le {{date}}",
+      "refuse": "Pas intéressé·e · {{motif}}",
+      "revenu": "Revenu à proposer"
+    },
+    "note": "« {{note}} »",
+    "bienSansTitre": "Bien sans titre",
+    "aTraiter": {
+      "interesse": "Intéressé·e par {{titre}}",
+      "ouvrir": "Ouvrir dans le Matching"
+    },
+    "correction": {
+      "titre": "Recherche à ajuster · {{motif}}",
+      "detail_one": "{{count}} refus pour ce motif",
+      "detail_other": "{{count}} refus pour ce motif",
+      "voir": "Voir la correction"
+    }
   },
   "title": "Contacts",
   "add_button": "Ajouter",
@@ -38,14 +52,19 @@
   "next": "Suivant",
   "filter_type": "Type",
   "filter_score": "Score",
-  "type": {
-    "buyer": "Acheteur",
+  "roles": {
+    "buyer": "Acquéreur",
     "seller": "Vendeur",
-    "both": "Acheteur/Vendeur",
-    "lead": "Lead",
-    "investor": "Investisseur",
     "tenant": "Locataire",
-    "landlord": "Bailleur"
+    "landlord": "Bailleur",
+    "investor": "Investisseur",
+    "family_office": "Family office",
+    "referrer": "Prescripteur",
+    "private_banker": "Private banker",
+    "lawyer": "Avocat",
+    "trustee": "Trustee",
+    "broker": "Courtier",
+    "architect": "Architecte"
   },
   "score": {
     "hot": "Hot",
@@ -69,7 +88,7 @@
     "nextAction": {
       "call": "Appel de qualification",
       "visit": "Planifier une visite",
-      "match": "Envoyer 3 biens du portefeuille",
+      "match": "Proposer des biens",
       "kyc": "Lancer le KYC"
     },
     "lead": {
@@ -226,7 +245,6 @@
     "followUp": "Relancer",
     "noInteractionDays": "Aucune interaction depuis {{days}} jours.",
     "call": "Appeler",
-    "sendSelection": "Envoyer une sélection de biens",
     "sendSelectionDesc": "Proposer des biens correspondant aux critères de recherche.",
     "seeMatches": "Voir les matchs",
     "sellerUpdate": "Faire un point vendeur",
@@ -278,11 +296,6 @@
       "upload": "Téléverser",
       "empty": "Aucun document joint pour ce contact.",
       "addedOn": "Ajouté le {{date}}"
-    },
-    "type": {
-      "buyer": "Acheteur",
-      "seller": "Vendeur",
-      "lead": "Lead"
     },
     "new": "Nouveau",
     "via": "Via {{source}}",
@@ -355,7 +368,10 @@
     "tenant": "Locataires",
     "hot": "Leads chauds",
     "kyc": "KYC à compléter",
-    "stale": "Sans activité 14j+"
+    "stale": "Sans activité 14j+",
+    "role": "Rôle",
+    "roleAll": "Tous les rôles",
+    "roleOverlap": "Un contact peut porter plusieurs rôles : la somme des segments dépasse le total."
   },
   "pager": {
     "title": "Contacts",
@@ -413,7 +429,7 @@
   "health": {
     "title": "Santé du portefeuille",
     "intro": "D'où viennent vos contacts, où sont les angles morts. Cliquez un segment pour filtrer la liste.",
-    "byAudience": "Par audience",
+    "byRole": "Par rôle",
     "kycCoverage": "Couverture KYC",
     "sources": "Sources d'acquisition",
     "kpi": {
@@ -431,7 +447,7 @@
   },
   "nextAction": {
     "planifier_visite": "Planifier une visite",
-    "envoyer_biens": "Envoyer des biens",
+    "envoyer_biens": "Proposer des biens",
     "relancer": "Relancer",
     "qualifier_lead": "Qualifier le lead",
     "repondre": "Répondre",
@@ -787,7 +803,7 @@
         "rooms": "{{n}} p.",
         "status": {
           "suggested": "Suggéré",
-          "sent": "Envoyé",
+          "sent": "Proposé",
           "visit_planned": "Visite prévue",
           "interested": "Intéressé",
           "rejected": "Refusé",
@@ -936,7 +952,7 @@
     },
     "kycDossier": "Dossier KYC",
     "cta": {
-      "transmit": "Transmettre des biens",
+      "transmit": "Proposer des biens",
       "viewMandate": "Voir le mandat"
     },
     "menu": {
@@ -972,7 +988,8 @@
       "address": "Adresse",
       "addressPlaceholder": "Rue…, NPA Ville",
       "countryNone": "Non renseigné",
-      "saveError": "L'identité n'a pas pu être enregistrée. Réessayez."
+      "saveError": "L'identité n'a pas pu être enregistrée. Réessayez.",
+      "roles": "Rôles"
     },
     "coord": {
       "identity": "Identité",
@@ -1016,7 +1033,17 @@
       "areaMinEdit": "Surface min (m²)",
       "mustHave": "Indispensables",
       "minPlaceholder": "Min",
-      "maxPlaceholder": "Max"
+      "maxPlaceholder": "Max",
+      "bedroomsMin": "Chambres min",
+      "condition": "État minimum",
+      "conditionAny": "Peu importe",
+      "conditions": {
+        "good": "Bon état",
+        "renovated": "Rénové",
+        "new": "Neuf"
+      },
+      "offMarket": "Off-market",
+      "offMarketOnly": "Off-market seulement"
     },
     "propType": {
       "appartement": "Appartement",
@@ -1068,50 +1095,15 @@
     },
     "page": {
       "infos": "Ses informations",
-      "loop": "Boucle de match"
+      "loop": "Sa boucle"
     },
     "loop": {
-      "opened": "Ouverts",
       "toHandleCount": "À traiter ({{count}})",
-      "transmittedCount": "Biens transmis ({{count}})",
+      "propertiesCount": "Ses biens ({{count}})",
       "openInMatching": "Ouvrir dans le Matching",
-      "ignore": "Ignorer",
-      "nothingToHandle": "Tout est à jour, rien à traiter pour l'instant.",
-      "emptyTitle": "Aucun dossier transmis",
-      "emptyBody": "Envoyez une sélection de biens à {{name}}.<1/>Ses retours arrivent ici."
-    },
-    "links": {
-      "title": "Liens envoyés ({{count}})",
-      "loading": "Chargement des liens…",
-      "failed": "Liens non chargés.",
-      "empty": "Aucun lien envoyé pour l'instant.",
-      "selection_one": "Sélection de {{count}} bien",
-      "selection_other": "Sélection de {{count}} biens",
-      "sentOn": "Envoyé le {{date}}",
-      "expiresOn": "échéance {{date}}",
-      "revokedOn": "retiré le {{date}}",
-      "revoke": "Retirer le lien",
-      "channel": {
-        "whatsapp": "WhatsApp",
-        "link": "Lien copié"
-      },
-      "status": {
-        "pending": "Non ouvert",
-        "viewed": "Ouvert",
-        "reacted": "Réponse reçue",
-        "expired": "Échu",
-        "revoked": "Retiré",
-        "unknown": "Statut inconnu"
-      },
-      "confirm": {
-        "title": "Retirer ce lien ?",
-        "body_one": "L'acheteur perdra l'accès au bien qu'il a reçu. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
-        "body_other": "L'acheteur perdra l'accès aux {{count}} biens qu'il a reçus. Le retrait est définitif : pour lui redonner accès, il faudra lui transmettre un nouveau lien.",
-        "cta": "Retirer le lien",
-        "busy": "Retrait en cours…",
-        "refused": "Ce lien n'était déjà plus actif. La liste vient d'être rafraîchie.",
-        "failed": "Le retrait n'a pas abouti. Réessayez."
-      }
+      "nothingToHandle": "Rien à traiter",
+      "emptyTitle": "Aucun bien proposé",
+      "emptyBody": "Proposez des biens à {{name}}, puis notez ses réponses.<1/>Elles arrivent ici."
     },
     "saved": {
       "coord": "Coordonnées enregistrées",

@@ -206,7 +206,9 @@ export function RelanceSession({ dark, onClose }: { dark: boolean; onClose: () =
   const [counts, setCounts] = useState({ sent: 0, skipped: 0, discarded: 0 })
   const [undo, setUndo] = useState<{ index: number; name: string } | null>(null) // filet de sécurité « Pas intéressé »
   const [genError, setGenError] = useState(false) // échec de génération IA (sans repli démo)
-  const [sendError, setSendError] = useState(false) // échec d'envoi MEGGA
+  // Échec d'envoi MEGGA : `'bien'` quand le serveur refuse un bien dans la relance (le matching
+  // reste chez l'agent) — un « réessayez » n'y changerait rien, le message dit quoi faire.
+  const [sendError, setSendError] = useState<false | true | 'bien'>(false)
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { t } = useTranslation('dashboard')
@@ -336,7 +338,11 @@ export function RelanceSession({ dark, onClose }: { dark: boolean; onClose: () =
       const { error } = await supabase.functions.invoke('send-relance-email', {
         body: { to: lead.email, subject, body: draft, leadId: lead.id, agentName },
       })
-      if (error) throw error
+      if (error) {
+        const corps = await (error as { context?: Response }).context?.json?.().catch(() => null) as { error?: string } | null
+        setSendError(corps?.error === 'property_in_message' ? 'bien' : true)
+        return
+      }
       setSent(true)
       // Audit HITL de l'envoi RÉEL (jamais en simulation démo, garde-fou ci-dessus) :
       // consigne la relance dans la timeline contact. lead.id non garanti uuid → metadata.
@@ -556,7 +562,7 @@ export function RelanceSession({ dark, onClose }: { dark: boolean; onClose: () =
                     </div>
                   )}
                   {sendError && (
-                    <div style={{ fontSize: 'var(--crm-text-md)', color: '#F26B65', fontWeight: 600 }}>{t('today.relance.sendError')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', color: '#F26B65', fontWeight: 600 }}>{t(sendError === 'bien' ? 'today.relance.sendErrorBien' : 'today.relance.sendError')}</div>
                   )}
                 </div>
               </>

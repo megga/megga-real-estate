@@ -9,7 +9,9 @@
 > **Source** : `src/App.tsx`. En cas de doute, c'est le code qui tranche, pas ce fichier.
 > Le mettre à jour quand on ajoute ou retire une route.
 
-**74 fichiers `.tsx`** dans `src/pages/` : agent 29 · admin 19 · public 13 · dev 13 — mesuré le 05.09.2026
+**76 fichiers `.tsx`** dans `src/pages/` : agent 31 · admin 19 · public 12 · dev 14 — remesuré le 29.09.2026 sur la
+branche du lot E1, qui en retire deux : la page de l'atelier de Matching (`MatchingAtelierPage`) et son banc
+(`MatchingShowcasePage`). 74 le 05.09.2026 (agent 29 · admin 19 · public 13 · dev 13)
 (`find src/pages -name '*.tsx' | wc -l`). S'y ajoutent 8 fixtures `.ts` dans `dev/`, qui ne sont pas des pages.
 ⚠ Il n'existe **aucun** dossier `particulier/` : il est parti avec le portail vendeur le 26.07.2026. La
 ventilation précédente ne sommait donc pas seulement faux, elle ne sommait pas à son propre total —
@@ -59,14 +61,14 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 
 | Route | Écran |
 |---|---|
-| `/dashboard` | Cockpit « Aujourd'hui » |
-| `/dashboard/pipeline` | Pipeline v2 « Sugar Pure » : kanban teinté / liste / timeline (14 stades DB → 8 colonnes UI), célébration de signature + bento de suites, modale « Nouveau deal » plein cadre + création inline |
+| `/dashboard` | Cockpit « Aujourd'hui », une seule page depuis le lot E1 (29.09.2026, sur branche) : le catalogue de matchs de la page 1 est retiré, le segment Matching et le fil prennent le relais |
+| `/dashboard/pipeline` | Pipeline à cinq phases (refonte du 27.09.2026, 14 stades DB → 5 phases) : Kanban + Timeline de quatorze jours, zones de dépôt Conclu / Perdu, panneau de clôture, « Nouveau deal » dans le cadre de la page + création en ligne, menus du clic droit (affaire, fond) ; téléphone : `MobilePipelinePage` |
 | `/dashboard/contacts` · `/new` · `/:id` | Liste, création, fiche contact |
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
-| `/dashboard/matching` | Matching acquéreur ↔ bien (pager Atelier + Recherche) |
-| `/dashboard/transactions/:id` | Fiche deal V4 « Atelier scindé » (L'acheteur ‖ L'affaire : matching lead ou négociation) |
+| `/dashboard/matching` | Matching acquéreur ↔ bien : un pager, le fil de matchs en page 0 (« Matching » s'ouvre sur lui) et la Recherche en page 1. Le fil y remplace l'atelier au lot E1 (29.09.2026, sur branche) ; au téléphone, `ResponsiveRoute` rend `MobileMatchingPage`, sur le modèle de l'atelier jusqu'au lot E2. Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » (nouveaux, en baisse, retirés) |
+| `/dashboard/transactions/:id` | Fiche d'affaire (refonte du 27.09.2026) : cinq phases réglables, prochaine action datée, négociation, biens du moteur de matching, historique ; conclue : récapitulatif, clôture et après-vente ; téléphone : `MobileDealDetailPage` |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |
@@ -78,7 +80,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/audit` | Journal d'audit |
 | `/dashboard/rendez-vous-accueil` | Réservation de l'appel d'accueil avec l'équipe MEGGA, à la sortie du wizard d'identité. Écran passable, jamais bloquant |
 | `/dashboard/settings` | Réglages (7 sections : profil, agence, notifications, intégrations, facturation, sécurité, préférences) |
-| `/dashboard/market/:externalId` | Détail d'une annonce du marché (`market_listings`) |
+| `/dashboard/market/:externalId` | Détail d'une annonce du marché (`market_listings`), avec l'historique de son prix |
 
 **Redirections internes** : `/dashboard/parcours` → `/journey`, `/dashboard/visites/*`
 → `/visits/*`, `/dashboard/marche/:id` → `/market/:id`. `/dashboard/network`,
@@ -117,7 +119,6 @@ Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 |---|---|
 | `/kyc/:token` | Formulaire KYC client |
 | `/kyc-report/:token` | Rendu du rapport KYC |
-| `/reception/:token` | Réception acquéreur |
 | `/visit/:id/edit` · `/feedback` | Gestion et retour de visite |
 | `/accept-invite/:token` | Acceptation d'invitation |
 | `/rendez-vous/:token` | Gestion de l'appel d'accueil (replanifier, annuler) |
@@ -164,14 +165,16 @@ design system survivante (CLAUDE.md §3), servie délibérément.
 
 Les **douze bancs `/dev/*`** sont tous conditionnés à `import.meta.env.DEV`, remplacé par `false` au build :
 la branche d'import tombe en code mort et Vite n'émet aucun chunk. Relevé dans `App.tsx` : **12 ternaires,
-un seul `lazy()` nu**. Un banc livré n'est pas seulement du poids mort, c'est une surface que personne ne
-teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des erreurs Sentry.
+un seul `lazy()` nu**. Remesuré le 29.09.2026 : toujours douze — `/dev/labs` est venu avec le studio Labs, et
+`/dev/matching-atelier` est parti avec l'atelier de bureau (lot E1, sur branche) ; le pager de Matching
+s'éprouve désormais sur `/dev/crm` (surface « Matching · fil »). Un banc livré n'est pas seulement du poids
+mort, c'est une surface que personne ne teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des erreurs Sentry.
 
 ⚠ Trois régimes de gel, qui ne donnent pas le même écran en production :
 
 | Bancs | Ce qu'il en reste dans le bundle déployé |
 |---|---|
-| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `messagerie` · `labs` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
+| `/dev/sentry-test` · `mobile` · `biens` · `contacts` · `modales` · `messagerie` · `labs` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
 | `/dev/onboarding` | la `<Route>` elle-même est dans le bloc `DEV` ⇒ catch-all `path="*"` → `NotFoundPage` |
 | `/dev/crm` · `/dev/admin` | branchés dans `App()` **avant** `<BrowserRouter>` (leur banc porte son propre routeur). ⚠ Invisibles à un `grep path=` : c'est ce qui les a fait manquer aux inventaires précédents |
 
@@ -202,6 +205,8 @@ propre vitrine : c'est la direction **unique** du CRM depuis le 10.08.2026 (PR #
 | Help Center SPA (12 pages `/help/*`) | Retiré 20.07.2026 → Intercom. |
 | Compte acheteur (favoris, recherches, messagerie) | Retiré. |
 | Réseau inter-agences | Jamais construit ; prototype supprimé. |
+| Réception acquéreur (`/reception/:token`) et tout envoi du matching à l'acheteur | Retirés 21.09.2026 (décision de Julien : le matching reste chez l'agent ; 0 lien jamais créé). Garde : `tests/unit/matching-sans-sortie.spec.ts`. |
+| Atelier Matching de bureau (triptyque) et catalogue de matchs d'« Aujourd'hui » | Retirés par le lot E1 (29.09.2026, sur branche, fusion à la fin) : le fil de matchs les remplace. L'écran mobile garde le modèle de l'atelier jusqu'au lot E2. Gardes : `matching-atelier-retire.spec.ts`, `aujourdhui-une-page.spec.ts`. |
 | Onboarding post-login | Retiré 18.07.2026 (agence solo créée au signup). |
 | 2FA | N'existe pas — malgré ce qu'affirme `docs/design-system.md`. |
 | Annuaire agents/agences | Retiré ; moissonnage coupé le 20.07.2026. |

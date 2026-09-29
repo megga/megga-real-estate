@@ -13,9 +13,9 @@
  */
 import type { Property } from '@/types/listing'
 import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
-import type {
-  FicheContact, FicheLoopItem, FicheReceptionLink,
-} from '@/components/crm/contacts-pager/ContactDetailPager'
+import type { FicheContact } from '@/components/crm/contacts-pager/ContactDetailPager'
+import { construireSaBoucle, type LigneBoucleContact, type SaBoucle } from '@/components/crm/contacts-pager/saBoucle'
+import type { SearchCriteria } from '@/types/contact'
 import type { KycCase, KycDocument } from '@/types/kyc'
 import type { ContactNoteView } from '@/hooks/useContactNotes'
 
@@ -36,25 +36,33 @@ export const DEMO_LISTING: Property = {
  * faute de `health` dans ses données : un harnais qui cache précisément
  * l'élément défectueux coûte plus cher qu'il ne rapporte. Ici les deux éléments
  * à mesurer sont l'AVATAR (huit teintes de `pickAvatarBg`, dont cinq échouent
- * l'AA sous encre blanche) et la PILULE de type (`CTP_FN`, quatre valeurs).
+ * l'AA sous encre blanche) et la PASTILLE de rôle — `CTP_FN` n'en peint que
+ * TROIS, sa quatrième valeur (`ok`) étant le vert du KYC.
  *
  * `CRM_CONTACTS` seul en montre l'essentiel mais pas tout — mesuré, pas supposé :
  * sept teintes d'avatar sur huit (#EC4899 manque), et trois KYC sur quatre
- * (`stale` manque). Les TROIS pilules sortent en revanche déjà, ce qui n'allait
- * pas de soi : `type` n'y vaut que `buyer` ou `seller`, et c'est
- * `criteria.transaction === 'location'` qui fait basculer un acheteur sur la
- * pilule `tenant` (cf. `audienceOf`). Compter les `type` aurait conclu à tort
- * qu'il manquait une audience.
+ * (`stale` manque). Côté appartenance, c'est le RÔLE qui range depuis l'étape 3
+ * (22.09.2026) : un contact paraît sous CHACUN des siens, et les comptes se
+ * chevauchent. ⛔ `audienceOf` n'existe plus — elle rangeait chaque contact dans
+ * UNE audience et tirait la pilule `tenant` de `criteria.transaction ===
+ * 'location'`, si bien qu'un acheteur cherchant en location comptait pour un
+ * locataire sans porter ce rôle. Mesuré sur ces huit contacts : `buyer` ×4,
+ * `seller` ×2, `tenant` ×1 (c-005, déclarée `buyer` alors que ses critères
+ * disaient location — accordée à ses rôles), et c-008 SANS rôle, le seul à
+ * exercer ce chemin. `investor` n'est porté que par c-002, à côté de `buyer` :
+ * c'est le SEUL contact à DEUX rôles, donc le seul qui rende le « +1 » et le
+ * chevauchement des comptes. ⚠ Les sept rôles de réseau, eux, ne sont portés
+ * par aucun de ces contacts : ce banc-ci ne les montre pas.
  *
  * Les deux contacts ajoutés ferment ce qui reste : la huitième teinte, le KYC
- * `stale`, et le type `landlord` — qui ne crée pas de quatrième pilule (il
- * retombe sur `seller`) mais donne son `audience: 'Bailleur'` à la fiche.
+ * `stale`, et le rôle `landlord` — qui ne retombe PLUS sur `seller` : le bailleur
+ * porte son propre rôle, et la liste range par RÔLE, non plus par audience.
  */
 const DEMO_CONTACTS_COMPLEMENT: CrmContact[] = [
-  // Locataire par le `type` (et non par ses critères, comme les autres) — plus
-  // la huitième teinte d'avatar (#EC4899) et le KYC `stale`.
+  // Locataire — elle porte le rôle `tenant`, comme c-005 ; elle vient pour les deux
+  // manques de `CRM_CONTACTS` : la huitième teinte d'avatar (#EC4899) et le KYC `stale`.
   {
-    id: 'c-d01', type: 'tenant', firstName: 'Sofia', lastName: 'Marchetti',
+    id: 'c-d01', type: 'tenant', roles: ['tenant'], firstName: 'Sofia', lastName: 'Marchetti',
     email: 's.marchetti@bluewin.ch', phone: '+41 76 318 40 55', lang: 'it',
     status: 'qualified', score: 66, source: 'website', assignedTo: 'agt-1',
     createdAt: '2026-05-04T10:15:00', lastActivityAt: '2026-06-02T16:40:00',
@@ -63,11 +71,12 @@ const DEMO_CONTACTS_COMPLEMENT: CrmContact[] = [
     tags: ['mobilité pro'], notes: 'Arrive de Milan pour un poste à l’EPFL. Bail souhaité au 1er septembre.',
     avatarBg: '#EC4899',
   },
-  // Bailleur — l'audience `Bailleur` de la fiche, qui retombe sur la pilule
-  // `seller`. La teinte reprend #F59E0B À DESSEIN : c'est la pire du jeu sous
-  // encre blanche (2,15:1), autant qu'elle soit visible deux fois.
+  // Bailleur — il porte son rôle `landlord`, et la liste rangeant par rôle, il a
+  // son entrée à lui au lieu de retomber sur `seller`. La teinte reprend #F59E0B
+  // À DESSEIN : c'est la pire du jeu sous encre blanche (2,15:1), autant
+  // qu'elle soit visible deux fois.
   {
-    id: 'c-d02', type: 'landlord', firstName: 'Bernard', lastName: 'Held',
+    id: 'c-d02', type: 'landlord', roles: ['landlord'], firstName: 'Bernard', lastName: 'Held',
     email: 'b.held@swissonline.ch', phone: '+41 79 604 27 18', lang: 'de',
     status: 'active', score: 78, source: 'referral', assignedTo: 'agt-1',
     createdAt: '2026-02-11T08:30:00', lastActivityAt: '2026-06-05T09:05:00',
@@ -92,7 +101,11 @@ export const DEMO_FICHE: FicheContact = {
   id: 'c-001', firstName: 'Marie', lastName: 'Bertrand', verified: true,
   email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02',
   lang: 'fr', civ: 'mrs', canal: 'whatsapp',
-  audience: 'Acheteur', isTenant: false, avatarBg: '#0041D9',
+  // Étape 3 (22.09.2026) : un seul rôle, celui qu'elle a déjà — ses critères sont ceux d'une
+  // acquéreuse, et `coteDemande` s'accorde avec eux (le banc n'a pas de conteneur pour le
+  // dériver). Sans rôle, la fiche du banc ne montrerait AUCUNE pastille et on lirait un
+  // défaut d'affichage là où il n'y a qu'une fixture muette.
+  audience: 'Acheteur', roles: ['buyer'], coteDemande: true, isTenant: false, avatarBg: '#0041D9',
   birth: '14.03.1986', nationality: 'CH', residence: 'CH',
   homeAddress: 'Rue du Rhône 42, 1204 Genève',
   photo: null,
@@ -106,37 +119,53 @@ export const DEMO_FICHE: FicheContact = {
   lastContactAt: new Date(Date.now() - 86_400_000).toISOString(),
 }
 
-/** Boucle de match — page 1 de la fiche. Les quatre états y sont représentés. */
-export const DEMO_FICHE_LOOP: {
-  items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number
-} = {
-  items: [
-    { matchId: 'm1', title: 'Appartement 4.5p — Eaux-Vives', addr: 'Rue des Eaux-Vives 18, Genève', photo: DEMO_LISTING.photos?.[0] ?? null, state: 'sent', motif: null },
-    { matchId: 'm2', title: 'Duplex 5p — Carouge', addr: 'Rue Ancienne 7, Carouge', photo: DEMO_LISTING.photos?.[1] ?? null, state: 'seen', motif: null },
-    { matchId: 'm4', title: 'Appartement 3.5p — Champel', addr: 'Avenue de Champel 30, Genève', photo: null, state: 'dismissed', motif: 'Étage trop bas' },
-  ],
-  pendingLikes: [
-    { matchId: 'm3', title: 'Attique 4p — Plainpalais', addr: 'Boulevard du Pont-d’Arve 5, Genève', photo: DEMO_LISTING.photos?.[2] ?? null, state: 'liked', motif: null },
-  ],
-  transmitted: 4,
-  opened: 3,
-}
+const JOUR_DEMO = 86_400_000
+/**
+ * L'instant UNIQUE de la démonstration : il date les lignes (`ilYAJours`) ET sert d'heure de lecture à
+ * `construireSaBoucle`, comme `chargeLe` en production. Deux `Date.now()` distincts jugeraient un report contre
+ * une autre heure que celle qui a daté les lignes.
+ */
+const MAINTENANT_DEMO = Date.now()
+const ilYAJours = (j: number) => new Date(MAINTENANT_DEMO - j * JOUR_DEMO).toISOString()
+/** Une annonce de démonstration, jointe à sa ligne comme PostgREST la rend. */
+const annonceDemo = (titre: string, adresse: string, prix: number, photo: string | null | undefined) => ({
+  title: titre, address: adresse, city: 'Genève', price: prix, current_price: prix, transaction_type: 'buy',
+  photos: photo ? [photo] : null,
+})
+/**
+ * La recherche de l'acheteuse de démonstration, d'où viennent toutes ses lignes. Ses critères sont ceux que corrige
+ * « Apprendre » (`construireCorrections`) : deux refus « prix » non encore pris en compte, sur CETTE recherche, sous un
+ * budget maximum qui reste au-dessus d'eux.
+ */
+const RECHERCHE_DEMO = 'cs-demo'
+const CRITERES_DEMO = new Map<string, SearchCriteria | null>([
+  [RECHERCHE_DEMO, { transaction_type: 'buy', budget_min: 900_000, budget_max: 1_300_000, zones: ['Genève', 'Carouge'] }],
+])
+const ligneDemo = (id: string, status: string, champs: Partial<LigneBoucleContact>): LigneBoucleContact => ({
+  id, status, score: 90, sent_at: ilYAJours(4), response_at: null, reaction_motif: null, reaction_note: null,
+  prix_propose: null, apprentissage_at: null, client_search_id: RECHERCHE_DEMO, snoozed_until: null, property_id: null,
+  market_listing_id: `ml-${id}`, ...champs,
+})
+const ACHETEUR_DEMO = { id: DEMO_FICHE.id, prenom: DEMO_FICHE.firstName, nom: DEMO_FICHE.lastName, telephone: null, email: null, kyc: 'none' as const }
 
 /**
- * Liens de réception — les états qui se PEIGNENT différemment : actif, échu,
- * retiré, et le statut non reconnu (`null`), sur lequel l'UI n'offre pas de
- * retrait.
+ * Boucle de match — page 1 de la fiche (« Sa boucle »). Les cinq états y sont : proposé (dont un en baisse depuis),
+ * intéressé, visite planifiée, pas intéressé (motif et note) et un bien revenu par une baisse — plus une correction de
+ * recherche, que fondent les deux refus « prix » (m7, m8).
  */
-export const DEMO_FICHE_LINKS: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean } = {
-  items: [
-    { id: 'l1', status: 'viewed', channel: 'whatsapp', createdAt: '2026-06-01T10:00:00', expiresAt: '2026-07-01T10:00:00', count: 3, revokedAt: null, active: true },
-    { id: 'l2', status: 'expired', channel: 'link', createdAt: '2026-04-02T09:00:00', expiresAt: '2026-05-02T09:00:00', count: 2, revokedAt: null, active: false },
-    { id: 'l3', status: 'revoked', channel: 'whatsapp', createdAt: '2026-05-10T14:00:00', expiresAt: '2026-06-10T14:00:00', count: 1, revokedAt: '2026-05-18T08:20:00', active: false },
-    { id: 'l4', status: null, channel: null, createdAt: '2026-05-22T11:00:00', expiresAt: '2026-06-22T11:00:00', count: 1, revokedAt: null, active: false },
-  ],
-  isLoading: false,
-  failed: false,
-}
+export const DEMO_FICHE_LOOP: SaBoucle = construireSaBoucle([
+  ligneDemo('m1', 'sent', { prix_propose: 1_290_000, market_listing: annonceDemo('Appartement 4.5p — Eaux-Vives', 'Rue des Eaux-Vives 18', 1_250_000, DEMO_LISTING.photos?.[0]) }),
+  ligneDemo('m2', 'sent', { sent_at: ilYAJours(6), prix_propose: 1_180_000, market_listing: annonceDemo('Duplex 5p — Carouge', 'Rue Ancienne 7', 1_180_000, DEMO_LISTING.photos?.[1]) }),
+  ligneDemo('m3', 'interested', { sent_at: ilYAJours(8), response_at: ilYAJours(2), prix_propose: 1_350_000, market_listing: annonceDemo('Attique 4p — Plainpalais', 'Boulevard du Pont-d’Arve 5', 1_350_000, DEMO_LISTING.photos?.[2]) }),
+  ligneDemo('m6', 'visit_planned', { sent_at: ilYAJours(10), response_at: ilYAJours(5), prix_propose: 1_150_000, market_listing: annonceDemo('Appartement 4p — Servette', 'Rue de la Servette 42', 1_150_000, null) }),
+  ligneDemo('m4', 'rejected', { sent_at: ilYAJours(12), response_at: ilYAJours(10), reaction_motif: 'etat', reaction_note: 'Étage trop bas', prix_propose: 990_000, market_listing: annonceDemo('Appartement 3.5p — Champel', 'Avenue de Champel 30', 990_000, null) }),
+  ligneDemo('m7', 'rejected', { sent_at: ilYAJours(14), response_at: ilYAJours(13), reaction_motif: 'prix', prix_propose: 1_280_000, market_listing: annonceDemo('Appartement 4.5p — Petit-Saconnex', 'Avenue Trembley 12', 1_280_000, null) }),
+  ligneDemo('m8', 'rejected', { sent_at: ilYAJours(16), response_at: ilYAJours(15), reaction_motif: 'prix', prix_propose: 1_260_000, market_listing: annonceDemo('Appartement 4p — Jonction', 'Boulevard Carl-Vogt 70', 1_260_000, null) }),
+  ligneDemo('m5', 'suggested', { sent_at: ilYAJours(20), response_at: ilYAJours(18), reaction_motif: 'prix', prix_propose: 1_450_000, market_listing: annonceDemo('Appartement 5p — Florissant', 'Route de Florissant 60', 1_390_000, null) }),
+], CRITERES_DEMO, ACHETEUR_DEMO, MAINTENANT_DEMO)
+
+/** La même fiche, boucle jamais démarrée. */
+export const DEMO_FICHE_LOOP_VIDE: SaBoucle = construireSaBoucle([], new Map(), ACHETEUR_DEMO, MAINTENANT_DEMO)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Fixtures du banc des modales (`/dev/modales`).
@@ -178,15 +207,6 @@ export const DEMO_AI_PENDING_DELETE = {
   id: 'demo-pending-2', kind: 'delete_contact', title: 'Marie Bertrand',
   portals: [],
   preview: 'Acheteuse · aucun deal ouvert · dernière activité il y a 8 mois',
-}
-
-/** Lien de réception minté, tel que `MrhSendSheet` le reçoit après l'envoi. */
-export const DEMO_SEND_RESULT = {
-  url: 'https://app.getmegga.com/r/demo-token-de-banc',
-  token: 'demo-token-de-banc',
-  phone: '+41798749484',
-  firstName: 'Marie',
-  count: 3,
 }
 
 /**

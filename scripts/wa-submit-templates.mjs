@@ -59,12 +59,6 @@ const PLAN = {
       it: ['Chiara', 'Bernasconi Immobiliare SA', 'una visita'],
     },
   },
-  new_listings: {
-    name: 'megga_new_listings', category: 'MARKETING',
-    examples: {
-      fr: ['Marie', '3'], de: ['Stefan', '3'], en: ['James', '3'], it: ['Marco', '3'],
-    },
-  },
   agent_daily_brief: {
     name: 'megga_agent_daily_brief', category: 'UTILITY',
     examples: {

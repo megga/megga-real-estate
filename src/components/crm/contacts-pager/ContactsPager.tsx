@@ -26,11 +26,10 @@ import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CTP_FN, FN_BUYER_INK } from '@/components/crm/contacts-pager/ctpTokens'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { ROLES_CONTACT, roleDominant, rolesDepuisTexte, type RoleContact } from '@/lib/contactRoles'
 import { modaleOuverte } from '@/lib/modaleOuverte'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { grouperMilliers } from '@/lib/montantSaisi'
-
-type Audience = 'buyer' | 'seller' | 'tenant'
 
 /**
  * Grille de REPLI de la liste — squelette, et en-tête tant qu'aucun contact n'est
@@ -52,11 +51,17 @@ const ST_DERNIER: CSSProperties = { fontSize: 'var(--crm-text-lg)', fontWeight: 
 const ST_ENTETE: CSSProperties = { fontSize: 'var(--crm-text-sm)', fontWeight: 500 }
 
 // ── Dérivations depuis un CrmContact ────────────────────────────────────
-function audienceOf(c: CrmContact): Audience {
-  if (c.type === 'seller' || c.type === 'landlord') return 'seller'
-  if (c.type === 'tenant' || c.criteria?.transaction === 'location') return 'tenant'
-  return 'buyer'
-}
+/**
+ * L'appartenance à un onglet, à un segment ou au sélecteur : « porte ce rôle ».
+ *
+ * ⛔ Remplace PARTOUT (étape 3, 22.09.2026) — liste, sélecteur ET page Santé — la dérivation
+ * exclusive qui rangeait chaque contact dans UNE audience et comptait `investor`, `both` et
+ * `lead` comme des acheteurs. Un contact à deux rôles apparaît désormais sous les deux, et les
+ * comptes se CHEVAUCHENT : c'est ce que les rôles multiples veulent dire, et c'est pour ça
+ * que la Santé l'écrit sous ses segments au lieu de laisser croire à une partition.
+ */
+const porte = (c: CrmContact, role: RoleContact): boolean => c.roles.includes(role)
+
 function kycStatusOf(c: CrmContact): 'verified' | 'pending' | 'stale' | 'none' {
   const s = c.kyc?.status
   return s && s !== 'none' ? s : 'none'
@@ -94,7 +99,10 @@ function budgetCell(c: CrmContact): BudgetCell | null {
 
 // ── Modèle de filtre (liste + Santé partagent le même) ──────────────────
 type Filter =
-  | { type: 'audience'; value: 'all' | Audience; label?: string }
+  // ⚠ `audience` garde son nom : c'est la SOUS-NAV (Tous · Acquéreurs · Vendeurs · Locataires),
+  // dont la valeur est désormais un rôle. `role` est le SÉLECTEUR, qui atteint les douze.
+  | { type: 'audience'; value: 'all' | RoleContact; label?: string }
+  | { type: 'role'; value: RoleContact; label: string }
   | { type: 'kyc'; value: 'verified' | 'pending' | 'none'; label: string }
   | { type: 'source'; value: string; label: string }
   | { type: 'stale'; value: 'stale'; label: string }
@@ -105,8 +113,13 @@ const plier = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').t
  * Recherche de la liste. Chaque mot doit figurer dans le nom ou l'e-mail (sans
  * accents : « zoe » trouve Zoé). Trois chiffres ou plus cherchent AUSSI dans le
  * téléphone, zéro de tête ignoré — « 079 412 » trouve « +41 79 412 88 03 ».
+ * Depuis l'étape 3, un RÔLE se cherche comme un nom : « avocat » rend les avocats.
+ *
+ * ⚠ C'est un OU, pas un ET : « avocat » rend les avocats ET un contact qui s'appellerait
+ * Avocat. Une recherche qui écarte un homonyme se lit comme une recherche cassée.
  */
-function matchRecherche(c: CrmContact, q: string): boolean {
+function matchRecherche(c: CrmContact, q: string, rolesCherches: RoleContact[]): boolean {
+  if (rolesCherches.length > 0 && rolesCherches.some((r) => c.roles.includes(r))) return true
   const mots = plier(q).split(/\s+/).filter(Boolean)
   if (!mots.length) return true
   const texte = plier(`${c.firstName} ${c.lastName} ${c.email || ''}`)
@@ -116,7 +129,8 @@ function matchRecherche(c: CrmContact, q: string): boolean {
 }
 
 function matchFilter(c: CrmContact, f: Filter): boolean {
-  if (f.type === 'audience') return f.value === 'all' || audienceOf(c) === f.value
+  if (f.type === 'audience') return f.value === 'all' || porte(c, f.value)
+  if (f.type === 'role') return porte(c, f.value)
   if (f.type === 'kyc') {
     // La tuile « Aucun » agrège none + stale → le filtre doit couvrir les deux
     // (sinon le compteur diverge de la liste filtrée).
@@ -153,20 +167,39 @@ function CtpAvatar({ c, size = 38, sp }: { c: CrmContact; size?: number; sp: Crm
 }
 
 /**
- * ⚠ Même règle que l'avatar. Sous le `'#fff'` qui était écrit ici, trois des
+ * La pastille de rôle d'une ligne : le rôle DOMINANT peint, puis « +2 » sourd pour les
+ * autres, nommés au survol.
+ *
+ * ⚠ Même règle d'encre que l'avatar. Sous le `'#fff'` qui était écrit ici, trois des
  * quatre teintes échouaient l'AA — `seller` 4,37 · `tenant` 3,68 · `ok` 3,77 ;
  * seul `buyer` passait (6,24). L'encre reste DÉRIVÉE ; ce sont `seller` et `tenant`
  * qui ont été foncés (16.09.2026, cf. `CTP_FN`) pour que le blanc l'emporte sur les
  * trois pastilles — la teinte, qui encode le type, n'a pas bougé.
+ *
+ * ⛔ AUCUNE TEINTE NOUVELLE. `CTP_FN` n'en porte que trois (acquéreur, vendeur, locataire) ;
+ * tout le reste — bailleur, investisseur et les sept rôles de réseau — prend le filet et
+ * l'encre sourde. Inventer neuf couleurs ferait neuf décisions de direction que personne n'a
+ * prises, et `ctpTokens.ts` explique que ces trois-là ont été MESURÉES pour porter le blanc.
+ * ⚠ `CTP_FN` porte aussi la clé `ok` (le vert du KYC) : la lecture indexée ci-dessous ne peut
+ * pas la rendre, aucun rôle ne s'appelle `ok`.
  */
-function CtpTypePill({ aud, label }: { aud: Audience; label: string }) {
-  const aplat = CTP_FN[aud]
+function CtpRolePill({ roles, label, autres, sp }: { roles: RoleContact[]; label: string; autres: string; sp: CrmPalette }) {
+  const dominant = roleDominant(roles)
+  if (!dominant) return <span style={{ color: sp.sub, fontSize: 'var(--crm-text-sm)' }}>—</span>
+  const teinte: string | undefined = (CTP_FN as Record<string, string>)[dominant]
+  const reste = roles.length - 1
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
-      borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat),
-      fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap',
-    }}>{label}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+      <span style={{
+        display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
+        borderRadius: 'var(--crm-radius-pill)',
+        background: teinte ?? 'transparent',
+        color: teinte ? encreSur(teinte) : sp.sub,
+        border: teinte ? '0' : `1px solid ${sp.cardBorder}`,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap',
+      }}>{label}</span>
+      {reste > 0 && <span title={autres} style={{ color: sp.sub, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>+{reste}</span>}
+    </span>
   )
 }
 
@@ -269,11 +302,6 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
     pending: t('pager.kyc.pending'),
     stale: t('pager.kyc.stale'),
   }
-  const audLabel: Record<Audience, string> = {
-    buyer: t('contactType.buyer'),
-    seller: t('contactType.seller'),
-    tenant: t('contactType.tenant'),
-  }
   const relLabel = useCallback((iso: string | undefined) => {
     const d = daysSince(iso)
     if (d <= 0) return t('pager.today')
@@ -301,7 +329,13 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
     const budgets = contacts.map(budgetCell).filter((b): b is BudgetCell => b !== null)
     return {
       noms: uniq(contacts.map(c => `${c.firstName} ${c.lastName}`)),
-      audiences: [...new Set(contacts.map(audienceOf))],
+      // Une entrée par pastille DISTINCTE — le rôle dominant PEINT, plus l'éventuel « +N ».
+      // ⛔ Mesurer les seuls rôles laisserait le « +N » hors de la largeur : la colonne est
+      // figée en px par cette mesure, donc la pastille déborderait sur le budget.
+      pastilles: [...new Map(contacts.map((c) => {
+        const dominant = roleDominant(c.roles)
+        return [`${dominant ?? '—'}+${c.roles.length - 1}`, { roles: c.roles, dominant }] as const
+      }))],
       kycs: [...new Set(contacts.map(kycStatusOf))],
       montants: uniq(budgets.map(b => b.montant)),
       sansBudget: budgets.length < contacts.length,
@@ -331,15 +365,29 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
 
   // Les compteurs suivent la recherche : « Acheteurs 0 · Vendeurs 1 » dit où est
   // le résultat avant qu'on change de filtre.
-  const trouves = useMemo(() => contacts.filter(c => matchRecherche(c, recherche)), [contacts, recherche])
-  const tabs: { id: 'all' | Audience; label: string; n: number }[] = [
+  // Les rôles que la frappe désigne : « avocat » trouve les avocats, en plus des noms.
+  const rolesCherches = useMemo(() => rolesDepuisTexte(recherche, (r) => t(`roles.${r}`)), [recherche, t])
+  const trouves = useMemo(() => contacts.filter(c => matchRecherche(c, recherche, rolesCherches)), [contacts, recherche, rolesCherches])
+  const tabs: { id: 'all' | RoleContact; label: string; n: number }[] = [
     { id: 'all', label: t('segments.all'), n: trouves.length },
-    { id: 'buyer', label: t('segments.buyer'), n: trouves.filter(c => audienceOf(c) === 'buyer').length },
-    { id: 'seller', label: t('segments.seller'), n: trouves.filter(c => audienceOf(c) === 'seller').length },
-    { id: 'tenant', label: t('segments.tenant'), n: trouves.filter(c => audienceOf(c) === 'tenant').length },
+    { id: 'buyer', label: t('segments.buyer'), n: trouves.filter(c => porte(c, 'buyer')).length },
+    { id: 'seller', label: t('segments.seller'), n: trouves.filter(c => porte(c, 'seller')).length },
+    { id: 'tenant', label: t('segments.tenant'), n: trouves.filter(c => porte(c, 'tenant')).length },
   ]
+  /*
+   * Les rôles réellement présents, comptés sur la liste trouvée : une agence qui n'a pas
+   * d'architecte ne se voit pas proposer « Architecte (0) ».
+   * ⚠ Le rôle FILTRÉ reste listé même à zéro : une recherche qui le vide ferait retomber le
+   * `<select>` sur « Tous les rôles » alors que le filtre, lui, tient toujours — l'écran
+   * annoncerait le contraire de ce qu'il montre.
+   */
+  const rolesPresents = ROLES_CONTACT
+    .map((r) => ({ r, n: trouves.filter((c) => porte(c, r)).length }))
+    .filter((x) => x.n > 0 || (filter.type === 'role' && filter.value === x.r))
   const rows = useMemo(() => trouves.filter(c => matchFilter(c, filter)), [trouves, filter])
-  const segActive = filter.type !== 'audience'
+  // ⚠ Un filtre de rôle allumerait la pilule « ✕ » ET le sélecteur : deux fois la même chose.
+  // Il se lit dans le sélecteur, et là seulement.
+  const segActive = filter.type !== 'audience' && filter.type !== 'role'
   // Montants calés à droite, pour que les millions tombent sous les millions.
   const BUDGET_COL: CSSProperties = { textAlign: 'right' }
   const ligneGrille: CSSProperties = {
@@ -362,7 +410,9 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
           création au bout de la même ligne — plus d'élément isolé au-dessus de la liste. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap', padding: 'var(--crm-space-5xl) var(--crm-space-6xl) var(--crm-space-3xl)' }}>
         {tabs.map(tb => {
-          const on = !segActive && (filter.type === 'audience' ? filter.value : 'all') === tb.id
+          // ⚠ La sous-nav seule allume la sous-nav : un filtre de rôle laissait « Tous » allumé
+          // pendant que le sélecteur disait « Avocat » — l'écran affirmait deux filtres.
+          const on = filter.type === 'audience' && filter.value === tb.id
           return (
             <button key={tb.id} onClick={() => setFilter({ type: 'audience', value: tb.id })} style={{
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
@@ -376,6 +426,25 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
             </button>
           )
         })}
+        {/* Le sélecteur atteint les DOUZE rôles, là où la sous-nav n'en porte que trois : une
+            cinquième pilule par rôle de réseau ferait une barre de treize pilules. */}
+        <label style={{
+          display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
+          border: `1px solid ${dark ? 'rgba(255,255,255,.12)' : 'rgba(3,3,3,.1)'}`, color: sp.soft, fontSize: 'var(--crm-text-lg)', fontWeight: 600, cursor: 'pointer',
+        }}>
+          <span className="sr-only">{t('segments.role')}</span>
+          <MEIcon name="users" size={16} strokeWidth={2} />
+          <select
+            value={filter.type === 'role' ? filter.value : ''}
+            onChange={(e) => {
+              const v = e.target.value
+              setFilter(v === '' ? { type: 'audience', value: 'all' } : { type: 'role', value: v as RoleContact, label: t(`roles.${v}`) })
+            }}
+            style={{ border: 0, background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer', outline: 'none' }}>
+            <option value="">{t('segments.roleAll')}</option>
+            {rolesPresents.map(({ r, n }) => <option key={r} value={r}>{t(`roles.${r}`)} ({n})</option>)}
+          </select>
+        </label>
         {segActive && (
           <button onClick={() => setFilter({ type: 'audience', value: 'all' })} title={t('pager.removeFilter')} style={{
             display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 36, padding: '0 var(--crm-space-md) 0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
@@ -439,7 +508,11 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
           </div>
           <div data-col="1" style={colonneGabarit}>
             <span style={ST_ENTETE}>{t('pager.col.type')}</span>
-            {gabarit.audiences.map(a => <CtpTypePill key={a} aud={a} label={audLabel[a]} />)}
+            {/* `autres` ne peint rien (c'est un `title`) : il ne compte pas dans la largeur. */}
+            {gabarit.pastilles.map(([cle, p]) => (
+              <CtpRolePill key={cle} roles={p.roles} sp={sp} autres=""
+                label={p.dominant ? t(`roles.${p.dominant}`) : ''} />
+            ))}
           </div>
           <div data-col="2" style={{ ...colonneGabarit, fontVariantNumeric: 'tabular-nums' }}>
             <span style={ST_ENTETE}>{t('pager.col.budget')}</span>
@@ -467,7 +540,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
             <EtatVide dark={dark} titre={recherche.trim() ? t('pager.searchEmpty', { q: recherche.trim() }) : t('pager.emptyFilter')} />
           )}
           {!isLoading && rows.map((c, i) => {
-            const aud = audienceOf(c)
+            const dominant = roleDominant(c.roles)
             const budget = budgetCell(c)
             return (
               <div key={c.id} className="ctp-row" role="button" tabIndex={0}
@@ -480,7 +553,9 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, recherch
                     <div style={{ ...ST_NOM, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.firstName} {c.lastName}</div>
                   </div>
                 </div>
-                <div><CtpTypePill aud={aud} label={audLabel[aud]} /></div>
+                <div><CtpRolePill roles={c.roles} sp={sp}
+                  label={dominant ? t(`roles.${dominant}`) : ''}
+                  autres={c.roles.map((r) => t(`roles.${r}`)).join(' · ')} /></div>
                 <div style={{ ...BUDGET_COL, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', lineHeight: 1.25 }}>
                   {budget ? (
                     <>
@@ -565,9 +640,6 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
   const panelShSm = dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadowSm}` : sp.shadowSm
   const n = contacts.length || 1
 
-  const audLabel: Record<Audience, string> = {
-    buyer: t('segments.buyer'), seller: t('segments.seller'), tenant: t('segments.tenant'),
-  }
   const srcLabel = (s: string): string => {
     const key = `pager.src.${s}`
     const translated = t(key)
@@ -576,12 +648,20 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 
   const kycVerified = contacts.filter(c => kycStatusOf(c) === 'verified').length
   const toRelance = contacts.filter(c => daysSince(c.lastActivityAt) >= 7).length
-  const buyerBudgets = contacts.filter(c => audienceOf(c) === 'buyer')
+  // La médiane suit le RÔLE acquéreur. L'ancienne dérivation par audience la calculait sur
+  // son audience de REPLI, où tombaient les investisseurs et les leads : un budget saisi pour
+  // tout autre chose déplaçait la médiane de ceux à qui on propose réellement des biens.
+  const buyerBudgets = contacts.filter(c => porte(c, 'buyer'))
     .map(c => c.criteria?.budgetMax).filter((x): x is number => !!x).sort((a, b) => a - b)
   const medBudget = buyerBudgets.length ? buyerBudgets[Math.floor((buyerBudgets.length - 1) / 2)] : 0
   const medBudgetShort = medBudget >= 1_000_000 ? num1(medBudget / 1_000_000) + 'M' : medBudget >= 1_000 ? Math.round(medBudget / 1_000) + 'K' : null
 
-  const byAud: { a: Audience; n: number }[] = (['buyer', 'tenant', 'seller'] as Audience[]).map(a => ({ a, n: contacts.filter(c => audienceOf(c) === a).length }))
+  // Un segment par rôle PRÉSENT, dans l'ordre du vocabulaire — une agence sans architecte ne
+  // lit pas « Architecte 0 ». Les comptes se chevauchent (un vendeur-prescripteur compte
+  // deux fois, leur somme dépasse le total) : la page le DIT sous le bloc.
+  const byRole = ROLES_CONTACT
+    .map((r) => ({ r, n: contacts.filter((c) => porte(c, r)).length }))
+    .filter((x) => x.n > 0)
   const kyc = [
     { k: t('pager.kyc.verified'), val: 'verified' as const, n: contacts.filter(c => kycStatusOf(c) === 'verified').length, col: CTP_FN.ok },
     { k: t('pager.kyc.pending'), val: 'pending' as const, n: contacts.filter(c => kycStatusOf(c) === 'pending').length, col: CTP_FN.seller },
@@ -621,13 +701,23 @@ function CtpHealthPage({ contacts, sp, dark, onSegment }: {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 'var(--crm-space-3xl)', alignItems: 'stretch' }}>
           <div className="ctp-seg">
-            <CtpCard title={t('health.byAudience')} sp={sp} dark={dark}>
+            <CtpCard title={t('health.byRole')} sp={sp} dark={dark}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xl)' }}>
-                {byAud.map(r => (
-                  <CtpSegRow key={r.a} dot={CTP_FN[r.a]} label={audLabel[r.a]} count={r.n} pct={(r.n / n) * 100} color={CTP_FN[r.a]}
-                    seg={{ type: 'audience', value: r.a, label: audLabel[r.a] }} sp={sp} dark={dark} onSegment={onSegment} />
-                ))}
+                {byRole.map(({ r, n: nb }) => {
+                  // Les rôles sans teinte (bailleur, investisseur, les sept de réseau) prennent
+                  // la sourdine : la puce de la Santé dit la même chose que la pastille de la
+                  // liste, qui n'en peint que trois (cf. `CtpRolePill`).
+                  const col = (CTP_FN as Record<string, string>)[r] ?? sp.sub
+                  const label = t(`roles.${r}`)
+                  return (
+                    <CtpSegRow key={r} dot={col} label={label} count={nb} pct={(nb / n) * 100} color={col}
+                      seg={{ type: 'role', value: r, label }} sp={sp} dark={dark} onSegment={onSegment} />
+                  )
+                })}
               </div>
+              {/* Les comptes ci-dessus se chevauchent : sans cette ligne, un lecteur qui les
+                  additionne conclut à un écart avec le total du bandeau. */}
+              <p style={{ margin: 'var(--crm-space-4xl) 0 0', fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('segments.roleOverlap')}</p>
             </CtpCard>
           </div>
 

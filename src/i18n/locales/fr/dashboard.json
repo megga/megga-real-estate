@@ -154,7 +154,6 @@
       "statMinConcentration": "min de concentration",
       "statRescheduled_one": "replanifiée",
       "statRescheduled_other": "replanifiées",
-      "viewCatalogue": "Voir le catalogue de matchs",
       "upNext": "À suivre",
       "lastPriority": "Dernière priorité de la file."
     },
@@ -223,122 +222,6 @@
       "tempWarm": "tièdes",
       "tempCold": "froids"
     },
-    "pager": {
-      "today": "Aujourd'hui",
-      "catalogue": "Catalogue",
-      "wheelTo": "Molette pour {{label}}"
-    },
-    "catalogue": {
-      "title": "Catalogue de matchs",
-      "empty": "Aucun match dans ce filtre.",
-      "emptyAll": "Aucun match pour l’instant.",
-      "proposed": "Proposé",
-      "proposedCount_one": "{{count}} proposé",
-      "proposedCount_other": "{{count}} proposés",
-      "filters": {
-        "all": "Tous",
-        "followUp": "À relancer",
-        "new": "Nouveaux"
-      },
-      "sorts": {
-        "score": "Score",
-        "value": "Valeur",
-        "recency": "Récence"
-      },
-      "sort": {
-        "by": "Trier {{label}}",
-        "byDot": "Trier · {{label}}",
-        "change": "Changer le tri"
-      },
-      "status": {
-        "new": "Nouveau",
-        "sent": "Dossier envoyé",
-        "visitPlanned": "Visite prévue",
-        "interested": "Intéressé"
-      },
-      "why": {
-        "fallback": "Nouveau match, premier contact à initier."
-      },
-      "advertiser": {
-        "marketWatch": "Veille marché",
-        "internalMandate": "Mandat interne",
-        "externalAdvertiser": "Annonceur externe",
-        "yourAgency": "Votre agence",
-        "source": "Source"
-      },
-      "detail": {
-        "eyebrow": "Détail du match",
-        "photos": "photos"
-      },
-      "section": {
-        "specs": "Caractéristiques",
-        "highlights": "Atouts",
-        "description": "Description",
-        "location": "Localisation",
-        "salePrice": "Prix de vente",
-        "rent": "Loyer mensuel",
-        "buyer": "Acheteur",
-        "compatibility": "Compatibilité",
-        "advertiser": "Annonceur"
-      },
-      "spec": {
-        "rooms": "Pièces",
-        "roomsCount": "{{rooms}} pièces",
-        "surface": "Surface",
-        "bedrooms": "Chambres",
-        "bathrooms": "Salles d'eau",
-        "year": "Année",
-        "floor": "Étage",
-        "villa": "Villa"
-      },
-      "price": {
-        "charges": "Charges",
-        "perMonth": "CHF {{amount}} / mois",
-        "perMonthShort": "/mois",
-        "onMarket": "Sur le marché",
-        "today": "Aujourd'hui",
-        "days_one": "{{count}} jour",
-        "days_other": "{{count}} jours"
-      },
-      "buyer": {
-        "searching": "{{tag}} · cherche {{specs}}"
-      },
-      "compat": {
-        "perfect": "Profil parfaitement aligné",
-        "aligned": "Bien aligné avec sa recherche",
-        "someGaps": "Aligné, quelques écarts",
-        "manyGaps": "Plusieurs écarts à lever"
-      },
-      "criteria": {
-        "budget": "Budget",
-        "zone": "Zone",
-        "type": "Type",
-        "rooms": "Pièces",
-        "features": "Souhaits",
-        "toRefine": "à affiner"
-      },
-      "action": {
-        "addToFile": "Mettre dans le dossier de {{name}}",
-        "added": "Ajouté au dossier de {{name}}",
-        "openInMatching": "Ouvrir dans Matching"
-      },
-      "gallery": {
-        "closeHint": "Fermer (Échap)",
-        "previous": "Précédente",
-        "next": "Suivante",
-        "backToWall": "Retour au mur",
-        "title": "Tout le catalogue",
-        "subtitle": "Galerie complète"
-      },
-      "more": {
-        "otherMatches_one": "autre match",
-        "otherMatches_other": "autres matchs",
-        "viewWhole": "Voir tout le catalogue"
-      },
-      "place": {
-        "fallback": "Bien"
-      }
-    },
     "relance": {
       "temp": {
         "hot": "Chaud",
@@ -358,6 +241,7 @@
         "body": "Aucun contact dormant à relancer aujourd'hui. Vos relances apparaîtront ici dès qu'un contact se refroidira."
       },
       "sendError": "L'envoi a échoué, réessayez ou copiez le message.",
+      "sendErrorBien": "Rien n'est parti : ce message contient un bien (lien d'annonce ou référence MG-…). Le matching reste chez vous : présentez le bien vous-même, puis consignez « Je l'ai proposé » dans le matching.",
       "draft": {
         "to": "À",
         "emailMissing": "(email manquant)",
@@ -420,7 +304,8 @@
       "freeWindow": "{{duration}} libres · session relances",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Annonces"
+        "listings": "Annonces",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} chaud",
       "hotCount_other": "{{count}} chauds",
@@ -453,16 +338,19 @@
         "markAll": "Tout marquer comme vu",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signaux",
-        "groupBuyers": "Retours acheteurs",
+        "groupBuyers": "Retours consignés",
         "groupReminders": "Rappels",
-        "liked": "a aimé {{subject}}",
-        "skipped": "a écarté {{subject}}",
-        "reminderDue": "dossier {{subject}} à reprendre",
+        "reminderDue": "rappel à reprendre",
+        "reminderDueSubject": "rappel à reprendre · {{subject}}",
         "ctaProposeVisit": "Proposer la visite",
         "ctaRecalibrate": "Recalibrer",
         "ctaResume": "Reprendre",
         "unknownContact": "Contact",
-        "unknownProperty": "un bien"
+        "unknownProperty": "un bien",
+        "interesse": "intéressé·e par {{subject}}",
+        "pasInteresse": "pas intéressé·e par {{subject}}",
+        "retourAttendu_one": "retour attendu sur {{count}} bien proposé",
+        "retourAttendu_other": "retour attendu sur {{count}} biens proposés"
       },
       "toast": {
         "allUpToDate": "Tout est à jour",
@@ -523,10 +411,37 @@
         "ctaKyc": "Ouvrir le KYC",
         "ctaSign": "Préparer",
         "ctaOffer": "Voir l’offre",
-        "ctaMatch": "Voir les matchs",
         "ctaVisit": "Voir la visite",
         "ctaSeller": "Ouvrir",
         "ctaListing": "Voir le bien"
+      },
+      "matching": {
+        "compte_one": "{{count}} action",
+        "compte_other": "{{count}} actions",
+        "retour_one": "Retour à consigner pour {{prenom}} · {{count}} bien",
+        "retour_other": "Retour à consigner pour {{prenom}} · {{count}} biens",
+        "prixPropose": "Prix baissé de {{montant}} sur le bien proposé à {{prenom}}",
+        "prixRefuse": "Prix baissé de {{montant}} sur le bien refusé par {{prenom}}",
+        "mandat_one": "Nouveau mandat · {{count}} acquéreur compatible",
+        "mandat_other": "Nouveau mandat · {{count}} acquéreurs compatibles",
+        "marcheNouveau": "Nouveau bien à {{ville}} pour {{prenom}}",
+        "marcheNouveauSansVille": "Nouveau bien pour {{prenom}}",
+        "marcheBaisse": "Bien en baisse à {{ville}} pour {{prenom}}",
+        "marcheBaisseSansVille": "Bien en baisse pour {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nouveau bien",
+        "nouveaux_other": "{{count}} nouveaux biens",
+        "baisses_one": "{{count}} en baisse",
+        "baisses_other": "{{count}} en baisse",
+        "ctaRetour": "Consigner",
+        "ctaPrix": "Ouvrir",
+        "ctaMandat": "Voir qui",
+        "ctaMarche": "Voir les biens",
+        "voirTout": "Voir tout dans le Matching",
+        "voirToutCompte_one": "Voir l'action dans le Matching",
+        "voirToutCompte_other": "Voir les {{count}} actions dans le Matching",
+        "vide": "Aucune action de matching aujourd'hui.",
+        "erreur": "Actions de matching indisponibles : le chargement a échoué."
       }
     }
   },

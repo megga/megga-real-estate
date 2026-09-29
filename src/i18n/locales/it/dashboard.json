@@ -154,7 +154,6 @@
       "statMinConcentration": "min di concentrazione",
       "statRescheduled_one": "ripianificata",
       "statRescheduled_other": "ripianificate",
-      "viewCatalogue": "Vedi il catalogo dei match",
       "upNext": "Prossimo",
       "lastPriority": "Ultima priorità della coda."
     },
@@ -223,122 +222,6 @@
       "tempWarm": "tiepidi",
       "tempCold": "freddi"
     },
-    "pager": {
-      "today": "Oggi",
-      "catalogue": "Catalogo",
-      "wheelTo": "Rotella per {{label}}"
-    },
-    "catalogue": {
-      "title": "Catalogo dei match",
-      "empty": "Nessun match in questo filtro.",
-      "emptyAll": "Ancora nessun match.",
-      "proposed": "Proposto",
-      "proposedCount_one": "{{count}} proposto",
-      "proposedCount_other": "{{count}} proposti",
-      "filters": {
-        "all": "Tutti",
-        "followUp": "Da ricontattare",
-        "new": "Nuovi"
-      },
-      "sorts": {
-        "score": "Score",
-        "value": "Valore",
-        "recency": "Recenza"
-      },
-      "sort": {
-        "by": "Ordina {{label}}",
-        "byDot": "Ordina · {{label}}",
-        "change": "Cambia ordinamento"
-      },
-      "status": {
-        "new": "Nuovo",
-        "sent": "Fascicolo inviato",
-        "visitPlanned": "Visita pianificata",
-        "interested": "Interessato"
-      },
-      "why": {
-        "fallback": "Nuovo match, primo contatto da avviare."
-      },
-      "advertiser": {
-        "marketWatch": "Monitoraggio del mercato",
-        "internalMandate": "Mandato interno",
-        "externalAdvertiser": "Inserzionista esterno",
-        "yourAgency": "La tua agenzia",
-        "source": "Source"
-      },
-      "detail": {
-        "eyebrow": "Dettaglio del match",
-        "photos": "photos"
-      },
-      "section": {
-        "specs": "Caratteristiche",
-        "highlights": "Punti di forza",
-        "description": "Description",
-        "location": "Posizione",
-        "salePrice": "Prezzo di vendita",
-        "rent": "Affitto mensile",
-        "buyer": "Acquirente",
-        "compatibility": "Compatibilità",
-        "advertiser": "Inserzionista"
-      },
-      "spec": {
-        "rooms": "Locali",
-        "roomsCount": "{{rooms}} locali",
-        "surface": "Surface",
-        "bedrooms": "Camere",
-        "bathrooms": "Bagni",
-        "year": "Anno",
-        "floor": "Piano",
-        "villa": "Villa"
-      },
-      "price": {
-        "charges": "Spese accessorie",
-        "perMonth": "CHF {{amount}} / mese",
-        "perMonthShort": "/mese",
-        "onMarket": "Sul mercato",
-        "today": "Oggi",
-        "days_one": "{{count}} giorno",
-        "days_other": "{{count}} giorni"
-      },
-      "buyer": {
-        "searching": "{{tag}} · cerca {{specs}}"
-      },
-      "compat": {
-        "perfect": "Profilo perfettamente allineato",
-        "aligned": "Ben allineato con la sua ricerca",
-        "someGaps": "Allineato, alcuni divari",
-        "manyGaps": "Diversi divari da colmare"
-      },
-      "criteria": {
-        "budget": "Budget",
-        "zone": "Zona",
-        "type": "Type",
-        "rooms": "Locali",
-        "features": "Desideri",
-        "toRefine": "da affinare"
-      },
-      "action": {
-        "addToFile": "Aggiungi al fascicolo di {{name}}",
-        "added": "Aggiunto al fascicolo di {{name}}",
-        "openInMatching": "Apri in Matching"
-      },
-      "gallery": {
-        "closeHint": "Chiudi (Esc)",
-        "previous": "Precedente",
-        "next": "Successiva",
-        "backToWall": "Torna al muro",
-        "title": "Tutto il catalogo",
-        "subtitle": "Galleria completa"
-      },
-      "more": {
-        "otherMatches_one": "altro match",
-        "otherMatches_other": "altri match",
-        "viewWhole": "Vedi tutto il catalogo"
-      },
-      "place": {
-        "fallback": "Immobile"
-      }
-    },
     "relance": {
       "temp": {
         "hot": "Caldo",
@@ -358,6 +241,7 @@
         "body": "Nessun contatto dormiente da ricontattare oggi. I tuoi follow-up appariranno qui non appena un contatto si raffredda."
       },
       "sendError": "Invio non riuscito, riprova o copia il messaggio.",
+      "sendErrorBien": "Non è partito nulla: questo messaggio contiene un immobile (link di annuncio o riferimento MG-…). Il matching resta a Lei: presenti l'immobile personalmente, poi registri «L'ho proposto» nel matching.",
       "draft": {
         "to": "A",
         "emailMissing": "(email mancante)",
@@ -420,7 +304,8 @@
       "freeWindow": "{{duration}} liberi · sessione solleciti",
       "tabs": {
         "deals": "Dossier",
-        "listings": "Annunci"
+        "listings": "Annunci",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} caldo",
       "hotCount_other": "{{count}} caldi",
@@ -453,16 +338,19 @@
         "markAll": "Segna tutto come visto",
         "count_one": "{{count}} segnale",
         "count_other": "{{count}} segnali",
-        "groupBuyers": "Riscontri acquirenti",
+        "groupBuyers": "Riscontri registrati",
         "groupReminders": "Promemoria",
-        "liked": "ha apprezzato {{subject}}",
-        "skipped": "ha scartato {{subject}}",
-        "reminderDue": "dossier {{subject}} da riprendere",
+        "reminderDue": "promemoria da riprendere",
+        "reminderDueSubject": "promemoria da riprendere · {{subject}}",
         "ctaProposeVisit": "Proponi la visita",
         "ctaRecalibrate": "Ricalibra",
         "ctaResume": "Riprendi",
         "unknownContact": "Contatto",
-        "unknownProperty": "un immobile"
+        "unknownProperty": "un immobile",
+        "interesse": "interessato/a a {{subject}}",
+        "pasInteresse": "non interessato/a a {{subject}}",
+        "retourAttendu_one": "riscontro atteso su {{count}} immobile proposto",
+        "retourAttendu_other": "riscontro atteso su {{count}} immobili proposti"
       },
       "toast": {
         "allUpToDate": "Tutto aggiornato",
@@ -523,10 +411,37 @@
         "ctaKyc": "Apri KYC",
         "ctaSign": "Preparare",
         "ctaOffer": "Vedi l’offerta",
-        "ctaMatch": "Vedi i match",
         "ctaVisit": "Vedi la visita",
         "ctaSeller": "Apri",
         "ctaListing": "Vedi l’immobile"
+      },
+      "matching": {
+        "compte_one": "{{count}} azione",
+        "compte_other": "{{count}} azioni",
+        "retour_one": "Riscontro da registrare per {{prenom}} · {{count}} immobile",
+        "retour_other": "Riscontro da registrare per {{prenom}} · {{count}} immobili",
+        "prixPropose": "Prezzo ribassato di {{montant}} sull'immobile proposto a {{prenom}}",
+        "prixRefuse": "Prezzo ribassato di {{montant}} sull'immobile rifiutato da {{prenom}}",
+        "mandat_one": "Nuovo mandato · {{count}} acquirente compatibile",
+        "mandat_other": "Nuovo mandato · {{count}} acquirenti compatibili",
+        "marcheNouveau": "Nuovo immobile a {{ville}} per {{prenom}}",
+        "marcheNouveauSansVille": "Nuovo immobile per {{prenom}}",
+        "marcheBaisse": "Ribasso a {{ville}} per {{prenom}}",
+        "marcheBaisseSansVille": "Ribasso per {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} nuovo immobile",
+        "nouveaux_other": "{{count}} nuovi immobili",
+        "baisses_one": "{{count}} ribasso",
+        "baisses_other": "{{count}} ribassi",
+        "ctaRetour": "Registra",
+        "ctaPrix": "Apri",
+        "ctaMandat": "Vedi chi",
+        "ctaMarche": "Vedi gli immobili",
+        "voirTout": "Vedi tutto nel Matching",
+        "voirToutCompte_one": "Vedi l'azione nel Matching",
+        "voirToutCompte_other": "Vedi tutte le {{count}} azioni nel Matching",
+        "vide": "Nessuna azione di matching oggi.",
+        "erreur": "Azioni di matching non disponibili: caricamento non riuscito."
       }
     }
   },

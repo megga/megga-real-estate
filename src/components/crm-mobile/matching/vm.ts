@@ -7,14 +7,14 @@
 // les composants via `t()` ; seul `mmPriceLabel` reçoit `t` pour « /mois »).
 
 import type { TFunction } from 'i18next'
-import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { isSnoozed } from '@/lib/matchingGestes'
 import type {
   AtelierBuyer,
   AtelierKyc,
   AtelierPivot,
   AtelierPoolMatch,
   AtelierTab,
-} from '@/components/matching-atelier/types'
+} from './types'
 
 // ─── View-models ─────────────────────────────────────────────────────────
 export interface BuyerGroupVM {
@@ -61,7 +61,7 @@ export interface PoolMatchVM {
   transaction: 'Vente' | 'Location'
   score: number
   coverUrl: string | null
-  /** dossier déjà transmis ? (initialise l'état « Envoyé » du focus) */
+  /** bien déjà proposé ? (initialise l'état « Proposé » du focus) */
   alreadySent: boolean
 }
 

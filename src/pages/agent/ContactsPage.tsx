@@ -5,6 +5,9 @@
 // réessai (jamais confondu avec un compte neuf).
 // Création → NouveauContact en overlay du cadre, câblée Supabase
 // (search_criteria snake_case → déclenche l'auto-matching via le pont DB).
+// Arrivée `?nouveau=1` (« Ajouter un acheteur », la couverture du Matching) → la
+// création s'ouvre, une fois par navigation (`useArrivee`) ; l'adresse n'est
+// jamais réécrite.
 // Réf. handoff : crm-screen-contacts-proto.jsx / crm-contacts-firstrun.jsx /
 // nc-bento-b-live.jsx.
 
@@ -14,11 +17,14 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
+import { useArrivee } from '@/hooks/useArrivee'
 import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useExtractLead } from '@/hooks/useExtractLead'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
+import { porteDemande } from '@/lib/contactRoles'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal, {
@@ -28,20 +34,9 @@ import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ContactsPage() {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const qc = useQueryClient()
   const { t: tr } = useTranslation('contacts')
-
-  // Deep-link `?source=` (handoff Dashboard) — consommé une fois puis nettoyé
-  // (le pager n'affiche plus de bannière source ; param obsolète mais toléré).
-  useEffect(() => {
-    if (searchParams.has('source')) {
-      const next = new URLSearchParams(searchParams)
-      next.delete('source')
-      setSearchParams(next, { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Thème dark/light, calé sur le toggle de la barre latérale (partagé Today/Pipeline) ──
   const [dark, setDark] = useCrmDarkPref()
@@ -73,21 +68,37 @@ export default function ContactsPage() {
 
   const openModal = () => { setCreateError(null); setModalOpen(true) }
 
+  // « Ajouter un acheteur » (la couverture de premier lancement du Matching) arrive avec `?nouveau=1` : la création
+  // s'ouvre UNE fois par navigation (`useArrivee`) — un remontage de l'écran ne la rouvre pas, un nouveau clic sur le
+  // lien, si. Ouverte PENDANT LE RENDU (`react-hooks/set-state-in-effect` refuse un `setState` d'effet), marquée par
+  // l'effet. ⛔ L'adresse garde son paramètre : réécrite, la réconciliation des onglets la lirait comme celle d'un autre
+  // onglet. Le rôle d'acheteur, la modale le pré-coche d'elle-même.
+  const { aAppliquer, marquerAppliquee } = useArrivee('contacts.nouveau', searchParams.has('nouveau'))
+  if (aAppliquer && !modalOpen) openModal()
+  useEffect(() => { if (aAppliquer) marquerAppliquee() }, [aAppliquer, marquerAppliquee])
+
   // Création — mappe le NewContactData (design) vers le contrat Supabase.
   // search_criteria en snake_case (buildSearchCriteria) → le pont DB matérialise
   // client_searches et déclenche le premier matching. Rejette en cas d'échec
   // pour que la modale reste sur le formulaire (l'écran héros n'apparaît qu'au succès).
   const handleCreate = async (data: NewContactData): Promise<void> => {
     setCreateError(null)
-    const buyerSide = data.type === 'buyer' || data.type === 'tenant'
-    const criteria = buyerSide && data.criteria ? buildSearchCriteria(data.criteria) : null
+    // Étape 3 : la MÊME règle que la fiche — un rôle de DEMANDE (acquéreur, locataire,
+    // investisseur) écrit des critères de recherche, donc du matching.
+    //
+    // ⚠ `|| roles.length === 0` : le MÊME repli que la modale, qui montre le bloc de
+    // demande à un contact sans rôle. Sans lui, les critères qu'elle vient de faire saisir
+    // ne partiraient nulle part — ni `search_criteria`, ni `form_data.offer`. Les deux
+    // lignes tombent ensemble le jour où la colonne aura son état vide.
+    const demande = porteDemande(data.roles) || data.roles.length === 0
+    const criteria = demande && data.criteria ? buildSearchCriteria(data.criteria) : null
     // Vendeur/Bailleur : le bien proposé n'est PAS un critère de recherche (aucun
     // matching). Il se range dans form_data.offer, la clé que la fiche relit
     // (ContactDetailPage « crit »). L'écrire sous `linked_bien` le rendait
     // invisible : personne ne lisait cette clé.
-    const offer: CriteriaInput | null = !buyerSide && data.linkedBien
+    const offer: CriteriaInput | null = !demande && data.linkedBien
       ? {
-          transaction: data.type === 'landlord' ? 'location' : 'vente',
+          transaction: data.roles.includes('landlord') ? 'location' : 'vente',
           types: [data.linkedBien.propType],
           cantons: [],
           cities: data.linkedBien.address ? [data.linkedBien.address] : [],
@@ -101,7 +112,8 @@ export default function ContactsPage() {
         // lirait comme une adresse renseignée.
         email: data.email || null,
         phone: data.phone || undefined,
-        type: data.type,
+        // `type` n'est plus écrit ici : le déclencheur le dérive des rôles.
+        roles: data.roles,
         source: 'manual',
         score: 'warm',
         tags: [],
@@ -135,7 +147,7 @@ export default function ContactsPage() {
 
   const openMatchingForCreated = () => {
     setModalOpen(false)
-    navigate(createdId ? `/dashboard/matching?contact=${createdId}` : '/dashboard/matching')
+    navigate(createdId ? `/dashboard/matching?contact=${createdId}` : '/dashboard/matching', createdId ? avecArrivee() : undefined)
   }
   const openKycForCreated = () => {
     setModalOpen(false)

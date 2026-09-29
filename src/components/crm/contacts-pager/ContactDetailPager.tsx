@@ -2,7 +2,7 @@
 // Port 1:1 de `crm-screen-contact-detail-pager.jsx` (window.CRMScreenContactDetailPager).
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
 //   Page 0 → Ses informations (en-tête + coordonnées | critères | notes)      [en haut]
-//   Page 1 → Boucle de match  (à traiter | biens transmis + liens)              [en bas]
+//   Page 1 → Sa boucle        (à traiter | biens proposés)                      [en bas]
 // Les deux pages sont BORD À BORD depuis le 16.09.2026 : un en-tête, puis des colonnes
 // pleine hauteur séparées par un filet, chacune défilant seule (`.cdp-cols`).
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
@@ -25,9 +25,10 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { Trans, useTranslation } from 'react-i18next'
-import type { CriteriaInput } from '@/lib/contactCriteria'
+import { ETATS_MINIMUM, type CriteriaInput, type EtatMinimum } from '@/lib/contactCriteria'
 import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
+import { roleDominant, rolesOrdonnes, ROLES_RESEAU, ROLES_TRANSACTION, type RoleContact } from '@/lib/contactRoles'
 import { crmInitials, type CrmPalette } from '@/components/crm/tokens'
 import { pickAvatarBg } from '@/lib/crmAdapters'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -41,6 +42,9 @@ import { ChampAdresseSuisse, ChampDateNaissance, type PaletteChamps } from '@/co
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import PxSocialIcon from '@/components/propertyx/PxSocialIcon'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { dateCourte, montant, texteSignal } from '@/components/matching-fil/filAffichage'
+import { cleMotif } from '@/components/matching-fil/filBoucle'
+import type { BienBoucle, EtatBoucle, SaBoucle } from '@/components/crm/contacts-pager/saBoucle'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -56,6 +60,24 @@ export interface FicheContact {
   civ: string                    // '' | 'mrs' | 'mr'
   canal: string                  // '' | 'whatsapp' | 'sms' | 'call' | 'email'
   audience: 'Acheteur' | 'Vendeur' | 'Locataire' | 'Bailleur'
+  /**
+   * Les rôles du contact (étape 3, 22.09.2026) — l'en-tête les montre TOUS, et la modale
+   * d'identité les édite. `audience` lui survit et reste dérivée du `type` : elle oriente le
+   * CTA et le budget d'en-tête, deux choses qui n'ont qu'un côté de marché.
+   */
+  roles: RoleContact[]
+  /**
+   * Le contact est-il côté DEMANDE ? Une dérivation à part, et non `audience` : elle décide
+   * où ses critères s'écrivent, d'où ils se lisent, et lequel des deux blocs `CdCrit` montre
+   * — « ce qu'elle cherche » ou « ce qu'il propose ».
+   *
+   * ⚠ Calculée par le conteneur (`ContactDetailPage`) et PAS ici, parce que la conception
+   * (§6) en fait une disjonction dont le second terme — « il a déjà des critères
+   * enregistrés » — ne se lit pas sur `fiche.crit` : pour un contact côté offre, `crit` porte
+   * son BIEN, pas ses critères. Un `porteDemande(fiche.roles)` recalculé ici serait la moitié
+   * de la règle, et masquerait les critères d'un contact repassé à `{seller}`.
+   */
+  coteDemande: boolean
   isTenant: boolean
   avatarBg: string
   /** Identité LBA art. 3 — date au format suisse JJ.MM.AAAA, pays en ISO alpha-2. */
@@ -73,49 +95,30 @@ export interface FicheContact {
   lastContactAt: string | null
 }
 
-export interface FicheLoopItem {
-  matchId: string
-  title: string
-  addr: string
-  photo: string | null
-  state: 'liked' | 'seen' | 'sent' | 'dismissed'
-  motif: string | null
-}
-
-/** Lien de réception émis pour ce contact (jamais son jeton : c'est la capability). */
-export interface FicheReceptionLink {
-  id: string
-  /** `null` = statut non reconnu ; l'UI le dit et n'offre pas de retrait dessus. */
-  status: 'pending' | 'viewed' | 'reacted' | 'expired' | 'revoked' | null
-  channel: 'whatsapp' | 'link' | null
-  createdAt: string
-  expiresAt: string
-  /** Nombre de biens que le lien ouvre. */
-  count: number
-  /** Renseigné une fois le lien retiré : « depuis quand est-il coupé ». */
-  revokedAt: string | null
-  /** Le lien donne encore accès à la sélection (ni retiré, ni échu). */
-  active: boolean
-}
-
 /**
- * Issue d'un retrait. Trois cas et non deux : un REFUS (le lien n'était déjà plus
- * actif) et une PANNE ne se disent pas pareil à l'agent, sinon il croit avoir coupé
- * un accès resté ouvert. Le conteneur traduit l'erreur du hook en ce verdict ; le
- * pager reste sans appel Supabase.
+ * Ce que la modale « Modifier l'identité » enregistre : les 6 champs LBA, PLUS les rôles.
+ *
+ * Les rôles voyagent avec l'identité parce qu'ils s'éditent au même endroit — mais ils n'en
+ * FONT pas partie : eux seuls n'invalident pas un KYC vérifié (cf. `requestSaveId`).
  */
-export type FicheRevokeResult = 'ok' | 'refused' | 'failed'
+export type FicheIdentite = ContactIdentity & { roles: RoleContact[] }
 
 export interface ContactDetailPagerProps {
   fiche: FicheContact
-  loop: { items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number }
-  /** Liens de réception émis + états de chargement (le conteneur porte la requête). */
-  links: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean }
+  /** « Sa boucle » (lot D1) : le modèle pur de `saBoucle.ts`. */
+  loop: SaBoucle
+  /**
+   * Où en est la LECTURE de la boucle. En chargement, ou en échec sans rien de lu, la boucle est INCONNUE, pas vide :
+   * la montrer vide écrirait « Aucun bien proposé » sur un acheteur qui en a peut-être dix (CLAUDE.md §5).
+   */
+  lectureBoucle: 'chargement' | 'erreur' | 'pret'
+  /** Relit la boucle après un échec de lecture. */
+  onReessayer: () => void
   sp: CrmPalette
   dark: boolean
   onBack: () => void
-  /** Persiste les 6 champs d'identité LBA (nom + naissance/nationalité/résidence/adresse). */
-  onSaveIdentity: (v: ContactIdentity) => Promise<void>
+  /** Persiste les 6 champs d'identité LBA (nom + naissance/nationalité/résidence/adresse) et les rôles. */
+  onSaveIdentity: (v: FicheIdentite) => Promise<void>
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
@@ -137,9 +140,8 @@ export interface ContactDetailPagerProps {
   onOpenMatching: () => void
   /** CTA principal d'un Vendeur/Bailleur (côté offre) — vers ses biens, jamais le Matching acheteur. */
   onOpenListings: () => void
-  onProposeVisit: (matchId: string) => void
-  /** Retire un lien de réception. Ne rejette pas : renvoie le verdict à afficher. */
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
+  /** Ouvre le fil à une place précise — la requête de `lienFil` / `lienPlace`. */
+  onOuvrirFil: (requete: string) => void
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -159,7 +161,6 @@ interface FichePal {
   accentInk: string
   buyer: string
   ok: string
-  cyan: string
   wait: string
   danger: string
   shadow: string
@@ -181,7 +182,6 @@ function buildPal(sp: CrmPalette, dark: boolean): FichePal {
     accentInk: sp.accentInk,
     buyer: dark ? '#6F8CFF' : '#1E5BC6',
     ok: dark ? '#34D399' : '#059669',
-    cyan: dark ? '#38BDD8' : '#0891B2',
     wait: dark ? '#8A909B' : '#7A8088',
     danger: dark ? '#E0738C' : '#8E1F3D',
     shadow: dark ? `inset 0 0 0 1px ${sp.cardBorder}, ${sp.shadow}` : sp.shadow,
@@ -268,34 +268,15 @@ const CD_LANGS = ['fr', 'de', 'en', 'it']
 const CD_CANALS = ['whatsapp', 'sms', 'call', 'email']
 const cap = (s: string) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1)
 
-// État de la boucle → clé couleur de la palette + clé i18n du pill.
-// `liked` est VERT (clé `ok`) et non rouge : le like est un signal positif, et c'est
-// la couleur du handoff. Passer par une clé de palette garde le mode sombre correct.
-const LOOP_STATE: Record<FicheLoopItem['state'], { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
-  liked: { key: 'ok', labelK: 'loop.pillLiked' },
-  seen: { key: 'cyan', labelK: 'loop.pillSeen' },
-  sent: { key: 'wait', labelK: 'loop.pillSent' },
-  dismissed: { key: 'ghost', labelK: 'loop.pillDismissed' },
-}
-
-// Statut d'un lien de réception → couleur de palette + clé i18n. `revoked` et
-// `expired` prennent la teinte éteinte : un lien fermé n'est pas une alerte, c'est
-// un état de repos. `null` (statut non reconnu) est traité plus bas, pas ici.
-const LINK_STATE: Record<Exclude<FicheReceptionLink['status'], null>, { key: 'ok' | 'cyan' | 'wait' | 'ghost'; labelK: string }> = {
-  pending: { key: 'wait', labelK: 'fiche.links.status.pending' },
-  viewed: { key: 'cyan', labelK: 'fiche.links.status.viewed' },
-  reacted: { key: 'ok', labelK: 'fiche.links.status.reacted' },
-  expired: { key: 'ghost', labelK: 'fiche.links.status.expired' },
-  revoked: { key: 'ghost', labelK: 'fiche.links.status.revoked' },
-}
-
-/** Date suisse JJ.MM.AAAA depuis un horodatage ISO ; vide si la valeur est inexploitable. */
-const cdDay = (iso: string | null | undefined): string => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  const p2 = (n: number) => String(n).padStart(2, '0')
-  return `${p2(d.getDate())}.${p2(d.getMonth() + 1)}.${d.getFullYear()}`
+// État de la boucle (lot D1 : cinq) → clé de couleur de la palette + clé i18n de la pastille. Intéressé et visite en
+// VERT (`ok`) : un signal positif. Un bien revenu dans le bleu de l'acheteur (`buyer`) : une occasion, pas une attente.
+// Passer par une clé de palette garde le mode sombre correct (tons confrontés par `contacts-contraste.spec.ts`).
+const ETAT_BOUCLE: Record<EtatBoucle, { key: 'ok' | 'wait' | 'ghost' | 'buyer'; labelK: string }> = {
+  propose: { key: 'wait', labelK: 'loop.etat.propose' },
+  interesse: { key: 'ok', labelK: 'loop.etat.interesse' },
+  visite: { key: 'ok', labelK: 'loop.etat.visite' },
+  refuse: { key: 'ghost', labelK: 'loop.etat.refuse' },
+  revenu: { key: 'buyer', labelK: 'loop.etat.revenu' },
 }
 
 // Gel du pager pendant une édition inline / une modale : increment/decrement.
@@ -338,8 +319,7 @@ function CdRoundBtn({ icon, P, onClick, label }: { icon: string; P: FichePal; on
 
 /**
  * Sur-titre de BLOC — 14 px / 600, casse normale. Cinq emplois : Coordonnées,
- * Ce qu'elle cherche, À traiter, Biens transmis, Liens envoyés (plus le bloc
- * Note, qui porte le même style en ligne).
+ * Ce qu'elle cherche (ou propose), Notes, À traiter, Ses biens.
  *
  * Il valait 11 px / 800 en micro-capitales avec un interlettrage de 1 — l'idiome
  * de sur-titre de Sugar, dont MEGGA X n'a aucun équivalent.
@@ -398,8 +378,8 @@ function CdReadRow({ label, value, empty, mono, P }: { label: string; value: Rea
  * mesuré au rendu, pas dans le source : c'est la sonde de contraste qui l'a
  * trouvée, la relecture ne l'avait pas vue.
  */
-function CdStatePill({ state, label, P }: { state: FicheLoopItem['state']; label: string; P: FichePal }) {
-  const aplat = P[LOOP_STATE[state].key]
+function CdStatePill({ state, label, P }: { state: EtatBoucle; label: string; P: FichePal }) {
+  const aplat = P[ETAT_BOUCLE[state].key]
   return <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: aplat, color: encreSur(aplat), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>{label}</span>
 }
 
@@ -652,10 +632,10 @@ function CdKycWarn({ P, name, onCancel, onConfirm }: { P: FichePal; name: string
   )
 }
 
-/** Brouillon d'identité = les 6 champs LBA comparés par `hasIdentityChanged`. */
-type NmDraft = ContactIdentity
+/** Brouillon d'identité = les 6 champs LBA comparés par `hasIdentityChanged`, plus les rôles. */
+type NmDraft = FicheIdentite
 
-/** Modale « Modifier l'identité » — 6 champs LBA. Les pays sont des SELECTS sur
+/** Modale « Modifier l'identité » — 6 champs LBA + les rôles. Les pays sont des SELECTS sur
  *  COUNTRIES (la base attend un code ISO alpha-2, pas un libellé libre). */
 function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, onSave }: {
   P: FichePal; dark: boolean; draft: NmDraft; setDraft: (fn: (s: NmDraft) => NmDraft) => void; verified: boolean; error: string | null; onCancel: () => void; onSave: () => void
@@ -724,6 +704,29 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
               listLabel={t('onboarding:wizard.agence.address.listLabel')}
             />
           </div>
+        </div>
+        {/* Les rôles, deux groupes : ce qu'on FAIT avec cette personne, puis qui elle EST.
+            Deux rangées et pas de sur-titre par groupe : l'ordre du vocabulaire suffit à les
+            séparer, et un second niveau de libellé alourdirait une modale déjà dense.
+            ⛔ Aucun rôle n'est obligatoire — un contact sans rôle est un lead, et « lead »
+            n'est pas un rôle : décocher tout est un état légitime, pas une saisie incomplète. */}
+        <div style={{ marginTop: 'var(--crm-space-4xl)' }}>
+          <div style={cdLbl(P)}>{t('fiche.identity.roles')}</div>
+          {([ROLES_TRANSACTION, ROLES_RESEAU] as const).map((liste, i) => (
+            <div key={i} style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap', marginTop: i === 0 ? 8 : 10 }}>
+              {liste.map((r) => (
+                <CdPickChip key={r} on={draft.roles.includes(r)} P={P}
+                  onClick={() => setDraft((s) => ({
+                    ...s,
+                    // Réordonné à chaque ajout : la liste enregistrée suit l'ordre du
+                    // vocabulaire, celui dont dérivent le type et la pastille dominante.
+                    roles: s.roles.includes(r) ? s.roles.filter((x) => x !== r) : rolesOrdonnes([...s.roles, r]),
+                  }))}>
+                  {t(`roles.${r}`)}
+                </CdPickChip>
+              ))}
+            </div>
+          ))}
         </div>
         {verified && (
           <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-start', marginTop: 16, background: P.danger + (dark ? '22' : '14'), borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
@@ -891,6 +894,8 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave, onEditIdentity }: {
 interface CritForm {
   budgetMin: string; budgetMax: string; types: string[]; cantons: string[]
   cities: string; roomsMin: string; areaMin: string; mustHave: string[]
+  /** Lot C — côté DEMANDE seulement : l'offre d'un vendeur ne porte ni l'un ni l'autre. */
+  bedroomsMin: string; conditionMin: EtatMinimum | ''; offMarketOnly: boolean
 }
 
 function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
@@ -898,7 +903,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
 }) {
   const { t } = useTranslation('contacts')
   const isTenant = fiche.isTenant
-  const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
+  // ⛔ PLUS l'audience (étape 3, 22.09.2026) : le bloc suit le côté DEMANDE, pas le côté
+  // marché. Sur l'audience, un contact `{seller, tenant}` (type dérivé `seller`) voyait le
+  // formulaire « ce qu'il propose » pendant que sa saisie partait dans `search_criteria` —
+  // un libellé qui ment, et qui ne se remarque pas, contrairement à un aller-retour cassé.
+  const montreDemande = fiche.coteDemande
   const cr = fiche.crit
   const seed: CritForm = {
     budgetMin: cr.budgetMin != null ? String(cr.budgetMin) : '',
@@ -908,6 +917,9 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
     roomsMin: cr.roomsMin != null ? String(cr.roomsMin) : '',
     areaMin: cr.areaMin != null ? String(cr.areaMin) : '',
     mustHave: [...(cr.mustHave || [])],
+    bedroomsMin: cr.bedroomsMin != null ? String(cr.bedroomsMin) : '',
+    conditionMin: cr.conditionMin ?? '',
+    offMarketOnly: cr.offMarketOnly === true,
   }
   const [v, setV] = useState<CritForm>(seed)
   const [d, setD] = useState<CritForm>(seed)
@@ -931,6 +943,11 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
       roomsMin: d.roomsMin === '' ? null : Number(d.roomsMin),
       areaMin: d.areaMin === '' ? null : Number(d.areaMin),
       mustHave: d.mustHave,
+      ...(montreDemande ? {
+        bedroomsMin: d.bedroomsMin === '' ? null : Number(d.bedroomsMin),
+        conditionMin: d.conditionMin || null,
+        offMarketOnly: d.offMarketOnly,
+      } : {}),
     }
     void onSave(out).then(flashSaved)
   }
@@ -943,7 +960,7 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
-        <CdGrp P={P}>{isSeller ? t('fiche.crit.offers') : t('fiche.crit.wants')}</CdGrp>
+        <CdGrp P={P}>{montreDemande ? t('fiche.crit.wants') : t('fiche.crit.offers')}</CdGrp>
         <div style={{ flex: 1 }} />
         {!editing && <span onClick={start} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('cd.edit')}</span>}
       </div>
@@ -979,6 +996,26 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <div><div style={cdLbl(P)}>{t('fiche.crit.roomsMin')}</div><CdTextInput type="number" value={d.roomsMin} onChange={setF('roomsMin')} placeholder="4" mono P={P} /></div>
             <div><div style={cdLbl(P)}>{t('fiche.crit.areaMinEdit')}</div><CdTextInput type="number" value={d.areaMin} onChange={setF('areaMin')} placeholder="90" mono P={P} /></div>
           </div>
+          {montreDemande && (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
+                <div><div style={cdLbl(P)}>{t('fiche.crit.bedroomsMin')}</div><CdTextInput type="number" value={d.bedroomsMin} onChange={setF('bedroomsMin')} placeholder="3" mono P={P} /></div>
+              </div>
+              <div>
+                <div style={cdLbl(P)}>{t('fiche.crit.condition')}</div>
+                <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+                  <CdPickChip on={d.conditionMin === ''} onClick={() => setD((s) => ({ ...s, conditionMin: '' }))} P={P}>{t('fiche.crit.conditionAny')}</CdPickChip>
+                  {ETATS_MINIMUM.map((e) => (
+                    <CdPickChip key={e} on={d.conditionMin === e} onClick={() => setD((s) => ({ ...s, conditionMin: e }))} P={P}>{t(`fiche.crit.conditions.${e}`)}</CdPickChip>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div style={cdLbl(P)}>{t('fiche.crit.offMarket')}</div>
+                <CdPickChip on={d.offMarketOnly} onClick={() => setD((s) => ({ ...s, offMarketOnly: !s.offMarketOnly }))} P={P}>{t('fiche.crit.offMarketOnly')}</CdPickChip>
+              </div>
+            </>
+          )}
           <div>
             <div style={cdLbl(P)}>{t('fiche.crit.mustHave')}</div>
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
@@ -1009,6 +1046,13 @@ function CdCrit({ P, fiche, editSignal, freezeRef, onSave }: {
             <CdReadRow label={t('fiche.crit.roomsMin')} value={v.roomsMin} empty={!v.roomsMin} mono P={P} />
             <CdReadRow label={t('fiche.crit.areaMin')} value={v.areaMin ? v.areaMin + ' m²' : ''} empty={!v.areaMin} mono P={P} />
           </div>
+          {montreDemande && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
+              <CdReadRow label={t('fiche.crit.bedroomsMin')} value={v.bedroomsMin} empty={!v.bedroomsMin} mono P={P} />
+              <CdReadRow label={t('fiche.crit.condition')} value={v.conditionMin ? t(`fiche.crit.conditions.${v.conditionMin}`) : ''} empty={!v.conditionMin} P={P} />
+              <CdReadRow label={t('fiche.crit.offMarket')} value={t('fiche.crit.offMarketOnly')} empty={!v.offMarketOnly} P={P} />
+            </div>
+          )}
           {/* En lecture, seuls les types RETENUS : les quatre pastilles, trois éteintes,
               faisaient lire une liste d'options au lieu d'un critère. */}
           <div>
@@ -1488,10 +1532,17 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
   onDelete: ContactDetailPagerProps['onDelete']
 }) {
   const { t } = useTranslation('contacts')
-  const ficheIdentity = useCallback((): ContactIdentity => ({
+  // ⚠ Les rôles entrent dans les deps par une CLÉ, pas par le tableau : le parent en
+  // reconstruit un à chaque rendu, et deux tableaux de mêmes rôles ne sont pas le même objet.
+  // En dépendre directement rejouerait la re-synchronisation ci-dessous à chaque rendu du
+  // parent — donc `setIdEdit(false)`, la modale se refermant sous les doigts de l'agent.
+  // `rolesOrdonnes` refiltrant les inconnus, la chaîne vide redonne bien `[]`.
+  const rolesCle = rolesOrdonnes(fiche.roles).join()
+  const ficheIdentity = useCallback((): NmDraft => ({
     firstName: fiche.firstName, lastName: fiche.lastName, birth: fiche.birth,
     nationality: fiche.nationality, residence: fiche.residence, homeAddress: fiche.homeAddress,
-  }), [fiche.firstName, fiche.lastName, fiche.birth, fiche.nationality, fiche.residence, fiche.homeAddress])
+    roles: rolesOrdonnes(rolesCle.split(',')),
+  }), [fiche.firstName, fiche.lastName, fiche.birth, fiche.nationality, fiche.residence, fiche.homeAddress, rolesCle])
   const [nm, setNm] = useState<NmDraft>(ficheIdentity)
   const [nmDraft, setNmDraft] = useState<NmDraft>(ficheIdentity)
   const [verified, setVerified] = useState(fiche.verified)
@@ -1547,10 +1598,11 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 
   const applyId = async (invalidate: boolean) => {
     setIdErr(null)
-    const next: ContactIdentity = {
+    const next: NmDraft = {
       firstName: nmDraft.firstName.trim(), lastName: nmDraft.lastName.trim(),
       birth: nmDraft.birth.trim(), nationality: nmDraft.nationality.trim(),
       residence: nmDraft.residence.trim(), homeAddress: nmDraft.homeAddress.trim(),
+      roles: rolesOrdonnes(nmDraft.roles),
     }
     // Invalider AVANT d'écrire. Les deux appels sont deux requêtes réseau distinctes,
     // sans transaction : si l'écriture passait d'abord et que l'invalidation échouait,
@@ -1565,8 +1617,15 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
   // Les 6 champs LBA déclenchent l'avertissement, pas seulement prénom/nom : changer
   // la nationalité ou la date de naissance change l'identité vérifiée (cf. contactIdentity).
   const requestSaveId = () => {
-    if (!hasIdentityChanged(nm, nmDraft)) { setIdEdit(false); return }
-    if (verified) setKycWarn(true)
+    const identiteChangee = hasIdentityChanged(nm, nmDraft)
+    // ⚠ Les rôles s'éditent dans cette modale, mais ils ne sont PAS l'identité LBA. Deux
+    // conséquences, et elles tirent en sens inverse : (1) un changement de rôles SEUL doit
+    // quand même s'enregistrer — sans ce second test, décocher « Vendeur » refermait la
+    // modale sans rien écrire ; (2) il ne déclenche PAS l'avertissement KYC, qui rouvre un
+    // dossier vérifié : ce que le screening a contrôlé, ce sont les six champs.
+    // Les deux listes sortent de `rolesOrdonnes`, donc leur concaténation se compare.
+    if (!identiteChangee && nm.roles.join() === nmDraft.roles.join()) { setIdEdit(false); return }
+    if (identiteChangee && verified) setKycWarn(true)
     else runApplyId(false)
   }
 
@@ -1586,7 +1645,10 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 
   // CTA principal orienté par le côté marché du contact (pas d'invention de route).
   const isSeller = fiche.audience === 'Vendeur' || fiche.audience === 'Bailleur'
-  const audienceKey = isSeller ? 'seller' : fiche.audience === 'Locataire' ? 'tenant' : 'buyer'
+  // Étape 3 : l'en-tête montre TOUS les rôles, donc `audienceKey` — la clé de la pastille
+  // unique — n'a plus de lecteur. `audience` reste, elle, pour le CTA et le budget.
+  const rolesEntete = rolesOrdonnes(fiche.roles)
+  const roleFort = roleDominant(rolesEntete)
   // Le bouton ouvre le WhatsApp de L'AGENT, depuis son téléphone : aucun consentement
   // plateforme ne le gouverne (Julien, 16.09.2026). Éteint seulement sans numéro.
   const waOff = !fiche.phone
@@ -1673,8 +1735,26 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
                 ⛔ La « Prochaine action » (NBA) qui les suivait a été RETIRÉE de la fiche
                 (Julien, 16.09.2026) ; le calcul reste en base (`get_contact_next_action`). */}
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-2xl)', rowGap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
-            {/* Même pastille que la liste : le type se reconnaît d'un écran à l'autre. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: CTP_FN[audienceKey], color: encreSur(CTP_FN[audienceKey]), fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{t(`contactType.${audienceKey}`)}</span>
+            {/* Mêmes pastilles que la liste : les rôles se reconnaissent d'un écran à l'autre.
+                Le dominant est PEINT, les autres sourds — filet et encre `P.muted`. Un rôle
+                sans teinte (`CTP_FN` n'en porte que trois : acquéreur, vendeur, locataire)
+                reste sourd même dominant — on n'en invente pas une quatrième pour l'occasion.
+                ⛔ Un contact SANS rôle n'affiche aucune pastille — « lead » n'est pas un
+                rôle, et inventer `roles.lead` ferait entrer un stade dans le vocabulaire. */}
+            {rolesEntete.map((r) => {
+              const teinte: string | undefined = (CTP_FN as Record<string, string>)[r]
+              const peint = r === roleFort && !!teinte
+              return (
+                <span key={r} style={{
+                  display: 'inline-flex', alignItems: 'center', height: 20, padding: '0 var(--crm-space-md)',
+                  borderRadius: 'var(--crm-radius-pill)',
+                  background: peint ? teinte : 'transparent',
+                  color: peint && teinte ? encreSur(teinte) : P.muted,
+                  border: peint ? '0' : `1px solid ${P.sp.cardBorder}`,
+                  fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+                }}>{t(`roles.${r}`)}</span>
+              )
+            })}
             {budgetEntete && (
               <CdEssentiel P={P} icone="wallet" couleur={P.ink}>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>{budgetEntete.montant}</span>
@@ -1706,161 +1786,46 @@ function CdInfos({ P, dark, fiche, freezeRef, onBack, onOpenKyc, onEmail, onOpen
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-//   LIENS DE RÉCEPTION — voir ce qui a été envoyé, et le retirer
-// ═══════════════════════════════════════════════════════════════════════
-/**
- * Confirmation avant retrait. Elle est obligatoire parce que le geste est
- * irréversible DU CÔTÉ DE L'ACHETEUR : il perd l'accès à la sélection qu'on lui a
- * transmise, et seul un nouveau lien peut le lui rendre.
- */
-function CdRevokeLinkModal({ P, dark, link, busy, error, onCancel, onConfirm }: {
-  P: FichePal; dark: boolean; link: FicheReceptionLink; busy: boolean; error: string | null; onCancel: () => void; onConfirm: () => void
-}) {
-  const { t } = useTranslation('contacts')
-  const modalBg = P.sp.solidBg
-  const refPiege = useFocusTrap(true, onCancel)
-  return createPortal(
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center', background: 'rgba(0,0,0,0.48)', backdropFilter: 'blur(2px)', animation: 'cdpFade .18s ease', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif' }}>
-      <div ref={refPiege} role="dialog" aria-modal="true" aria-label={t('fiche.links.confirm.title')}
-        style={{ width: 440, background: modalBg, borderRadius: 'var(--crm-radius-5xl)', boxShadow: '0 40px 100px rgba(0,0,0,0.42), 0 8px 24px rgba(0,0,0,0.2)', padding: '28px 30px 24px', animation: 'cdpRise .3s cubic-bezier(.2,.8,.2,1)' }}>
-        <span style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)', background: P.danger + (dark ? '22' : '14'), display: 'grid', placeItems: 'center' }}>
-          <FcpIcon name="shield" size={20} stroke={P.danger} sw={2} />
-        </span>
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.4, color: P.ink, marginTop: 16 }}>{t('fiche.links.confirm.title')}</div>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 10 }}>
-          {t('fiche.links.confirm.body', { count: link.count })}
-        </div>
-        {error && (
-          <div role="alert" style={{ marginTop: 16, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger, lineHeight: 1.45 }}>{error}</div>
-        )}
-        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 22 }}>
-          <button onClick={onCancel} style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.sub, color: P.inkSoft }}>{t('cd.cancel')}</button>
-          <button onClick={busy ? undefined : onConfirm} disabled={busy}
-            style={{ flex: 1, height: 44, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: busy ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: P.danger, color: encreSur(P.danger), opacity: busy ? 0.55 : 1 }}>
-            {busy ? t('fiche.links.confirm.busy') : t('fiche.links.confirm.cta')}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  )
-}
-
-/**
- * Liste des liens émis pour ce contact, avec retrait des liens encore ouverts.
- * Vit à côté des « Biens transmis » : c'est le même geste vu de l'autre bout,
- * ce que l'acheteur peut encore ouvrir.
- */
-function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
-  P: FichePal
-  dark: boolean
-  links: ContactDetailPagerProps['links']
-  freezeRef: MutableRefObject<number>
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
-}) {
-  const { t } = useTranslation('contacts')
-  const [target, setTarget] = useState<FicheReceptionLink | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  // La modale ouverte doit geler le pager, sinon la molette change de page dessous.
-  useFreeze(freezeRef, !!target)
-
-  const close = () => { setTarget(null); setBusy(false); setError(null) }
-  const confirm = async () => {
-    if (!target || busy) return
-    setBusy(true)
-    setError(null)
-    const verdict = await onRevokeLink(target.id)
-    if (verdict === 'ok') { close(); return }
-    setBusy(false)
-    // Un refus veut dire que notre liste était périmée (le lien a déjà été retiré
-    // ailleurs) ; une panne veut dire qu'il faut réessayer. Deux phrases, pas une.
-    setError(verdict === 'refused' ? t('fiche.links.confirm.refused') : t('fiche.links.confirm.failed'))
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      <CdGrp P={P}>{t('fiche.links.title', { count: links.items.length })}</CdGrp>
-      {links.isLoading ? (
-        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.loading')}</div>
-      ) : links.failed ? (
-        <div role="alert" style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
-      ) : links.items.length === 0 ? (
-        <EtatVide dark={dark} titre={t('fiche.links.empty')} />
-      ) : links.items.map((l, i) => {
-        const state = l.status ? LINK_STATE[l.status] : null
-        const channel = l.channel === 'whatsapp' ? t('fiche.links.channel.whatsapp')
-          : l.channel === 'link' ? t('fiche.links.channel.link')
-            : null
-        return (
-          <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: l.active ? 1 : 0.6, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-            <span style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', background: P.sub, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <FcpIcon name={l.channel === 'whatsapp' ? 'msg' : 'ext'} size={14} stroke={P.inkSoft} />
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>
-                {t('fiche.links.selection', { count: l.count })}{channel ? ` · ${channel}` : ''}
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
-                {t('fiche.links.sentOn', { date: cdDay(l.createdAt) })}
-                {' · '}
-                {/* Sur un lien coupé, la date qui compte est celle de la coupure,
-                    pas une échéance que le lien n'atteindra jamais. */}
-                {l.revokedAt
-                  ? t('fiche.links.revokedOn', { date: cdDay(l.revokedAt) })
-                  : t('fiche.links.expiresOn', { date: cdDay(l.expiresAt) })}
-              </div>
-            </div>
-            {/* ⚠ Même règle que CdStatePill : l'encre suit l'aplat. « Échu »,
-                « Retiré » et « Statut inconnu » partagent `ghost`, mesuré à
-                1,95:1 sous le blanc figé d'avant. */}
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: state ? P[state.key] : P.ghost, color: encreSur(state ? P[state.key] : P.ghost), fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2, whiteSpace: 'nowrap' }}>
-              {state ? t(state.labelK) : t('fiche.links.status.unknown')}
-            </span>
-            {l.active && (
-              <CdCta small tone="ghost" P={P} onClick={() => setTarget(l)}>{t('fiche.links.revoke')}</CdCta>
-            )}
-          </div>
-        )
-      })}
-      {target && (
-        <CdRevokeLinkModal P={P} dark={dark} link={target} busy={busy} error={error} onCancel={close} onConfirm={() => { void confirm() }} />
-      )}
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════════
 //   PAGE 1 — BOUCLE DE MATCH
 // ═══════════════════════════════════════════════════════════════════════
-function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, onProposeVisit, onRevokeLink }: {
+/**
+ * Le filet d'une carte posée sur une colonne de la boucle. En sombre, carte et colonne ont la même teinte : la
+ * séparation vient du filet SEUL (CLAUDE.md §3). Un anneau sans flou, pas une ombre portée — l'idiome de
+ * `CdNoteAvatar`. ⚠ Pas `P.shadowSm` : en sombre il vaut `inset …, none`, que le navigateur rejette.
+ */
+const cdFiletCarte = (P: FichePal): string => `inset 0 0 0 1px ${P.hairline}`
+
+/**
+ * La boucle d'un acheteur (lot D1, conception §6) : ce que l'agent lui a proposé, la réponse consignée, les biens
+ * revenus et la correction de recherche en attente. Une surface MONTRE et ORIENTE ; le fil agit — chaque bien ouvre sa
+ * place dans le fil, et aucun geste n'est recopié ici. ⛔ « Plus tard » et « Ignorer » sont retirés : ils masquaient une
+ * ligne jusqu'au rechargement, sans rien écrire. ⛔ Rien ne part vers l'acheteur (21.09.2026).
+ * ⚠ En lecture ou en échec, la boucle est INCONNUE, pas vide (`lecture`) : ni « Aucun bien proposé », ni zéro.
+ */
+function CdBoucle({ P, dark, loop, lecture, firstName, onOpenMatching, onOuvrirFil, onReessayer }: {
   P: FichePal
   dark: boolean
-  loop: ContactDetailPagerProps['loop']
-  links: ContactDetailPagerProps['links']
+  loop: SaBoucle
+  lecture: ContactDetailPagerProps['lectureBoucle']
   firstName: string
-  freezeRef: MutableRefObject<number>
   onOpenMatching: () => void
-  onProposeVisit: (matchId: string) => void
-  onRevokeLink: (linkId: string) => Promise<FicheRevokeResult>
+  onOuvrirFil: (requete: string) => void
+  onReessayer: () => void
 }) {
   const { t } = useTranslation('contacts')
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
-  const hide = (id: string) => setHidden((s) => { const n = new Set(s); n.add(id); return n })
-  const pending = loop.pendingLikes.filter((p) => !hidden.has(p.matchId))
-  // Un lien émis suffit à sortir de l'écran d'invitation : sinon un lien encore
-  // ouvert (dont les matches ont disparu) n'aurait plus AUCUN endroit d'où le retirer.
-  // Une lecture des liens en ÉCHEC compte pareil : sans ce test, un contact sans
-  // dossier verrait l'invitation à transmettre, et l'erreur de chargement (portée par
-  // la section « Liens de réception ») serait remplacée par elle. Un défaut de lecture
-  // se lirait alors comme « aucun lien », sur la seule surface qui permet d'en couper un.
-  const totallyEmpty = loop.pendingLikes.length === 0 && loop.items.length === 0
-    && links.items.length === 0 && !links.failed
+  const { t: tm } = useTranslation('matching')
+  const pret = lecture === 'pret'
+  const totallyEmpty = loop.biens.length === 0
+  const aTraiter = loop.aTraiter.length + loop.corrections.length
+  const titreDe = (b: BienBoucle) => b.m.bien.titre || t('loop.bienSansTitre')
 
-  const counters: { v: number; l: string; liked?: boolean }[] = [
-    { v: loop.transmitted, l: t('loop.pillSent') },
-    { v: loop.opened, l: t('fiche.loop.opened') },
-    { v: loop.pendingLikes.length, l: t('loop.pillLiked'), liked: true },
+  // Un compte lu accorde son intitulé (« 1 Proposé », « 5 Proposés ») ; un compte INCONNU s'écrit « — » sous
+  // l'intitulé au pluriel : une catégorie, pas une quantité.
+  const compteur = (cle: string, n: number) => ({ v: pret ? String(n) : '—', l: pret ? t(cle, { count: n }) : t(`${cle}_other`) })
+  const counters: { v: string; l: string; liked?: boolean }[] = [
+    compteur('loop.compteurs.proposes', loop.compteurs.proposes),
+    { ...compteur('loop.compteurs.interesses', loop.compteurs.interesses), liked: true },
+    compteur('loop.compteurs.refuses', loop.compteurs.refuses),
   ]
 
   return (
@@ -1872,14 +1837,28 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: !pret ? P.muted : c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}
       </header>
 
-      {totallyEmpty ? (
-        // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
+      {lecture === 'chargement' ? (
+        // En lecture : une ligne neutre, rien qui ressemble à un résultat.
+        <div role="status" style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted }}>{t('loading')}</div>
+      ) : lecture === 'erreur' ? (
+        // En échec : on n'a PAS PU savoir. Un verdict, et le geste qui relit.
+        <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
+          <EtatVide
+            dark={dark}
+            registre="erreur"
+            titre={t('pager.error.title')}
+            corps={t('cd.error.message')}
+            action={{ libelle: t('cd.error.retry'), onClick: onReessayer }}
+          />
+        </div>
+      ) : totallyEmpty ? (
+        // Boucle jamais démarrée → invitation à proposer, pas un cul-de-sac gris.
         <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
           <EtatVide
             dark={dark}
@@ -1891,60 +1870,41 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
         </div>
       ) : (
         <div className="cdp-cols cdp-cols-2">
-          {/* À traiter */}
+          {/* À traiter : les intéressés, les biens revenus, la correction de recherche en attente */}
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
-            <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: pending.length })}</CdGrp>
-            {pending.length === 0 ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)' }}>
+            <CdGrp P={P}>{t('fiche.loop.toHandleCount', { count: aTraiter })}</CdGrp>
+            {aTraiter === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-2xl)', boxShadow: cdFiletCarte(P) }}>
                 <FcpIcon name="check" size={16} stroke={P.ok} />
                 <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.inkSoft }}>{t('fiche.loop.nothingToHandle')}</div>
               </div>
-            ) : pending.map((p) => (
-              <div key={p.matchId} style={{ background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
-                  <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: 'rgba(5,150,105,0.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FcpIcon name="heart" size={15} stroke={P.ok} fill={P.ok} sw={1.5} /></span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>{t('loop.likedTitle', { title: p.title })}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
-                  <CdCta small P={P} onClick={() => onProposeVisit(p.matchId)}>{t('loop.proposeVisit')}</CdCta>
-                  <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('loop.later')}</CdCta>
-                  <CdCta small tone="ghost" P={P} onClick={() => hide(p.matchId)}>{t('fiche.loop.ignore')}</CdCta>
-                </div>
-              </div>
-            ))}
+            ) : (
+              <>
+                {loop.aTraiter.map((b) => (
+                  <CdATraiter key={b.m.id} P={P} icone={b.etat === 'interesse' ? 'heart' : 'send'}
+                    titre={b.etat === 'interesse' ? t('loop.aTraiter.interesse', { titre: titreDe(b) }) : titreDe(b)}
+                    detail={b.etat === 'revenu' ? texteSignal(b.m, tm) ?? t('loop.detail.revenu') : null}
+                    action={b.lien ? { libelle: b.etat === 'interesse' ? t('loop.proposeVisit') : t('loop.aTraiter.ouvrir'), faire: () => onOuvrirFil(b.lien!) } : null} />
+                ))}
+                {loop.corrections.map(({ c, lien }) => (
+                  <CdATraiter key={c.cle} P={P} icone="pencil"
+                    titre={t('loop.correction.titre', { motif: tm(`fil.motifs.${c.motif}`) })}
+                    detail={t('loop.correction.detail', { count: c.refus.length })}
+                    action={{ libelle: t('loop.correction.voir'), faire: () => onOuvrirFil(lien) }} />
+                ))}
+              </>
+            )}
           </section>
 
-          {/* Ce qui est parti chez l'acheteur : les biens, puis les liens qui les ouvrent */}
+          {/* Ce que l'agent a proposé, et la réponse qu'il a consignée */}
           <section className="cdp-col" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-4xl)' }}>
-            {/* Biens transmis — état par bien */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
-                <CdGrp P={P}>{t('fiche.loop.transmittedCount', { count: loop.items.length })}</CdGrp>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--crm-space-sm)' }}>
+                <CdGrp P={P}>{t('fiche.loop.propertiesCount', { count: loop.biens.length })}</CdGrp>
                 <div style={{ flex: 1 }} />
-                <span onClick={onOpenMatching} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
+                <button type="button" onClick={onOpenMatching} style={{ border: 0, background: 'transparent', padding: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</button>
               </div>
-              {loop.items.length === 0 ? (
-                <EtatVide dark={dark} titre={t('loop.empty')} />
-              ) : loop.items.map((m, i) => {
-                const out = m.state === 'dismissed'
-                return (
-                  <div key={m.matchId} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', opacity: out ? 0.55 : 1, borderTop: i > 0 ? `1px solid ${P.hairline}` : '0' }}>
-                    {m.photo
-                      ? <img src={m.photo} alt="" style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', objectFit: 'cover', flexShrink: 0, filter: out ? 'grayscale(.6)' : 'none' }} />
-                      : <div style={{ width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></div>}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</div>
-                    </div>
-                    <CdStatePill state={m.state} label={t(LOOP_STATE[m.state].labelK)} P={P} />
-                  </div>
-                )
-              })}
-            </div>
-
-            <div style={{ paddingTop: 'var(--crm-space-4xl)', borderTop: `1px solid ${P.hairline}` }}>
-              <CdLinks P={P} dark={dark} links={links} freezeRef={freezeRef} onRevokeLink={onRevokeLink} />
+              {loop.biens.map((b, i) => <CdBienBoucle key={b.m.id} P={P} b={b} premier={i === 0} titre={titreDe(b)} onOuvrirFil={onOuvrirFil} />)}
             </div>
           </section>
         </div>
@@ -1953,11 +1913,103 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
   )
 }
 
+/** Une ligne « À traiter » : ce qui attend l'agent, et le geste qui l'ouvre dans le fil. */
+function CdATraiter({ P, icone, titre, detail, action }: {
+  P: FichePal; icone: string; titre: string; detail: string | null; action: { libelle: string; faire: () => void } | null
+}) {
+  const coeur = icone === 'heart'
+  return (
+    <div style={{ background: P.sub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', boxShadow: cdFiletCarte(P) }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+        <span style={{ width: 34, height: 34, borderRadius: 'var(--crm-radius-pill)', background: P.card, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+          <FcpIcon name={icone} size={15} stroke={coeur ? P.ok : P.inkSoft} fill={coeur ? P.ok : 'none'} sw={1.5} />
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: P.ink }}>{titre}</div>
+          {detail && <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted }}>{detail}</div>}
+        </div>
+      </div>
+      {action && <div style={{ display: 'flex' }}><CdCta small P={P} onClick={action.faire}>{action.libelle}</CdCta></div>}
+    </div>
+  )
+}
+
+/**
+ * Un bien proposé : son état, ce qui s'est passé et quand — la date et le prix d'une proposition, le motif LIBELLÉ et la
+ * note d'un refus, le texte du fil pour un bien revenu ou en baisse depuis —, et, s'il a encore une place dans le fil,
+ * le geste qui l'y ouvre (toute la ligne).
+ * ⚠ La ligne cliquable est un `<button>`, qui n'admet que du contenu de phrase : des `<span>` en bloc, jamais des
+ * `<div>` (comme `FilListe`).
+ */
+function CdBienBoucle({ P, b, premier, titre, onOuvrirFil }: {
+  P: FichePal; b: BienBoucle; premier: boolean; titre: string; onOuvrirFil: (requete: string) => void
+}) {
+  const { t } = useTranslation('contacts')
+  const { t: tm } = useTranslation('matching')
+  const s = b.m.suivi
+  const horsJeu = b.etat === 'refuse'
+  const prix = s?.prixPropose != null ? montant(b.m.bien.location, s.prixPropose, tm) : null
+  const motif = cleMotif(s?.motif)
+  const pastille = t(ETAT_BOUCLE[b.etat].labelK)
+  // Ce que la ligne AJOUTE à sa pastille : une date, un prix, un motif, le texte du fil. Rien pour une visite planifiée,
+  // ni pour une proposition, un intérêt ou un refus sans date ni motif — la pastille dit déjà tout.
+  const detail = b.etat === 'propose'
+    ? (!s?.proposeLe ? null
+      : prix ? t('loop.detail.propose', { date: dateCourte(s.proposeLe), prix })
+        : t('loop.detail.proposeSansPrix', { date: dateCourte(s.proposeLe) }))
+    : b.etat === 'interesse' ? (s?.reponduLe ? t('loop.detail.interesse', { date: dateCourte(s.reponduLe) }) : null)
+      : b.etat === 'refuse' ? (motif ? t('loop.detail.refuse', { motif: tm(motif) }) : null)
+        : b.etat === 'revenu' ? texteSignal(b.m, tm) ?? t('loop.detail.revenu')
+          : null
+  // La baisse depuis la proposition, sur un bien encore sans réponse : le texte du fil.
+  const signal = b.etat === 'propose' ? texteSignal(b.m, tm) : null
+  // Les quatre côtés, un à un : un `<button>` porte une bordure d'agent utilisateur, et un raccourci `border` mêlé à
+  // `borderTop` faisait dépendre le filet de l'ordre des clés (mesuré au banc : effacé sur trois lignes cliquables).
+  const ligne: CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)',
+    borderTop: premier ? 0 : `1px solid ${P.hairline}`, borderRight: 0, borderBottom: 0, borderLeft: 0,
+  }
+  // Détail, signal et note passent à la ligne : coupé, un montant ne se lit plus, et une note va jusqu'à 500 caractères.
+  // Seul le titre garde l'ellipse.
+  const petit: CSSProperties = {
+    display: 'block', marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted,
+    whiteSpace: 'normal', overflowWrap: 'anywhere',
+  }
+  // Hors jeu, seules la vignette et l'encre du titre s'effacent : une opacité sur toute la ligne faisait tomber le motif
+  // et la note à 2,27:1. `P.muted` tient l'AA, et la pastille « ghost » dit déjà que le bien est sorti.
+  const vignette: CSSProperties = { width: 44, height: 44, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, opacity: horsJeu ? 0.55 : 1 }
+  const contenu = (
+    <>
+      {b.m.bien.photo
+        ? <img src={b.m.bien.photo} alt="" style={{ ...vignette, objectFit: 'cover', filter: horsJeu ? 'grayscale(.6)' : 'none' }} />
+        : <span style={{ ...vignette, background: P.sub, display: 'grid', placeItems: 'center' }}><FcpIcon name="home" size={16} stroke={P.ghost} /></span>}
+      <span style={{ display: 'block', flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: horsJeu ? P.muted : P.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{titre}</span>
+        {/* Un détail qui redirait la pastille ne s'écrit pas, quelle que soit la langue. */}
+        {detail && detail !== pastille && <span style={petit}>{detail}</span>}
+        {signal && <span style={{ ...petit, fontWeight: 600, color: P.ink }}>{signal}</span>}
+        {/* La note de l'agent est une DONNÉE consignée, lue telle quelle. */}
+        {horsJeu && s?.note && <span style={petit}>{t('loop.note', { note: s.note })}</span>}
+      </span>
+      <CdStatePill state={b.etat} label={pastille} P={P} />
+    </>
+  )
+  if (!b.lien) return <div style={ligne}>{contenu}</div>
+  const lien = b.lien
+  // `cdp-bien` porte le survol des lignes cliquables, posé par le pager sur `focusSurface`.
+  return (
+    <button type="button" className="cdp-bien" onClick={() => onOuvrirFil(lien)}
+      style={{ ...ligne, width: '100%', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer', color: 'inherit' }}>
+      {contenu}
+    </button>
+  )
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink } = props
+  const { fiche, loop, lectureBoucle, onReessayer, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, noteThread, onAddNote, onUpdateNote, onDeleteNote, onDelete, onOpenKyc, onEmail, onOpenMatching, onOpenListings, onOuvrirFil } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -2081,6 +2133,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
         .cdp-col:first-child { border-left: 0; }
         .cdp-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .cdp-joindre:not(:disabled):hover { color: ${P.ink} !important; box-shadow: inset 0 0 0 1px ${P.hairline}; }
+        /* Le survol d'un bien de « Sa boucle » qui ouvre sa place dans le fil : un ÉTAT, sur \`focusSurface\`. */
+        .cdp-bien:hover { background: ${sp.focusSurface} !important; }
         /* Modifier / Supprimer d'une note : au survol ou au clavier, et toujours sur écran tactile. */
         .cdp-note-actions { opacity: 0; transition: opacity 120ms ease; }
         .cdp-note:hover .cdp-note-actions, .cdp-note:focus-within .cdp-note-actions { opacity: 1; }
@@ -2098,8 +2152,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
               onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} noteThread={noteThread} onAddNote={onAddNote} onUpdateNote={onUpdateNote} onDeleteNote={onDeleteNote} onDelete={onDelete} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
-            <CdBoucle P={P} dark={dark} loop={loop} links={links} firstName={fiche.firstName} freezeRef={freezeRef}
-              onOpenMatching={onOpenMatching} onProposeVisit={onProposeVisit} onRevokeLink={onRevokeLink} />
+            <CdBoucle P={P} dark={dark} loop={loop} lecture={lectureBoucle} firstName={fiche.firstName}
+              onOpenMatching={onOpenMatching} onOuvrirFil={onOuvrirFil} onReessayer={onReessayer} />
           </div>
         </div>
         <CdDots page={page} onGo={goTo} P={P} labels={pageLabels} />

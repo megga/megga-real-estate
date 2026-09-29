@@ -1,6 +1,7 @@
 /**
- * Fixtures de la FACE PUBLIQUE — les trois surfaces qu'un client ouvre sans
- * compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`.
+ * Fixtures de la FACE PUBLIQUE — les surfaces qu'un client ouvre sans compte :
+ * `/kyc/:token`, `/rendez-vous/:token`, les deux pages de visite et
+ * `/accept-invite/:token`.
  *
  * ⛔ ELLES SONT DONNÉES À L'INTERCEPTEUR PAR `contrat.edges`, PAS PAR `tables`.
  * Ces écrans ne lisent RIEN de PostgREST : leur contenu entier vient d'une edge
@@ -19,7 +20,6 @@
  */
 import type { MagicLinkPublicView, MagicLinkSubmittedView } from '@/types/magicLink'
 import type { PublicAppointment, SlotsView } from '@/hooks/useAppointmentBooking'
-import type { ReceptionBien } from '@/hooks/useBuyerReception'
 
 /** Les états qu'on fait jouer aux surfaces. */
 export type PublicEtat = 'nominal' | 'termine' | 'expire'
@@ -94,47 +94,11 @@ export function apptCreneaux(): SlotsView {
   }
 }
 
-/* ─── `/reception/:token` — buyer-reception-get ──────────────────────────────── */
-
-const bien = (i: number, status: string): ReceptionBien => ({
-  match_id: `demo-${i}`,
-  status,
-  reaction_motif: null,
-  title: `Bien de démonstration ${i}`,
-  quartier: 'Quartier démo',
-  addr: 'Adresse de démonstration',
-  transaction: 'vente',
-  price: 1_000_000 * i,
-  rent: null,
-  rooms: 3 + i,
-  area: 80 + 20 * i,
-  floor: i,
-  year: 2000,
-  charges: null,
-  price_per_m2: null,
-  features: ['Caractéristique démo A', 'Caractéristique démo B'],
-  desc: 'Description de démonstration.',
-  photos: [],
-})
-
-export function receptionVue(etat: PublicEtat) {
-  if (etat === 'expire') return { ok: false as const, reason: 'expired' as const, contact: { firstName: 'Démo' }, agent: null, items: [] }
-  return {
-    ok: true as const,
-    contact: { firstName: 'Démo' },
-    agent: { name: 'Agent Démo', phone: null, avatar: null, agency: 'Agence Démo' },
-    // « Terminé » = tout est traité : c'est l'écran de fin, pas une liste vide.
-    items: etat === 'termine'
-      ? [bien(1, 'interested'), bien(2, 'rejected'), bien(3, 'interested')]
-      : [bien(1, 'sent'), bien(2, 'sent'), bien(3, 'sent')],
-  }
-}
-
 /* ─── `/visit/:id/edit` et `/visit/:id/feedback` — RPC `get_visit_by_token` ──── */
 
 /**
  * ⛔ CES DEUX-LÀ NE PASSENT PAS PAR UNE EDGE FUNCTION, mais par une RPC — et
- * c'est ce qui les distinguait des trois premières surfaces du banc. La lecture
+ * c'est ce qui les distingue des deux premières surfaces du banc. La lecture
  * directe de `visits` a été retirée en juillet 2026 (une policy anon
  * `manage_token IS NOT NULL` exposait TOUTES les visites) ; il ne reste que
  * `get_visit_by_token`, SECURITY DEFINER. La fixture se pose donc dans

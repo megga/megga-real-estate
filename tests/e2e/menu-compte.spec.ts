@@ -14,6 +14,7 @@
  * erreurs avec elle.
  */
 import { test, expect, type Page } from '@playwright/test'
+import { attendreRideauLeve } from './helpers/rideau'
 
 interface Coin { top: number; right: number; rayon: string }
 
@@ -52,6 +53,8 @@ for (const [ecran, chemin] of [['Aujourd’hui', '/dashboard'], ['Calendrier', '
     await page.goto(`/dev/crm?entree=${encodeURIComponent(chemin)}`)
     const pastille = page.getByRole('button', { name: 'Mon compte' }).first()
     await pastille.waitFor({ timeout: 30_000 })
+    // L'oracle du cadre passe par `elementFromPoint` : sous le rideau, il rendait le rideau.
+    await attendreRideauLeve(page)
 
     const cadre = await coinDuCadre(page)
     await pastille.click()

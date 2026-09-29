@@ -54,14 +54,14 @@ export interface Reminder {
 
 // ── Label mappings ─────────────────────────────────────────────────────────
 const REMINDER_TYPE_TITLES: Record<string, string> = {
-  follow_up_sent_property: 'Relance envoi de bien',
+  follow_up_sent_property: 'Retour sur un bien proposé',
   post_visit_feedback: 'Feedback post-visite',
   dormant_lead: 'Lead dormant',
   missing_document: 'Document manquant',
   price_change: 'Changement de prix',
   custom: 'Relance personnalisée',
   deal_stagnant: 'Dossier à faire avancer',
-  match_ignored: 'Correspondance à envoyer',
+  match_ignored: 'Correspondance à proposer',
 }
 
 // ── DB row types ───────────────────────────────────────────────────────────
@@ -151,7 +151,10 @@ export function useReminders() {
   // gone. action-board components share the same table, so they invalidate
   // automatically too.
   const updateReminder = useUpdateMutation(supabase.from('reminders'), ['id'])
-  const insertReminder = useInsertMutation(supabase.from('reminders'), ['id'])
+  // La requête `'id'` : sans elle, cache-helpers ne rend rien à l'appelant, et `createReminder`
+  // rendait `undefined` — personne ne le lisait encore au 28.09.2026, mais un retour qui ment
+  // finit toujours par être lu (cf. `useCreateTransaction`).
+  const insertReminder = useInsertMutation(supabase.from('reminders'), ['id'], 'id')
 
   /**
    * Create a custom reminder from the Calendar dialog (meeting / reminder /

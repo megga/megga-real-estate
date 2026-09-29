@@ -5,6 +5,8 @@
 // / locataire dérivé d'un `client_searches` actif (source réelle du modèle
 // acheteur — PAS `contacts.search_criteria`, quasi vide en prod).
 
+import { joursEntre } from './pige'
+
 export type MrhTransaction = 'vente' | 'location'
 
 /** Type de bien (enum interne market_listings) → libellé FR d'affichage. */
@@ -68,6 +70,10 @@ export interface MrhBien {
   agency_phone: string | null
   agency_logo_url: string | null
   days_on_market: number | null
+  /** Première publication observée (`first_seen_at`, gelée par la collecte) : c'est elle qui date l'annonce. */
+  enLigneDepuis: string | null
+  /** Retrait constaté par le CRM (`removed_at`) ; `null` si l'annonce vit, ou fut retirée avant la pige. */
+  retireeLe: string | null
   /** libellé relatif « il y a 3 j » (première détection) */
   postedAt: string
   /** rang de fraîcheur pour le tri « Récents » (plus petit = plus récent) */
@@ -209,7 +215,12 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
   const addr = [row.address, [row.postal_code, row.city].filter(Boolean).join(' ')]
     .filter(Boolean)
     .join(', ')
-  const dom = num(row.days_on_market)
+  const enLigneDepuis = typeof row.first_seen_at === 'string' ? row.first_seen_at : null
+  const retireeLe = typeof row.removed_at === 'string' ? row.removed_at : null
+  // ⛔ `days_on_market` NE SE LIT PLUS EN PREMIER : RealAdvisor ne l'écrit jamais (0 sur les 48 078 ventes
+  // vivantes le 21.09.2026), et toute vente s'affichait « aujourd'hui ». `first_seen_at`, gelé à la
+  // publication par la collecte, dit l'âge ; la colonne ne reste que le repli d'une ligne qui ne le porte pas.
+  const dom = joursEntre(enLigneDepuis, retireeLe ?? Date.now()) ?? num(row.days_on_market)
   return {
     id: String(row.id),
     title: String(row.title ?? 'Annonce'),
@@ -255,6 +266,8 @@ export function mapListingRow(row: Record<string, unknown>): MrhBien {
     agency_logo_url:
       (row.agency_logo_url as string | null) ?? embeddedLogoUrl(row.agency_profile),
     days_on_market: dom,
+    enLigneDepuis,
+    retireeLe,
     postedAt: relativeDays(dom),
     postedRank: dom == null ? 9999 : dom,
     photos,

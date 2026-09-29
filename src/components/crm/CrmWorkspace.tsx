@@ -8,9 +8,9 @@
  * RANGÉE flex : un frère y devient une colonne, pas une bande).
  *
  * ── POURQUOI PAS DANS LE `<main>`, ET C'EST MESURÉ ───────────────────────────
- * Sept surfaces capturent la molette sur leur cadre bento en `passive: false`
- * avec un `preventDefault()` inconditionnel (TodayPage, MatchingPage,
- * PipelinePage, BiensPager, KycPagerFrame, ContactsPager, ContactDetailPager) :
+ * Six surfaces capturent la molette sur leur cadre bento en `passive: false`
+ * avec un `preventDefault()` inconditionnel (MatchingPage, PipelinePage,
+ * BiensPager, KycPagerFrame, ContactsPager, ContactDetailPager) :
  * le handler remonte de `e.target` jusqu'au cadre et pagine si aucun ancêtre
  * n'est nativement défilable. Une barre d'onglets posée DANS ce cadre ferait
  * changer la page du pager au premier coup de molette sur une puce. Elle vit

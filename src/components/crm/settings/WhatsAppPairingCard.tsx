@@ -552,7 +552,7 @@ function WABody() {
             }}
           >
             {dialCodeOptions(i18n.language).map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
+              <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>
             ))}
           </select>
           <input

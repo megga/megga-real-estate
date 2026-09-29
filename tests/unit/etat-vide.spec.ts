@@ -164,22 +164,19 @@ describe('État vide — un idiome, trois registres', () => {
    * ⚠ Liste écrite à part, en dur, comme `PAGES_ACQUISES` : itérer ce qu'on
    * surveille le ferait rétrécir avec lui.
    *
-   * ⚠ CE QUI N'Y EST PAS, ET POURQUOI — deux surfaces ont un vide qui n'est pas
-   * un état vide, et les y forcer aurait perdu de l'information :
+   * ⚠ CE QUI N'Y EST PAS, ET POURQUOI — une surface a un vide qui n'est pas un
+   * état vide, et l'y forcer aurait perdu de l'information :
    *  · `RelanceSession` pose un cadre en TIRETS avec un appel à l'action. Le
    *    tireté dit « quelque chose vient ici » — c'est une invitation, pas un
    *    constat d'absence.
-   *  · `AtlEmptyState` (atelier) est un ÉCRAN vide dessiné : quatorze libellés,
-   *    une file, une annonce et un panneau « pourquoi ». Le réduire à un titre
-   *    et une phrase supprimerait ce qu'il explique.
    * Les couvertures de premier lancement (`*FirstRun`) sont hors sujet : elles
    * se voient une fois, à l'ouverture d'un compte.
    */
   it('les surfaces migrées passent par EtatVide', () => {
     const ACQUISES = [
       'src/components/crm/today/PageAujourdhuiH.tsx',
-      'src/components/crm/today/PageCatalogue.tsx',
-      'src/components/crm/pipeline/PipelineTimeline.tsx',
+      // La Timeline du Pipeline refait (27.09.2026) — elle remplace `PipelineTimeline`.
+      'src/components/crm/pipeline/PipelineAgenda.tsx',
       'src/pages/agent/PipelinePage.tsx',
       'src/components/crm/contacts-pager/ContactsPager.tsx',
       'src/components/crm/contacts-pager/ContactDetailPager.tsx',

@@ -1,13 +1,14 @@
 /**
- * Hook du module Matching pour MatchingPage : charge les `matches` de l'agence
+ * Hook du module Matching, lu par la fiche contact mobile (`MobileContactDetailScreen`) :
+ * charge les `matches` de l'agence
  * (biens internes + market_listings Flatfox), normalise les deux formes en une
- * forme unifiée `MatchResult`, et expose les gestes agent (envoi, ignore,
- * réaction client, relance du matching via l'Edge function `matching-engine`).
+ * forme unifiée `MatchResult`, et expose les gestes agent (ignore, réaction client,
+ * relance du matching via l'Edge function `matching-engine`). « Je l'ai proposé »
+ * n'est PAS ici : il passe par `execProposer` (matchingGestes), seul à poser le
+ * journal et la relance. Aucun geste n'écrit à l'acheteur.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { INTERCOM_EVENTS } from '@/lib/intercom'
-import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import type { MatchReaction } from '@/types/matching'
 
@@ -70,6 +71,7 @@ export interface SupabaseMatchResult {
     features: Record<string, unknown>[]
     floor: number | null
     source_portal: string
+    source_id: string | null
     source_url: string
     agency_name: string | null
     price_per_m2: number | null
@@ -85,6 +87,9 @@ export interface MatchResult {
   id: string
   contactId: string
   contactName: string
+  /** Prénom et nom séparés : aucun écran ne les lit, la forme unifiée les garde. */
+  contactFirstName: string
+  contactLastName: string
   propertyId: string | null
   marketListingId: string | null
   source: 'internal' | 'market'
@@ -109,11 +114,13 @@ export interface MatchResult {
     /**
      * 'rent' = location (le prix est un LOYER MENSUEL), 'buy' = vente. La moitié des
      * annonces de marché actives sont des locations (42 743 sur 85 101, 13.09.2026) :
-     * sans ce champ, le catalogue les affichait sous « Prix de vente ».
+     * un prix lu sans ce champ passerait pour un prix de vente.
      */
     transaction_type?: 'buy' | 'rent' | null
     // Market-specific fields
     source_portal?: string
+    /** Identifiant du portail : aucun écran ne le lit, la forme unifiée le garde. */
+    source_id?: string | null
     source_url?: string
     agency_name?: string | null
     price_per_m2?: number | null
@@ -176,6 +183,7 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
         year_built: 0,
         charges_monthly: 0,
         source_portal: ml.source_portal,
+        source_id: ml.source_id,
         source_url: ml.source_url,
         agency_name: ml.agency_name,
         price_per_m2: ml.price_per_m2 ? Number(ml.price_per_m2) : null,
@@ -207,6 +215,8 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
     id: m.id,
     contactId: m.contact_id,
     contactName: contact ? `${contact.first_name} ${contact.last_name}` : 'Contact inconnu',
+    contactFirstName: contact?.first_name ?? '',
+    contactLastName: contact?.last_name ?? '',
     propertyId: m.property_id,
     marketListingId: m.market_listing_id,
     source: m.source || 'internal',
@@ -246,7 +256,7 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
       let query = supabase
         .from('matches')
         .select(
-          '*, contact:contacts(first_name, last_name, email, phone), property:properties(title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, features, floor, year_built, charges_monthly, transaction_type), market_listing:market_listings(id, title, price, current_price, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, type, description, features, floor, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, transaction_type)'
+          '*, contact:contacts(first_name, last_name, email, phone), property:properties(title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, features, floor, year_built, charges_monthly, transaction_type), market_listing:market_listings(id, title, price, current_price, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, type, description, features, floor, source_portal, source_id, source_url, agency_name, price_per_m2, days_on_market, status, transaction_type)'
         )
         .eq('agency_id', agencyId)
         .order('score', { ascending: false })
@@ -267,31 +277,12 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
     enabled: opts?.enabled ?? true,
   })
 
-  // ── Update match status ──
-  const sendMatchMutation = useMutation({
-    mutationFn: async ({ matchId, channel }: { matchId: string; channel: string }) => {
-      const { error } = await supabase
-        .from('matches')
-        .update({
-          status: 'sent',
-          sent_via: channel,
-          sent_at: new Date().toISOString(),
-        })
-        .eq('id', matchId)
-      if (error) throw error
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['matches'] })
-      // Jalon Intercom (un envoi par agent). Signal seul : ni le bien ni le client ne partent.
-      void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
-    },
-  })
-
   const ignoreMatchMutation = useMutation({
     mutationFn: async (matchId: string) => {
+      // Le motif part avec, comme dans « Écarter » (`execDismiss`) : un écart du moteur resté à l'écran reviendrait.
       const { error } = await supabase
         .from('matches')
-        .update({ status: 'ignored' })
+        .update({ status: 'ignored', reaction_motif: null })
         .eq('id', matchId)
       if (error) throw error
     },
@@ -303,7 +294,8 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
   // ── Réaction du client à un dossier envoyé (interested / visit_planned /
   // rejected). On ne pose PAS response_at ici : le trigger DB
   // (set_match_response_at) en est la source unique. Invalide les DEUX
-  // queryKeys car la page Atelier lit ['atelier-matches'] et useMatching ['matches'].
+  // queryKeys car l'écran mobile de Matching lit ['atelier-matches'] (`useAtelierMatching`) et
+  // useMatching ['matches'].
   const reactionMutation = useMutation({
     mutationFn: async ({ matchId, reaction }: { matchId: string; reaction: MatchReaction }) => {
       const { error } = await supabase
@@ -348,8 +340,6 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
     internalMatches,
     marketMatches,
     isLoading,
-    sendMatch: (matchId: string, channel: 'email' | 'whatsapp' | 'both') =>
-      sendMatchMutation.mutate({ matchId, channel }),
     ignoreMatch: (matchId: string) => ignoreMatchMutation.mutate(matchId),
     markReaction: (matchId: string, reaction: MatchReaction) =>
       reactionMutation.mutate({ matchId, reaction }),

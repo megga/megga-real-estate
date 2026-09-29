@@ -36,7 +36,7 @@ const SOFT_NEXT_ACTIONS = new Set(['rien', 'repondre'])
 
 const NEXT_ACTION_LABEL_FR: Record<string, string> = {
   planifier_visite: 'Planifier une visite',
-  envoyer_biens: 'Envoyer des biens',
+  envoyer_biens: 'Proposer des biens',
   relancer: 'Relancer le contact',
   qualifier_lead: 'Qualifier le lead',
 }
