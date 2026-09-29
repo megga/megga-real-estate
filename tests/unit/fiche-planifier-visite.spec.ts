@@ -7,7 +7,8 @@
  *   · un message pré-rempli (WhatsApp, e-mail) ou un rappel la veille pour un acquéreur compatible — un deal perdu n'en
  *     fait pas un acheteur en cours ;
  *   · un match « intéressé » qui ne passerait pas par l'écrivain du fil, ou un match d'un autre statut qui bougerait ;
- *   · un pré-remplissage ou un rappel retirés à un acheteur en deal ouvert, ou à un visiteur hors du matching ;
+ *   · un pré-remplissage ou un rappel retirés à un visiteur hors du matching, ou à un acheteur en deal ouvert que le
+ *     matching ne dit pas intéressé ;
  *   · un message ou un rappel préparés pour un contact dont on ne sait pas encore s'il est du matching ;
  *   · un acquéreur compatible proposé sur un mandat qui n'est plus en vente.
  */
@@ -33,12 +34,17 @@ const deal = (id: string, contactId: string, status: DealDuBien['status'], stage
   ({ id, contact_buyer_id: contactId, status, stage })
 
 /**
- * Marc : en deal ouvert sur le bien, et compatible (intéressé). Paul : compatible, son deal sur ce bien est PERDU — l'étape
- * `lost`, le statut resté `active`, ce qu'écrit « Marquer perdu ». Julie : compatible, sans deal.
+ * Marc : en deal ouvert sur le bien, et compatible (intéressé, sauf `marc` ; `null` : hors des compatibles). Paul :
+ * compatible, son deal sur ce bien est PERDU — l'étape `lost`, le statut resté `active`, ce qu'écrit « Marquer perdu ».
+ * Julie : compatible, sans deal.
  */
-const contexte = (julie?: Statut, enVente = true, paul: Statut = 'sent'): ContexteVisite => ({
+const contexte = (julie?: Statut, enVente = true, paul: Statut = 'sent', marc: Statut | null = 'interested'): ContexteVisite => ({
   deals: [deal('d-marc', 'c-marc', 'active', 'offer'), deal('d-paul', 'c-paul', 'active', 'lost')],
-  compatibles: [compatible('c-julie', 'Julie', 92, julie), compatible('c-marc', 'Marc', 88, 'interested'), compatible('c-paul', 'Paul', 81, paul)],
+  compatibles: [
+    compatible('c-julie', 'Julie', 92, julie),
+    ...(marc ? [compatible('c-marc', 'Marc', 88, marc)] : []),
+    compatible('c-paul', 'Paul', 81, paul),
+  ],
   enVente,
 })
 const NOMS: Record<string, string> = { 'c-marc': 'Marc Morand', 'c-paul': 'Paul Morand', 'c-julie': 'Julie Morand' }
@@ -66,8 +72,15 @@ describe('le message de confirmation pré-rempli (WhatsApp, e-mail)', () => {
     expect(preRemplissagePermis('c-paul', contexte())).toBe(false)
   })
 
-  it('gardé pour un acheteur en deal ouvert, même compatible', () => {
-    expect(preRemplissagePermis('c-marc', contexte())).toBe(true)
+  it('gardé pour un acheteur en deal ouvert sans match, ou dont le match n’est pas « intéressé »', () => {
+    expect(preRemplissagePermis('c-marc', contexte(undefined, true, 'sent', null))).toBe(true)
+    for (const marc of ['suggested', 'sent', 'visit_planned'] as const) {
+      expect(preRemplissagePermis('c-marc', contexte(undefined, true, 'sent', marc)), marc).toBe(true)
+    }
+  })
+
+  it('refusé à un acheteur en deal ouvert INTÉRESSÉ : il suit la règle du fil, comme sur WhatsApp', () => {
+    expect(preRemplissagePermis('c-marc', contexte())).toBe(false)
   })
 
   it('gardé pour un visiteur hors du matching : un contact du carnet, un visiteur créé sur place', () => {
@@ -79,11 +92,12 @@ describe('le message de confirmation pré-rempli (WhatsApp, e-mail)', () => {
     expect(preRemplissagePermis('c-julie', contexte(undefined, false))).toBe(false)
   })
 
-  it('ses compatibles pas encore lus : on ne sait pas qui est du matching, seuls un acheteur en deal ouvert et un visiteur créé sur place y ont droit', () => {
+  it('ses compatibles pas encore lus : on ne sait pas qui est du matching, acheteur en deal compris — seul un visiteur créé sur place y a droit', () => {
     const nonLus: ContexteVisite = { ...contexte(), compatibles: null }
     expect(preRemplissagePermis('c-carnet', nonLus)).toBe(false)
     expect(creationVisite('c-carnet', nonLus)).toEqual({ fil: null, dealId: null, rappelVeille: false })
-    expect(preRemplissagePermis('c-marc', nonLus)).toBe(true)
+    expect(preRemplissagePermis('c-marc', nonLus)).toBe(false)
+    expect(creationVisite('c-marc', nonLus)).toEqual({ fil: null, dealId: 'd-marc', rappelVeille: false })
     expect(preRemplissagePermis(null, nonLus)).toBe(true)
     expect(creationVisite(null, nonLus)).toEqual({ fil: null, dealId: null, rappelVeille: true })
   })
@@ -113,8 +127,17 @@ describe('ce que fait la création', () => {
     })
   })
 
-  it('un acheteur en deal ouvert : la visite rejoint son deal et le rappel part ; même intéressé, son match ne bouge pas', () => {
-    expect(creationVisite('c-marc', contexte())).toEqual({ fil: null, dealId: 'd-marc', rappelVeille: true })
+  it('un acheteur en deal ouvert, sans match ou pas « intéressé » : la visite rejoint son deal et le rappel part', () => {
+    expect(creationVisite('c-marc', contexte(undefined, true, 'sent', null))).toEqual({ fil: null, dealId: 'd-marc', rappelVeille: true })
+    expect(creationVisite('c-marc', contexte(undefined, true, 'sent', 'sent'))).toEqual({ fil: null, dealId: 'd-marc', rappelVeille: true })
+  })
+
+  it('un acheteur en deal ouvert ET intéressé : l’écrivain du fil, qui rattache la visite à son deal, sans rappel la veille', () => {
+    expect(creationVisite('c-marc', contexte())).toEqual({
+      fil: { id: 'c-marc', matchId: 'm-c-marc', first: 'Marc', last: 'Morand', score: 88 },
+      dealId: 'd-marc',
+      rappelVeille: false,
+    })
   })
 
   it('hors du matching, un contact du carnet ou un visiteur créé sur place : la visite seule, avec son rappel', () => {
@@ -134,8 +157,8 @@ describe('la visite écrite par la fiche (`ligneVisite`)', () => {
     })
   })
 
-  it('un acheteur en deal ouvert : rien ne change, la colonne garde son défaut et le rappel part', () => {
-    const { dealId, rappelVeille } = creationVisite('c-marc', contexte())
+  it('un acheteur en deal ouvert, hors du matching : rien ne change, la colonne garde son défaut et le rappel part', () => {
+    const { dealId, rappelVeille } = creationVisite('c-marc', contexte(undefined, true, 'sent', null))
     const ligne = ligneVisite({ ...ENTREE, contactId: 'c-marc', dealId, reminderSent: !rappelVeille }, 'ag-1', 'u-1')
     expect(ligne).toMatchObject({ contact_id: 'c-marc', transaction_id: 'd-marc' })
     expect(ligne).not.toHaveProperty('reminder_sent')

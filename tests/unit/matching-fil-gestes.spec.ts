@@ -564,6 +564,16 @@ describe('execPlanifierVisite — la visite créée en interne, aucune invitatio
     expect(h.invoke).not.toHaveBeenCalled()
   })
 
+  it('lot E1 : le deal que la fiche connaît sur ce bien porte la visite ; le deal le plus récent de l’acheteur n’est pas cherché', async () => {
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, { ...VISITE, deal: 'd-bien' }))
+      .resolves.toEqual({ deja: false, visiteId: 'visite-neuve' })
+    expect(seq()).toEqual(['update:matches', 'insert:visits', 'insert:activity_events', 'update:transactions'])
+    expect(lectures().some((l) => l.table === 'transactions')).toBe(false)
+    expect(ecrit('insert:visits').valeurs).toMatchObject({ transaction_id: 'd-bien', reminder_sent: true })
+    expect(ecrit('update:transactions').filtres).toEqual(['id=d-bien', 'stage in new_lead,to_qualify,active_search,to_recontact'])
+    expect(ecrit('insert:activity_events').valeurs).toMatchObject({ metadata: { deal_id: 'd-bien' } })
+  })
+
   it('une visite refusée : le match redevient « intéressé », et le geste lève', async () => {
     h.erreurs['insert:visits'] = { message: 'refus', code: '42501' }
     await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).rejects.toMatchObject({ code: '42501' })

@@ -12,7 +12,7 @@
  *     planifiée » —, ou serait écrite deux fois ;
  *   · une visite perdue quand l'écrivain du fil répond `deja` : le match n'est plus « intéressé », la visite reste due ;
  *   · un message qui paraîtrait après coup, quand le deal que le fil vient d'ouvrir revient dans le contexte ;
- *   · un acheteur en deal ouvert privé de son message, de ses deux liens ou de son rappel la veille.
+ *   · un acheteur en deal ouvert, hors du matching, privé de son message, de ses deux liens ou de son rappel la veille.
  *
  * Les hooks de données sont doublés (aucun réseau) ; `visiteurs.ts`, `detailsVisite` et `refBienInterne` tournent pour
  * de vrai. Idiome createRoot + act (le dépôt n'a pas @testing-library/react). Mock PARTIEL de react-i18next : la clé
@@ -198,7 +198,10 @@ describe('PlanifierVisite — un acquéreur compatible du mandat', () => {
     expect(ctx).toEqual({ agencyId: 'ag-1', userId: 'u-1' })
     expect(acheteur).toEqual({ id: JULIE.id, matchId: 'm-julie', first: 'Julie', last: 'Morand', score: 92 })
     expect(bien).toMatchObject({ kind: 'property', id: BIEN.id, title: BIEN.title })
-    expect(visite).toMatchObject({ debut: demainA10h(), dureeMinutes: 45, lieu: 'Chemin des Crêts 14, 1218 Le Grand-Saconnex' })
+    // Sans deal ouvert sur ce bien, l'écrivain en ouvre ou en reprend un lui-même (`rattacherDeal`).
+    expect(visite).toMatchObject({
+      debut: demainA10h(), dureeMinutes: 45, lieu: 'Chemin des Crêts 14, 1218 Le Grand-Saconnex', deal: null,
+    })
     expect(h.creerVisite).not.toHaveBeenCalled()
     expect(onPlanned).toHaveBeenCalledTimes(1)
     rienNePart(el, 'Julie')
@@ -259,5 +262,38 @@ describe('PlanifierVisite — un acheteur en deal ouvert sur le bien', () => {
     expect(urlMail.searchParams.get('subject')).toContain('fiche.visite.message.sujet')
     // Le même message par les deux canaux.
     expect(urlMail.searchParams.get('body')).toBe(texte)
+  })
+
+  /** Marc, en deal ouvert sur le bien ET acquéreur intéressé du matching. */
+  const marcInteresse = (): ContexteVisite => ({
+    ...contexte('sent'),
+    compatibles: [...contexte('sent').compatibles!, {
+      id: 'm-marc', score: 85, reporteJusquau: null, acheteur: { id: MARC.id, prenom: 'Marc', nom: 'Rochat' },
+      suivi: { statut: 'interested', proposeLe: '2026-09-20T09:00:00Z', reponduLe: null, motif: null, note: null, prixPropose: null, apprisLe: null },
+    }],
+  })
+
+  it('⛔ intéressé au matching : l’écrivain du fil, qui rattache la visite au deal de CE bien — et rien ne part', async () => {
+    const el = monter(marcInteresse())
+    choisir(el, 'Marc Rochat')
+    await planifier(el)
+    expect(h.execPlanifierVisite).toHaveBeenCalledTimes(1)
+    const [, acheteur, , visite] = h.execPlanifierVisite.mock.calls[0]!
+    expect(acheteur).toEqual({ id: MARC.id, matchId: 'm-marc', first: 'Marc', last: 'Rochat', score: 85 })
+    // Le deal de CE bien : le plus récent de l'acheteur peut être celui d'un autre bien.
+    expect(visite).toMatchObject({ deal: 'd-marc' })
+    expect(h.creerVisite).not.toHaveBeenCalled()
+    rienNePart(el, 'Marc')
+  })
+
+  it('intéressé, mais plus au moment d’écrire (`deja`) : la visite rejoint son deal, sans rappel — et rien ne part', async () => {
+    h.execPlanifierVisite.mockResolvedValue({ deja: true, visiteId: null })
+    const el = monter(marcInteresse())
+    choisir(el, 'Marc Rochat')
+    await planifier(el)
+    expect(h.execPlanifierVisite).toHaveBeenCalledTimes(1)
+    expect(h.creerVisite).toHaveBeenCalledTimes(1)
+    expect(h.creerVisite.mock.calls[0]![0]).toMatchObject({ bienId: BIEN.id, contactId: MARC.id, dealId: 'd-marc', reminderSent: true })
+    rienNePart(el, 'Marc')
   })
 })

@@ -7,7 +7,10 @@
  *     est préparé : ni message, ni rappel la veille. « Intéressé », son match passe « visite planifiée » et son deal
  *     s'ouvre ou avance, par l'écrivain du fil (`execPlanifierVisite`) ; à proposer, proposé ou déjà en visite, son match
  *     ne bouge pas — sa réponse se consigne dans le fil.
- *   · Un acheteur en deal OUVERT sur ce bien garde le message et le rappel, et sa visite rejoint son deal.
+ *   · Un acheteur en deal OUVERT sur ce bien garde le message et le rappel, et sa visite rejoint son deal — SAUF s'il est
+ *     un acquéreur INTÉRESSÉ du matching : il suit alors la règle du fil, comme sur WhatsApp (décision de Julien du
+ *     29.09.2026) — son match passe « visite planifiée », sa visite rejoint son deal, et rien ne lui est préparé. Tant
+ *     que ses compatibles ne sont pas lus, on ne sait pas s'il en est un : rien ne part.
  *   · Un mandat qui n'est plus en vente ne propose plus ses acquéreurs compatibles : seuls ses acheteurs en deal ouvert.
  * Un visiteur hors du matching (un contact du carnet sans match compatible, un visiteur créé sur place) garde le
  * message et le rappel : la règle vise ce que produit le matching, pas la confirmation d'une visite (conception §3.1).
@@ -72,6 +75,13 @@ const dealOuvertDe = (contactId: string, c: ContexteVisite): DealDuBien | null =
 const acquereurs = (c: ContexteVisite): Compatible[] =>
   (c.compatibles ?? []).filter((m) => dealOuvertDe(m.acheteur.id, c) == null)
 
+/** Le match compatible d'un contact sur ce bien, qu'il ait un deal ouvert ou non. */
+const compatibleDe = (contactId: string, c: ContexteVisite): Compatible | null =>
+  c.compatibles?.find((m) => m.acheteur.id === contactId) ?? null
+
+/** Un acquéreur INTÉRESSÉ : sa visite est celle du fil, deal ouvert ou non. */
+const interesse = (m: Compatible | null): m is Compatible => m?.suivi?.statut === 'interested'
+
 /**
  * Qui proposer d'abord : les acheteurs en deal ouvert sur ce bien, puis ses acquéreurs compatibles s'il est en vente.
  * Un contact n'y figure qu'une fois, à sa première place. `nomDe` : son nom dans le carnet, `null` s'il n'y est pas —
@@ -90,13 +100,16 @@ export function visiteursLies(c: ContexteVisite, nomDe: (contactId: string) => s
 
 /**
  * Le message de confirmation pré-rempli : refusé à un acquéreur du matching, qu'il ait été choisi dans « Sur ce bien »
- * ou dans le carnet, sur un mandat en vente ou non — rien du matching ne part vers l'acheteur. `null` : un visiteur créé
- * sur place, hors du matching. ⚠ Tant que les compatibles ne sont pas lus, seuls un acheteur en deal ouvert et un
- * visiteur créé sur place y ont droit : on ne sait pas si un autre contact est un acquéreur du matching, et rien ne part.
+ * ou dans le carnet, sur un mandat en vente ou non — rien du matching ne part vers l'acheteur ; gardé pour un acheteur
+ * en deal ouvert, sauf s'il est un acquéreur INTÉRESSÉ. `null` : un visiteur créé sur place, hors du matching.
+ * ⚠ Tant que les compatibles ne sont pas lus, seul un visiteur créé sur place y a droit : on ne sait pas si un contact,
+ * acheteur en deal compris, est un acquéreur du matching, et rien ne part.
  */
 export function preRemplissagePermis(contactId: string | null, c: ContexteVisite): boolean {
-  if (contactId == null || dealOuvertDe(contactId, c) != null) return true
-  return c.compatibles != null && !c.compatibles.some((m) => m.acheteur.id === contactId)
+  if (contactId == null) return true
+  if (c.compatibles == null) return false
+  const compatible = compatibleDe(contactId, c)
+  return dealOuvertDe(contactId, c) != null ? !interesse(compatible) : compatible == null
 }
 
 /**
@@ -105,9 +118,11 @@ export function preRemplissagePermis(contactId: string | null, c: ContexteVisite
  */
 export function creationVisite(contactId: string | null, c: ContexteVisite): CreationVisite {
   const deal = contactId == null ? null : dealOuvertDe(contactId, c)
-  const acquereur = contactId == null || deal ? null : c.compatibles?.find((m) => m.acheteur.id === contactId) ?? null
+  const acquereur = contactId == null ? null : compatibleDe(contactId, c)
   return {
-    fil: acquereur?.suivi?.statut === 'interested'
+    // L'écrivain du fil rattache la visite au deal ouvert SUR CE BIEN (`dealId`), sinon au deal ouvert le plus récent de
+    // l'acheteur (`rattacherDeal`) ; `dealId` sert aussi si le match n'est plus « intéressé » quand la visite s'écrit.
+    fil: interesse(acquereur)
       ? { id: acquereur.acheteur.id, matchId: acquereur.id, first: acquereur.acheteur.prenom, last: acquereur.acheteur.nom, score: acquereur.score }
       : null,
     dealId: deal?.id ?? null,

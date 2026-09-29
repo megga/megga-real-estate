@@ -558,6 +558,12 @@ export interface VisiteAPlanifier {
    * visite, le point de rendez-vous. Le fil n'en pose aucun : une visite sur place, sans bon.
    */
   details?: Pick<TablesInsert<'visits'>, 'visit_type' | 'video_link' | 'bon' | 'qualification'>
+  /**
+   * Le deal ouvert de l'acheteur SUR CE BIEN, que la fiche d'un mandat connaît : la visite s'y rattache. Sans lui (le
+   * fil), `rattacherDeal` prend son deal ouvert le plus récent, tous biens confondus — celui d'un autre bien, s'il en a
+   * deux.
+   */
+  deal?: string | null
 }
 
 /** Les étapes d'un deal AVANT la visite : « Planifier une visite » l'y fait avancer, jamais reculer. */
@@ -599,7 +605,7 @@ export async function execPlanifierVisite(
 
   let visiteId: string | null = null
   try {
-    const dealId = await rattacherDeal(ctx, buyer.id, listing)
+    const dealId = visite.deal ?? await rattacherDeal(ctx, buyer.id, listing)
     if (listing.kind === 'property') {
       const { data: v, error: vErr } = await supabase
         .from('visits')

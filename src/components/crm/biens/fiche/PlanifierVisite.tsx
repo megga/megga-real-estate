@@ -27,9 +27,10 @@
  *
  * ⚠ Lot E1 (conception §5.6) : qui est proposé, à qui un message est préparé et ce que
  * fait la création se décident dans `visiteurs.ts`, pur — la règle du fil et du copilote
- * WhatsApp. Un acquéreur INTÉRESSÉ passe par l'écrivain du fil (`execPlanifierVisite`) :
- * son match passe « visite planifiée », son deal s'ouvre ou avance, et les détails du
- * formulaire (visio, bon, point de rendez-vous) entrent dans sa visite (`detailsVisite`).
+ * WhatsApp. Un acquéreur INTÉRESSÉ, deal ouvert compris, passe par l'écrivain du fil
+ * (`execPlanifierVisite`) : son match passe « visite planifiée », son deal s'ouvre ou avance,
+ * et les détails du formulaire (visio, bon, point de rendez-vous) entrent dans sa visite
+ * (`detailsVisite`).
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -281,7 +282,7 @@ export default function PlanifierVisite({ bien, dark, sp, vx, contexte, onClose,
           { agencyId: profile.agency_id, userId: profile.id },
           creation.fil,
           { kind: 'property', id: bien.id, ref: refBienInterne(bien.id), title: bien.title },
-          { debut: entree.scheduledAt, dureeMinutes: duree, lieu: adresse || null, details: detailsVisite(entree) },
+          { debut: entree.scheduledAt, dureeMinutes: duree, lieu: adresse || null, details: detailsVisite(entree), deal: creation.dealId },
         )
         if (!r.deja) parLeFil = { id: r.visiteId }
       }
