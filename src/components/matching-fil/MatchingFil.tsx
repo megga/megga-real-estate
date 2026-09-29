@@ -25,7 +25,8 @@
  * ⚠ Le clavier est posé sur la RACINE du fil (`onKeyDown`), pas sur `window` : le fil est la page 0
  * d'un pager dont la page 1 reste montée, et plusieurs écrans d'onglet restent vivants. Un écouteur
  * global agirait depuis une page ou un onglet qu'on ne regarde pas ; celui-ci n'entend que ce qui a
- * le focus dedans. D'où, après chaque geste, le focus rendu à une ligne (ou à la racine).
+ * le focus dedans. D'où, après chaque geste, le focus rendu à une ligne (ou à la racine) ; et à l'ouverture, un focus
+ * perdu pris par la racine.
  *
  * ⚠ Les gestes qui font SORTIR un match passent par la fenêtre d'annulation (`PendingRegistry`) : « Je
  * l'ai proposé », Plus tard, Écarter, Intéressé, Pas intéressé. Ils consignent ce que l'agent a fait
@@ -63,6 +64,7 @@ import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { modaleOuverte } from '@/lib/modaleOuverte'
 import { useArrivee } from '@/hooks/useArrivee'
 import { avecArrivee } from '@/lib/jetonArrivee'
 import {
@@ -144,7 +146,12 @@ const versCorrectionGeste = (c: Correction): CorrectionGeste => ({
   refusIds: c.refus.map((m) => m.id),
 })
 
-export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; onOpenRecherche?: () => void }) {
+export default function MatchingFil({ dark, onOpenRecherche, montre = true }: {
+  dark: boolean
+  onOpenRecherche?: () => void
+  /** Sa page du pager est celle qu'on regarde (`MatchingPage`) ; hors du pager, toujours. */
+  montre?: boolean
+}) {
   const { t } = useTranslation('matching')
   const sp = crmPalette(dark)
   const navigate = useNavigate()
@@ -769,6 +776,22 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
     chargement: isLoading, erreur: enEchec, matchs: matchs.length + selections.length + boucle.length,
   })
   const connu = ecran !== 'chargement' && ecran !== 'erreur'
+  // ⛔ LE FOCUS D'OUVERTURE. Le clavier vit sur la racine, et le focus est PERDU quand le fil s'ouvre : la destination
+  // cliquée part avec la page qu'on quitte, une page du pager devenue inerte rend le sien, et la puce d'onglet cliquée
+  // reste dans l'écran qu'on cache — `aria-hidden` dès ce rendu, alors que le navigateur ne rend le focus à `<body>`
+  // qu'au suivant. Sans ce focus, le fil resterait sourd jusqu'au premier clic. La racine le prend donc quand le fil
+  // est montré — son écran, sa page du pager — et à chaque arrivée neuve, perdu seulement ; jamais sous une modale
+  // (`modaleOuverte`), où E, P et X agiraient sur un match qu'on ne voit pas. La ligne d'une arrivée le reprend ensuite
+  // à la racine. `ecran` : la couverture n'a pas de racine, le fil qui lui succède la prend. `preventScroll` : la
+  // racine ne fait rien défiler.
+  useEffect(() => {
+    const boite = racine.current
+    if (!ecranActif || !montre || !boite || modaleOuverte()) return
+    const actif = document.activeElement
+    if (actif == null || actif === document.body || actif.closest('[inert], [aria-hidden="true"]')) {
+      boite.focus({ preventScroll: true })
+    }
+  }, [ecranActif, montre, arriveeId, ecran])
   // Les reportés vivent dans « À proposer » : ils le gardent ouvert, même sans ligne à traiter.
   const ongletVide = comptes[onglet] === 0 && (onglet !== 'aProposer' || vue.reportes.length === 0)
   const rienDuTout = !filtreActif && vue.reportes.length === 0

@@ -8,7 +8,9 @@
  *   · un fil dont « Voir le marché » ne mènerait pas à la Recherche (`onOpenRecherche`) ;
  *   · un onglet qui perdrait sa dernière page vue : la Recherche retenue l'emporte sur l'ouverture ;
  *   · un lien d'arrivée du fil (`?contact=`) qui laisserait l'onglet sur la Recherche ;
- *   · un banc qui perdrait ses emplacements : ses deux pages remplacent celles de la production.
+ *   · un banc qui perdrait ses emplacements : ses deux pages remplacent celles de la production ;
+ *   · un fil qui ne saurait pas si sa page est montrée (`montre`) : son focus d'ouverture le lit ;
+ *   · une commande du pager qui prendrait le focus au clic de souris : le fil de la page 0 ne prend qu'un focus perdu.
  *
  * Le pager est monté pour de vrai — `createRoot` + `act`, le routeur mémoire et la VRAIE pile d'onglets
  * (`CrmTabsProvider`) sur un client Supabase simulé, comme `jeton-arrivee.spec.tsx`. La coquille du CRM et les deux
@@ -45,10 +47,10 @@ vi.mock('@/lib/supabase', () => {
 vi.mock('@/components/crm/CrmWorkspace', () => ({ default: ({ children }: { children: ReactNode }) => children }))
 
 // Les deux pages de la production, en témoins. Le fil porte son « Voir le marché » : un bouton qui appelle
-// `onOpenRecherche`.
+// `onOpenRecherche` ; et il dit s'il se sait montré.
 vi.mock('@/components/matching-fil/MatchingFil', () => ({
-  default: ({ onOpenRecherche }: { dark: boolean; onOpenRecherche?: () => void }) =>
-    createElement('button', { type: 'button', 'data-temoin': 'fil', onClick: onOpenRecherche }),
+  default: ({ onOpenRecherche, montre }: { dark: boolean; onOpenRecherche?: () => void; montre?: boolean }) =>
+    createElement('button', { type: 'button', 'data-temoin': 'fil', 'data-montre': String(montre), onClick: onOpenRecherche }),
 }))
 vi.mock('@/components/matching-recherche/MatchingRechercheHybride', () => ({
   default: () => createElement('div', { 'data-temoin': 'recherche' }),
@@ -155,6 +157,26 @@ describe('le pager de Matching — le fil en page 0', () => {
     await voirLeMarche()
     await act(async () => { h.naviguer!(`${FIL}?contact=c7`, avecArrivee()) })
     expect(pageMontree()).toBe('fil')
+  })
+
+  it('le fil sait si sa page est montrée : oui sur la page 0, non une fois sur la Recherche', async () => {
+    await rendre(<Arbre />)
+    const fil = () => document.querySelector<HTMLElement>('[data-temoin="fil"]')!.dataset.montre
+    expect(fil()).toBe('true')
+    await voirLeMarche()
+    expect(fil()).toBe('false')
+  })
+
+  it('un clic de souris sur les points de page ou l’indice de molette ne leur donne pas le focus', async () => {
+    await rendre(<Arbre />)
+    const commandes = [...document.querySelectorAll<HTMLButtonElement>('button:not([data-temoin])')]
+    // Les deux points de page et l'indice de molette.
+    expect(commandes).toHaveLength(3)
+    for (const c of commandes) {
+      const appui = new MouseEvent('mousedown', { bubbles: true, cancelable: true })
+      act(() => { c.dispatchEvent(appui) })
+      expect(appui.defaultPrevented, c.outerHTML.slice(0, 80)).toBe(true)
+    }
   })
 
   it('le banc garde ses emplacements : ses deux pages remplacent celles de la production, et il s’ouvre sur la page 0', async () => {

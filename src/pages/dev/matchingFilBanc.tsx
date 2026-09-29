@@ -16,8 +16,8 @@ import MatchingFil from '@/components/matching-fil/MatchingFil'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { RechercheDuBanc } from './rechercheDuBanc'
 
-function PageFil({ dark, onOpenRecherche }: { dark: boolean; onOpenRecherche: () => void }) {
-  return <MatchingFil dark={dark} onOpenRecherche={onOpenRecherche} />
+function PageFil({ dark, onOpenRecherche, montre }: { dark: boolean; onOpenRecherche: () => void; montre: boolean }) {
+  return <MatchingFil dark={dark} onOpenRecherche={onOpenRecherche} montre={montre} />
 }
 
 function PageRecherche({ dark }: { dark: boolean }) {

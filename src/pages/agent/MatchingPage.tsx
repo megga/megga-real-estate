@@ -15,7 +15,7 @@
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
 import { useEffect, useRef, useLayoutEffect, useCallback } from 'react'
-import type { ReactNode } from 'react'
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette } from '@/components/crm/tokens'
@@ -40,6 +40,13 @@ const SCORE_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'score')
 // La page Recherche (page 1), qu'ouvre « Voir le marché » du fil. Index DÉRIVÉ, comme `SCORE_PAGE`.
 const RECHERCHE_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'recherche'))
 
+/**
+ * Un clic de souris sur une commande du pager ne lui donne pas le focus : il reste là où il était — ou se perd avec la
+ * page qui devient inerte —, et le fil de la page 0 le prend à son retour (son focus d'ouverture ne prend qu'un focus
+ * perdu). Au clavier, la commande garde le sien.
+ */
+const garderLeFocus = (e: ReactMouseEvent) => e.preventDefault()
+
 // ─── Points de page (droite) ────────────────────────────────────────────
 function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
   const { t } = useTranslation('matching')
@@ -57,7 +64,7 @@ function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: n
       {MATCHING_PAGES.map((p, i) => {
         const active = i === page
         return (
-          <button key={p.id} onClick={() => onGo(i)} title={t(p.labelKey)} style={{
+          <button key={p.id} onClick={() => onGo(i)} onMouseDown={garderLeFocus} title={t(p.labelKey)} style={{
             width: 8, height: active ? 26 : 8, borderRadius: 999, border: 0, cursor: 'pointer', padding: 0,
             background: active ? activeCol : idleCol,
             transition: 'height .5s cubic-bezier(.76,0,.24,1), background .4s ease',
@@ -81,6 +88,7 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
     <button
       className="matching-scroll-hint"
       onClick={() => onGo(page + dir)}
+      onMouseDown={garderLeFocus}
       aria-label={t('pager.wheelTo', { label: targetLabel })}
       style={{
         position: 'absolute', bottom: 20, left: 26, zIndex: 80,
@@ -137,7 +145,7 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
  *    banc — définis hors du composant.
  */
 export interface MatchingPagerBanc {
-  Page0: (p: { dark: boolean; onOpenRecherche: () => void }) => ReactNode
+  Page0: (p: { dark: boolean; onOpenRecherche: () => void; montre: boolean }) => ReactNode
   Page1: (p: { dark: boolean }) => ReactNode
 }
 
@@ -380,8 +388,8 @@ export default function MatchingPage(
                   de la Recherche) continue de recevoir toutes les touches, page inerte ou pas. */}
               <div inert={page !== 0} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc
-                  ? <banc.Page0 dark={dark} onOpenRecherche={openRecherche} />
-                  : <MatchingFil dark={dark} onOpenRecherche={openRecherche} />}
+                  ? <banc.Page0 dark={dark} onOpenRecherche={openRecherche} montre={page === 0} />
+                  : <MatchingFil dark={dark} onOpenRecherche={openRecherche} montre={page === 0} />}
               </div>
               <div inert={page !== 1} style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
                 {banc ? <banc.Page1 dark={dark} /> : <MatchingRechercheHybride dark={dark} />}
