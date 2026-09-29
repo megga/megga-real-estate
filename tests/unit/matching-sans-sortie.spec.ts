@@ -59,6 +59,10 @@ const MATCHING = [
   'src/components/crm/contacts-pager/saBoucle.ts',
   'src/components/crm/biens/nouveau/acquereurs.ts',
   'src/components/crm/biens/nouveau/LigneAcquereurs.tsx',
+  // Lot E1 : les règles de « Planifier une visite » sur la fiche d'un mandat, dont celle qui refuse le message pré-rempli
+  // à un acquéreur du matching (`preRemplissagePermis`). Le formulaire (`PlanifierVisite`) reste hors du périmètre, comme
+  // une page hôte : il prépare ce message pour un acheteur en deal ouvert, et c'est cette règle qui en décide.
+  'src/components/crm/biens/fiche/visiteurs.ts',
   'src/pages/agent/MatchingPage.tsx',
   'src/pages/agent/MatchingAtelierPage.tsx',
   'src/pages/agent/ExternalListingDetailPage.tsx',

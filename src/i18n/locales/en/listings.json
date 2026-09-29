@@ -1801,6 +1801,7 @@
       "enCours": "Scheduling…",
       "erreur": "The viewing could not be saved.",
       "dansCalendrier": "It appears in your Calendar and in the property’s viewings.",
+      "rienEnvoye": "Nothing is sent to {{prenom}}, neither a confirmation nor a reminder the day before.",
       "demo": "Preview: nothing was saved.",
       "ouvrir": "Open the viewing",
       "termine": "Done",

@@ -11,7 +11,8 @@
  *
  * Une écriture suivie de `select(…)` rend ses lignes, comme PostgREST : par défaut celles que ses
  * filtres `id` désignent (toutes réécrites), sinon `h.retours['update:matches']` — c'est ainsi qu'un
- * match qui n'est plus `suggested` se simule : la base n'en réécrit aucune ligne.
+ * match qui n'est plus `suggested` se simule : la base n'en réécrit aucune ligne. Une insertion
+ * suivie de `single()` rend la ligne créée : `visite-neuve` dans `visits`, `deal-neuf` ailleurs.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -66,7 +67,7 @@ vi.mock('@/lib/supabase', () => {
           h.appels.push(e)
           const erreur = h.erreurs[`${e.genre}:${table}`] ?? null
           const data = erreur ? null
-            : unique ? { id: 'deal-neuf' }
+            : unique ? { id: table === 'visits' ? 'visite-neuve' : 'deal-neuf' }
               : e.genre === 'select' ? (h.lectures[table] ?? [])
                 : rendu ? (h.retours[`${e.genre}:${table}`] ?? lignesDesFiltres(e.filtres)) : null
           return Promise.resolve({ data, error: erreur }).then(resoudre, rejeter)
@@ -455,7 +456,8 @@ describe('execPlanifierVisite — la visite créée en interne, aucune invitatio
   }
 
   it('un bien en mandat : match → visit_planned, visite `planned` rattachée au deal, deal avancé, journal', async () => {
-    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: false })
+    // La visite écrite est rendue : la fiche d'un mandat l'ouvre (« Ouvrir la visite »).
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: false, visiteId: 'visite-neuve' })
     expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:visits', 'insert:activity_events', 'update:transactions'])
     expect(ecritures()[0]!.valeurs).toEqual({ status: 'visit_planned' })
     expect(ecritures()[0]!.filtres).toEqual(['id=m-1', 'contact_id=c-1', 'status=interested'])
@@ -473,7 +475,7 @@ describe('execPlanifierVisite — la visite créée en interne, aucune invitatio
   })
 
   it('une annonce du marché : un événement « visite » de l’agenda, jamais une ligne `visits`', async () => {
-    await execPlanifierVisite(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'), VISITE)
+    await expect(execPlanifierVisite(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'), VISITE)).resolves.toEqual({ deja: false, visiteId: null })
     expect(seq()).toEqual(['update:matches', 'insert:transactions', 'insert:calendar_events', 'update:transactions'])
     expect(ecrit('insert:calendar_events').valeurs).toMatchObject({
       agency_id: 'ag-1', type: 'visite', title: 'Visite · Annonce ml-1', starts_at: VISITE.debut,
@@ -483,8 +485,18 @@ describe('execPlanifierVisite — la visite créée en interne, aucune invitatio
 
   it('un match qui n’est plus « intéressé » : rien d’autre, `deja`', async () => {
     h.retours['update:matches'] = []
-    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: true })
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, VISITE)).resolves.toEqual({ deja: true, visiteId: null })
     expect(h.appels.map((a) => `${a.genre}:${a.table}`)).toEqual(['update:matches'])
+  })
+
+  it('lot E1 : ce que la fiche d’un mandat y ajoute entre dans la visite (visio, bon, rendez-vous), jamais le rappel la veille', async () => {
+    const details = {
+      visit_type: 'video', video_link: 'https://meet.example/visite', bon: { docId: 'doc-1', signedAt: null },
+      qualification: { rendezVous: 'Code 4521' },
+    }
+    await expect(execPlanifierVisite(CTX, ACHETEUR, MANDAT, { ...VISITE, details })).resolves.toEqual({ deja: false, visiteId: 'visite-neuve' })
+    expect(ecrit('insert:visits').valeurs).toMatchObject({ ...details, transaction_id: 'deal-neuf', reminder_sent: true })
+    expect(h.invoke).not.toHaveBeenCalled()
   })
 
   it('une visite refusée : le match redevient « intéressé », et le geste lève', async () => {

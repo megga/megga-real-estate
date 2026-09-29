@@ -53,11 +53,13 @@ import {
 } from '@/hooks/useProperties'
 import { usePropertyStats } from '@/hooks/usePropertyStats'
 import { useTransactions } from '@/hooks/useTransactions'
+import { useRevalidateTables } from '@supabase-cache-helpers/postgrest-react-query'
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { useQuiPourCeBien } from '@/hooks/useQuiPourCeBien'
 import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { CLE_FIL } from '@/components/matching-fil/filModele'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
@@ -67,7 +69,7 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 import { DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
 import { majusculeInitiale } from '@/lib/utils'
 import { pickAvatarBg } from '@/lib/crmAdapters'
-import PlanifierVisite, { type VisiteurLie } from '@/components/crm/biens/fiche/PlanifierVisite'
+import PlanifierVisite from '@/components/crm/biens/fiche/PlanifierVisite'
 
 // ─── Interfaces locales ────────────────────────────────────────────────────
 interface Toast {
@@ -391,6 +393,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const colsRef = useRef<HTMLDivElement>(null)
   const basculeEnCours = useRef(false)
   const queryClient = useQueryClient()
+  const revaliderDeals = useRevalidateTables([{ schema: 'public', table: 'transactions' }])
   const [editOpen, setEditOpen] = useState(false)
   const [visiteOpen, setVisiteOpen] = useState(false)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -480,7 +483,6 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
 
   // Les acheteurs déjà en deal sur ce bien : « Acheteurs en cours » les montre, « Qui pour ce bien ? » les tait.
   const enDeal = new Set(dealsForBien.map(d => d.contact_buyer_id).filter((x): x is string => !!x))
-  const compatibles = quiPour.compatibles.filter(m => !enDeal.has(m.acheteur.id))
   // KYC acheteurs : rappel doux (non-bloquant).
   const kycByContact = new Map<string, string | null>()
   for (const k of buyerKyc) if (!kycByContact.has(k.contact_id)) kycByContact.set(k.contact_id, k.dossier_status)
@@ -506,14 +508,6 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const flash = (title: string, lines: string[]) => setToast({ title, lines })
   // Le formulaire s'ouvre SUR la fiche : le bien est déjà choisi (cf. `PlanifierVisite`).
   const planifierVisite = () => setVisiteOpen(true)
-  // Qui proposer d'abord : les acheteurs en cours sur ce bien, puis les acquéreurs compatibles.
-  const liees: VisiteurLie[] = [
-    ...dealsForBien.flatMap(d => {
-      const c = d.contact_buyer_id ? contactsById.get(d.contact_buyer_id) : null
-      return c ? [{ contactId: c.id, nom: `${c.first_name} ${c.last_name}`.trim(), dealId: d.id }] : []
-    }),
-    ...compatibles.map(m => ({ contactId: m.acheteur.id, nom: `${m.acheteur.prenom} ${m.acheteur.nom}`.trim(), score: m.score })),
-  ].filter((l, i, tous) => tous.findIndex(x => x.contactId === l.contactId) === i)
 
   // Un brouillon « Réseau Off-market » mis en service ne publie aucune annonce : le toast ne dit pas « publiée ».
   const titreMiseEnService = offMarket ? tr('nouveauBien.fini.offMarket') : tr('detail.toast.publishedTitle')
@@ -975,10 +969,18 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                 dark={dark}
                 sp={sp}
                 vx={vx}
-                liees={liees}
+                contexte={{ deals: dealsForBien, compatibles: quiPour.aDesDonnees ? quiPour.compatibles : null, enVente: bien.status === 'active' }}
                 demo={!!demoData}
                 onClose={() => setVisiteOpen(false)}
-                onPlanned={() => { void queryClient.invalidateQueries({ queryKey: ['bien-visites', id] }) }}
+                onPlanned={() => {
+                  void queryClient.invalidateQueries({ queryKey: ['bien-visites', id] })
+                  // « Qui pour ce bien ? » aussi : la visite d'un acquéreur intéressé fait passer son match en « visite planifiée ».
+                  void queryClient.invalidateQueries({ queryKey: [CLE_FIL] })
+                  // Et ses deals : passée par l'écrivain du fil, la visite ouvre ou avance le deal de l'acquéreur
+                  // (`rattacherDeal`), une écriture que le cache de `useTransactions` ne voit pas — sans quoi « Acheteurs en
+                  // cours » l'ignore, et une seconde visite du même acquéreur se déciderait sur des deals périmés.
+                  void revaliderDeals()
+                }}
                 onOpenVisit={(visitId) => navigate(`/dashboard/visits/${visitId}`)}
               />
             )}

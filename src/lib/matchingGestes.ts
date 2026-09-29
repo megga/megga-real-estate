@@ -29,8 +29,9 @@
  *                  relance de la PROPOSITION se clôt par trigger quand plus aucun de ses biens n'attend
  *   pasEncore    → (fil) la relance de la proposition repoussée de +3 j, si le bien attend encore ; rien
  *                  sur le match
- *   planifierVisite → (fil) match 'visit_planned' + visite interne (mandat) ou événement « visite » de
- *                  l'agenda (annonce du marché) + deal avancé ; aucune invitation
+ *   planifierVisite → (fil, et fiche d'un mandat pour un acquéreur intéressé) match 'visit_planned' +
+ *                  visite interne (mandat) ou événement « visite » de l'agenda (annonce du marché) + deal
+ *                  avancé ; aucune invitation
  *   ajusterRecherche / ignorerCorrection → (fil) « Apprendre » : la correction validée (edge
  *                  matching-engine, mode rescore-search, la SEULE clé corrigée) ou ses refus pris en compte
  *
@@ -518,13 +519,21 @@ export async function execPasEncore(ctx: GesteContext, buyer: AcheteurGeste, lis
   return { deja: false }
 }
 
-/** Le créneau d'une visite planifiée depuis le fil. */
+/**
+ * Le créneau d'une visite planifiée par l'écrivain du fil : depuis « À conclure », ou depuis la fiche d'un mandat pour
+ * un acquéreur intéressé (lot E1, `PlanifierVisite`).
+ */
 export interface VisiteAPlanifier {
   /** Début, ISO. */
   debut: string
   dureeMinutes: number
   /** Adresse du bien, pour l'agenda. */
   lieu: string | null
+  /**
+   * Ce que la fiche d'un mandat pose en plus sur la visite (`detailsVisite`) : le mode et le lien d'une visio, le bon de
+   * visite, le point de rendez-vous. Le fil n'en pose aucun : une visite sur place, sans bon.
+   */
+  details?: Pick<TablesInsert<'visits'>, 'visit_type' | 'video_link' | 'bon' | 'qualification'>
 }
 
 /** Les étapes d'un deal AVANT la visite : « Planifier une visite » l'y fait avancer, jamais reculer. */
@@ -544,13 +553,16 @@ const ETAPES_AVANT_VISITE: Enums<'transaction_stage'>[] = ['new_lead', 'to_quali
  * ⛔ Aucun rappel au client non plus : `visit-reminders-j1` écrit à l'acheteur la veille de toute visite `planned`
  * dont `reminder_sent` est faux (`send-visit-email`). Posé à la création, il ne part pas — le matching reste chez
  * l'agent, et aucun envoi au client ne part sans sa validation (CLAUDE.md §5).
+ *
+ * Rend la visite écrite (`visiteId`, qu'ouvre la fiche d'un mandat) ; une annonce du marché n'en a pas, son événement
+ * d'agenda se lit dans le Calendrier.
  */
 export async function execPlanifierVisite(
   ctx: GesteContext,
   buyer: AcheteurGeste,
   listing: BienGeste,
   visite: VisiteAPlanifier,
-): Promise<{ deja: boolean }> {
+): Promise<{ deja: boolean; visiteId: string | null }> {
   const { data: marques, error: mErr } = await supabase
     .from('matches')
     .update({ status: 'visit_planned' })
@@ -559,8 +571,9 @@ export async function execPlanifierVisite(
     .eq('status', 'interested')
     .select('id')
   if (mErr) throw mErr
-  if (!marques || marques.length === 0) return { deja: true }
+  if (!marques || marques.length === 0) return { deja: true, visiteId: null }
 
+  let visiteId: string | null = null
   try {
     const dealId = await rattacherDeal(ctx, buyer.id, listing)
     if (listing.kind === 'property') {
@@ -577,18 +590,20 @@ export async function execPlanifierVisite(
           status: 'planned',
           visit_type: 'sur_place',
           buyer_name: `${buyer.first} ${buyer.last}`.trim() || null,
-          // Le rappel J-1 ne part pas : voir la docstring.
+          ...visite.details,
+          // Le rappel J-1 ne part pas : voir la docstring. Après les détails de la fiche, qui ne le rouvrent pas.
           reminder_sent: true,
         })
         .select('id')
         .single()
       if (vErr) throw vErr
+      visiteId = (v as { id: string }).id
       await logEvent(ctx, {
         action: 'visit_scheduled',
         contactId: buyer.id,
         label: `${buyer.first} ${buyer.last} · ${listing.title}`,
         categorie: 'contact',
-        metadata: { match_id: buyer.matchId, visit_id: (v as { id: string }).id, deal_id: dealId, bien_ref: listing.ref, scheduled_at: visite.debut },
+        metadata: { match_id: buyer.matchId, visit_id: visiteId, deal_id: dealId, bien_ref: listing.ref, scheduled_at: visite.debut },
       })
     } else {
       const fin = new Date(Date.parse(visite.debut) + visite.dureeMinutes * 60_000).toISOString()
@@ -613,7 +628,7 @@ export async function execPlanifierVisite(
     await supabase.from('matches').update({ status: 'interested' }).eq('id', buyer.matchId).eq('status', 'visit_planned')
     throw err
   }
-  return { deja: false }
+  return { deja: false, visiteId }
 }
 
 /** Une correction de recherche proposée par « Apprendre », telle que ses deux gestes la lisent. */

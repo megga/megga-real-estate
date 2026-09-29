@@ -141,6 +141,64 @@ export interface CreateVisitInput {
   videoLink?: string | null
   /** Point de rendez-vous / accès (code, étage…) — sans colonne, rangé dans `qualification`. */
   rendezVous?: string | null
+  /**
+   * Aucun rappel la veille au client : `visit-reminders-j1` écrit à l'acheteur de toute visite `planned` dont
+   * `reminder_sent` est faux. Posé pour un acquéreur du matching (lot E1, `PlanifierVisite`) : rien ne lui part.
+   */
+  reminderSent?: boolean
+}
+
+/**
+ * Ce que le formulaire de l'agent pose sur une visite en plus de son créneau : le mode, le lien d'une visio, le bon de
+ * visite et la qualification (automatisations, point de rendez-vous). Une seule forme, que la visite s'écrive ici ou par
+ * l'écrivain du fil, à qui la fiche d'un mandat confie celle d'un acquéreur intéressé (`execPlanifierVisite`).
+ */
+export function detailsVisite(input: CreateVisitInput): Pick<TablesInsert<'visits'>, 'visit_type' | 'video_link' | 'bon' | 'qualification'> {
+  const bon: VisitBon | null = input.generateBon
+    ? {
+        generatedAt: new Date().toISOString(),
+        signedAt: null,
+        docId: `doc-${crypto.randomUUID().slice(0, 8)}`,
+        visitorNames: input.visitorNames ?? [],
+        visitorIds: input.visitorIds ?? [input.contactId],
+      }
+    : null
+
+  const qualification =
+    input.automations || input.generateBon || input.rendezVous
+      ? {
+          automations: {
+            generateBon: !!input.generateBon,
+            emailVisitor: input.automations?.emailVisitor ?? false,
+            askSignature: input.automations?.askSignature ?? false,
+          },
+          ...(input.rendezVous ? { rendezVous: input.rendezVous } : {}),
+        }
+      : null
+
+  return {
+    visit_type: input.visitType ?? 'sur_place',
+    video_link: input.videoLink ?? null,
+    bon: bon as unknown as Json,
+    qualification: qualification as unknown as Json,
+  }
+}
+
+/** La ligne `visits` d'une visite créée par l'agent ; `reminder_sent` n'est écrit que pour couper le rappel la veille. */
+export function ligneVisite(input: CreateVisitInput, agencyId: string, agentId: string | null): TablesInsert<'visits'> {
+  return {
+    agency_id: agencyId,
+    property_id: input.bienId,
+    contact_id: input.contactId,
+    transaction_id: input.dealId ?? null,
+    scheduled_at: input.scheduledAt,
+    duration_minutes: input.durationMinutes,
+    agent_id: agentId,
+    status: 'planned',
+    ...detailsVisite(input),
+    rapport: null,
+    ...(input.reminderSent ? { reminder_sent: true } : {}),
+  }
 }
 
 /** Crée une visite côté agent ; génère optionnellement le bon de visite et les toggles d'automatisation. */
@@ -152,45 +210,9 @@ export function useCreateAgentVisit() {
       if (!profile?.agency_id) {
         throw new Error('Création visite : agence introuvable')
       }
-      const bon: VisitBon | null = input.generateBon
-        ? {
-            generatedAt: new Date().toISOString(),
-            signedAt: null,
-            docId: `doc-${crypto.randomUUID().slice(0, 8)}`,
-            visitorNames: input.visitorNames ?? [],
-            visitorIds: input.visitorIds ?? [input.contactId],
-          }
-        : null
-
-      const qualification =
-        input.automations || input.generateBon || input.rendezVous
-          ? {
-              automations: {
-                generateBon: !!input.generateBon,
-                emailVisitor: input.automations?.emailVisitor ?? false,
-                askSignature: input.automations?.askSignature ?? false,
-              },
-              ...(input.rendezVous ? { rendezVous: input.rendezVous } : {}),
-            }
-          : null
-
       const { data, error } = await supabase
         .from('visits')
-        .insert({
-          agency_id: profile.agency_id,
-          property_id: input.bienId,
-          contact_id: input.contactId,
-          transaction_id: input.dealId ?? null,
-          scheduled_at: input.scheduledAt,
-          duration_minutes: input.durationMinutes,
-          agent_id: user?.id ?? null,
-          status: 'planned',
-          visit_type: input.visitType ?? 'sur_place',
-          video_link: input.videoLink ?? null,
-          bon: bon as unknown as Json,
-          rapport: null,
-          qualification: qualification as unknown as Json,
-        } as unknown as TablesInsert<'visits'>)
+        .insert(ligneVisite(input, profile.agency_id, user?.id ?? null))
         .select('id')
         .single()
       if (error) throw error
