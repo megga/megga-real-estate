@@ -573,19 +573,19 @@
   },
   "firstRun": {
     "title": "Il Suo ciclo di match inizia qui",
-    "mandat": {
-      "title": "Crei il Suo primo mandato",
-      "sub": "Un immobile da vendere o da affittare."
-    },
-    "contact": {
-      "title": "Aggiunga un contatto",
+    "acheteur": {
+      "title": "Aggiunga un acquirente",
       "sub": "Budget, zona, locali."
+    },
+    "biens": {
+      "title": "I Suoi mandati e il mercato",
+      "sub": "Gli immobili che confrontiamo con la sua ricerca."
     },
     "scores": {
       "title": "MEGGA calcola i match",
       "sub": "Nulla da configurare."
     },
-    "start": "Continua"
+    "start": "Aggiungi un acquirente"
   },
   "cockpit": {
     "switchTitle": "Abbina un altro annuncio",
@@ -722,6 +722,7 @@
       "texte": "Nessuno dei Suoi immobili è in attesa di essere proposto.",
       "contacts": "Completa la ricerca di un contatto",
       "marche": "Vedi il mercato",
+      "sansMatch": "Nessun immobile corrisponde ancora ai criteri dei Suoi acquirenti",
       "attenteTitre": "Nessuna risposta in attesa",
       "attenteTexte": "Gli immobili che propone attendono qui la risposta dell'acquirente.",
       "conclureTitre": "Nessuna visita da pianificare",

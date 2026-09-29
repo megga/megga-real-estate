@@ -16,6 +16,10 @@
  * ⚠ Lot E1 (décision 12a) : un mandat qui n'est plus en vente (`horsVente`) sort d'« À proposer », son en-tête et
  * donc « Qui pour ce bien ? » avec lui ; « En attente » et « À conclure » le gardent, son état écrit.
  *
+ * ⚠ Lot E1 (conception §5.1) : sans recherche d'acheteur active et sans match, la page 0 est la couverture de premier
+ * lancement (`MatchingFirstRun`) ; avec des recherches mais aucun match, un état sobre qui mène au marché — « Tout est à
+ * jour » ne se dit qu'à une agence qui a des matchs (`ecranDuFil`).
+ *
  * ⚠ Le clavier est posé sur la RACINE du fil (`onKeyDown`), pas sur `window` : le fil est la page 0
  * d'un pager dont la page 1 reste montée, et plusieurs écrans d'onglet restent vivants. Un écouteur
  * global agirait depuis une page ou un onglet qu'on ne regarde pas ; celui-ci n'entend que ce qui a
@@ -58,12 +62,13 @@ import { useAuth } from '@/hooks/useAuth'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useArrivee } from '@/hooks/useArrivee'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import {
   execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
   execProposerSelection, execRepondre, execSnooze, execWake,
   type CorrectionGeste, type GesteContext, type ReponseAcheteur, type VisiteAPlanifier,
 } from '@/lib/matchingGestes'
-import { useMatchingFil, versGeste } from '@/hooks/useMatchingFil'
+import { useMatchingFil, useRecherchesActives, versGeste } from '@/hooks/useMatchingFil'
 import { PAS_SELECTION, useSelectionMarche } from '@/hooks/useSelectionMarche'
 import { PendingRegistry, UNDO_WINDOW_MS } from '@/lib/matchingAnnulation'
 import {
@@ -73,6 +78,7 @@ import {
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
 import { estArriveeFil, ligneCourante, lireArrivee } from './filLiens'
 import { construireCorrections, filtrerCorrections, type Correction, type CorrectionChangement } from './filApprendre'
+import { ecranDuFil } from './filDemarrage'
 import { compatiblesDuFil } from './filQuiPour'
 import { aUnSignal } from './filSignaux'
 import { FilStyleLignes } from './filAtomes'
@@ -87,6 +93,7 @@ import FilPanneau from './FilPanneau'
 import FilQuiPourCeBien from './FilQuiPourCeBien'
 import FilRetours from './FilRetours'
 import FilSelection from './FilSelection'
+import MatchingFirstRun from './MatchingFirstRun'
 
 const SANS_FILTRE: FilFiltres = { bienId: null, acheteurId: null, texte: '' }
 const COLONNES = 'minmax(300px, 380px) minmax(0, 1fr)'
@@ -145,6 +152,7 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   const {
     isLoading, isError, aDesDonnees, erreurLe, matchs, selections, boucle, relances, historique, chargeLe, rafraichir,
   } = useMatchingFil()
+  const recherches = useRecherchesActives()
 
   // Les liens d'arrivée (`filLiens.ts`, conception de D1 §4) : `?contact=` et `?annonce=p:<uuid>` — ceux de l'atelier,
   // qui gardent leur sens —, et `?onglet=`, `?ligne=<clé>`, `?attente=<contact>`. Une arrivée s'applique UNE fois par
@@ -752,7 +760,12 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   }
 
   const enEchec = isError && !aDesDonnees
-  const connu = !isLoading && !enEchec
+  // La page 0 (conception E1 §5.1) : la couverture, l'état « aucun match », ou le fil. `matchs` compte ce que le fil a
+  // LU — à proposer, du marché, de la boucle —, avant masques et filtres : c'est l'agence qu'on juge, pas l'écran.
+  const ecran = ecranDuFil(recherches, {
+    chargement: isLoading, erreur: enEchec, matchs: matchs.length + selections.length + boucle.length,
+  })
+  const connu = ecran !== 'chargement' && ecran !== 'erreur'
   // Les reportés vivent dans « À proposer » : ils le gardent ouvert, même sans ligne à traiter.
   const ongletVide = comptes[onglet] === 0 && (onglet !== 'aProposer' || vue.reportes.length === 0)
   const rienDuTout = !filtreActif && vue.reportes.length === 0
@@ -805,6 +818,9 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   ) : (
     <Etat sp={sp} titre={onglet === 'aProposer' && comptes.aProposer === 0 ? t('fil.vide.titre') : t('fil.choisir')} />
   )
+  // La couverture remplace la page 0 ENTIÈRE, en-tête compris : il n'y a encore rien à filtrer. Son bouton ouvre la
+  // création d'un contact : la page Contacts l'ouvre sur cette arrivée, une fois par navigation (`useArrivee`).
+  if (ecran === 'couverture') return <MatchingFirstRun onAjouterAcheteur={() => navigate('/dashboard/contacts?nouveau=1', avecArrivee())} />
   return (
     <div ref={racine} tabIndex={-1} onKeyDown={onKeyDown}
       onFocus={(e) => { dernierFocus.current = e.target }}
@@ -819,13 +835,17 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
       <div role={avecOnglets ? 'tabpanel' : undefined} id={avecOnglets ? ids.panneau : undefined}
         aria-labelledby={avecOnglets ? ids.onglet(onglet) : undefined}
         style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-        {isLoading ? <Squelette sp={sp} />
-          : enEchec ? <Etat sp={sp} alerte titre={t('fil.erreur')} action={{ libelle: t('fil.reessayer'), faire: rafraichir }} />
+        {ecran === 'chargement' ? <Squelette sp={sp} />
+          // « Réessayer » relit le fil ET les recherches actives, rangées sous son préfixe.
+          : ecran === 'erreur' ? <Etat sp={sp} alerte titre={t('fil.erreur')} action={{ libelle: t('fil.reessayer'), faire: rafraichir }} />
             // ⚠ Un FILTRE actif qui ne retient rien passe AVANT le constat « aucune donnée du tout » :
             // sinon le seul match d'un acheteur filtré, une fois proposé, fait lire « Tout est à jour »
             // (vrai pour l'agence entière, faux pour ce filtre) au lieu de « Rien ne correspond ».
             : filtreActif && ongletVide ? (
               <Etat sp={sp} titre={t('fil.filtreVide')} action={{ libelle: t('fil.filtres.retirer'), faire: () => setFiltres(SANS_FILTRE) }} />
+            ) : ecran === 'sansMatch' ? (
+              <Etat sp={sp} titre={t('fil.vide.sansMatch')}
+                action={onOpenRecherche ? { libelle: t('fil.vide.marche'), faire: onOpenRecherche } : undefined} />
             ) : rienDuTout || (onglet === 'aProposer' && ongletVide) ? etatAProposer
               : onglet !== 'aProposer' && ongletVide ? (
                 <Etat sp={sp} titre={t(VIDE_BOUCLE[onglet].titre)} texte={t(VIDE_BOUCLE[onglet].texte)} />

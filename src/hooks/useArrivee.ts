@@ -1,7 +1,7 @@
 /**
  * L'arrivée d'une navigation, appliquée UNE fois dans l'onglet du CRM (lot E1, conception
  * `2026-09-27-matching-lot-e1-bureau-design.md` §4.2 ; la règle vit dans `src/lib/jetonArrivee.ts`). Lue par le fil de
- * matchs, le pager de Matching et les deux fiches de bien (`?qui=1`).
+ * matchs, le pager de Matching, les deux fiches de bien (`?qui=1`) et la page Contacts (`?nouveau=1`).
  *
  * L'écran lit `neuve` au RENDU — une arrivée neuve l'emporte sur ce que l'onglet avait retenu, sans image
  * intermédiaire —, l'applique dans un EFFET quand `aAppliquer` est vrai, puis appelle `marquerAppliquee`.

@@ -281,19 +281,19 @@
   },
   "firstRun": {
     "title": "Votre boucle de match démarre ici",
-    "mandat": {
-      "title": "Créez votre premier mandat",
-      "sub": "Un bien à vendre ou à louer."
-    },
-    "contact": {
-      "title": "Ajoutez un contact",
+    "acheteur": {
+      "title": "Ajoutez un acheteur",
       "sub": "Budget, secteur, pièces."
+    },
+    "biens": {
+      "title": "Vos mandats et le marché",
+      "sub": "Les biens qu'on lui compare."
     },
     "scores": {
       "title": "MEGGA calcule les matchs",
       "sub": "Rien à configurer."
     },
-    "start": "Continuer"
+    "start": "Ajouter un acheteur"
   },
   "card": {
     "sendTo": "Envoyer →",
@@ -722,6 +722,7 @@
       "texte": "Aucun de vos biens n'attend d'être proposé.",
       "contacts": "Compléter la recherche d'un contact",
       "marche": "Voir le marché",
+      "sansMatch": "Aucun bien ne correspond encore aux critères de vos acheteurs",
       "attenteTitre": "Aucune réponse attendue",
       "attenteTexte": "Les biens que vous proposez attendent ici la réponse de l'acheteur.",
       "conclureTitre": "Aucune visite à planifier",

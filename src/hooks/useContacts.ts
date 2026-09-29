@@ -4,6 +4,9 @@
  * Toutes les requêtes sont agency-scopées par RLS. Les clés de cache sont
  * dérivées de la forme de la requête (table + filtres) : les mutations
  * invalident automatiquement les listes/détails qui touchent `contacts`.
+ *
+ * ⚠ Sauf celles du Matching, qui portent leurs propres clés (`CLE_FIL`) : c'est
+ * `relireRecherchesDuFil` qui les rafraîchit quand des critères s'écrivent.
  */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
@@ -23,12 +26,14 @@
 // `{ data: undefined, isLoading: false }`.
 
 import { useEffect, useState } from 'react'
+import { useQueryClient, type QueryClient } from '@tanstack/react-query'
 import {
   useQuery,
   useInsertMutation,
   useUpdateMutation,
   useDeleteMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
+import { CLE_FIL } from '@/components/matching-fil/filModele'
 import { supabase } from '@/lib/supabase'
 import { INTERCOM_EVENTS } from '@/lib/intercom'
 import { syncIntercomMilestones } from '@/lib/intercom-milestones'
@@ -175,9 +180,27 @@ export function useContact(id: string | undefined) {
   }
 }
 
+/**
+ * Des critères écrits changent ce que le Matching sait de l'agence : le déclencheur `sync_contact_client_search` active
+ * la recherche du contact — ou la désactive, critères vidés — dans la même transaction. Sans ce rafraîchissement, la
+ * couverture de premier lancement (`ecranDuFil`) survivrait au premier acheteur, sa lecture restant fraîche deux minutes.
+ *
+ * Les recherches sont relues TOUT DE SUITE, écran de Matching démonté ou caché compris (`all` : un écran d'onglet caché
+ * est désabonné de ses requêtes). Le fil n'est que marqué périmé : le moteur note en différé, le relire maintenant n'y
+ * trouverait rien de neuf. ⚠ L'écriture attend la fin : sinon « Voir ses matchs », juste après une création, ouvrirait
+ * le fil sur la couverture le temps de la lecture.
+ */
+async function relireRecherchesDuFil(client: QueryClient): Promise<void> {
+  await Promise.all([
+    client.invalidateQueries({ queryKey: [CLE_FIL], refetchType: 'none' }),
+    client.invalidateQueries({ queryKey: [CLE_FIL, 'recherches'], refetchType: 'all' }),
+  ])
+}
+
 /** Création manuelle d'un contact (source `manual` par défaut, score `cold`). */
 export function useCreateContact() {
   const { user, profile } = useAuth()
+  const client = useQueryClient()
   const insert = useInsertMutation(supabase.from('contacts'), ['id'])
 
   return {
@@ -235,6 +258,7 @@ export function useCreateContact() {
       // en base (une requête `head`, et plus aucune une fois le jalon envoyé).
       const agencyId = input.agency_id ?? profile?.agency_id
       if (agencyId) void syncIntercomMilestones(agencyId, [INTERCOM_EVENTS.FIRST_CONTACTS_IMPORTED])
+      if (input.search_criteria != null) await relireRecherchesDuFil(client)
       return (Array.isArray(rows) ? rows[0] : rows) as unknown as Contact
     },
     isPending: insert.isPending,
@@ -243,12 +267,17 @@ export function useCreateContact() {
 
 /** Mise à jour partielle d'un contact identifié par `id`. */
 export function useUpdateContact() {
+  const client = useQueryClient()
   const update = useUpdateMutation(supabase.from('contacts'), ['id'])
   return {
     mutateAsync: async ({ id, ...updates }: { id: string } & Partial<Record<string, unknown>>) => {
-      return update.mutateAsync({ id, ...updates } as unknown as Parameters<
+      const ligne = await update.mutateAsync({ id, ...updates } as unknown as Parameters<
         typeof update.mutateAsync
       >[0])
+      // Les deux colonnes du déclencheur qui décident si la recherche est active ; `null` compte : des critères vidés
+      // la désactivent. Un nom changé ne fait que la renommer.
+      if (updates.search_criteria !== undefined || updates.agency_id !== undefined) await relireRecherchesDuFil(client)
+      return ligne
     },
     isPending: update.isPending,
   }

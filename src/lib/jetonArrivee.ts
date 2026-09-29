@@ -4,8 +4,8 @@
  *
  * Une ARRIVÉE est ce qu'un lien demande à l'écran où il mène : une place du fil de matchs (`?onglet`, `?ligne`,
  * `?attente`, `?contact`, `?annonce=p:`), la page du fil dans le pager de Matching, « Qui pour ce bien ? » d'une fiche
- * (`?qui=1`). L'adresse la porte, et la garde : ⛔ l'écran ne la réécrit jamais — la réconciliation des onglets du CRM
- * lirait l'adresse réécrite comme celle d'un autre onglet.
+ * (`?qui=1`), la création d'un contact (`?nouveau=1`). L'adresse la porte, et la garde : ⛔ l'écran ne la réécrit
+ * jamais — la réconciliation des onglets du CRM lirait l'adresse réécrite comme celle d'un autre onglet.
  *
  * Elle s'applique UNE fois par navigation, et dans l'onglet qui porte son adresse (`useArrivee`). La navigation qui y
  * mène porte un jeton neuf dans son état (`avecArrivee`), que le navigateur garde avec l'entrée d'historique

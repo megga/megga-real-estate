@@ -41,6 +41,9 @@
  * ⚠ `chargeLe` est l'heure du DÉBUT des lectures, pas de leur fin : le fil la compare à l'heure où un
  * geste a fini d'écrire pour savoir si ces données le reflètent déjà. Prise à la fin, une lecture
  * partie avant l'écriture passerait pour postérieure.
+ *
+ * ⚠ Lot E1 : une seconde lecture, légère, dit si l'agence a une recherche d'acheteur active (`useRecherchesActives`) —
+ * sans elle, la page 0 est la couverture de premier lancement (`ecranDuFil`, conception E1 §5.1).
  */
 import { useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -57,6 +60,7 @@ import {
   type FilSelectionResume, type Historique, type RaisonsMoteur, type SuiviMatch,
 } from '@/components/matching-fil/filModele'
 import type { RelanceProposition } from '@/components/matching-fil/filBoucle'
+import type { RecherchesAgence } from '@/components/matching-fil/filDemarrage'
 
 // Le préfixe des clés du fil et `lire` vivent dans le module pur (`filModele`) : ré-exportés ici pour que leurs
 // importeurs ne changent pas. « Aujourd'hui » et « Sa boucle » les prennent à la source — ce module tire
@@ -365,6 +369,31 @@ export function useMatchingFil(): DonneesFil & EtatFil {
     erreurLe: requete.errorUpdatedAt,
     rafraichir,
   }
+}
+
+/**
+ * L'agence a-t-elle au moins une recherche d'acheteur ACTIVE (lot E1) ? Un identifiant, sous la RLS de l'agent
+ * (`client_searches_select` : l'agence de l'appelant). Sans agence, la lecture ne part pas (`enabled`) : ni donnée ni
+ * erreur, c'est le repli final qui rend `'aucune'` — une recherche appartient toujours à une agence (`agency_id` non nul).
+ *
+ * ⚠ Sous le préfixe du fil (`CLE_FIL`) : « Réessayer » la relit avec le fil, chaque geste aussi. Des critères écrits sur
+ * un contact la relisent aussitôt (`useContacts`) : le déclencheur a activé ou désactivé sa recherche.
+ */
+export function useRecherchesActives(): RecherchesAgence {
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id ?? null
+  const requete = useQuery({
+    queryKey: [CLE_FIL, 'recherches', agencyId],
+    queryFn: async () => (await lire<{ id: string }>(
+      supabase.from('client_searches').select('id').eq('is_active', true).limit(1),
+    )).length > 0,
+    enabled: agencyId != null,
+  })
+  // Comme le fil : une requête DÉSACTIVÉE n'est pas « en chargement » pour TanStack v5 — sans la garde sur le profil,
+  // la couverture passerait le temps que la session arrive.
+  if (profile == null || requete.isLoading) return 'chargement'
+  if (requete.data !== undefined) return requete.data ? 'actives' : 'aucune'
+  return requete.isError ? 'erreur' : 'aucune'
 }
 
 /** Ce que les exécuteurs de `matchingGestes` lisent d'un match du fil : ils restent la source unique des écritures. */

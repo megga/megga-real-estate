@@ -503,7 +503,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
   const POLICES_ASSUMEES = new Set([
     'src/components/crm/biens/pager/BiensFirstRun.tsx',
     'src/components/crm/biens/pager/BpRenewModal.tsx',
-    'src/components/matching-fil/MatchingFirstRun.tsx',
     'src/pages/agent/ListingsPage.tsx',
     'src/pages/agent/KycExportPage.tsx',
     'src/pages/dev/BiensShowcasePage.tsx',

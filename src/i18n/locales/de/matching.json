@@ -573,19 +573,19 @@
   },
   "firstRun": {
     "title": "Hier beginnt Ihre Match-Schleife",
-    "mandat": {
-      "title": "Erstellen Sie Ihr erstes Mandat",
-      "sub": "Ein Objekt zum Verkauf oder zur Miete."
-    },
-    "contact": {
-      "title": "Fügen Sie einen Kontakt hinzu",
+    "acheteur": {
+      "title": "Fügen Sie einen Käufer hinzu",
       "sub": "Budget, Gebiet, Zimmer."
+    },
+    "biens": {
+      "title": "Ihre Mandate und der Markt",
+      "sub": "Die Objekte, die wir mit seiner Suche vergleichen."
     },
     "scores": {
       "title": "MEGGA berechnet die Matches",
       "sub": "Nichts einzurichten."
     },
-    "start": "Weiter"
+    "start": "Käufer hinzufügen"
   },
   "cockpit": {
     "switchTitle": "Ein anderes Inserat matchen",
@@ -722,6 +722,7 @@
       "texte": "Keines Ihrer Objekte wartet auf einen Vorschlag.",
       "contacts": "Suche eines Kontakts ergänzen",
       "marche": "Markt ansehen",
+      "sansMatch": "Noch kein Objekt entspricht den Kriterien Ihrer Käufer",
       "attenteTitre": "Keine Antwort ausstehend",
       "attenteTexte": "Vorgeschlagene Objekte warten hier auf die Antwort des Käufers.",
       "conclureTitre": "Keine Besichtigung zu planen",

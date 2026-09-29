@@ -723,6 +723,13 @@ const RAISONS_EMMA_ZURICH = {
   rooms: { match: false, score: 0, detail: 'Aucun critère' },
   features: { match: false, score: 0, detail: '—' },
 }
+/** Lot E1 : la jointure `property` des deux matchs du mandat VENDU (p4) — son état est celui de la table. */
+const PETIT_SACONNEX_EMBARQUE = {
+  title: 'Appartement 4,5 pièces · Petit-Saconnex', price: 1_540_000, address: 'Avenue Trembley 20',
+  city: 'Genève', canton: 'GE', postal_code: '1209', rooms: 4.5, bedrooms: 3, surface_m2: 116,
+  photos: [unsplash(PHOTOS_APPART[2]!)], type: 'apartment', description: 'Traversant, balcon sur le parc, cuisine refaite.',
+  features: ['Balcon', 'Ascenseur'], floor: 3, year_built: 1985, charges_monthly: 480, status: 'sold',
+}
 
 export const CRM_TABLES: Record<string, unknown[]> = {
   market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE, ...ANNONCES_SIGNAL],
@@ -825,6 +832,20 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       views_count: 0, favorites_count: 0,
       status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 2), created_at: ilYA(24 * 3),
       photos: [unsplash(PHOTOS_APPART[9]!)], photos_cf: null,
+    },
+    // Lot E1 (27.09.2026) : un mandat VENDU. Julie n'a pas encore répondu sur lui (m26), Emma s'y est dite intéressée
+    // (m27) : « En attente » et « À conclure » les gardent, son état écrit (« Vendu ») ; « À proposer » ne le montre plus.
+    {
+      id: 'p4', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Appartement 4,5 pièces · Petit-Saconnex', type: 'apartment',
+      address: 'Avenue Trembley 20', postal_code: '1209', city: 'Genève', canton: 'GE',
+      price: 1_540_000, charges_monthly: 480, rooms: 4.5, bedrooms: 3, bathrooms: 2, surface_m2: 116,
+      year_built: 1985, energy_class: 'C', floor: 3, condition: 'good', off_market: false,
+      description: 'Traversant, balcon sur le parc, cuisine refaite.',
+      features: ['Balcon', 'Ascenseur'],
+      mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 90), mandate_expires_at: ilYA(-24 * 90),
+      views_count: 158, favorites_count: 11,
+      status: 'sold', transaction_type: 'sale', published_at: ilYA(24 * 85), created_at: ilYA(24 * 92),
+      photos: [unsplash(PHOTOS_APPART[2]!)], photos_cf: null,
     },
     ...BIENS_CATALOGUE,
   ],
@@ -1182,6 +1203,38 @@ export const CRM_TABLES: Record<string, unknown[]> = {
         features: { match: true, score: 9, detail: '2/2 critères' },
       },
       contact: ANASTASIA_EMBARQUEE, property: null, market_listing: ANNONCES_SIGNAL[1],
+    },
+    // ── Lot E1 (27.09.2026) : le mandat VENDU de Petit-Saconnex (p4), noté par le vrai moteur (`banc-matching-e1.spec.ts`).
+    // Proposé à Julie il y a six jours ; proposé à Emma il y a neuf jours, intéressée depuis sept. Aucune relance ne les
+    // couvre et la réponse d'Emma sort de la fenêtre de « Pendant ton absence » : « Aujourd'hui » reste celui du lot D1
+    // (`banc-matching-d1.spec.ts`) — un mandat vendu n'y entre pas.
+    {
+      id: 'm26', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'internal',
+      property_id: 'p4', market_listing_id: null, score_version: 4,
+      score: 97, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 6), snoozed_until: null, created_at: ilYA(24 * 10),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_540_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 116 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, property: PETIT_SACONNEX_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm27', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
+      property_id: 'p4', market_listing_id: null, score_version: 4,
+      score: 100, status: 'interested', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 12),
+      response_at: ilYA(24 * 7), reaction_motif: null, reaction_note: null, prix_propose: 1_540_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: EMMA_EMBARQUEE, property: PETIT_SACONNEX_EMBARQUE, market_listing: null,
     },
   ],
   crm_offers: [],

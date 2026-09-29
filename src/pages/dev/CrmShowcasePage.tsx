@@ -195,17 +195,34 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
 ]
 
-const ETATS: { id: BancEtat; label: string; titre: string }[] = [
-  { id: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 20 matchs, 4 rappels, 1 visite, journal à 4 lignes' },
-  { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
-  { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
+/** Les tables qui TRAVERSENT l'état « Vide » : l'identité de la session, jamais du domaine (voir l'effet qui les pose). */
+const SOCLE = ['profiles', 'agencies', 'whatsapp_agent_links'] as const
+
+/**
+ * Les états du panneau : ce que rend l'interception (`etat`), et les tables qui traversent « Vide » en plus du socle
+ * (`traversent`).
+ *
+ * ⚠ « Sans match » n'est pas un état de plus de l'interception : c'est « Vide », les recherches des acheteurs en plus
+ * (lot E1). Sans recherche active et sans match, le fil de matchs montre sa couverture de premier lancement ; avec des
+ * recherches mais aucun match, l'état « aucun match » (conception E1 §5.1). « Vide » ne peut montrer que le premier. Les
+ * deux viennent des vraies lectures du fil : aucun écran n'est forcé.
+ */
+type EtatPanneau = BancEtat | 'sansMatch'
+const ETATS: { id: EtatPanneau; etat: BancEtat; traversent?: readonly string[]; label: string; titre: string }[] = [
+  { id: 'nominal', etat: 'nominal', label: 'Nominal', titre: '10 contacts, 50 biens, 20 matchs, 4 rappels, 1 visite, journal à 4 lignes' },
+  { id: 'vide', etat: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les états vides de chaque surface' },
+  { id: 'sansMatch', etat: 'vide', traversent: ['client_searches'], label: 'Sans match', titre: 'Vide, sauf les recherches des acheteurs — le Matching n’a encore rien trouvé' },
+  { id: 'erreur', etat: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les branches d’erreur' },
 ]
+const etatDuPanneau = (id: EtatPanneau): (typeof ETATS)[number] => ETATS.find((e) => e.id === id) ?? ETATS[0]!
 
 /**
  * Les trois états du banc, traduits pour le studio Labs.
  *
  * ⚠ Une table et non un ternaire : les trois branches sont NOMMÉES des deux côtés, et
  * le jour où le banc gagne un quatrième état, TypeScript réclame sa traduction ici.
+ * Ce sont ceux de l'INTERCEPTION (`BancEtat`) : « Sans match », au panneau, en est un
+ * « Vide », et le studio y est vide.
  */
 const LABS_PAR_ETAT: Record<BancEtat, LabsFixtureState> = {
   nominal: 'full',
@@ -216,8 +233,8 @@ const LABS_PAR_ETAT: Record<BancEtat, LabsFixtureState> = {
 /* ─── Chrome du banc ──────────────────────────────────────────────────────── */
 
 function Commandes({ etat, setEtat, sansFixture }: {
-  etat: BancEtat
-  setEtat: (e: BancEtat) => void
+  etat: EtatPanneau
+  setEtat: (e: EtatPanneau) => void
   sansFixture: string[]
 }) {
   const navigate = useNavigate()
@@ -263,7 +280,8 @@ function Commandes({ etat, setEtat, sansFixture }: {
       `}</style>
       {ouvert && (
         <div role="menu" style={{
-          width: 240, maxHeight: '60vh', display: 'flex', flexDirection: 'column',
+          // Assez large pour les quatre états sur une ligne, « Sans match » compris.
+          width: 320, maxHeight: '60vh', display: 'flex', flexDirection: 'column',
           background: sp.solidBg, border: `1px solid ${sp.solidBorder}`, borderRadius: 'var(--crm-radius-lg)',
           boxShadow: sp.solidShadow, overflow: 'hidden',
         }}>
@@ -448,7 +466,7 @@ const clientBanc = new QueryClient({
 })
 
 export default function CrmShowcasePage() {
-  const [etat, setEtatLocal] = useState<BancEtat>('nominal')
+  const [etat, setEtatLocal] = useState<EtatPanneau>('nominal')
   const [sansFixture, setSansFixture] = useState<string[]>([])
 
   // ⚠ Semé et installé PENDANT le rendu, donc AVANT que `AuthProvider` appelle
@@ -508,7 +526,7 @@ export default function CrmShowcasePage() {
       tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, edges: CRM_EDGES, session,
       // `whatsapp_agent_links` aussi : le lien WhatsApp appartient au COMPTE, pas au carnet —
       // vider les contacts ne délie pas le numéro de l'agent (écran vide des Contacts).
-      socle: ['profiles', 'agencies', 'whatsapp_agent_links'],
+      socle: [...SOCLE],
       // Les libellés du Calendrier se créent et se suppriment DANS le banc ; une visite ou
       // une tâche glissée d'un jour à l'autre y change de jour pour de bon — sans quoi
       // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
@@ -533,9 +551,11 @@ export default function CrmShowcasePage() {
     return desinstallerBanc
   }, [session])
 
-  const setEtat = useCallback((e: BancEtat) => {
-    reglerBanc({ etat: e })
-    setEtatLocal(e)
+  const setEtat = useCallback((id: EtatPanneau) => {
+    const choisi = etatDuPanneau(id)
+    // Le socle revient à chaque état : sans quoi « Sans match » laisserait passer les recherches dans « Vide ».
+    reglerBanc({ etat: choisi.etat, socle: [...SOCLE, ...(choisi.traversent ?? [])] })
+    setEtatLocal(id)
     // Les requêtes actives repartent avec la nouvelle réponse ; on ne remonte
     // pas l'arbre, sinon changer d'état ramènerait à « Aujourd'hui ».
     // ⚠ Le CLIENT directement, pas `useQueryClient()` : ce composant POSE le
@@ -577,7 +597,7 @@ export default function CrmShowcasePage() {
             « Échec », `null` les rend au réseau — donc à l'interception, qui
             sert zéro ligne ou un 500 : les deux branches réelles de l'écran. */}
         <MailFixturesContext.Provider value={etat === 'nominal' ? 'full' : null}>
-        <LabsFixturesContext.Provider value={LABS_PAR_ETAT[etat]}>
+        <LabsFixturesContext.Provider value={LABS_PAR_ETAT[etatDuPanneau(etat).etat]}>
         <Suspense fallback={null}>
           <RoutesBanc />
           {/* Au-dessus des routes, comme en production : le panneau persiste

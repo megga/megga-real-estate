@@ -281,19 +281,19 @@
   },
   "firstRun": {
     "title": "Your match loop starts here",
-    "mandat": {
-      "title": "Create your first mandate",
-      "sub": "A property to sell or to rent."
-    },
-    "contact": {
-      "title": "Add a contact",
+    "acheteur": {
+      "title": "Add a buyer",
       "sub": "Budget, area, rooms."
+    },
+    "biens": {
+      "title": "Your mandates and the market",
+      "sub": "The properties we compare with their search."
     },
     "scores": {
       "title": "MEGGA computes the matches",
       "sub": "Nothing to configure."
     },
-    "start": "Continue"
+    "start": "Add a buyer"
   },
   "card": {
     "sendTo": "Send →",
@@ -722,6 +722,7 @@
       "texte": "None of your properties is waiting to be proposed.",
       "contacts": "Complete a contact's search",
       "marche": "View the market",
+      "sansMatch": "No property matches your buyers' criteria yet",
       "attenteTitre": "No reply awaited",
       "attenteTexte": "The properties you propose wait here for the buyer's reply.",
       "conclureTitre": "No viewing to schedule",

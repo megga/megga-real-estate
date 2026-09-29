@@ -111,7 +111,7 @@ const GESTES: AtelierGestes = {
 
 function Page0({ dark, onOpenRecherche }: { dark: boolean; onOpenRecherche: () => void }) {
   const { atelier, setAtelier, contactId, setContactId } = useBanc()
-  if (atelier === 'premier') return <MatchingFirstRun onCreateListing={() => undefined} />
+  if (atelier === 'premier') return <MatchingFirstRun onAjouterAcheteur={() => undefined} />
   const pivotBuyer = contactId ? ATELIER_BUYERS.find((b) => b.id === contactId) ?? null : null
   return (
     <AtelierStage

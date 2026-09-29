@@ -1,20 +1,20 @@
 /**
  * Le jeton d'arrivée (lot E1, conception `2026-09-27-matching-lot-e1-bureau-design.md` §4.2 et §8) : une arrivée — une
- * place du fil de matchs, la page du fil dans le pager de Matching, « Qui pour ce bien ? » d'une fiche (`?qui=1`) —
- * s'applique UNE fois par navigation.
+ * place du fil de matchs, la page du fil dans le pager de Matching, « Qui pour ce bien ? » d'une fiche (`?qui=1`), la
+ * création d'un contact (`?nouveau=1`, §5.1) — s'applique UNE fois par navigation.
  *
  * Ce que cette spec refuse :
  *   · une arrivée rejouée au remontage de l'écran, au retour sur son onglet, à un retour arrière ou au rechargement ;
  *   · une arrivée ignorée sur un NOUVEAU clic, même vers un onglet déjà ouvert sur cette adresse ;
  *   · une arrivée appliquée avant le chargement de la pile d'onglets (l'hydratation l'effacerait) ou par un écran caché ;
- *   · une adresse réécrite par le fil, le pager ou une fiche ;
+ *   · une adresse réécrite par le fil, le pager, une fiche ou la page Contacts ;
  *   · un lien d'arrivée sans jeton : son second clic serait ignoré.
  *
  * Le crochet (`useArrivee`) est monté pour de vrai — `createRoot` + `act`, le routeur mémoire et la VRAIE pile d'onglets
  * (`CrmTabsProvider`) sur un client Supabase simulé, comme `crm-tabs-compte.spec.tsx`.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { act, useEffect, type ReactNode } from 'react'
+import { act, useEffect, useState, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -35,6 +35,10 @@ const h = vi.hoisted(() => ({
   applications: [] as string[],
   /** L'arrivée que lit l'écran monté sous le routeur du navigateur. */
   lue: null as null | { jeton: string | null; adresse: string },
+  /** La création d'un contact : ouverte ou non, le nombre de ses ouvertures, et de quoi la refermer. */
+  ouverte: false,
+  ouvertures: 0,
+  fermer: null as null | (() => void),
 }))
 
 vi.mock('react-i18next', async (importOriginal) => ({
@@ -183,12 +187,54 @@ function Arbre({ entree, montage = 0, actif = true }: { entree: InitialEntry; mo
 
 const avec = (jeton: string, search = '?attente=c7'): InitialEntry => ({ pathname: FIL, search, state: { arrivee: jeton } })
 
+const CONTACTS = '/dashboard/contacts'
+const NOUVEAU = `${CONTACTS}?nouveau=1`
+
+/**
+ * Un écran qui ouvre sa création comme la page Contacts (`ContactsPage`) : PENDANT LE RENDU, quand l'arrivée est à
+ * appliquer et la création fermée ; marquée par l'effet.
+ */
+function EcranContacts() {
+  const [params] = useSearchParams()
+  const [ouverte, setOuverte] = useState(false)
+  const { aAppliquer, marquerAppliquee } = useArrivee('contacts.nouveau', params.has('nouveau'))
+  if (aAppliquer && !ouverte) setOuverte(true)
+  useEffect(() => { if (aAppliquer) marquerAppliquee() }, [aAppliquer, marquerAppliquee])
+  useEffect(() => { if (ouverte) h.ouvertures += 1 }, [ouverte])
+  useEffect(() => {
+    h.ouverte = ouverte
+    h.fermer = () => setOuverte(false)
+  })
+  return null
+}
+
+function ArbreContacts({ entree, montage = 0 }: { entree: InitialEntry; montage?: number }) {
+  return (
+    <MemoryRouter initialEntries={[entree]} future={ROUTER_FUTURE}>
+      <CrmTabsProvider>
+        <Pilote />
+        <EcranActifProvider value>
+          <Routes>
+            <Route path={CONTACTS} element={<EcranContacts key={montage} />} />
+            <Route path="*" element={null} />
+          </Routes>
+        </EcranActifProvider>
+      </CrmTabsProvider>
+    </MemoryRouter>
+  )
+}
+
+const nouveau = (jeton: string, search = '?nouveau=1'): InitialEntry => ({ pathname: CONTACTS, search, state: { arrivee: jeton } })
+
 beforeEach(() => {
   poserStockagesMemoire()
   h.lecture = null
   h.naviguer = null
   h.applications = []
   h.lue = null
+  h.ouverte = false
+  h.ouvertures = 0
+  h.fermer = null
   Object.defineProperty(window, 'matchMedia', {
     configurable: true,
     value: () => ({ matches: false, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} }),
@@ -279,6 +325,29 @@ describe('le jeton d’arrivée — dans l’onglet du CRM', () => {
   })
 })
 
+describe('le jeton d’arrivée — la création d’un contact (`?nouveau=1`)', () => {
+  it('s’ouvre une fois : remonter l’écran ne la rouvre pas', async () => {
+    await rendre(<ArbreContacts entree={nouveau('j1')} />)
+    expect([h.ouverte, h.ouvertures]).toEqual([true, 1])
+    await rendre(<ArbreContacts entree={nouveau('j1')} montage={1} />)
+    expect([h.ouverte, h.ouvertures]).toEqual([false, 1])
+  })
+
+  it('refermée, l’onglet réactivé — son adresse, sans jeton — ne la rouvre pas ; un nouveau clic sur le lien, si', async () => {
+    await rendre(<ArbreContacts entree={nouveau('j1')} />)
+    await act(async () => { h.fermer!() })
+    await naviguer(NOUVEAU)
+    expect([h.ouverte, h.ouvertures]).toEqual([false, 1])
+    await naviguer(NOUVEAU, avecArrivee())
+    expect([h.ouverte, h.ouvertures]).toEqual([true, 2])
+  })
+
+  it('sans `?nouveau`, rien ne s’ouvre — même sous un jeton', async () => {
+    await rendre(<ArbreContacts entree={nouveau('j1', '')} />)
+    expect([h.ouverte, h.ouvertures]).toEqual([false, 0])
+  })
+})
+
 const lire = (f: string) => readFileSync(join(process.cwd(), f), 'utf8')
 
 describe('le jeton d’arrivée — les écrans et leurs liens', () => {
@@ -288,6 +357,7 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
     ['src/pages/agent/MatchingPage.tsx', "useArrivee('pager.arrivee', estArriveeFil(searchParams))"],
     ['src/pages/agent/ListingDetailPage.tsx', "useArrivee('quiPour.arrivee', params.has(PARAM_QUI_POUR))"],
     ['src/pages/agent/ExternalListingDetailPage.tsx', "useArrivee('quiPour.arrivee', params.has(PARAM_QUI_POUR))"],
+    ['src/pages/agent/ContactsPage.tsx', "useArrivee('contacts.nouveau', searchParams.has('nouveau'))"],
   ]
 
   it.each(ECRANS)('%s applique son arrivée une fois, et ne réécrit jamais son adresse', (fichier, appel) => {
@@ -298,10 +368,18 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
     expect(code).not.toMatch(/setSearchParams|replace:\s*true/)
   })
 
-  /** Une cible d'arrivée : une place du fil, ou une fiche défilée jusqu'à « Qui pour ce bien ? ». */
-  const CIBLE = /\/dashboard\/matching(?:\?|\$\{)|\/dashboard\/(?:listings|market)\/\$\{[^}]+\}\?\$\{PARAM_QUI_POUR\}=1/
+  it('la page Contacts ouvre sa création comme l’écran de la spec : pendant le rendu, marquée par l’effet', () => {
+    const code = lire('src/pages/agent/ContactsPage.tsx')
+    expect(code).toContain('if (aAppliquer && !modalOpen) openModal()')
+    expect(code).toContain('useEffect(() => { if (aAppliquer) marquerAppliquee() }, [aAppliquer, marquerAppliquee])')
+  })
+
+  /** Une cible d'arrivée : une place du fil, une fiche défilée jusqu'à « Qui pour ce bien ? », la création d'un contact. */
+  const CIBLE = /\/dashboard\/matching(?:\?|\$\{)|\/dashboard\/(?:listings|market)\/\$\{[^}]+\}\?\$\{PARAM_QUI_POUR\}=1|\/dashboard\/contacts\?nouveau=1/
   /** Les liens d'arrivée, par fichier. Un lien neuf s'inscrit ici — avec son jeton. */
   const SITES: Record<string, number> = {
+    // « Ajouter un acheteur », la couverture de premier lancement : celle du fil, et celle de l'atelier tant qu'il est monté.
+    'src/components/matching-fil/MatchingFil.tsx': 1,
     'src/components/matching-recherche/MatchingRechercheHybride.tsx': 1,
     'src/pages/agent/ContactDetailPage.tsx': 2,
     'src/pages/agent/ContactsPage.tsx': 1,
@@ -309,6 +387,7 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
     'src/pages/agent/ExternalListingDetailPage.tsx': 1,
     'src/pages/agent/ListingDetailPage.tsx': 1,
     'src/pages/agent/ListingsPage.tsx': 1,
+    'src/pages/agent/MatchingAtelierPage.tsx': 1,
     'src/pages/agent/NouveauBienPage.tsx': 1,
     'src/pages/agent/TodayPage.tsx': 3,
   }

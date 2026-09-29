@@ -35,6 +35,7 @@ import { useAgencyProperties } from '@/hooks/useProperties'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
 import MatchingFirstRun from '@/components/matching-fil/MatchingFirstRun'
 import { useCrmDark } from '@/lib/crmDark'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import { PendingRegistry, type AtelierGestes } from '@/lib/matchingAnnulation'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
 import { useToast } from '@/components/ui/Toast'
@@ -203,9 +204,10 @@ export default function MatchingAtelierPage(
   const pool = pivotBuyer ? poolFor(pivotBuyer.id, pivotKey) : []
 
   // Couverture premier lancement — remplace la page 0 du pager (le reste du
-  // pager, dont la Recherche, demeure accessible).
+  // pager, dont la Recherche, demeure accessible). Son bouton ouvre la création
+  // d'un contact, comme depuis le fil.
   if (fresh) {
-    return <MatchingFirstRun onCreateListing={() => navigate('/dashboard/listings/new')} />
+    return <MatchingFirstRun onAjouterAcheteur={() => navigate('/dashboard/contacts?nouveau=1', avecArrivee())} />
   }
 
   return (

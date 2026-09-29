@@ -5,6 +5,9 @@
 // réessai (jamais confondu avec un compte neuf).
 // Création → NouveauContact en overlay du cadre, câblée Supabase
 // (search_criteria snake_case → déclenche l'auto-matching via le pont DB).
+// Arrivée `?nouveau=1` (« Ajouter un acheteur », la couverture du Matching) → la
+// création s'ouvre, une fois par navigation (`useArrivee`) ; l'adresse n'est
+// jamais réécrite.
 // Réf. handoff : crm-screen-contacts-proto.jsx / crm-contacts-firstrun.jsx /
 // nc-bento-b-live.jsx.
 
@@ -14,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
+import { useArrivee } from '@/hooks/useArrivee'
 import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
@@ -30,20 +34,9 @@ import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ContactsPage() {
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const qc = useQueryClient()
   const { t: tr } = useTranslation('contacts')
-
-  // Deep-link `?source=` (handoff Dashboard) — consommé une fois puis nettoyé
-  // (le pager n'affiche plus de bannière source ; param obsolète mais toléré).
-  useEffect(() => {
-    if (searchParams.has('source')) {
-      const next = new URLSearchParams(searchParams)
-      next.delete('source')
-      setSearchParams(next, { replace: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   // ── Thème dark/light, calé sur le toggle de la barre latérale (partagé Today/Pipeline) ──
   const [dark, setDark] = useCrmDarkPref()
@@ -74,6 +67,15 @@ export default function ContactsPage() {
   const extraction = useExtractLead()
 
   const openModal = () => { setCreateError(null); setModalOpen(true) }
+
+  // « Ajouter un acheteur » (la couverture de premier lancement du Matching) arrive avec `?nouveau=1` : la création
+  // s'ouvre UNE fois par navigation (`useArrivee`) — un remontage de l'écran ne la rouvre pas, un nouveau clic sur le
+  // lien, si. Ouverte PENDANT LE RENDU (`react-hooks/set-state-in-effect` refuse un `setState` d'effet), marquée par
+  // l'effet. ⛔ L'adresse garde son paramètre : réécrite, la réconciliation des onglets la lirait comme celle d'un autre
+  // onglet. Le rôle d'acheteur, la modale le pré-coche d'elle-même.
+  const { aAppliquer, marquerAppliquee } = useArrivee('contacts.nouveau', searchParams.has('nouveau'))
+  if (aAppliquer && !modalOpen) openModal()
+  useEffect(() => { if (aAppliquer) marquerAppliquee() }, [aAppliquer, marquerAppliquee])
 
   // Création — mappe le NewContactData (design) vers le contrat Supabase.
   // search_criteria en snake_case (buildSearchCriteria) → le pont DB matérialise

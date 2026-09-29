@@ -204,10 +204,9 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/auth', 4],
   ['src/types/visit.ts', 4],
   // 3 → 2 le 21.09.2026 : la feuille d'envoi `AtlSendSheet` est retirée.
-  // 2 → 1 : la couverture de premier lancement (`MatchingFirstRun`) quitte l'atelier pour le fil, telle quelle.
+  // 2 → 1 le 27.09.2026 : la couverture de premier lancement quitte l'atelier pour le fil (lot E1), et son anneau de
+  // focus prend un barreau (`MXC_SYSTEM.blue300`) : le fil reste sans couleur hors barreaux.
   ['src/components/matching-atelier', 1],
-  // La couverture, déplacée de l'atelier telle quelle : sa couleur hors barreaux (l'anneau de focus) la suit.
-  ['src/components/matching-fil', 1],
   ['src/components/admin', 2],
   ['src/components/layout', 1],
   ['src/components/ui', 1],
