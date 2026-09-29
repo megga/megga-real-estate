@@ -35,7 +35,8 @@ interface Props {
   corrections: Correction[]
   courant: string | null
   onChoisir: (id: string) => void
-  onReactiver: (id: string) => void
+  /** « Réactiver » un reporté : le match entier, pour que sa ligne de journal nomme l'acheteur. */
+  onReactiver: (m: FilMatch) => void
   /** L'heure de la lecture : le signal « nouveau mandat » s'y mesure (lot C). */
   maintenant: number
 }
@@ -100,7 +101,7 @@ export default function FilListe({ sp, vue, selections, corrections, courant, on
                   {m.bien.titre} · {t('fil.deRetour', { date: dateCourte(m.reporteJusquau as string) })}
                 </div>
               </div>
-              <button type="button" onClick={unSeulClic(() => onReactiver(m.id))} style={{
+              <button type="button" onClick={unSeulClic(() => onReactiver(m))} style={{
                 border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: encreAccent(sp), padding: 'var(--crm-space-xs) var(--crm-space-sm)',
               }}>

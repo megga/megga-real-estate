@@ -24,7 +24,7 @@
  *                  (la ligne « de retour » remonte dans Aujourd'hui) + 'match_reporte'
  *   dismiss      → matches.status='ignored' (le moteur ne re-propose jamais
  *                  un couple existant — aucun deal) + activity_events 'match_ecarte'
- *   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue)
+ *   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue) + 'match_reactive'
  *   repondre     → (fil, lot B) Intéressé / Pas intéressé + motif : matches.status, motif, note ; la
  *                  relance de la PROPOSITION se clôt par trigger quand plus aucun de ses biens n'attend
  *   pasEncore    → (fil) la relance de la proposition repoussée de +3 j, si le bien attend encore ; rien
@@ -403,19 +403,26 @@ export async function execReact(
   if (rErr) console.error('[atelier] reminder close failed', rErr)
 }
 
-/** Réactivation manuelle anticipée d'un reporté (parking) — immédiat */
-export async function execWake(matchId: string): Promise<void> {
+/** « Réactiver » — réactivation manuelle anticipée d'un reporté (parking), immédiate ; consignée au journal */
+export async function execWake(ctx: GesteContext, buyer: AcheteurGeste): Promise<void> {
   const { error } = await supabase
     .from('matches')
     .update({ snoozed_until: null })
-    .eq('id', matchId)
+    .eq('id', buyer.matchId)
   if (error) throw error
   await supabase
     .from('reminders')
     .update({ status: 'cancelled' })
-    .eq('match_id', matchId)
+    .eq('match_id', buyer.matchId)
     .eq('type', 'custom')
     .in('status', ['pending', 'triggered'])
+
+  await logEvent(ctx, {
+    action: 'match_reactive',
+    contactId: buyer.id,
+    label: `${buyer.first} ${buyer.last}`,
+    metadata: { match_id: buyer.matchId, score: buyer.score },
+  })
 }
 
 // ═══════════════════ La boucle dans le fil (lot B) ════════════════════════

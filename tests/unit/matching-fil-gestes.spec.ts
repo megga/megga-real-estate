@@ -14,11 +14,14 @@
  * match qui n'est plus `suggested` se simule : la base n'en réécrit aucune ligne. Une insertion
  * suivie de `single()` rend la ligne créée : `visite-neuve` dans `visits`, `deal-neuf` ailleurs.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
-  execProposerSelection, execReact, execRelance, execRepondre, execSnooze,
+  execProposerSelection, execReact, execRelance, execRepondre, execSnooze, execWake,
 } from '@/lib/matchingGestes'
+import { auditActionLabel } from '@/lib/auditActionLabel'
 
 type Genre = 'select' | 'insert' | 'update'
 interface Appel { table: string; genre: Genre; valeurs: unknown; filtres: string[] }
@@ -114,6 +117,38 @@ describe('gestes du matching — le journal', () => {
     expect(seq()).toEqual(['update:matches', 'insert:activity_events'])
     expect(ecritures()[0]!.valeurs).toEqual({ status: 'ignored' })
     expect(ecritures()[1]!.valeurs).toMatchObject({ action: 'match_ecarte', entity_id: 'c-1', metadata: { match_id: 'm-1', score: 90 } })
+  })
+
+  it('Réactiver rend le match à proposer, annule son rappel ET écrit `match_reactive`', async () => {
+    await execWake(CTX, ACHETEUR)
+    expect(seq()).toEqual(['update:matches', 'update:reminders', 'insert:activity_events'])
+    expect(ecritures()[0]!.valeurs).toEqual({ snoozed_until: null })
+    expect(ecritures()[0]!.filtres).toEqual(['id=m-1'])
+    expect(ecritures()[1]!.valeurs).toEqual({ status: 'cancelled' })
+    expect(ecritures()[1]!.filtres).toEqual(['match_id=m-1', 'type=custom', 'status in pending,triggered'])
+    // La ligne de « Plus tard » et d'« Écarter » : même acteur, même famille, le match et son score.
+    expect(ecritures()[2]!.valeurs).toMatchObject({
+      agency_id: 'ag-1', actor_id: 'u-1', actor_kind: 'user', action: 'match_reactive', entity_type: 'contact',
+      entity_id: 'c-1', category: 'deal', object_label: 'Julie Morand', metadata: { match_id: 'm-1', score: 90 },
+    })
+  })
+
+  it('une réactivation refusée fait lever, sans ligne au journal', async () => {
+    h.erreurs['update:matches'] = { message: 'refus', code: '42501' }
+    await expect(execWake(CTX, ACHETEUR)).rejects.toMatchObject({ code: '42501' })
+    expect(seq()).toEqual(['update:matches'])
+  })
+
+  it('les trois lignes ont leur libellé au journal, dans les quatre langues', () => {
+    for (const langue of ['fr', 'de', 'en', 'it']) {
+      const brut = readFileSync(join(process.cwd(), `src/i18n/locales/${langue}/common.json`), 'utf8')
+      const table = (JSON.parse(brut) as { audit: { action: Record<string, string> } }).audit.action
+      for (const action of ['match_reporte', 'match_ecarte', 'match_reactive']) {
+        expect(table[action] ?? '', `${langue} : ${action}`).toMatch(/\S/)
+      }
+    }
+    // Ce que le journal, la cloche et la fiche mobile affichent : sans libellé, l'identifiant déridé (« Match reactive »).
+    expect(auditActionLabel('match_reactive')).toBe('Match réactivé')
   })
 })
 

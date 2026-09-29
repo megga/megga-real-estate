@@ -498,17 +498,18 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
         },
       })
   }, [ctx, differer, t, matchsSelection, cochesSelection, focaliser, focaliserBien])
-  const reactiver = useCallback((id: string) => {
-    // Un double clic ne réveille pas deux fois (deux écritures, deux annulations de rappel).
-    if (reveils.current.has(id)) return
-    reveils.current.add(id)
+  const reactiver = useCallback((m: FilMatch) => {
+    // La ligne de journal nomme l'agence et l'agent : sans contexte d'agent, rien ne s'écrit. Un double clic ne
+    // réveille pas deux fois (deux écritures, deux annulations de rappel, deux lignes de journal).
+    if (!ctx || reveils.current.has(m.id)) return
+    reveils.current.add(m.id)
     // ⚠ `rafraichir` rend la promesse d'invalidation : `.then(rafraichir)` l'ADOPTE, donc `.finally`
     // n'ouvre le verrou qu'une fois le rafraîchissement retombé — pas dès l'écriture de `execWake`.
     // Sans ça, un second clic pendant le rafraîchissement encore en vol rouvrait une seconde écriture.
-    execWake(id).then(rafraichir)
+    execWake(ctx, versGeste(m).acheteur).then(rafraichir)
       .catch(() => toast.error(t('fil.erreurGeste')))
-      .finally(() => reveils.current.delete(id))
-  }, [rafraichir, toast, t])
+      .finally(() => reveils.current.delete(m.id))
+  }, [ctx, rafraichir, toast, t])
 
   const cocher = useCallback((id: string, coche: boolean) => {
     if (!contactSelection) return

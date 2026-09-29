@@ -132,7 +132,11 @@ export default function MatchingAtelierPage(
       await execReact(e.buyer, reaction)
       return null
     }, { onSettled: refresh, onError: showError }),
-    wake: matchId => { void execWake(matchId).then(refresh).catch(showError) },
+    wake: matchId => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return
+      void execWake(ctx, e.buyer).then(refresh).catch(showError)
+    },
     visit: matchId => {
       const e = matchIndex.get(matchId)
       if (!e || e.listing.kind !== 'property') return

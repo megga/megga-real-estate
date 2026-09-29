@@ -157,7 +157,11 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
       await execReact(e.buyer, reaction)
       return null
     }, { onSettled: refresh, onError: () => echec(matchId) }),
-    wake: (matchId) => { void execWake(matchId).then(refresh).catch(() => echec(matchId)) },
+    wake: (matchId) => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return
+      void execWake(ctx, e.buyer).then(refresh).catch(() => echec(matchId))
+    },
     visit: (matchId) => {
       const e = matchIndex.get(matchId)
       if (!e || e.listing.kind !== 'property') return

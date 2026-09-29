@@ -90,7 +90,7 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // libellés restent au journal (dix ans) et chaque libellé doit garder son type (sans eux, le second
   // tomberait en « Système » : agent-notifications-scenarios.spec.ts).
   match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
-  match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching',
+  match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching', match_reactive: 'matching',
   // La boucle chez l'agent (lot B, 21.09.2026) : réponses consignées, relance repoussée, retour d'un bien par
   // une baisse de prix, et « Apprendre » (recherche ajustée, correction ignorée).
   match_reaction: 'matching', match_pas_encore: 'matching', match_retour_prix: 'matching',
