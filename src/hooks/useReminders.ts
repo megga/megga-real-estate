@@ -151,7 +151,10 @@ export function useReminders() {
   // gone. action-board components share the same table, so they invalidate
   // automatically too.
   const updateReminder = useUpdateMutation(supabase.from('reminders'), ['id'])
-  const insertReminder = useInsertMutation(supabase.from('reminders'), ['id'])
+  // La requête `'id'` : sans elle, cache-helpers ne rend rien à l'appelant, et `createReminder`
+  // rendait `undefined` — personne ne le lisait encore au 28.09.2026, mais un retour qui ment
+  // finit toujours par être lu (cf. `useCreateTransaction`).
+  const insertReminder = useInsertMutation(supabase.from('reminders'), ['id'], 'id')
 
   /**
    * Create a custom reminder from the Calendar dialog (meeting / reminder /

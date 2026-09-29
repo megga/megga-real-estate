@@ -146,7 +146,11 @@ export function useVisits() {
 
   const visits = ((visitsQuery.data ?? []) as unknown as VisitRow[]).map(visitToCalendarEvent)
 
-  const insertVisit = useInsertMutation(supabase.from('visits'), ['id'])
+  // ⛔ La requête `'id'` : sans elle, cache-helpers ne rend RIEN à l'appelant (relevé le
+  // 27.09.2026, cf. `useCreateTransaction`). `createVisit` rendait donc `undefined`, et le
+  // Calendrier ne poussait JAMAIS une visite créée vers Google ou Outlook : `propagateVisit`
+  // attend l'id de la ligne, que la base génère.
+  const insertVisit = useInsertMutation(supabase.from('visits'), ['id'], 'id')
   const updateVisit = useUpdateMutation(supabase.from('visits'), ['id'])
   const deleteVisit = useDeleteMutation(supabase.from('visits'), ['id'])
 

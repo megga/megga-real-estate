@@ -408,8 +408,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           description: draft.notes, location: draft.location,
         } as unknown as CalendarEvent)
         await queryClient.invalidateQueries({ queryKey: ['calendar-visits'] })
-        const newId = (created as { id?: string } | undefined)?.id
-        if (newId) propagateVisit(newId, 'create')
+        if (created?.id) propagateVisit(created.id, 'create')
       } else if (draft.type === 'task') {
         // Une TÂCHE reste une relance : elle entre dans « Relances du jour ».
         await createReminder({

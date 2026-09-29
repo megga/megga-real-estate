@@ -15,29 +15,19 @@
  *
  * Aucun test ne pouvait le voir : un mock de Supabase rend la ligne, la librairie non.
  *
+ * La dette relevée ce jour-là est soldée le 28.09.2026 : `useVisits` rendait `undefined`
+ * aussi, et le Calendrier ne poussait JAMAIS une visite créée vers Google ou Outlook
+ * (`propagateVisit` attend son id) ; `useReminders` de même, sans lecteur encore.
+ *
  * ── LA RÈGLE ─────────────────────────────────────────────────────────────────
  * Dans `src/`, un `useInsertMutation` sans requête dont le résultat est AFFECTÉ
- * (`const x = await insert.mutateAsync(…)`) est un défaut — sauf la dette nommée
- * ci-dessous, qui ne peut que DESCENDRE.
+ * (`const x = await insert.mutateAsync(…)`) est un défaut — sans exception.
  *
  * ⚠ Ce que la garde NE prouve PAS : qu'un appelant lit bien le champ que la requête
  * demande. Elle empêche le cas où il n'y a RIEN à lire.
  */
 import { describe, it, expect } from 'vitest'
 import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
-
-/**
- * La dette connue au 27.09.2026 — chaque entrée avec ce qu'elle casse.
- *
- * ⚠ Écrite en dur, jamais dérivée : une entrée corrigée fait rougir le second test,
- * et se retire d'ici.
- */
-const DETTE: Record<string, string> = {
-  'src/hooks/useVisits.ts:insertVisit':
-    'createVisit rend undefined : `propagateVisit` (CalendarApp.persistCreate) ne part jamais vers l’agenda externe',
-  'src/hooks/useReminders.ts:insertReminder':
-    'createReminder rend undefined — aucun appelant ne lit le résultat au 27.09.2026',
-}
 
 /** Nombre d'arguments d'un appel, à partir de sa parenthèse ouvrante (chaînes et imbrications comprises). */
 function nombreArguments(texte: string, ouverture: number): number {
@@ -84,7 +74,7 @@ function inventaire() {
 }
 
 describe('insert cache-helpers — un résultat lu est un résultat demandé', () => {
-  it('aucun insert sans requête dont le résultat est affecté, hors dette nommée', () => {
+  it('aucun insert sans requête dont le résultat est affecté', () => {
     const { scan, appels } = inventaire()
     expect(emptyRoots(scan), 'racine vide : chemin cassé').toEqual([])
     // Contrôle positif : six inserts au 27.09.2026 — un motif cassé rendrait la garde verte à vide.
@@ -92,25 +82,20 @@ describe('insert cache-helpers — un résultat lu est un résultat demandé', (
     expect(appels.every((a) => a.args > 0), 'arguments illisibles : l’analyseur a décroché').toBe(true)
 
     const fautifs = appels
-      .filter((a) => a.args < 3 && a.lu && !(a.cle in DETTE))
+      .filter((a) => a.args < 3 && a.lu)
       .map((a) => a.cle)
     expect(fautifs, 'insert lu sans requête `select` : il rend un tableau vide').toEqual([])
   })
 
-  it('les créations de deal et de contact demandent leur id', () => {
+  it('les créations de deal, de contact, de visite et de rappel demandent leur id', () => {
     const { appels } = inventaire()
-    for (const cle of ['src/hooks/useTransactions.ts:insert', 'src/hooks/useContacts.ts:insert']) {
+    for (const cle of [
+      'src/hooks/useTransactions.ts:insert', 'src/hooks/useContacts.ts:insert',
+      'src/hooks/useVisits.ts:insertVisit', 'src/hooks/useReminders.ts:insertReminder',
+    ]) {
       const appel = appels.find((a) => a.cle === cle)
       expect(appel, `${cle} introuvable`).toBeDefined()
       expect(appel?.args, `${cle} : sa requête a disparu`).toBe(3)
-    }
-  })
-
-  it('chaque entrée de la dette est encore un défaut réel', () => {
-    const { appels } = inventaire()
-    for (const cle of Object.keys(DETTE)) {
-      const appel = appels.find((a) => a.cle === cle)
-      expect(appel && appel.args < 3 && appel.lu, `${cle} : corrigé ou disparu — retirez-le de la dette`).toBe(true)
     }
   })
 })
