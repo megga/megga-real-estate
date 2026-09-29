@@ -15,7 +15,7 @@
 //
 // Réf. handoff : `crm-screen-matching-proto.jsx` (CRMScreenMatchingProto).
 
-import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -28,6 +28,7 @@ import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
+import { useArrivee } from '@/hooks/useArrivee'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -40,6 +41,8 @@ const MATCHING_PAGES = [
 // L'Atelier « par score » reste à un cran vers le haut. Index DÉRIVÉ (pas `1` en
 // dur) pour ne pas atterrir sur la mauvaise page si l'ordre du pager change.
 const LANDING_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'recherche'))
+// La page « par score » (page 0), où atterrit toute arrivée du fil. Index DÉRIVÉ, comme `LANDING_PAGE`.
+const SCORE_PAGE = Math.max(0, MATCHING_PAGES.findIndex((p) => p.id === 'score'))
 
 // ─── Points de page (droite) ────────────────────────────────────────────
 function MatchingPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: number) => void; lightMode: boolean }) {
@@ -178,43 +181,41 @@ export default function MatchingPage(
   // `?ligne=`, `?attente=`) cible la page 0 — on atterrit directement dessus
   // au lieu de la page Recherche (le param était ignoré et l'atelier hors écran).
   const [searchParams] = useSearchParams()
-  const [initialPage] = useState(() =>
-    estArriveeFil(searchParams) || atterrissage === 'score'
-      ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
-      : LANDING_PAGE,
-  )
-  const [pageStockee, setPage] = useTabScopedState('pager', initialPage)
+  const [pageStockee, setPage] = useTabScopedState('pager', atterrissage === 'score' ? SCORE_PAGE : LANDING_PAGE)
   /**
-   * ⚠ LE PIVOT L'EMPORTE SUR LA TRANCHE MÉMORISÉE.
+   * ⚠ UNE ARRIVÉE NEUVE L'EMPORTE SUR LA PAGE MÉMORISÉE — une fois.
    *
    * `useTabScopedState` rend la valeur STOCKÉE dès qu'elle existe. Dans un onglet
    * qui avait déjà servi à Matching et bougé son pager, une arrivée pivotée
    * (« Transmettre à … » depuis une fiche deal) atterrirait sur la page mémorisée
-   * au lieu de l'Atelier : le geste qu'on vient de demander serait ignoré au
+   * au lieu de la page 0 : le geste qu'on vient de demander serait ignoré au
    * profit d'un souvenir.
    *
-   * Règle : une INTENTION EXPRIMÉE MAINTENANT (le paramètre d'URL) passe devant
-   * une position retenue.
+   * Règle : une INTENTION EXPRIMÉE MAINTENANT (un lien suivi) passe devant une
+   * position retenue, une fois par navigation (`useArrivee`) : revenir sur
+   * l'onglet, un retour arrière ou un rechargement rendent la page choisie
+   * depuis ; un nouveau clic sur le même lien ramène à la page 0.
    *
-   * ⛔ La correction se lit au RENDU et s'écrit dans un EFFET — jamais l'inverse.
+   * ⛔ L'arrivée se lit au RENDU et s'écrit dans un EFFET — jamais l'inverse.
    * Poser la valeur pendant le rendu écrirait dans le fournisseur d'onglets
    * depuis le rendu d'un autre composant, ce que React refuse ; et la poser
    * seulement dans l'effet ferait afficher une frame sur la mauvaise page avant
-   * de glisser vers l'Atelier.
+   * de glisser vers la page 0. L'effet attend la pile d'onglets : écrite avant
+   * son chargement, la page serait effacée par l'hydratation.
    */
-  const pivot = estArriveeFil(searchParams)
-  const [pivotConsomme, setPivotConsomme] = useState(!pivot)
-  const page = pivotConsomme ? pageStockee : initialPage
+  const {
+    neuve: arriveeNeuve, aAppliquer: arriveeAAppliquer, marquerAppliquee,
+  } = useArrivee('pager.arrivee', estArriveeFil(searchParams))
+  const page = arriveeNeuve ? SCORE_PAGE : pageStockee
   useEffect(() => {
-    if (pivotConsomme) return
-    setPage(initialPage)
-    setPivotConsomme(true)
-  }, [pivotConsomme, initialPage, setPage])
+    if (!arriveeAAppliquer) return
+    setPage(SCORE_PAGE)
+    marquerAppliquee()
+  }, [arriveeAAppliquer, setPage, marquerAppliquee])
   // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
   // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
-  // une frame avant de glisser vers Recherche. ⚠ Il lit `page` et non
-  // `initialPage` : dans un onglet rouvert, la page RETROUVÉE est celle qu'il
-  // faut poser d'emblée.
+  // une frame avant de glisser vers Recherche. ⚠ Il lit `page` : dans un onglet
+  // rouvert, la page RETROUVÉE est celle qu'il faut poser d'emblée.
   const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)

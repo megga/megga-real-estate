@@ -18,6 +18,7 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import NouveauBien from '@/components/crm/biens/nouveau/NouveauBien'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ListingsPage() {
@@ -78,7 +79,7 @@ export default function ListingsPage() {
           onResumeDraft={onResumeDraft}
           wizardOpen={wizardOpen}
           wizardSlot={<NouveauBien dark={dark} onClose={() => setWizardOpen(false)} onOuvrirBien={onOpenBien}
-            onVoirQui={(id) => navigate(`/dashboard/listings/${id}?${PARAM_QUI_POUR}=1`)} />}
+            onVoirQui={(id) => navigate(`/dashboard/listings/${id}?${PARAM_QUI_POUR}=1`, avecArrivee())} />}
         />
         </CrmWorkspace>
       </div>

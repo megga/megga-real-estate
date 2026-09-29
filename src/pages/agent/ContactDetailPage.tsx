@@ -34,6 +34,7 @@ import ContactDetailPager, { type FicheContact } from '@/components/crm/contacts
 import { construireSaBoucle } from '@/components/crm/contacts-pager/saBoucle'
 import { useContactNotes } from '@/hooks/useContactNotes'
 import { useCrmDarkPref } from '@/lib/crmDark'
+import { avecArrivee } from '@/lib/jetonArrivee'
 
 export default function ContactDetailPage() {
   const { id = '' } = useParams()
@@ -277,10 +278,10 @@ export default function ContactDetailPage() {
       onDelete={async () => { setGhost(contact); await del.mutateAsync(id); refreshList() }}
       onOpenKyc={() => navigate(`/dashboard/kyc?openContactId=${id}`)}
       onEmail={ecrire}
-      onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`)}
+      onOpenMatching={() => navigate(`/dashboard/matching?contact=${id}`, avecArrivee())}
       onOpenListings={() => navigate('/dashboard/listings')}
       // Chaque bien de « Sa boucle » ouvre SA place dans le fil. ⛔ Gabarit ANCRÉ : `redirection-ouverte.spec.ts`.
-      onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
+      onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`, avecArrivee())}
     />,
   )
 }

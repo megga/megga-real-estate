@@ -15,7 +15,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, type NavigateOptions } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import { fmtDateTime } from '@/components/crm-dossiers/tokens'
@@ -37,6 +37,7 @@ import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useTransactionNextReminder } from '@/hooks/usePipelineNextActions'
 import { useListingsScreen } from '@/hooks/useListingsScreen'
 import { mapCriteria } from '@/lib/crmAdapters'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import { dsPalette, type DsPal } from '@/components/crm-dossiers/dealTokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import type { CrmBien, CrmContact } from '@/components/crm/mockData'
@@ -263,8 +264,11 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const enBanc = banc !== undefined
-  /** Seul point de sortie de la page — voir `DealDetailBanc.onNavigate`. */
-  const go = (vers: string) => { if (banc?.onNavigate) banc.onNavigate(vers); else navigate(vers) }
+  /**
+   * Seul point de sortie de la page — voir `DealDetailBanc.onNavigate`. Ses options (le jeton d'une arrivée,
+   * `avecArrivee`) ne vont qu'au routeur.
+   */
+  const go = (vers: string, options?: NavigateOptions) => { if (banc?.onNavigate) banc.onNavigate(vers); else navigate(vers, options) }
 
   // Thème dark/light, persisté (même clé que les autres pages Sugar).
   const [dark, setDark] = useCrmDarkPref()
@@ -553,7 +557,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
                   </div>
                 )}
                 <div style={{ marginTop: 'auto', paddingTop: 20 }}>
-                  <DsBlack p={p} onClick={() => go(`/dashboard/matching${contact ? `?contact=${contact.id}` : ''}`)}>
+                  <DsBlack p={p} onClick={() => go(`/dashboard/matching${contact ? `?contact=${contact.id}` : ''}`, contact ? avecArrivee() : undefined)}>
                     {t('deal.transmit', { name: contact?.first_name ?? t('deal.buyer_fallback') })}
                   </DsBlack>
                 </div>

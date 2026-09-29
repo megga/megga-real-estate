@@ -31,6 +31,7 @@ import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useEcranActifRef } from '@/hooks/useEcranActif'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { avecArrivee } from '@/lib/jetonArrivee'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -130,11 +131,13 @@ export default function TodayPage() {
       case 'pipeline': navigate('/dashboard/pipeline'); break
       // `?contact=` est le contrat que MatchingAtelierPage lit déjà pour
       // focaliser un acheteur — pas une globale posée avant la navigation.
-      case 'matching': navigate(ref ? `/dashboard/matching?contact=${ref}` : '/dashboard/matching'); break
+      case 'matching': navigate(ref ? `/dashboard/matching?contact=${ref}` : '/dashboard/matching', ref ? avecArrivee() : undefined); break
       // Lot D1 : une place précise du fil (la requête de `lienFil`), et la fiche d'un mandat défilée jusqu'à « Qui pour
       // ce bien ? ». ⛔ Gabarits ANCRÉS (`/dashboard/…`) : `redirection-ouverte.spec.ts` refuse un puits dynamique.
-      case 'matching-fil': navigate(`/dashboard/matching${ref ? `?${ref}` : ''}`); break
-      case 'biens-qui-pour': navigate(ref ? `/dashboard/listings/${ref}?${PARAM_QUI_POUR}=1` : '/dashboard/listings'); break
+      // Lot E1 : chaque arrivée porte un jeton neuf (`avecArrivee`) — l'écran l'applique une fois, un nouveau clic la
+      // rejoue.
+      case 'matching-fil': navigate(`/dashboard/matching${ref ? `?${ref}` : ''}`, ref ? avecArrivee() : undefined); break
+      case 'biens-qui-pour': navigate(ref ? `/dashboard/listings/${ref}?${PARAM_QUI_POUR}=1` : '/dashboard/listings', ref ? avecArrivee() : undefined); break
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'biens-new': navigate('/dashboard/listings/new'); break

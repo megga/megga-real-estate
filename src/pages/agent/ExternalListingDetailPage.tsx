@@ -30,6 +30,8 @@ import { useCrmDarkPref } from '@/lib/crmDark'
 import MrhHistoriquePrix from '@/components/matching-recherche/MrhHistoriquePrix'
 import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { useArrivee } from '@/hooks/useArrivee'
+import { avecArrivee } from '@/lib/jetonArrivee'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -86,7 +88,8 @@ export default function ExternalListingDetailPage() {
 
   // Chrome CRM porté ici : cette page vivait sous `AgentLayout`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])
-  // `?qui=1` (« Ce qui a bougé », lot D1) : la page amène « Qui pour ce bien ? » à l'écran, sous le carrousel.
+  // `?qui=1` (« Ce qui a bougé », lot D1) : la page amène « Qui pour ce bien ? » à l'écran, sous le carrousel — une fois
+  // par navigation (`useArrivee`) : un remontage de l'écran ne le rejoue pas, un nouveau clic sur le lien, si.
   // ⚠ Seulement si le bloc n'est pas ENTIER à l'écran : c'est le DOCUMENT qui défile ici, et défiler un bloc déjà
   // visible cachait la barre d'onglets, « Retour » et la photo. ⚠ Et alors par le HAUT (`start`), jamais `nearest` :
   // au moment du défilement, le bloc dit encore « Lecture… », et en une colonne l'historique du prix, au-dessus, n'est
@@ -96,7 +99,7 @@ export default function ExternalListingDetailPage() {
   // fenêtre, il devient le point d'ancrage du défilement (`overflow-anchor`), et le navigateur la compense. Même mesure :
   // le défilement bute sur la fin de la page, laisse le bloc à 477 px, l'historique le repousse à 626-773, à l'écran.
   const [params] = useSearchParams()
-  const quiDemande = params.has(PARAM_QUI_POUR)
+  const { aAppliquer: quiAAppliquer, marquerAppliquee } = useArrivee('quiPour.arrivee', params.has(PARAM_QUI_POUR))
   const blocQuiPour = useRef<HTMLElement>(null)
   // L'id du titre qui nomme la région : `useId`, pas une constante — six écrans restent montés, deux fiches d'annonce
   // ouvertes dans deux onglets porteraient sinon le même id.
@@ -104,10 +107,11 @@ export default function ExternalListingDetailPage() {
   const annonceChargee = annonce?.id
   useEffect(() => {
     const el = blocQuiPour.current
-    if (!quiDemande || !annonceChargee || !el) return
+    if (!quiAAppliquer || !annonceChargee || !el) return
     const r = el.getBoundingClientRect()
     if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'start' })
-  }, [quiDemande, annonceChargee])
+    marquerAppliquee()
+  }, [quiAAppliquer, annonceChargee, marquerAppliquee])
   // Animations partagées du CRM — les popovers de la barre latérale en dépendent.
   const crmKeyframes = <style>{CRM_KEYFRAMES}</style>
   const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
@@ -436,7 +440,7 @@ export default function ExternalListingDetailPage() {
                 </h2>
                 <QuiPourFiche sp={sgSp} genre="annonce" bienId={annonce.id} location={annonce.transaction === 'location'}
                   avecAnciens={false} retiree={annonce.status === 'removed'}
-                  onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
+                  onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`, avecArrivee())}
                   onVoirContact={(contactId) => navigate(`/dashboard/contacts/${contactId}`)} />
               </section>
             )}

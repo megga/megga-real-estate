@@ -43,6 +43,7 @@ import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { usePigeMouvements, type PigeParams } from '@/hooks/usePige'
 import { usePigeAcheteurs } from '@/hooks/usePigeAcheteurs'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import MrhBouge from './MrhBouge'
 import {
   biensAjoutables, etatDuFlux, FENETRES_PIGE, lotsParPage, VUES_RECHERCHE,
@@ -694,7 +695,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
               onReessayer={() => { if (!demo) void pige.refetch() }}
               onOuvrir={openBien}
               acheteurs={acheteurs}
-              onQuiPour={(b) => { if (!demo) navigate(`/dashboard/market/${b.id}?${PARAM_QUI_POUR}=1`) }}
+              onQuiPour={(b) => { if (!demo) navigate(`/dashboard/market/${b.id}?${PARAM_QUI_POUR}=1`, avecArrivee()) }}
               ctx={ctx}
             />
           ) : isFetchingFirst ? (

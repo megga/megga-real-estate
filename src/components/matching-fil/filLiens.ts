@@ -2,9 +2,10 @@
  * Les liens d'arrivée du fil (lot D1, conception `2026-09-23-matching-lot-d1-surfaces-design.md` §4) — module PUR :
  * ni React, ni Supabase, ni traduction.
  *
- * Le fil LIT ses paramètres une fois, à l'arrivée (`lireArrivee`) ; les surfaces qui y mènent — « Aujourd'hui »,
- * « Sa boucle », « Qui pour ce bien ? » — les ÉCRIVENT par `lienFil` et `lienPlace`, jamais à la main : un paramètre
- * renommé d'un côté ne survit pas de l'autre.
+ * Le fil LIT ses paramètres (`lireArrivee`) ; les surfaces qui y mènent — « Aujourd'hui », « Sa boucle », « Qui pour ce
+ * bien ? » — les ÉCRIVENT par `lienFil` et `lienPlace`, jamais à la main : un paramètre renommé d'un côté ne survit pas
+ * de l'autre. Elles y naviguent avec un jeton neuf (`avecArrivee`, `src/lib/jetonArrivee.ts`) : le fil n'applique une
+ * arrivée qu'une fois par navigation (`useArrivee`).
  *
  * ⚠ Un lien d'arrivée l'emporte sur les filtres que l'onglet avait retenus : `lireArrivee` rend des filtres dès qu'un
  * seul paramètre du fil est là. Une ligne sans onglet ouvre « À proposer ».

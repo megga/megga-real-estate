@@ -55,8 +55,9 @@ import { format } from 'date-fns'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAuth } from '@/hooks/useAuth'
-import { useCrmTabsOptionnel, useTabScopedState } from '@/hooks/useCrmTabs'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { useArrivee } from '@/hooks/useArrivee'
 import {
   execAjusterRecherche, execDismiss, execIgnorerCorrection, execPasEncore, execPlanifierVisite, execProposer,
   execProposerSelection, execRepondre, execSnooze, execWake,
@@ -70,7 +71,7 @@ import {
   type FilFiltres, type FilMatch,
 } from './filModele'
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
-import { ligneCourante, lireArrivee } from './filLiens'
+import { estArriveeFil, ligneCourante, lireArrivee } from './filLiens'
 import { construireCorrections, filtrerCorrections, type Correction, type CorrectionChangement } from './filApprendre'
 import { compatiblesDuFil } from './filQuiPour'
 import { aUnSignal } from './filSignaux'
@@ -146,40 +147,39 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   } = useMatchingFil()
 
   // Les liens d'arrivée (`filLiens.ts`, conception de D1 §4) : `?contact=` et `?annonce=p:<uuid>` — ceux de l'atelier,
-  // qui gardent leur sens —, et `?onglet=`, `?ligne=<clé>`, `?attente=<contact>`. Lus une fois par montage de l'écran.
-  // ⚠ Limite connue, déjà vraie de `?contact=` et en attente pour le lot E : un remontage (retour arrière, éviction
-  // au-delà de six écrans, rechargement) rejoue le lien ; un onglet du CRM déjà ouvert sur la même URL est réactivé
-  // sans le relire.
-  const [arrivee] = useState(() => lireArrivee(params))
-  const filtresArrivee = arrivee.filtres
+  // qui gardent leur sens —, et `?onglet=`, `?ligne=<clé>`, `?attente=<contact>`. Une arrivée s'applique UNE fois par
+  // navigation (`useArrivee`) : revenir sur l'onglet, un retour arrière, une éviction au-delà de six écrans vivants ou un
+  // rechargement ne la rejouent pas ; un nouveau clic sur le même lien, si. ⛔ L'adresse n'est jamais réécrite.
+  const arrivee = useMemo(() => lireArrivee(params), [params])
+  const {
+    neuve: arriveeNeuve, aAppliquer: arriveeAAppliquer, id: arriveeId, marquerAppliquee,
+  } = useArrivee('fil.arrivee', estArriveeFil(params))
   // Les filtres sont rangés dans l'ONGLET : ils survivent à un aller-retour entre onglets. La
   // sélection, elle, reste LOCALE (§2 des retours de revue) — la ranger dans l'onglet écrivait sur
   // le serveur à CHAQUE flèche du clavier, pour une position qui n'a jamais eu besoin de survivre.
   // Même règle pour les cases cochées et le pas de chargement d'une sélection du marché (lot 2).
-  const [filtresRetenus, setFiltres] = useTabScopedState<FilFiltres>('fil.filtres', filtresArrivee ?? SANS_FILTRE)
+  const [filtresRetenus, setFiltres] = useTabScopedState<FilFiltres>('fil.filtres', SANS_FILTRE)
   // L'onglet aussi (lot B) : ce qu'on y relit peut venir d'un schéma antérieur, d'où `ongletValide`.
-  const [ongletRetenu, setOngletRetenu] = useTabScopedState<FilOnglet>('fil.onglet', arrivee.onglet ?? 'aProposer')
-  // La ligne d'un lien d'arrivée est le premier choix ; absente de la première lecture complète, elle est abandonnée.
-  const [choix, setChoix] = useState<string | null>(arrivee.ligne)
-  /** La ligne d'arrivée est choisie ou abandonnée : résolue une fois, à la première lecture complète du fil (plus bas). */
-  const [arriveeResolue, setArriveeResolue] = useState(arrivee.ligne == null)
-  // ⚠ Un lien d'arrivée l'emporte sur les filtres que l'onglet avait retenus — même règle et même
-  // mécanique que le pivot du pager (`MatchingPage`) : lu au rendu, écrit dans un effet.
-  const [pivotConsomme, setPivotConsomme] = useState(filtresArrivee == null)
-  const filtres = pivotConsomme || !filtresArrivee ? filtresRetenus : filtresArrivee
-  // L'onglet d'un lien d'arrivée l'emporte sur l'onglet retenu, par la même mécanique que les filtres.
-  const onglet = ongletValide(pivotConsomme || !arrivee.onglet ? ongletRetenu : arrivee.onglet)
-  // ⛔ TANT QUE LA PILE D'ONGLETS CHARGE, ON N'ÉCRIT PAS. L'hydratation de `CrmTabsProvider` REMPLACE
-  // la tranche de l'onglet une fois la pile serveur arrivée (`reconcilier`) : un pivot consommé avant
-  // cette arrivée écrivait dans un onglet qui n'existait pas encore, et l'hydratation l'effaçait
-  // aussitôt — le lien d'arrivée perdait son filtre sur un chargement à froid.
-  const chargementOnglets = useCrmTabsOptionnel()?.chargement ?? false
+  const [ongletRetenu, setOngletRetenu] = useTabScopedState<FilOnglet>('fil.onglet', 'aProposer')
+  // ⚠ Une arrivée NEUVE l'emporte sur les filtres et l'onglet retenus — même règle et même mécanique que le pager
+  // (`MatchingPage`) : lue au rendu, rangée dans l'onglet par un effet, qui attend la pile d'onglets (`useArrivee`).
+  const filtres = arriveeNeuve && arrivee.filtres ? arrivee.filtres : filtresRetenus
+  const onglet = ongletValide(arriveeNeuve && arrivee.onglet ? arrivee.onglet : ongletRetenu)
   useEffect(() => {
-    if (pivotConsomme || !filtresArrivee || chargementOnglets) return
-    setFiltres(filtresArrivee)
+    if (!arriveeAAppliquer) return
+    if (arrivee.filtres) setFiltres(arrivee.filtres)
     if (arrivee.onglet) setOngletRetenu(arrivee.onglet)
-    setPivotConsomme(true)
-  }, [pivotConsomme, filtresArrivee, arrivee.onglet, setFiltres, setOngletRetenu, chargementOnglets])
+    marquerAppliquee()
+  }, [arriveeAAppliquer, arrivee, setFiltres, setOngletRetenu, marquerAppliquee])
+  const [choix, setChoix] = useState<string | null>(null)
+  // La ligne d'une arrivée neuve est le premier choix ; absente de la première lecture complète, elle est abandonnée
+  // (plus bas). Posée PENDANT LE RENDU, comme `coches`, une fois par arrivée : celle d'un nouveau clic sur le même lien,
+  // l'écran déjà monté, remplace la précédente.
+  const [ligneArrivee, setLigneArrivee] = useState<{ id: string; ligne: string | null; resolue: boolean } | null>(null)
+  if (arriveeNeuve && arriveeId && ligneArrivee?.id !== arriveeId) {
+    setLigneArrivee({ id: arriveeId, ligne: arrivee.ligne, resolue: arrivee.ligne == null })
+    setChoix(arrivee.ligne)
+  }
 
   const [masques, setMasques] = useState<ReadonlyMap<string, number | null>>(() => new Map())
   const [coches, setCoches] = useState<Readonly<Record<string, readonly string[]>>>({})
@@ -254,10 +254,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   // ⚠ L'ARRIVÉE SE RÉSOUT UNE FOIS, à la première lecture complète du fil. Une ligne demandée absente (déjà traitée,
   // hors du filtre) est ABANDONNÉE, pas attendue — une clé absente ne choisit rien (conception de D1 §4) : gardée en
   // choix, elle reprenait la sélection, et le focus, dès qu'un filtre élargi la faisait paraître. Posé PENDANT LE
-  // RENDU, comme `coches`, et une seule fois : dans un effet, `react-hooks/set-state-in-effect` le refuse.
-  if (!arriveeResolue && aDesDonnees && !isLoading) {
-    setArriveeResolue(true)
-    if (arrivee.ligne && !ordre.includes(arrivee.ligne)) setChoix((c) => (c === arrivee.ligne ? null : c))
+  // RENDU, comme `coches`, et une fois par arrivée : dans un effet, `react-hooks/set-state-in-effect` le refuse.
+  if (ligneArrivee && !ligneArrivee.resolue && aDesDonnees && !isLoading) {
+    const { ligne } = ligneArrivee
+    setLigneArrivee({ ...ligneArrivee, resolue: true })
+    if (ligne && !ordre.includes(ligne)) setChoix((c) => (c === ligne ? null : c))
   }
   const filtreActif = Boolean(filtresValides.bienId || filtresValides.acheteurId || filtresValides.texte)
   // Sélection DÉRIVÉE : une ligne qui sort du fil (geste, filtre, onglet) cède la place à la première restante —
@@ -333,22 +334,23 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
     element?.focus()
     return element != null
   }, [])
-  // La ligne d'un lien d'arrivée prend le focus UNE fois, quand l'arrivée se résout : le fil défile jusqu'à elle et son
+  // La ligne d'un lien d'arrivée prend le focus UNE fois par arrivée, à sa résolution : le fil défile jusqu'à elle et son
   // clavier est prêt. Ce focus unique se dépense dans tous les cas, et ne se prend que PERDU (`<body>`, la racine) :
   // posé ailleurs — un champ de filtre, pourtant dans la racine —, il reste à l'agent, comme dans `reprendreFocus`, et
   // la ligne reste choisie ; sa frappe suivante partirait sinon sur la ligne (dans « En attente », `p` écrit aussitôt
   // « Pas encore »). Abandonnée ou plus choisie, la ligne ne le prend pas. ⛔ Un écran caché ne le dépense pas
   // (`useEcranActif`) : il l'attend jusqu'à être montré.
   const ecranActif = useEcranActif()
-  const focusDepense = useRef(arrivee.ligne == null)
+  /** L'arrivée dont la ligne a déjà eu son focus unique, pris ou laissé. */
+  const focusDepense = useRef<string | null>(null)
   useEffect(() => {
-    if (focusDepense.current || !arriveeResolue || !ecranActif) return
-    focusDepense.current = true
-    const ligne = arrivee.ligne
+    if (!ligneArrivee?.resolue || !ecranActif || focusDepense.current === ligneArrivee.id) return
+    focusDepense.current = ligneArrivee.id
+    const { ligne } = ligneArrivee
     if (!ligne || choix !== ligne || !ordre.includes(ligne)) return
     const actif = document.activeElement
     if (actif == null || actif === document.body || actif === racine.current) focaliser(ligne)
-  }, [arriveeResolue, ecranActif, ordre, choix, arrivee.ligne, focaliser])
+  }, [ligneArrivee, ecranActif, ordre, choix, focaliser])
 
   // ⛔ LE CLAVIER DU FIL VIT SUR SA RACINE : un focus retombé sur `<body>` le rend sourd. Or une ligne ou
   // une case peut être démontée SOUS le focus — la ligne « Marché » qu'une proposition complète retire, un

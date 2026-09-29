@@ -20,6 +20,7 @@ import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useExtractLead } from '@/hooks/useExtractLead'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import { porteDemande } from '@/lib/contactRoles'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal, {
@@ -144,7 +145,7 @@ export default function ContactsPage() {
 
   const openMatchingForCreated = () => {
     setModalOpen(false)
-    navigate(createdId ? `/dashboard/matching?contact=${createdId}` : '/dashboard/matching')
+    navigate(createdId ? `/dashboard/matching?contact=${createdId}` : '/dashboard/matching', createdId ? avecArrivee() : undefined)
   }
   const openKycForCreated = () => {
     setModalOpen(false)

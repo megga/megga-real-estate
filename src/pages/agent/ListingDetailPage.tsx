@@ -57,8 +57,10 @@ import { useRevalidateTables } from '@supabase-cache-helpers/postgrest-react-que
 import { useContacts } from '@/hooks/useContacts'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { useQuiPourCeBien } from '@/hooks/useQuiPourCeBien'
+import { useArrivee } from '@/hooks/useArrivee'
 import QuiPourFiche from '@/components/matching-fil/QuiPourFiche'
 import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import { CLE_FIL } from '@/components/matching-fil/filModele'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -417,16 +419,21 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   // « Lecture… », il posait le bloc au bas du cadre, sa liste sous le pli (mesuré au banc, 1 024 × 768 : 401 px sous
   // le haut d'un cadre de 516). ⚠ Déclaré APRÈS la remise à zéro des colonnes : sur un bien déjà en cache, les deux
   // effets partent au même rendu, dans l'ordre de leur déclaration, et celle-ci ramènerait la colonne en haut.
-  // ⚠ `?qui=1` n'est pas CONSOMMÉ : un remontage de l'écran (retour arrière, éviction au-delà de six écrans,
-  // rechargement) rejoue le défilement — la limite connue des liens d'arrivée du fil (`MatchingFil`).
+  // Le défilement est une ARRIVÉE (`useArrivee`) : il part une fois par navigation — un remontage de l'écran (retour
+  // arrière, éviction au-delà de six écrans vivants, rechargement) ne le rejoue pas ; un nouveau clic sur le lien, si.
   const [params] = useSearchParams()
-  const quiDemande = params.has(PARAM_QUI_POUR)
+  const { aAppliquer: quiAAppliquer, marquerAppliquee } = useArrivee('quiPour.arrivee', params.has(PARAM_QUI_POUR))
   const blocQuiPour = useRef<HTMLDivElement>(null)
   const bienCharge = bien?.id
   const compatiblesLus = !quiPour.isLoading
   useEffect(() => {
-    if (quiDemande && bienCharge && compatiblesLus) blocQuiPour.current?.scrollIntoView({ block: 'start' })
-  }, [quiDemande, bienCharge, compatiblesLus])
+    // ⚠ Sans le bloc — la fiche est dans une de ses branches d'état, un rafraîchissement en échec par exemple —, rien
+    // n'est marqué : l'arrivée attend au lieu de se consommer sans défiler.
+    const el = blocQuiPour.current
+    if (!quiAAppliquer || !bienCharge || !compatiblesLus || !el) return
+    el.scrollIntoView({ block: 'start' })
+    marquerAppliquee()
+  }, [quiAAppliquer, bienCharge, compatiblesLus, marquerAppliquee])
 
   // ── États transitoires ──
   const etat = (texte: string, couleur: string) => (
@@ -950,7 +957,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                       dans le fil : ils perdent « Ouvrir », et le bloc dit pourquoi. */}
                   <QuiPourFiche sp={sp} genre="mandat" bienId={id ?? null} location={bien.transaction_type === 'rent'}
                     avecAnciens={bien.status === 'active'} horsVente={bien.status !== 'active'} exclure={enDeal}
-                    onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
+                    onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`, avecArrivee())}
                     onVoirContact={(contactId) => navigate(`/dashboard/contacts/${contactId}`)} />
                 </div>
               </section>

@@ -39,6 +39,9 @@ const MATCHING = [
   'src/lib/matchingGestes.ts',
   'src/lib/matchingAnnulation.ts',
   'src/lib/dealOuvert.ts',
+  // Lot E1 : le jeton d'arrivée — sa règle et son crochet —, que lisent le fil, le pager et les fiches (`?qui=1`).
+  'src/lib/jetonArrivee.ts',
+  'src/hooks/useArrivee.ts',
   'src/hooks/useMatching.ts',
   'src/hooks/useMatchingFil.ts',
   'src/hooks/useMatchingRecherche.ts',
