@@ -18,9 +18,9 @@ import {
   type GesteContext,
 } from '@/lib/matchingGestes'
 import { useAtelierMatching } from '@/hooks/useAtelierMatching'
-import { PendingRegistry, type AtelierGestes, type PendingHandle } from '@/lib/matchingAnnulation'
-import type { AtelierBuyer, AtelierListing, AtelierTab } from '@/components/matching-atelier/types'
-import { atlReturnDate } from '@/components/matching-atelier/format'
+import { PendingRegistry, type PendingHandle } from '@/lib/matchingAnnulation'
+import type { AtelierBuyer, AtelierGestes, AtelierListing, AtelierTab } from './types'
+import { atlReturnDate } from './format'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'

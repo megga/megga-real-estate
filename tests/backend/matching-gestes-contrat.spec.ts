@@ -1,4 +1,4 @@
-// Backend test — Atelier Matching : boucle complète (migration 20260610_001).
+// Backend test — les gestes du matching : le contrat base qu'ils supposent (migration 20260610_001).
 //
 // Rejoue le contrat HANDOFF_MATCHING_COUTURES au niveau base, en tant
 // qu'AGENT AUTHENTIFIÉ (RLS réelle), sur le Supabase local de la CI
@@ -32,7 +32,7 @@ const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
 
 const DAY_MS = 864e5
 
-describe.skipIf(!HAS_KEYS)('Atelier Matching — boucle complète', () => {
+describe.skipIf(!HAS_KEYS)('Gestes du matching — le contrat base', () => {
   const STAMP = Date.now()
   const TEST_EMAIL = `atelier-agent-${STAMP}@megga-test.local`
   const TEST_PASSWORD = 'Test-Password-123!'

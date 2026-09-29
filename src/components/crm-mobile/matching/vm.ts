@@ -14,7 +14,7 @@ import type {
   AtelierPivot,
   AtelierPoolMatch,
   AtelierTab,
-} from '@/components/matching-atelier/types'
+} from './types'
 
 // ─── View-models ─────────────────────────────────────────────────────────
 export interface BuyerGroupVM {

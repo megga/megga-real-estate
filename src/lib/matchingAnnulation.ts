@@ -23,23 +23,6 @@ export interface PendingHandle {
   flushNow: () => Promise<ResultatProposition | null>
 }
 
-export interface AtelierGestes {
-  /** « Je l'ai proposé » : l'agent a présenté le bien lui-même, le CRM consigne. Sans effet sur un
-   *  match qui n'est plus à proposer (`ResultatProposition.deja`) */
-  send: (matchId: string) => PendingHandle
-  /** « J'ai relancé » : la relance interne est repoussée, rien n'est envoyé */
-  relance: (matchId: string) => PendingHandle
-  snooze: (matchId: string) => PendingHandle
-  dismiss: (matchId: string) => PendingHandle
-  /** réponse de l'acheteur, consignée par l'agent (Intéressé / Pas intéressé) → matches.status
-   *  interested/rejected, produit response_at via trigger. Même fenêtre d'annulation 5 s. */
-  react: (matchId: string, reaction: 'interested' | 'rejected') => PendingHandle
-  /** réactivation d'un reporté — immédiate, pas de fenêtre d'annulation */
-  wake: (matchId: string) => void
-  /** « Proposer une visite » — bascule vers le flux visite (picker réel) */
-  visit: (matchId: string) => void
-}
-
 interface DeferOptions {
   onSettled?: () => void
   onError?: (err: unknown) => void
@@ -61,7 +44,7 @@ export class PendingRegistry {
         this.pending.delete(run)
         resultPromise = exec()
           .catch((err: unknown) => {
-            console.error('[atelier] geste différé en échec', err)
+            console.error('[matching] geste différé en échec', err)
             opts.onError?.(err)
             return null
           })

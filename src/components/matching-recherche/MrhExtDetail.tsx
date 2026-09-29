@@ -18,7 +18,7 @@
 //    `null` est simplement masqué.
 //  · Carte plein écran et lightbox sont PORTÉES dans `document.body` : la fiche
 //    vit sous le track translaté du pager, où `position: fixed` deviendrait un
-//    cadre local (même correctif que AtlOverlayHost côté atelier).
+//    cadre local.
 //  · L'historique du prix (pige, 21.09.2026) est la section qui suit les équipements : `MrhHistoriquePrix`,
 //    le même composant que la fiche autonome. L'écart de l'affiche (« −X % » près du prix barré) prend
 //    le même arrondi que lui (`ecartPct`, une décimale).

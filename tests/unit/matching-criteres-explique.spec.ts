@@ -1,7 +1,7 @@
 /**
  * Le moteur du lot C : chambres, état, off-market (conception de la boucle, §4.1 et §13). Un critère que le bien
  * ne renseigne pas sort du dénominateur — le score dit ce qu'il sait ; une recherche sans ces critères garde
- * EXACTEMENT sa note ; et `reasons` garde ses cinq clés, que l'atelier lit.
+ * EXACTEMENT sa note ; et `reasons` garde ses cinq clés, que lisent le fil et l'écran mobile.
  */
 import { describe, expect, it } from 'vitest'
 import {

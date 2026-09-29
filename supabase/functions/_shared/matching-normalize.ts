@@ -440,7 +440,7 @@ function scoreOffMarket(offMarket: boolean, voulu: boolean): Axis {
 /**
  * Les trois critères du lot C (conception de la boucle, §4.1) : chambres, état, off-market. Un critère que la
  * recherche ne pose pas, OU que le bien ne renseigne pas, est INACTIF : il sort du dénominateur — le score dit
- * ce qu'il sait. ⛔ Jamais une 6ᵉ clé `reasons` (contrat figé, lu par l'atelier) : le fil explique ces trois
+ * ce qu'il sait. ⛔ Jamais une 6ᵉ clé `reasons` (contrat figé, lu par le fil et l'écran mobile) : le fil explique ces trois
  * critères sur les mêmes faits (`lignesCriteres`), confronté à cette fonction par `matching-fil-modele.spec.ts`.
  */
 export function axesComplementaires(

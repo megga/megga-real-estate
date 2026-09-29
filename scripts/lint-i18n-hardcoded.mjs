@@ -19,7 +19,7 @@ const LOCKED_GLOBS = [
   'src/components/crm-dossiers/**/*.{ts,tsx}',
   'src/components/crm-wizard/**/*.{ts,tsx}',
   'src/components/crm-identity/**/*.{ts,tsx}',
-  'src/components/matching-atelier/**/*.{ts,tsx}',
+  'src/components/matching-fil/**/*.{ts,tsx}',
   'src/components/ai-copilot/**/*.{ts,tsx}',
   'src/components/kyc-report/**/*.{ts,tsx}',
   'src/pages/agent/**/*.{ts,tsx}',

@@ -92,14 +92,13 @@ function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
 interface Props {
   dark: boolean
   /**
-   * Banc d'essai (`/dev/matching-atelier`) : les cinq requêtes de cet écran sont
-   * remplacées par les fixtures de `mrhDemo.ts`, et aucun geste n'écrit.
+   * Banc d'essai (`/dev/crm`, page 1 du Matching) : les cinq requêtes de cet écran
+   * sont remplacées par les fixtures de `mrhDemo.ts`, et aucun geste n'écrit.
    *
-   * ⚠ Ce composant est le SEUL du périmètre bureau qui porte ses propres hooks —
-   * `AtelierStage` est présentationnel et se nourrit par ses props. Sans ce mode,
-   * la moitié la plus lourde de l'écran Matching n'a aucun banc : toutes ses
-   * requêtes sont gatées sur la session, donc sans session elle ne rend qu'un
-   * état bloqué. Idiome repris de `MobileMatchingScreen demo`, pas inventé ici.
+   * ⚠ Le banc n'a pas de fixtures du marché : sans ce mode, ses requêtes,
+   * interceptées, reviendraient vides, et la moitié la plus lourde de l'écran
+   * Matching n'aurait aucun banc. Idiome repris de `MobileMatchingScreen demo`,
+   * pas inventé ici.
    *
    * La valeur choisit l'ÉTAT à montrer (`ok` · `vide` · `erreur` · `bloque`) —
    * les trois derniers ne s'atteignent pas par hasard en production.
@@ -349,8 +348,8 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const toggleSel = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
 
   // « Ajouter à la sélection de … » : les biens cochés entrent dans les matchs à proposer
-  // de l'acheteur (RPC idempotente), où l'atelier et le fil les montrent. ⛔ Rien ne part
-  // vers lui (21.09.2026) : c'est l'agent qui les lui proposera.
+  // de l'acheteur (RPC idempotente), où le fil et l'écran mobile les montrent. ⛔ Rien ne
+  // part vers lui (21.09.2026) : c'est l'agent qui les lui proposera.
   // Le toast dit ce qui est RÉELLEMENT entré, et ce qui y était déjà — dont ce qui reste hors de
   // la file (écarté, refusé, reporté), que l'ajout ne réactive pas.
   const onAjouterSelection = () => {

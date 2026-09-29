@@ -174,9 +174,6 @@ const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage
 const SentryTestPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/SentryTestPage'))
   : () => null
-const MatchingShowcasePage = import.meta.env.DEV
-  ? lazy(() => import('@/pages/dev/MatchingShowcasePage'))
-  : () => null
 const MobileShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/MobileShowcasePage'))
   : () => null
@@ -650,11 +647,6 @@ function AppRoutes() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
-              {/* Matching — QA visuelle du PAGER entier (chrome, 2 pages, bascule
-                  de thème, états d'exception). Mocks du handoff, zéro écriture.
-                  Le chemin garde son nom d'origine : il est cité tel quel dans le
-                  cerveau comme le banc où s'éprouvent les modales de l'atelier. */}
-              <Route path="/dev/matching-atelier" element={<MatchingShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
               {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}

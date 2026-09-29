@@ -176,7 +176,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // exactement la famille que l'en-tête de ce fichier range hors de la direction par nature.
   ['src/components/propertyx', 42],
   ['src/components/listings', 37],
-  ['src/pages/dev', 26],
+  // 26 → 22 le 27.09.2026 : les fixtures du banc de l'atelier de bureau (`matchingAtelierFixtures`, quatre teintes
+  // d'avatar hors barreaux) partent avec lui (lot E1).
+  ['src/pages/dev', 22],
   // 4 → 3 le 14.09.2026 : la carte « Actions MEGGA AI » du journal d'audit, et son violet
   // `#7A4FD8` écrit à la main, sont partis avec les trois autres cartes de chiffres.
   ['src/pages/agent', 3],
@@ -206,10 +208,6 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/pages/public', 4],
   ['src/components/auth', 4],
   ['src/types/visit.ts', 4],
-  // 3 → 2 le 21.09.2026 : la feuille d'envoi `AtlSendSheet` est retirée.
-  // 2 → 1 le 27.09.2026 : la couverture de premier lancement quitte l'atelier pour le fil (lot E1), et son anneau de
-  // focus prend un barreau (`MXC_SYSTEM.blue300`) : le fil reste sans couleur hors barreaux.
-  ['src/components/matching-atelier', 1],
   ['src/components/admin', 2],
   ['src/components/layout', 1],
   ['src/components/ui', 1],

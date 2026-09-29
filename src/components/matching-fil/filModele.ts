@@ -479,7 +479,8 @@ export function precoches(matchs: readonly FilMatch[], max = 5): string[] {
 
 // Les aides de LECTURE, pures : le fil (`useMatchingFil`) et les surfaces du lot D1 — « Sa boucle », « Qui pour ce
 // bien ? » — les partagent. Elles vivent ici, pas dans un module de hook : `useMatchingFil` tire statiquement
-// le module des gestes (`matchingGestes`), et une fiche n'a pas à le charger pour lire une ligne.
+// le module des gestes (`matchingGestes`), et lire une ligne n'a pas à le charger — la fiche d'une annonce du
+// marché ne le charge pas ; celle d'un mandat, pour « Planifier une visite ».
 
 /**
  * Les lignes d'une lecture PostgREST (ou du banc) ; son erreur est LEVÉE, pour que TanStack la tienne pour un échec.

@@ -26,7 +26,7 @@ const DEFAULT_DIRS = [
   'src/components/crm-dossiers',
   'src/components/crm-wizard',
   'src/pages/agent',
-  'src/components/matching-atelier',
+  'src/components/matching-fil',
   'src/components/calendar',
   'src/components/seller-portal',
   'src/components/kyc-report',

@@ -52,11 +52,11 @@ import type { CorrectionChangement } from '@/components/matching-fil/filApprendr
 
 // ─── Ce que les gestes portent ──────────────────────────────────────────
 
-/** Référence affichée d'une annonce du marché — la même dans l'atelier et dans le fil de matchs. */
+/** Référence affichée d'une annonce du marché — la même depuis le fil de matchs et depuis l'écran mobile. */
 export const refAnnonceMarche = (portail: string | null, sourceId: string | null, id: string): string =>
   `MG-${portail === 'flatfox' ? 'FL' : 'MK'}-${sourceId ?? id.slice(0, 6)}`
 
-/** Référence affichée d'un bien interne — la même dans l'atelier et dans le fil de matchs. */
+/** Référence affichée d'un bien interne — la même depuis le fil de matchs et depuis l'écran mobile. */
 export const refBienInterne = (id: string): string => `MG-IN-${id.slice(0, 6).toUpperCase()}`
 
 /** true tant que le report (snooze) d'un match n'est pas échu. */
@@ -417,7 +417,7 @@ export async function execReact(
     .eq('match_id', buyer.matchId)
     .eq('type', 'follow_up_sent_property')
     .in('status', ['pending', 'triggered'])
-  if (rErr) console.error('[atelier] reminder close failed', rErr)
+  if (rErr) console.error('[matching] reminder close failed', rErr)
 }
 
 /** « Réactiver » — réactivation manuelle anticipée d'un reporté (parking), immédiate ; consignée au journal */
@@ -647,7 +647,7 @@ export async function execPlanifierVisite(
       .update({ stage: 'visit_planned' })
       .eq('id', dealId)
       .in('stage', ETAPES_AVANT_VISITE)
-    if (dErr) console.error('[atelier] deal stage advance failed', dErr)
+    if (dErr) console.error('[matching] deal stage advance failed', dErr)
   } catch (err) {
     await supabase.from('matches').update({ status: 'interested' }).eq('id', buyer.matchId).eq('status', 'visit_planned')
     throw err
@@ -783,5 +783,5 @@ async function logEvent(
     metadata: e.metadata as Json,
   })
   // Consignation = exigence du contrat ; une erreur RLS ne doit pas passer inaperçue
-  if (error) console.error('[atelier] activity_events insert failed', error)
+  if (error) console.error('[matching] activity_events insert failed', error)
 }

@@ -110,8 +110,8 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
 }
 
 /**
- * Contenus de substitution des bancs `/dev/crm` et `/dev/matching-atelier` : ils y
- * injectent des données de démonstration, et rien d'autre.
+ * Contenus de substitution du banc `/dev/crm` : il y injecte des données de
+ * démonstration, et rien d'autre.
  *
  * ⚠ La MÉCANIQUE reste celle de la production — chrome, molette, clavier, points
  * de page, bascule de thème de la barre latérale. C'est elle qu'on vient
@@ -120,9 +120,9 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
  * pour que les fixtures ne descendent pas dans le bundle de production.
  *
  * ⚠ La barre latérale navigue ELLE-MÊME (elle porte la table des routes, pour
- * qu'il n'y ait plus vingt-et-un aiguillages divergents), et se TAIT sous
- * `/dev/*` : sans cette garde, chaque ligne mènerait à une surface protégée — et
- * au rebond vers la production que le banc existe précisément pour éviter.
+ * qu'il n'y ait plus vingt-et-un aiguillages divergents). Le banc `/dev/crm` la
+ * monte sous un routeur mémoire, sur les adresses de production : elle y
+ * navigue sans quitter le banc.
  *
  * ⚠ Des COMPOSANTS, pas des fonctions à appeler. Deux raisons, et la seconde a
  * mordu :
@@ -131,29 +131,14 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
  *    de transition (`lock`) : `react-hooks/refs` refuse — à raison, un ref lu au
  *    rendu ne déclenche pas de nouveau rendu. En JSX, c'est une prop, pas un
  *    argument, et le grief tombe.
- * 2. Un slot appelé rendrait `AtelierStage` sous une identité d'élément qui
- *    change à chaque rendu du banc : la session de triage en cours (onglet,
- *    sélection, historique d'annulation) serait remise à zéro à chaque clic.
- *    Les slots doivent donc être STABLES côté banc — définis hors du composant.
+ * 2. Un slot appelé rendrait le fil sous une identité d'élément qui change à
+ *    chaque rendu du banc : sa sélection et sa fenêtre d'annulation seraient
+ *    remises à zéro à chaque clic. Les slots doivent donc être STABLES côté
+ *    banc — définis hors du composant.
  */
 export interface MatchingPagerBanc {
   Page0: (p: { dark: boolean; onOpenRecherche: () => void }) => ReactNode
   Page1: (p: { dark: boolean }) => ReactNode
-  /**
-   * Commandes du banc, rendues à la RACINE du pager — hors du viewport clippé.
-   *
-   * ⚠ Elles ne peuvent pas vivre dans une page : le track porte un `transform`,
-   * qui fait de lui le bloc englobant de tout descendant en `position: fixed` —
-   * les commandes glisseraient avec la page au lieu de rester à l'écran.
-   *
-   * ⚠ Et elles ne peuvent pas non plus vivre dans le banc au-dessus du pager :
-   * c'est le pager qui POSSÈDE le thème (bouton de la barre latérale +
-   * `megga.sugar.dark`). Un banc qui relirait la clé pour son compte peindrait
-   * ses commandes dans le thème d'avant la dernière bascule — un banc qui
-   * fabrique lui-même une incohérence de thème, défaut déjà vécu sur
-   * `/dev/biens`.
-   */
-  Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
 export default function MatchingPage(
@@ -409,7 +394,6 @@ export default function MatchingPage(
       </div>
 
       <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />
-      {banc?.Chrome ? <banc.Chrome dark={dark} /> : null}
     </div>
   )
 }

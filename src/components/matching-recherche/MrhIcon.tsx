@@ -1,22 +1,14 @@
-// Atelier Matching — icônes. Délègue au set maison MEIcon (stroke 1.6) ;
-// tracés locaux pour les glyphes absents du set OU rendus en font-fallback
-// par MEIcon (layers/bolt → PxIconFont), afin de garder le stroke linéaire
-// exigé par la grammaire Sugar Pure du handoff (zéro emoji, stroke ~1.6).
+/**
+ * Matching · Recherche — le rendu de ses icônes : le jeu maison `MEIcon`, au trait de 1,6, complété de tracés locaux
+ * pour les glyphes absents du jeu OU que `MEIcon` rend en police de repli (`layers` → `PxIconFont`) — le trait reste
+ * linéaire, sans emoji. `RechIcon` y traduit les noms du proto de la Recherche.
+ */
 
 import type { CSSProperties, ReactNode } from 'react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 
 // Glyphes locaux : nom → paths (stroke) ou élément (fill)
 const LOCAL: Record<string, { fill?: boolean; node: ReactNode }> = {
-  lift: {
-    node: (
-      <>
-        <path d="M5 3h14v18H5z" />
-        <path d="M9 8l3-3 3 3" />
-        <path d="M9 16l3 3 3-3" />
-      </>
-    ),
-  },
   layers: {
     fill: true,
     node: <path d="m12 2 11 6-11 6-11-6 11-6Zm-11 9 11 6 11-6-2-1-9 5-9-5-2 1Zm0 4 11 6 11-6-2-1-9 5-9-5-2 1Z" />,
@@ -29,27 +21,21 @@ const LOCAL: Record<string, { fill?: boolean; node: ReactNode }> = {
       </>
     ),
   },
-  tag: {
-    node: (
-      <>
-        <path d="M12 2H2v10l9.3 9.3a1.7 1.7 0 0 0 2.4 0l7.6-7.6a1.7 1.7 0 0 0 0-2.4L12 2Z" />
-        <path d="M7 7h.01" />
-      </>
-    ),
-  },
 }
 
-export type AtlIconName = MEIconName | 'lift' | 'trend-down' | 'tag'
+/** Le trait des icônes de la Recherche : 1,6, un rien plus fin que le trait par défaut de `MEIcon` (1,7). */
+const TRAIT = 1.6
 
-interface AtlIconProps {
-  d: AtlIconName
+export type MrhIconName = MEIconName | 'trend-down'
+
+interface MrhIconProps {
+  d: MrhIconName
   size?: number
-  sw?: number
   style?: CSSProperties
   className?: string
 }
 
-export default function AtlIcon({ d, size = 16, sw = 1.6, style, className }: AtlIconProps) {
+export default function MrhIcon({ d, size = 16, style, className }: MrhIconProps) {
   const local = LOCAL[d]
   if (local) {
     return (
@@ -59,7 +45,7 @@ export default function AtlIcon({ d, size = 16, sw = 1.6, style, className }: At
         height={size}
         fill={local.fill ? 'currentColor' : 'none'}
         stroke={local.fill ? 'none' : 'currentColor'}
-        strokeWidth={local.fill ? undefined : sw}
+        strokeWidth={local.fill ? undefined : TRAIT}
         strokeLinecap="round"
         strokeLinejoin="round"
         className={className}
@@ -69,5 +55,5 @@ export default function AtlIcon({ d, size = 16, sw = 1.6, style, className }: At
       </svg>
     )
   }
-  return <MEIcon name={d as MEIconName} size={size} strokeWidth={sw} className={className} style={style} />
+  return <MEIcon name={d as MEIconName} size={size} strokeWidth={TRAIT} className={className} style={style} />
 }

@@ -1,13 +1,13 @@
 // Matching · Recherche — pont d'icônes. Le proto handoff appelle `CRMIcon` avec
-// une couleur de trait explicite (`stroke`) ; on délègue à `AtlIcon` (→ MEIcon,
-// stroke 1.6, même set que l'atelier) en posant la couleur via `color`
-// (AtlIcon rend en `currentColor`). Garde la grammaire Sugar : stroke linéaire, 0 emoji.
+// une couleur de trait explicite (`stroke`) ; on délègue à `MrhIcon` (→ MEIcon,
+// trait de 1,6) en posant la couleur via `color` (MrhIcon rend en `currentColor`).
+// Trait linéaire, 0 emoji.
 
 import type { CSSProperties } from 'react'
-import AtlIcon, { type AtlIconName } from '@/components/matching-atelier/AtlIcon'
+import MrhIcon, { type MrhIconName } from './MrhIcon'
 
-// nom proto → nom MEIcon/AtlIcon
-const MAP: Record<string, AtlIconName> = {
+// nom proto → nom MEIcon/MrhIcon
+const MAP: Record<string, MrhIconName> = {
   search: 'search',
   chevronL: 'chevron-left',
   chevronR: 'chevron-right',
@@ -40,7 +40,7 @@ interface Props {
 
 export default function RechIcon({ name, size = 16, stroke, style, className }: Props) {
   return (
-    <AtlIcon
+    <MrhIcon
       d={MAP[name] ?? 'info'}
       size={size}
       className={className}

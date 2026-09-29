@@ -1,13 +1,12 @@
 /**
- * Fixtures du mode `demo` de « Recherche hybride » — banc `/dev/matching-atelier`.
+ * Fixtures du mode `demo` de « Recherche hybride » — banc `/dev/crm`, page 1 du Matching.
  *
  * POURQUOI CE FICHIER EXISTE. `MatchingRechercheHybride` porte ses propres hooks
  * (`useAuth`, `useMatchingSearch`, `useMatchingSearchTotal`, `useMatchingBuyers`,
- * `useCitySuggest`), tous gatés sur la session. Contrairement à `AtelierStage`,
- * qui est présentationnel et qu'un banc peut alimenter par ses props, cette
- * moitié-là — la plus lourde du périmètre bureau — n'avait AUCUN banc : sans
- * session, ses cinq requêtes sont désactivées et l'écran ne montre qu'un état
- * bloqué. On ne pouvait donc pas la regarder avant de la repeindre.
+ * `useCitySuggest`) : un banc ne peut pas l'alimenter par ses props, et `/dev/crm`
+ * n'a pas de fixtures du marché — ses requêtes, interceptées, y reviendraient
+ * vides. Sans ce mode, cette moitié-là, la plus lourde du périmètre bureau, n'aurait
+ * AUCUN banc.
  *
  * ⚠ Ne PAS contourner en injectant une session : une session injectée rend la
  * page sans qu'aucun appel Supabase ne parte — on croit voir des données réelles

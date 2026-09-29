@@ -29,7 +29,6 @@ const R = process.cwd()
  * pour le matching. Ne pas ajouter de page hôte ici.
  */
 const MATCHING = [
-  'src/components/matching-atelier',
   'src/components/matching-fil',
   'src/components/matching-recherche',
   'src/components/crm-mobile/matching',
@@ -106,7 +105,7 @@ const SECTIONS: { fichier: string; debut: string }[] = [
  * Le motif WhatsApp vaut pour TOUT le périmètre, sans exception. Mesuré le 21.09.2026 : aucun
  * fichier du périmètre ne contient `wa.me`. `MrhExtDetail.tsx`, qu'on soupçonnait d'écrire à
  * l'agence qui vend, n'ouvre que l'annonce sur son portail (`window.open`) et le téléphone de la
- * régie (`tel:`), comme `AtlAnnonceVue.tsx` : joindre l'agence vendeuse est le travail de l'agent,
+ * régie (`tel:`) : joindre l'agence vendeuse est le travail de l'agent,
  * et `tel:` n'est pas dans le motif. Le jour où le matching voudrait écrire à une AGENCE par
  * WhatsApp, restreindre ce motif au fichier concerné, avec son motif écrit ; ne pas vider la règle.
  * `PxWhatsAppButton` est nommé parce qu'il bâtit le lien `wa.me` lui-même : l'importer

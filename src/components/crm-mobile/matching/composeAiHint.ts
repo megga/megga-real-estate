@@ -1,14 +1,18 @@
-// Atelier Matching — synthèse MEGGA AI de la colonne « Pourquoi ça matche ».
-// Phrase composée déterministe à partir des signaux réels du moteur de
-// matching (reasons), du statut d'engagement et du KYC. Suggestion seulement —
-// jamais d'action auto (grammaire : l'IA assiste, l'agent agit).
+/**
+ * Matching au téléphone — la phrase MEGGA AI d'un acheteur (`AtelierBuyer.ai`), que compose la lecture de l'écran
+ * mobile (`useAtelierMatching`) : déterministe, à partir des signaux réels du moteur de matching (reasons), du statut
+ * d'engagement et du KYC. Suggestion seulement — jamais d'action auto (grammaire : l'IA assiste, l'agent agit).
+ *
+ * ⚠ Aucun écran ne l'affiche : la carte MEGGA AI du mode « Par acheteur » de l'atelier de bureau, qui la montrait, est
+ * partie avec lui (lot E1), et l'écran mobile ne lit pas ce champ. Elle vit avec le contrat de données du mobile,
+ * jusqu'au lot E2.
+ */
 
 import i18n from '@/i18n'
 import type { AtelierKyc, AtelierReason, AtelierStatus } from './types'
 
-// i18n : producteur de texte déterministe (comme focusScore.buildReason) ;
-// non unit-testé + rendu dans des composants re-rendus au changement de langue →
-// instance i18n singleton, signature inchangée (cf docs/i18n-conventions §6).
+// i18n : producteur de texte déterministe (comme focusScore.buildReason) → instance
+// i18n singleton, signature inchangée (cf docs/i18n-conventions §6).
 // NB : les libellés de raison (reasons[].label/.detail) et `engage` sont des
 // DONNÉES du moteur de matching — interpolés tels quels (résidu data-layer).
 

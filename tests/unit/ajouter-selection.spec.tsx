@@ -148,7 +148,7 @@ describe('useAjouterSelection — le bilan', () => {
     demonter()
   })
 
-  it('les biens ajoutés apparaissent là où l’agent les proposera : atelier, fil, mobile', async () => {
+  it('les biens ajoutés apparaissent là où l’agent les proposera : le fil et le mobile', async () => {
     h.rpc.mockResolvedValue({ data: [cree('ml-1')], error: null })
     const { ajouter, invalider, demonter } = await monter()
     await ajouter({ ...TROIS, items: [TROIS.items[0]] })

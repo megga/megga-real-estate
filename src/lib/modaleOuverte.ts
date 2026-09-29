@@ -11,7 +11,7 @@
  *
  * Deux signaux, parce qu'aucun ne couvre tout :
  *   1. `aria-modal="true"` — la déclaration explicite (MxModal, les feuilles,
- *      le composeur de la messagerie, les overlays de l'atelier…) ;
+ *      le composeur de la messagerie…) ;
  *   2. le VOILE — un nœud porté dans `<body>`, fixe, qui couvre la fenêtre. C'est
  *      la forme que la règle du dépôt donne aux modales, y compris à celles qui
  *      ne se déclarent pas (confirmation de perte, renouvellement de mandat,

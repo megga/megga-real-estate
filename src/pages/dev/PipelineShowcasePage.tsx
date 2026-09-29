@@ -7,8 +7,7 @@
  * vers la production. On est alors déposé sur `app.getmegga.com`, qui sert `main`,
  * en croyant regarder localhost : on relit l'ancienne version de son propre
  * travail. Le piège ne ressemble pas à une erreur. Même idiome, mêmes raisons
- * que `/dev/matching-atelier`, `/dev/biens`, `/dev/contacts` et `/dev/mobile` —
- * permanent.
+ * que `/dev/biens`, `/dev/contacts` et `/dev/mobile` — permanent.
  *
  * ⛔ ET LE BANC LUI-MÊME L'A REPRODUIT. Sa première version laissait
  * `onOpenDeal` appeler `navigate('/dashboard/transactions/…')` : un clic sur

@@ -6,8 +6,9 @@
  * Conceptions : `docs/superpowers/specs/2026-09-17-matching-fil-design.md` §8 ;
  * `docs/superpowers/specs/2026-09-21-matching-boucle-agent-design.md` §4 et §5.
  *
- * ⛔ DES LECTURES PLATES, AUCUNE JOINTURE EMBARQUÉE. L'atelier charge tous les matchs de l'agence
- * avec `properties(*)` et `market_listings(*)` — descriptions et galeries comprises, 1 628 lignes
+ * ⛔ DES LECTURES PLATES, AUCUNE JOINTURE EMBARQUÉE. La lecture de l'atelier (`useAtelierMatching`,
+ * que garde l'écran mobile) charge tous les matchs de l'agence avec `properties(*)` et
+ * `market_listings(*)` — descriptions et galeries comprises, 1 628 lignes
  * en production le 17.09.2026 — contre le §7 de CLAUDE.md. Ici : les matchs `suggested` des biens
  * en mandat (10 en production), puis leurs contacts, leurs recherches, leurs biens (colonnes légères)
  * et le KYC, par `in`. Et le banc `/dev/crm` n'applique pas `select` : une jointure y rendrait des

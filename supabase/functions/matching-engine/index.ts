@@ -591,7 +591,7 @@ serve(async (req) => {
     // Appelants internes : `daily_matching_scan()` (tâche `daily-matching-scan`) et les
     // quatre triggers de client_searches (nouvelle recherche, critères modifiés) et de
     // properties (bien activé, prix modifié) — tous rejouent `app_config.service_role_key`
-    // en Bearer. Le front (useMatching, atelier, écran mobile) envoie le JWT de l'agent, qui
+    // en Bearer. Le front (le fil, « Qui pour ce bien ? », l'écran mobile) envoie le JWT de l'agent, qui
     // n'est pas le secret et retombe sur requireAgentAuth.
     // S8 (audit du 13.09.2026) : un `===` contre la seule clé de l'env ne tenait que par la
     // coïncidence des deux clés ; `isServiceSecret` accepte app_config OU l'env, à temps

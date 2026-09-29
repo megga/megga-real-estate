@@ -384,7 +384,7 @@ describe('la relance suit la réponse', () => {
     const trace = vi.spyOn(console, 'error').mockImplementation(() => undefined)
     try {
       await expect(execReact({ matchId: 'm-1' }, 'interested')).resolves.toBeUndefined()
-      expect(trace).toHaveBeenCalledWith('[atelier] reminder close failed', expect.objectContaining({ code: '42501' }))
+      expect(trace).toHaveBeenCalledWith('[matching] reminder close failed', expect.objectContaining({ code: '42501' }))
     } finally {
       trace.mockRestore()
     }
@@ -425,7 +425,7 @@ describe('la relance couvre TOUS les biens d’une proposition (lot B)', () => {
     expect(ecrit('insert:reminders').valeurs).toMatchObject({ match_id: 'm-a', match_ids: ['m-b', 'm-a'] })
   })
 
-  it('un bien : `match_id` seul, sans `match_ids` — l’atelier, le mobile et « Aujourd’hui » en production', async () => {
+  it('un bien : `match_id` seul, sans `match_ids` — le fil et l’écran mobile', async () => {
     await execProposer(CTX, ACHETEUR, annonce('ml-1', 'MG-MK-1'))
     expect(ecrit('insert:reminders').valeurs).toMatchObject({ match_id: 'm-1' })
     expect(ecrit('insert:reminders').valeurs).not.toHaveProperty('match_ids')

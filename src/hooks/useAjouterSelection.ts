@@ -1,6 +1,6 @@
 /**
  * Matching · Recherche — « Ajouter à la sélection de … » : les biens du marché choisis entrent
- * dans les matchs à proposer de l'acheteur (`suggested`), où l'atelier et le fil les montrent.
+ * dans les matchs à proposer de l'acheteur (`suggested`), où le fil et l'écran mobile les montrent.
  *
  * ⛔ Rien ne part vers l'acheteur (décision du 21.09.2026). C'est l'agent qui proposera ces biens,
  * par ses propres moyens, puis le consignera (« Je l'ai proposé »).
@@ -12,9 +12,9 @@
  * « ajouté » laisserait l'agent le chercher en vain dans la file.
  *
  * ⛔ UN BIEN DÉJÀ PRÉSENT GARDE SON STATUT. S'il est écarté (`ignored`), refusé par l'acheteur
- * (`rejected`) ou reporté (`snoozed_until` à venir), il n'est PAS dans la file de l'atelier ni du
- * fil : le réactiver en silence déferait une décision prise. On le compte à part, et la Recherche
- * le dit.
+ * (`rejected`) ou reporté (`snoozed_until` à venir), il n'est PAS à proposer, ni dans le fil ni sur
+ * l'écran mobile : le réactiver en silence déferait une décision prise. On le compte à part, et la
+ * Recherche le dit.
  */
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -81,8 +81,9 @@ export function useAjouterSelection() {
       ).length
       return { ajoutes: nouveaux.size, dejaPresents: deja.length, horsFile }
     },
-    // Les biens ajoutés doivent apparaître là où l'agent les proposera : l'atelier
-    // (`atelier-matches`), le fil et sa sélection du marché (préfixe `CLE_FIL`), le mobile (`matches`).
+    // Les biens ajoutés doivent apparaître là où l'agent les proposera : l'écran mobile de Matching
+    // (`atelier-matches`), le fil et sa sélection du marché (préfixe `CLE_FIL`), la fiche contact
+    // mobile (`matches`).
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['atelier-matches'] })
       void client.invalidateQueries({ queryKey: [CLE_FIL] })

@@ -45,7 +45,7 @@
  *
  * ⛔ Données de DÉMONSTRATION. Rien ne vient de la base, aucun geste n'écrit.
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { MemoryRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { ROUTER_FUTURE } from '@/lib/routerFuture'
@@ -65,7 +65,9 @@ import { AGENT_BANC, semerSessionBanc } from './bancSession'
 import { useCrmDark, useCrmDarkPref } from '@/lib/crmDark'
 import { MailFixturesContext, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import { LabsFixturesContext, useLabsFixtures, type LabsFixtureState } from '@/components/crm/labs/fixtures'
+import type { MrhDemoEtat } from '@/components/matching-recherche/mrhDemo'
 import BootCurtain, { CurtainLift } from '@/components/layout/BootCurtain'
+import { RechercheDuBanc } from './rechercheDuBanc'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -101,7 +103,7 @@ const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
 const NouveauBienPage = lazy(() => import('@/pages/agent/NouveauBienPage'))
 // Le Matching du banc est le FIL DE MATCHS (refonte, lot 1), sur les fixtures de ce banc-ci : ses
-// lectures traversent l'interception. L'atelier garde son banc, `/dev/matching-atelier`.
+// lectures traversent l'interception. Sa Recherche est en démonstration, dans l'état choisi au menu.
 const MatchingFilBanc = lazy(() => import('@/pages/dev/matchingFilBanc'))
 const LabsPage = lazy(() => import('@/pages/agent/LabsPage'))
 
@@ -189,7 +191,7 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | 
   { id: 'bien', chemin: '/dashboard/listings/p1', label: 'Bien · fiche', vague: null },
   // La création d'annonce en quatre étapes — elle a remplacé l'ancien wizard le 16.09.2026.
   { id: 'nouveau-bien', chemin: '/dashboard/listings/new', label: 'Nouveau bien', vague: null },
-  // Le fil de matchs (refonte, lot 1) — l'atelier reste sur `/dev/matching-atelier`.
+  // Le fil de matchs (refonte, lot 1), et la Recherche en page 1 : ses états se choisissent au menu (`ETATS_RECHERCHE`).
   { id: 'matching', chemin: '/dashboard/matching', label: 'Matching · fil', vague: null },
   // L'écran d'erreur de l'application (`ErreurApplication`), atteint par une vraie erreur.
   { id: 'erreur-rendu', chemin: '/dashboard/erreur-rendu', label: 'Erreur de rendu', vague: null },
@@ -217,6 +219,20 @@ const ETATS: { id: EtatPanneau; etat: BancEtat; traversent?: readonly string[]; 
 const etatDuPanneau = (id: EtatPanneau): (typeof ETATS)[number] => ETATS.find((e) => e.id === id) ?? ETATS[0]!
 
 /**
+ * Les états de la Recherche, la page 1 du Matching — le seul banc de ces quatre écrans.
+ *
+ * ⚠ Ce ne sont pas ceux de l'interception : le banc monte la Recherche en démonstration (`mrhDemo.ts`, faute de
+ * fixtures du marché ici), et elle n'en lit rien. `vide` et `bloque` sont deux écrans distincts : « aucune annonce »
+ * affirme quelque chose de la base, « bloquée » dit seulement que la requête n'a pas pu partir.
+ */
+const ETATS_RECHERCHE: { id: MrhDemoEtat; label: string; titre: string }[] = [
+  { id: 'ok', label: 'Annonces', titre: 'Les annonces de démonstration, vente et location' },
+  { id: 'vide', label: 'Aucune', titre: 'La requête a répondu : aucune annonce ne correspond' },
+  { id: 'erreur', label: 'Échec', titre: 'La requête a échoué' },
+  { id: 'bloque', label: 'Bloquée', titre: 'La requête n’a pas pu partir : ni réponse, ni échec' },
+]
+
+/**
  * Les trois états du banc, traduits pour le studio Labs.
  *
  * ⚠ Une table et non un ternaire : les trois branches sont NOMMÉES des deux côtés, et
@@ -232,16 +248,19 @@ const LABS_PAR_ETAT: Record<BancEtat, LabsFixtureState> = {
 
 /* ─── Chrome du banc ──────────────────────────────────────────────────────── */
 
-function Commandes({ etat, setEtat, sansFixture }: {
+function Commandes({ etat, setEtat, recherche, setRecherche, sansFixture }: {
   etat: EtatPanneau
   setEtat: (e: EtatPanneau) => void
+  recherche: MrhDemoEtat
+  setRecherche: (e: MrhDemoEtat) => void
   sansFixture: string[]
 }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   // ⚖ MINIMALISTE (Julien, 16.09.2026 : « il me gâche la vue ») : une seule pastille
-  // discrète dans le coin, qui dit où l'on est ; les 22 surfaces, les trois états et le
-  // compte des appels sans fixture vivent dans un menu REPLIÉ par défaut. Avant, un pavé
+  // discrète dans le coin, qui dit où l'on est ; les surfaces, les états (et ceux de la
+  // Recherche, sur Matching) et le compte des appels sans fixture vivent dans un menu REPLIÉ
+  // par défaut. Avant, un pavé
   // de quatre lignes couvrait le coin bas-droit de chaque écran — là où vivent justement
   // les boutons d'action et les dernières lignes des listes.
   const [ouvert, setOuvert] = useState(false)
@@ -266,6 +285,12 @@ function Commandes({ etat, setEtat, sansFixture }: {
     .filter((x) => pathname === x.chemin || pathname.startsWith(x.chemin + '/'))
     .sort((a, b) => b.chemin.length - a.chemin.length)[0]
   const etatCourant = ETATS.find((e) => e.id === etat)
+  // Un bouton d'état du menu : ceux de l'interception, et ceux de la Recherche sur le Matching.
+  const boutonEtat = (actif: boolean): CSSProperties => ({
+    flex: 1, border: 0, cursor: 'pointer', fontFamily: 'inherit', height: 26,
+    borderRadius: 'var(--crm-radius-md)', fontSize: 'var(--crm-text-xs)', fontWeight: 600,
+    background: actif ? sp.accent : 'transparent', color: actif ? sp.accentInk : sp.sub,
+  })
 
   return (
     <div ref={ref} className="banc-commandes" style={{
@@ -287,13 +312,26 @@ function Commandes({ etat, setEtat, sansFixture }: {
         }}>
           <div style={{ display: 'flex', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-xs)', borderBottom: `1px solid ${sp.solidBorder}` }}>
             {ETATS.map((e) => (
-              <button key={e.id} type="button" title={e.titre} onClick={() => setEtat(e.id)} aria-pressed={etat === e.id} style={{
-                flex: 1, border: 0, cursor: 'pointer', fontFamily: 'inherit', height: 26,
-                borderRadius: 'var(--crm-radius-md)', fontSize: 'var(--crm-text-xs)', fontWeight: 600,
-                background: etat === e.id ? sp.accent : 'transparent', color: etat === e.id ? sp.accentInk : sp.sub,
-              }}>{e.label}</button>
+              <button key={e.id} type="button" title={e.titre} onClick={() => setEtat(e.id)} aria-pressed={etat === e.id}
+                style={boutonEtat(etat === e.id)}>{e.label}</button>
             ))}
           </div>
+          {courante?.id === 'matching' && (
+            <div style={{
+              display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)',
+              padding: 'var(--crm-space-xs)', borderBottom: `1px solid ${sp.solidBorder}`,
+            }}>
+              <span style={{ padding: '0 var(--crm-space-xs)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>
+                Recherche
+              </span>
+              <div style={{ display: 'flex', gap: 'var(--crm-space-2xs)' }}>
+                {ETATS_RECHERCHE.map((e) => (
+                  <button key={e.id} type="button" title={e.titre} onClick={() => setRecherche(e.id)} aria-pressed={recherche === e.id}
+                    style={boutonEtat(recherche === e.id)}>{e.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ overflowY: 'auto', padding: 'var(--crm-space-2xs)' }}>
             {SURFACES.map((s) => {
               const actif = s.id === courante?.id
@@ -329,6 +367,9 @@ function Commandes({ etat, setEtat, sansFixture }: {
         }}>
         <span aria-hidden style={{ width: 6, height: 6, borderRadius: 'var(--crm-radius-pill)', background: etat === 'nominal' ? sp.accent : sp.sub }} />
         {courante?.label ?? 'Banc'}{etat !== 'nominal' && etatCourant ? ` · ${etatCourant.label}` : ''}
+        {/* Une Recherche hors du cas nominal se DIT : restée sur « Bloquée », elle se lirait comme un écran en panne. */}
+        {courante?.id === 'matching' && recherche !== 'ok'
+          ? ` · Recherche : ${ETATS_RECHERCHE.find((e) => e.id === recherche)?.label ?? recherche}` : ''}
       </button>
     </div>
   )
@@ -467,6 +508,7 @@ const clientBanc = new QueryClient({
 
 export default function CrmShowcasePage() {
   const [etat, setEtatLocal] = useState<EtatPanneau>('nominal')
+  const [recherche, setRecherche] = useState<MrhDemoEtat>('ok')
   const [sansFixture, setSansFixture] = useState<string[]>([])
 
   // ⚠ Semé et installé PENDANT le rendu, donc AVANT que `AuthProvider` appelle
@@ -598,6 +640,7 @@ export default function CrmShowcasePage() {
             sert zéro ligne ou un 500 : les deux branches réelles de l'écran. */}
         <MailFixturesContext.Provider value={etat === 'nominal' ? 'full' : null}>
         <LabsFixturesContext.Provider value={LABS_PAR_ETAT[etatDuPanneau(etat).etat]}>
+        <RechercheDuBanc.Provider value={recherche}>
         <Suspense fallback={null}>
           <RoutesBanc />
           {/* Au-dessus des routes, comme en production : le panneau persiste
@@ -607,10 +650,11 @@ export default function CrmShowcasePage() {
               l'écran MEGGA jusqu'à la première peinture, comme `/dashboard`. */}
           <CurtainLift />
         </Suspense>
+        </RechercheDuBanc.Provider>
         </LabsFixturesContext.Provider>
         </MailFixturesContext.Provider>
         <BootCurtain />
-        <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
+        <Commandes etat={etat} setEtat={setEtat} recherche={recherche} setRecherche={setRecherche} sansFixture={sansFixture} />
       </AiPanelProvider>
     </MemoryRouter>
         </ToastProvider>

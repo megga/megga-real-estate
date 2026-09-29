@@ -10,7 +10,6 @@
  * ⚠ IL NE COUVRE QUE CE QUE LES AUTRES BANCS N'ATTEIGNENT PAS. Huit modales ici ;
  * les autres sont déjà accessibles et doivent être éprouvées LÀ-BAS, sur leur
  * vrai écran, pas remontées ici en double :
- *   · `/dev/matching-atelier` → AtlConfirm, AtlAnnonceVue
  *   · `/dev/mobile`           → CrmBottomCard (et ses trois consommateurs),
  *                               MrNotifSheet, la visionneuse photo du bien,
  *                               la confirmation « tout marquer » du KYC
@@ -106,8 +105,7 @@ export default function ModalesShowcasePage() {
         </h1>
         <p style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, lineHeight: 1.5, margin: '8px 0 0' }}>
           Les huit modales qu’aucun autre banc n’atteint sans session. Les autres s’éprouvent
-          sur leur propre écran — <code>/dev/matching-atelier</code>, <code>/dev/mobile</code>,
-          {' '}<code>/dev/contacts</code> — et non ici.
+          sur leur propre écran — <code>/dev/mobile</code>, <code>/dev/contacts</code> — et non ici.
         </p>
       </header>
 

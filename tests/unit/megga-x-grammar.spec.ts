@@ -451,7 +451,6 @@ const ZONES: RootSpec[] = [
   // survol — du chrome posé SUR la carte. L'exemption couvrait tout un fichier
   // pour protéger une poignée de teintes de fond.
   { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
   // Le fil de matchs (17.09.2026), né porté : aucun littéral, aucune graisse au-dessus de 600.
   { root: 'src/components/matching-fil', keep: (n) => /\.tsx?$/.test(n) },
   // Les 19 pages de la console super-admin (lot 3 du chantier MEGGA X,
@@ -792,13 +791,9 @@ function cssLisible(css: string): string {
  * est une décision de PRODUIT, posée et non prise ici — d'où l'inventaire.
  */
 const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interlettrage?: number; taille?: number }>([
-  // ⚠ 55 marqueurs sur 143 payés le 15 août 2026 : les 44 graisses passent à
-  // 600, et les CINQ micro-capitales partent AVEC leur interlettrage — sur de la
-  // casse normale, un tracking positif disloque le mot, ils voyagent ensemble.
-  // Restent les 88 tailles, dont 47 hors échelle : elles demandent un arbitrage
-  // par site (17 valeurs distinctes, des demi-pas aux chiffres d'affichage), et
-  // l'échelle PROPRE du fichier (`.t1`=13,5 px, `.t3`=17) en fait partie.
-  ['src/components/matching-atelier/atelier.css', { taille: 88 }],
+  // Vide depuis le 27.09.2026 : sa seule entrée, `atelier.css` (88 tailles), est partie avec l'atelier de bureau
+  // (lot E1). Une feuille qui porterait de la grammaire devra y entrer, ou être exemptée : c'est la clause « chaque
+  // feuille CSS de src/ est lue ».
 ])
 
 /**
@@ -1059,11 +1054,6 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/layout', { hors: 9, total: 94 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
-  // {37,50} -> {31,43} (21.09.2026) : la feuille d'envoi `AtlSendSheet` est retirée, « Je l'ai
-  // proposé » n'envoie plus rien à l'acheteur.
-  // {31,43} -> {23,33} (27.09.2026) : la couverture de premier lancement (`MatchingFirstRun`) quitte l'atelier
-  // pour le fil (lot E1), qui l'accueille sans littéral — ses rayons et espacements y passent aux jetons.
-  ['src/components/matching-atelier', { hors: 23, total: 33 }],
   ['src/components/matching-fil', { hors: 0, total: 0 }],
   // {123,185} -> {112,171} (21.09.2026) : la feuille d'envoi `MrhSendSheet` est retirée, la
   // Recherche ajoute à la sélection de l'acheteur au lieu de lui envoyer un lien.
@@ -2339,7 +2329,9 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-dossiers',
       'src/pages/agent',
       'src/components/matching-recherche',
-      'src/components/matching-atelier',
+      // Le fil de matchs tient la place de `src/components/matching-atelier`, sorti de cette liste le 27.09.2026 : le
+      // dossier est parti avec l'atelier de bureau (lot E1).
+      'src/components/matching-fil',
       'src/pages/admin',
       'src/components/admin',
       'src/components/crm/today',

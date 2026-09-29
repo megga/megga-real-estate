@@ -1,12 +1,15 @@
-// Atelier Matching — données (contrat HANDOFF_MATCHING_COUTURES).
-//
-// Données : matches (+ contact + property/market_listing) groupés par annonce
-// pivot (`p:<uuid>` interne / `m:<uuid>` veille marché) + KYC du dernier
-// dossier acheteur par contact. Le mode « Par acheteur » réutilise les mêmes
-// matches re-groupés par contact (poolFor).
-//
-// Les gestes que l'agent pose sur ces matchs ne sont pas ici : ils vivent dans
-// `@/lib/matchingGestes`, que le fil de matchs partage — un seul écrivain par geste.
+/**
+ * Matching au téléphone — la lecture de l'écran mobile (`MobileMatchingScreen`, contrat HANDOFF_MATCHING_COUTURES), et
+ * d'elle seule : l'atelier de bureau, qui la partageait, est retiré (lot E1) ; elle part avec l'écran mobile au lot E2
+ * (conception `2026-09-27-matching-lot-e1-bureau-design.md` §6.2). Son retour se borne à ce que l'écran lit.
+ *
+ * Données : matches (+ contact + property/market_listing) groupés par annonce pivot (`p:<uuid>` interne / `m:<uuid>`
+ * veille marché) + KYC du dernier dossier acheteur par contact. La vue focus du mobile réutilise les mêmes matches
+ * regroupés par contact (`poolFor`, `buyerFor`).
+ *
+ * Les gestes que l'agent pose sur ces matchs ne sont pas ici : ils vivent dans `@/lib/matchingGestes`, que le fil de
+ * matchs partage — un seul écrivain par geste.
+ */
 
 import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -16,15 +19,15 @@ import { mapKycStatus } from '@/lib/crmAdapters'
 import { isSnoozed, refAnnonceMarche, refBienInterne } from '@/lib/matchingGestes'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
-import { composeAiHint } from '@/components/matching-atelier/composeAiHint'
-import { fmtBudgetRange } from '@/components/matching-atelier/format'
+import { composeAiHint } from '@/components/crm-mobile/matching/composeAiHint'
+import { fmtBudgetRange } from '@/components/crm-mobile/matching/format'
 import type {
   AtelierBuyer,
   AtelierListing,
   AtelierPivot,
   AtelierPoolMatch,
   AtelierReason,
-} from '@/components/matching-atelier/types'
+} from '@/components/crm-mobile/matching/types'
 
 // ─── Rows Supabase (snake_case, embeds) ─────────────────────────────────
 interface RawContact {
@@ -272,20 +275,18 @@ const MATCH_SELECT =
 
 export interface UseAtelierMatchingReturn {
   isLoading: boolean
-  /** true si la query matches ou kyc a échoué — état d'erreur de l'atelier. */
+  /** true si la query matches ou kyc a échoué — état d'erreur de l'écran mobile. */
   isError: boolean
   pivots: AtelierPivot[]
-  pivotByKey: Map<string, AtelierPivot>
-  defaultPivotKey: string | null
-  /** Tous les biens matchés d'un acheteur (mode « Par acheteur »), score desc */
+  /** Tous les biens matchés d'un acheteur (vue focus du mobile), score desc */
   poolFor: (contactId: string, currentKey: string | null) => AtelierPoolMatch[]
-  /** Profil acheteur (meilleur match) — deep-link ?contact= */
+  /** Profil acheteur (meilleur match) — la vue focus du mobile */
   buyerFor: (contactId: string) => AtelierBuyer | null
   refresh: () => void
 }
 
 /**
- * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * Données de l'écran mobile de Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
  * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
  * Les couples écartés/rejetés sont exclus de la file.
  */
@@ -374,7 +375,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [])
 
   // Groupes par annonce pivot — écartés/rejetés exclus de la file
-  const { pivots, pivotByKey } = useMemo(() => {
+  const pivots = useMemo(() => {
     const groups = new Map<string, AtelierPivot>()
     for (const m of rawMatches) {
       if (m.status === 'ignored' || m.status === 'rejected') continue
@@ -391,10 +392,9 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
       if (m.status === 'suggested' && !isSnoozed(b.snoozedUntil)) entry.actionable++
       groups.set(L.key, entry)
     }
-    const list = Array.from(groups.values())
+    return Array.from(groups.values())
       .map(g => ({ ...g, buyers: g.buyers.sort((a, z) => z.score - a.score) }))
       .sort((a, z) => z.actionable - a.actionable || z.buyers.length - a.buyers.length)
-    return { pivots: list, pivotByKey: new Map(list.map(g => [g.listing.key, g])) }
   }, [rawMatches, listingOf, toBuyer])
 
   const poolFor = useCallback((contactId: string, currentKey: string | null): AtelierPoolMatch[] => {
@@ -432,12 +432,10 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
 
   return {
     // Idem useContactsScreen : le KYC n'alimente qu'un badge, il ne doit pas
-    // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
+    // remettre tout l'écran en chargement quand il se rafraîchit.
     isLoading: matchesLoading,
     isError: matchesError || kycError,
     pivots,
-    pivotByKey,
-    defaultPivotKey: pivots[0]?.listing.key ?? null,
     poolFor,
     buyerFor,
     refresh,
