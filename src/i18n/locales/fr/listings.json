@@ -1754,7 +1754,6 @@
     "visits": {
       "eyebrow": "Visites",
       "none": "Aucune visite planifiée.",
-      "plan": "Planifier",
       "past_one": "{{count}} visite passée",
       "past_other": "{{count}} visites passées"
     },

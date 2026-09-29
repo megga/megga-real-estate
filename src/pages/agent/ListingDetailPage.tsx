@@ -890,9 +890,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
               {/* ── 3. Les gens ── */}
               <section className="bf-col bf-col-gens">
                 <div className="bf-bloc">
-                  <BfGrp vx={vx} right={<BfCta small ghost vx={vx} icon="plus" onClick={planifierVisite}>{tr('fiche.visits.plan')}</BfCta>}>
-                    {tr('fiche.visits.eyebrow')}
-                  </BfGrp>
+                  <BfGrp vx={vx}>{tr('fiche.visits.eyebrow')}</BfGrp>
                   {aVenir.length === 0 ? (
                     <div style={{ fontSize: 'var(--crm-text-lg)', color: vx.muted, fontWeight: 500 }}>{tr('fiche.visits.none')}</div>
                   ) : (
