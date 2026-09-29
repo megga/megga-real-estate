@@ -271,7 +271,7 @@ function cloche(
 
 /**
  * Les deux annonces de marché que désignent les matchs de la cloche. ⚠ À PART de
- * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli du catalogue).
+ * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli d'un bien sans photo).
  */
 const ANNONCES_CLOCHE = [
   { id: 'ml-cloche-1', title: 'Appartement 3,5 pièces · Carouge', city: 'Carouge', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.carouge], photos_cf: null },
@@ -872,10 +872,6 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     },
   ],
   transactions: [],
-  // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
-  // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
-  // de Champel, et cinq intérieurs de stock dans sa galerie), le bien de l'agence n'en
-  // a qu'UNE (le collage de la fiche la répétait trois fois).
   // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
   // ligne : le banc n'applique pas `select`.
   // ── Le fil de matchs (lot 1, 17.09.2026) : m2 à m6 sont des paires que le moteur PEUT créer —

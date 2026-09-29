@@ -159,7 +159,10 @@ const HORS_ASSUMES = new Map<string, number>([
   // réception de l'acheteur (le matching reste chez l'agent).
   // 502 → 501 le 23.09.2026 : le bleu des cartes de match (`MATCH: '#6F8CFF'`) quitte
   // « Dossiers » avec elles — les matchs vivent dans le segment Matching (lot D1).
-  ['src/components/crm', 501],
+  // 501 → 477 le 27.09.2026 : le catalogue de matchs d'« Aujourd'hui » (`PageCatalogue`)
+  // est retiré avec ses vingt-quatre littéraux hors barreaux ; l'écran n'a plus qu'une page
+  // (lot E1).
+  ['src/components/crm', 477],
   ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de

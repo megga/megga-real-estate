@@ -1,9 +1,9 @@
 // MEGGA CRM — Today V2 « concept H » · ATOMES PARTAGÉS
 // ----------------------------------------------------------------------------
 // Port des atomes de `today-redesign-kit.jsx`, réduits à ceux que les surfaces
-// VIVANTES consomment : la page Aujourd'hui, le catalogue, la session de relance
-// et le mobile. `Tile`, `TileHead` et `MoreLink` sont partis avec les tuiles de
-// l'ancien cockpit, qu'elles seules servaient.
+// VIVANTES consomment : la page Aujourd'hui, la session de relance et le mobile.
+// `Tile`, `TileHead` et `MoreLink` sont partis avec les tuiles de l'ancien
+// cockpit, qu'elles seules servaient.
 //
 // `RXIcon` est un simple adaptateur qui traduit les noms locaux du proto vers
 // les glyphes officiels MEIcon (src/components/propertyx/MEIcon).
@@ -93,10 +93,5 @@ export function Eyebrow({ children, color }: EyebrowProps) {
       {children}
     </div>
   )
-}
-
-// ─── Orbs de fond (lueur douce derrière le verre) — no-op fidèle ─────────
-export function Orbs() {
-  return null
 }
 

@@ -154,7 +154,6 @@
       "statMinConcentration": "min focused",
       "statRescheduled_one": "rescheduled",
       "statRescheduled_other": "rescheduled",
-      "viewCatalogue": "View match catalogue",
       "upNext": "Up next",
       "lastPriority": "Last priority in the queue."
     },
@@ -222,123 +221,6 @@
       "tempHot": "hot",
       "tempWarm": "warm",
       "tempCold": "cold"
-    },
-    "pager": {
-      "today": "Today",
-      "catalogue": "Catalog",
-      "wheelTo": "Scroll to {{label}}"
-    },
-    "catalogue": {
-      "title": "Match catalogue",
-      "empty": "No matches in this filter.",
-      "emptyAll": "No matches yet.",
-      "proposed": "Proposed",
-      "proposedCount_one": "{{count}} proposed",
-      "proposedCount_other": "{{count}} proposed",
-      "filters": {
-        "all": "All",
-        "followUp": "To follow up",
-        "new": "New"
-      },
-      "sorts": {
-        "score": "Score",
-        "value": "Value",
-        "recency": "Recency"
-      },
-      "sort": {
-        "by": "Sort {{label}}",
-        "byDot": "Sort · {{label}}",
-        "change": "Change sort"
-      },
-      "status": {
-        "new": "New",
-        "sent": "Property proposed",
-        "visitPlanned": "Visit scheduled",
-        "interested": "Interested"
-      },
-      "proposeError": "The proposal couldn't be recorded. Try again.",
-      "why": {
-        "fallback": "New match, first contact to initiate."
-      },
-      "advertiser": {
-        "marketWatch": "Market watch",
-        "internalMandate": "Internal mandate",
-        "externalAdvertiser": "External advertiser",
-        "yourAgency": "Your agency",
-        "source": "Source"
-      },
-      "detail": {
-        "eyebrow": "Match detail",
-        "photos": "photos"
-      },
-      "section": {
-        "specs": "Features",
-        "highlights": "Highlights",
-        "description": "Description",
-        "location": "Location",
-        "salePrice": "Sale price",
-        "rent": "Monthly rent",
-        "buyer": "Buyer",
-        "compatibility": "Compatibility",
-        "advertiser": "Advertiser"
-      },
-      "spec": {
-        "rooms": "Rooms",
-        "roomsCount": "{{rooms}} rooms",
-        "surface": "Surface",
-        "bedrooms": "Bedrooms",
-        "bathrooms": "Bathrooms",
-        "year": "Year",
-        "floor": "Floor",
-        "villa": "Villa"
-      },
-      "price": {
-        "charges": "Service charges",
-        "perMonth": "CHF {{amount}} / month",
-        "perMonthShort": "/month",
-        "onMarket": "On the market",
-        "today": "Today",
-        "days_one": "{{count}} day",
-        "days_other": "{{count}} days"
-      },
-      "buyer": {
-        "searching": "{{tag}} · looking for {{specs}}"
-      },
-      "compat": {
-        "perfect": "Profile perfectly aligned",
-        "aligned": "Well aligned with their search",
-        "someGaps": "Aligned, a few gaps",
-        "manyGaps": "Several gaps to address"
-      },
-      "criteria": {
-        "budget": "Budget",
-        "zone": "Area",
-        "type": "Type",
-        "rooms": "Rooms",
-        "features": "Wishes",
-        "toRefine": "to refine"
-      },
-      "action": {
-        "addToFile": "I proposed it to {{name}}",
-        "added": "Proposed to {{name}}",
-        "openInMatching": "Open in Matching"
-      },
-      "gallery": {
-        "closeHint": "Close (Esc)",
-        "previous": "Previous",
-        "next": "Next",
-        "backToWall": "Back to wall",
-        "title": "Whole catalogue",
-        "subtitle": "Full gallery"
-      },
-      "more": {
-        "otherMatches_one": "other match",
-        "otherMatches_other": "other matches",
-        "viewWhole": "View whole catalogue"
-      },
-      "place": {
-        "fallback": "Property"
-      }
     },
     "relance": {
       "temp": {

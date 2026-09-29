@@ -12,7 +12,7 @@ import { RXIcon } from './kit'
 import { ecrire, type ActionMatching, type GenreAction } from './matchingDuJour'
 
 // ⚠ `arrow-down` pour la baisse, pas `trending-down` : MEIcon ne trace pas ce dernier, il retombe sur l'histogramme
-// plein de la fonte, qui ne dit pas « baisse ». Le catalogue du même cockpit marque déjà une baisse de prix ainsi.
+// plein de la fonte, qui ne dit pas « baisse ».
 const ICONE: Record<GenreAction, string> = { retour: 'clock', prix: 'arrow-down', mandat: 'home', marche: 'building' }
 const CTA: Record<GenreAction, string> = {
   retour: 'today.h.matching.ctaRetour', prix: 'today.h.matching.ctaPrix',

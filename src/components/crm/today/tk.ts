@@ -3,10 +3,10 @@
 // Port 1:1 de `today-redesign-kit.jsx` (handoff Claude Design, juin 2026).
 // `TK` est un singleton muté EN PLACE par `applyTK(dark)` : sombre immersif
 // (défaut) ↔ clair Sugar. Tous les composants lisent `TK` au rendu, donc
-// basculer l'ambiance « allume » l'ensemble du cockpit (et la modale Détail
-// du match), pas seulement la chrome.
+// basculer l'ambiance « allume » l'ensemble du cockpit, pas seulement la
+// chrome.
 //
-// Le pager appelle `applyTK(dark)` en tête de render ; le sous-arbre se
+// L'écran (`TodayPage`) appelle `applyTK(dark)` en tête de render ; le sous-arbre se
 // re-render sur le changement de `dark`, donc lire le singleton muté au render
 // renvoie toujours l'ambiance courante (comportement identique au proto).
 

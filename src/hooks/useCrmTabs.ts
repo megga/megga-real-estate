@@ -803,8 +803,8 @@ export function useTabScopedState<T>(
     : local) as T
 
   // ⚠ Il accepte la forme FONCTION (`setPage(p => p + 1)`) autant que la valeur.
-  // C'est ce qui en fait un remplaçant de `useState` sans relire l'appelant : sur
-  // les six pagers du CRM, la moitié incrémente par fonction. Sans ça, la
+  // C'est ce qui en fait un remplaçant de `useState` sans relire l'appelant : les
+  // cinq pagers du CRM incrémentent tous par fonction. Sans ça, la
   // fonction elle-même serait écrite dans la tranche, et l'onglet rouvrirait sur
   // une closure sérialisée en `null`.
   //

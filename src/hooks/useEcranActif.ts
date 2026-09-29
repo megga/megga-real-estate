@@ -33,7 +33,7 @@ export function useEcranActif(): boolean {
 /**
  * Le même drapeau, lisible depuis un GESTIONNAIRE d'événement déjà posé.
  *
- * ⛔ POUR LES ÉCOUTEURS GLOBAUX QU'ON NE VEUT PAS RE-POSER. Six pagers écoutent
+ * ⛔ POUR LES ÉCOUTEURS GLOBAUX QU'ON NE VEUT PAS RE-POSER. Cinq pagers écoutent
  * `keydown` sur `window` et font `preventDefault()` sur ↑/↓/PageUp/PageDown : dans
  * un écran caché, ils volaient les flèches à l'écran montré (plus de défilement)
  * et changeaient de page en silence — reproduit le 12 septembre 2026, frappe

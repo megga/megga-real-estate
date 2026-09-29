@@ -1,12 +1,11 @@
 // MEGGA CRM — Écran « Matching » (pager vertical, refonte Claude Design).
 //
-// Même grammaire que Today/Pipeline : un grand bento arrondi qui clippe 2 pages
-// glissant en translateY.
+// Un grand bento arrondi qui clippe 2 pages glissant en translateY.
 //   Page 0 → le fil de matchs (MatchingFil), sur lequel « Matching » s'ouvre
 //   Page 1 → Recherche hybride du marché connecté (vente + location)
 // Molette / PageUp-PageDown / swipe tactile / points latéraux / indice bas.
 //
-// Différences avec le pager Today :
+// Réglé pour le fil :
 //   - seuil molette élevé + refroidissement après un scroll interne arrivé en
 //     butée : le fil a des colonnes scrollables (sa liste, son panneau) — un
 //     scroll léger défile la colonne, seul un geste franc bascule vers « Recherche ».
@@ -317,8 +316,8 @@ export default function MatchingPage(
       acc.current += e.deltaY
       if (accTimer.current) clearTimeout(accTimer.current)
       accTimer.current = setTimeout(() => { acc.current = 0 }, 220)
-      // Seuil nettement plus haut que Today (~15×) : il faut un scroll franc et
-      // soutenu pour basculer — un scroll léger défile d'abord la colonne.
+      // Seuil élevé : il faut un scroll franc et soutenu pour basculer — un
+      // scroll léger défile d'abord la colonne.
       if (Math.abs(acc.current) > 560) {
         const dir = acc.current > 0 ? 1 : -1
         acc.current = 0

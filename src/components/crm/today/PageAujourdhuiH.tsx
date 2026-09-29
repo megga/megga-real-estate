@@ -1,7 +1,7 @@
 // MEGGA CRM — Today V2 « concept H » · PAGE AUJOURD'HUI (port fidèle)
 // ----------------------------------------------------------------------------
-// Port 1:1 de `today-h-live.jsx` (handoff Today V2, 3 août 2026). Page 0 du
-// pager Today, elle remplace l'ancien cockpit (`PageAujourdhui`).
+// Port 1:1 de `today-h-live.jsx` (handoff Today V2, 3 août 2026). La page
+// unique de l'écran Today, elle remplace l'ancien cockpit (`PageAujourdhui`).
 //
 // Un seul bento :
 //   - en-tête « Bonjour {prénom} » + bascule What's new (colonne droite) ;
@@ -13,7 +13,7 @@
 // Clic sur un bloc → popover ancré, position mesurée puis CLAMPÉE dans le bento.
 //
 // Les helpers non rendus du prototype (`HlDossier`, superseded par le popover)
-// ne sont pas portés — même règle que le port du catalogue.
+// ne sont pas portés.
 //
 // ⚠️ Données de démonstration (`./dataH`). Le câblage Supabase est le « Lot 0 »
 // du handoff : le payload remplace les constantes, les composants ne bougent pas.

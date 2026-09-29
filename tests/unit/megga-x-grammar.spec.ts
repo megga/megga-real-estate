@@ -75,7 +75,7 @@ const PAGES = new Set([
   // quand même est ce qui empêche qu'il cesse de l'être.
   'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
   // « Aujourd'hui », la page d'accueil du CRM (lot A1, 15 août 2026). Elle ne
-  // porte que le pager et le chrome — les deux pages vivent dans `today/`.
+  // porte que le chrome et le cadre — sa page, unique, vit dans `today/`.
   'TodayPage.tsx',
   // Les trois pages KYC (lot A2). `KycExportPage` et `KycOnboardingPage` sont
   // ROUTÉES — /dashboard/kyc/:id/export et kyc/bienvenue — et le plan du chantier
@@ -1042,7 +1042,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
-  ['src/components/crm/today', { hors: 43, total: 54 }],
+  // {43,54} -> {26,34} (27.09.2026) : le catalogue de matchs (`PageCatalogue`) est retiré avec
+  // ses littéraux — « Aujourd'hui » n'a plus qu'une page (lot E1).
+  ['src/components/crm/today', { hors: 26, total: 34 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
   // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
   // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
@@ -1135,7 +1137,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // latérale. Il lit `--crm-radius-4xl`.
   // ⚠ 762 le 21.09.2026 : la fiche d'une annonce du marché perd son « Envoyer par e-mail » et son
   // historique d'envoi (le matching reste chez l'agent).
-  ['src/pages/agent', { hors: 215, total: 762 }],
+  // 215/762 → 211/758 le 27.09.2026 : « Aujourd'hui » n'a plus qu'une page (lot E1) — ses points de
+  // page et son indice de molette partent avec leurs quatre littéraux hors échelle (`gap: 10`,
+  // `gap: 11`, `padding: 6`, `gap: 1`).
+  ['src/pages/agent', { hors: 211, total: 758 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   // {66,257} -> {10,178} (21.09.2026) : `BuyerReceptionPage` est retirée avec la page de
   // réception acheteur (le matching reste chez l'agent), et ses littéraux avec elle.

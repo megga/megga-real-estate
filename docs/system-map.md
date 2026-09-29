@@ -274,7 +274,7 @@ chacune avec sa position d'écran. Le **fournisseur** ([`CrmTabsProvider`](../sr
 est monté dans `AgentLayout`, seul endroit qui ne se remonte pas à la navigation ; la **barre**
 ([`CrmTabsBar`](../src/components/crm/CrmTabsBar.tsx)) est rendue par chaque surface (23 au 12.09.2026) via
 [`CrmWorkspace`](../src/components/crm/CrmWorkspace.tsx), pour les mêmes raisons qui ont interdit de hisser
-la barre latérale. ⛔ Elle ne peut pas vivre **dans** le `<main>` : sept surfaces y capturent la molette en
+la barre latérale. ⛔ Elle ne peut pas vivre **dans** le `<main>` : six surfaces y capturent la molette en
 `passive:false` avec un `preventDefault()` inconditionnel, et un coup de molette sur une puce ferait paginer
 le pager. Un onglet transporte son URL **et** une tranche d'écran opaque (`useTabScopedState`), parce qu'à la
 veille du câblage (mesure du 04.09.2026) **33 des 38** positions d'écran du CRM vivaient en `useState`

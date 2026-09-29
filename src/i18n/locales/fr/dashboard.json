@@ -154,7 +154,6 @@
       "statMinConcentration": "min de concentration",
       "statRescheduled_one": "replanifiée",
       "statRescheduled_other": "replanifiées",
-      "viewCatalogue": "Voir le catalogue de matchs",
       "upNext": "À suivre",
       "lastPriority": "Dernière priorité de la file."
     },
@@ -222,123 +221,6 @@
       "tempHot": "chauds",
       "tempWarm": "tièdes",
       "tempCold": "froids"
-    },
-    "pager": {
-      "today": "Aujourd'hui",
-      "catalogue": "Catalogue",
-      "wheelTo": "Molette pour {{label}}"
-    },
-    "catalogue": {
-      "title": "Catalogue de matchs",
-      "empty": "Aucun match dans ce filtre.",
-      "emptyAll": "Aucun match pour l’instant.",
-      "proposed": "Proposé",
-      "proposedCount_one": "{{count}} proposé",
-      "proposedCount_other": "{{count}} proposés",
-      "filters": {
-        "all": "Tous",
-        "followUp": "À relancer",
-        "new": "Nouveaux"
-      },
-      "sorts": {
-        "score": "Score",
-        "value": "Valeur",
-        "recency": "Récence"
-      },
-      "sort": {
-        "by": "Trier {{label}}",
-        "byDot": "Trier · {{label}}",
-        "change": "Changer le tri"
-      },
-      "status": {
-        "new": "Nouveau",
-        "sent": "Bien proposé",
-        "visitPlanned": "Visite prévue",
-        "interested": "Intéressé"
-      },
-      "proposeError": "La proposition n'a pas pu être consignée. Réessayez.",
-      "why": {
-        "fallback": "Nouveau match, premier contact à initier."
-      },
-      "advertiser": {
-        "marketWatch": "Veille marché",
-        "internalMandate": "Mandat interne",
-        "externalAdvertiser": "Annonceur externe",
-        "yourAgency": "Votre agence",
-        "source": "Source"
-      },
-      "detail": {
-        "eyebrow": "Détail du match",
-        "photos": "photos"
-      },
-      "section": {
-        "specs": "Caractéristiques",
-        "highlights": "Atouts",
-        "description": "Description",
-        "location": "Localisation",
-        "salePrice": "Prix de vente",
-        "rent": "Loyer mensuel",
-        "buyer": "Acheteur",
-        "compatibility": "Compatibilité",
-        "advertiser": "Annonceur"
-      },
-      "spec": {
-        "rooms": "Pièces",
-        "roomsCount": "{{rooms}} pièces",
-        "surface": "Surface",
-        "bedrooms": "Chambres",
-        "bathrooms": "Salles d'eau",
-        "year": "Année",
-        "floor": "Étage",
-        "villa": "Villa"
-      },
-      "price": {
-        "charges": "Charges",
-        "perMonth": "CHF {{amount}} / mois",
-        "perMonthShort": "/mois",
-        "onMarket": "Sur le marché",
-        "today": "Aujourd'hui",
-        "days_one": "{{count}} jour",
-        "days_other": "{{count}} jours"
-      },
-      "buyer": {
-        "searching": "{{tag}} · cherche {{specs}}"
-      },
-      "compat": {
-        "perfect": "Profil parfaitement aligné",
-        "aligned": "Bien aligné avec sa recherche",
-        "someGaps": "Aligné, quelques écarts",
-        "manyGaps": "Plusieurs écarts à lever"
-      },
-      "criteria": {
-        "budget": "Budget",
-        "zone": "Zone",
-        "type": "Type",
-        "rooms": "Pièces",
-        "features": "Souhaits",
-        "toRefine": "à affiner"
-      },
-      "action": {
-        "addToFile": "Je l'ai proposé à {{name}}",
-        "added": "Proposé à {{name}}",
-        "openInMatching": "Ouvrir dans Matching"
-      },
-      "gallery": {
-        "closeHint": "Fermer (Échap)",
-        "previous": "Précédente",
-        "next": "Suivante",
-        "backToWall": "Retour au mur",
-        "title": "Tout le catalogue",
-        "subtitle": "Galerie complète"
-      },
-      "more": {
-        "otherMatches_one": "autre match",
-        "otherMatches_other": "autres matchs",
-        "viewWhole": "Voir tout le catalogue"
-      },
-      "place": {
-        "fallback": "Bien"
-      }
     },
     "relance": {
       "temp": {

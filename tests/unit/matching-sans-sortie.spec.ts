@@ -70,7 +70,6 @@ const MATCHING = [
   'src/components/crm/biens/fiche/visiteurs.ts',
   'src/pages/agent/MatchingPage.tsx',
   'src/pages/agent/ExternalListingDetailPage.tsx',
-  'src/components/crm/today/PageCatalogue.tsx',
   'src/components/crm/today/useFocusMatches.ts',
   // Lot D2 (24.09.2026) : le copilote WhatsApp du matching — ses règles pures et ses outils. Le point du matin écrit à
   // l'AGENT : seuls ses blocs Matching sont lus (SECTIONS) — `ligneMatching`, `ligneInteresses`, le bloc Matching de
