@@ -34,9 +34,10 @@ async function banc() {
 const BOUCLE = ['m14', 'm15', 'm16', 'm17', 'm18', 'm19', 'm20', 'm21']
 
 /**
- * L'annonce telle que le moteur l'a notée : à son PREMIER prix. Il ne renote pas une paire existante
- * (`ON CONFLICT DO NOTHING`) ; notée au prix d'aujourd'hui, une annonce en baisse gagnerait « Prix baissé de
- * 3 % » et un point que la base n'a jamais écrits.
+ * L'annonce telle que le moteur l'a notée : à son PREMIER prix. Il ne renote pas une paire quand son prix bouge
+ * (`ON CONFLICT DO NOTHING` ; seuls des critères changés ou une version antérieure du barème la renotent) ; notée
+ * au prix d'aujourd'hui, une annonce en baisse gagnerait « Prix baissé de 3 % » et un point que la base n'a
+ * jamais écrits.
  */
 const aLaNotation = (b: Ligne): Ligne => (Number(b.price_at_first_seen) > Number(b.current_price ?? b.price)
   ? { ...b, price: b.price_at_first_seen, current_price: b.price_at_first_seen, status: 'active' }

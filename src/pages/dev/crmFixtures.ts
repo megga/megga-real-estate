@@ -655,7 +655,7 @@ const ANNONCES_FIL = [
 
 /**
  * La BOUCLE du fil (lot B, 21.09.2026) — huit ventes du marché, notées par le vrai moteur À LEUR PREMIER PRIX
- * (`banc-matching-boucle.spec.ts` les confronte à `calculateScoreV2` ; il ne renote pas une paire existante). Julie (c9) en a refusé deux pour le
+ * (`banc-matching-boucle.spec.ts` les confronte à `calculateScoreV2` ; il ne renote pas une paire quand son prix bouge). Julie (c9) en a refusé deux pour le
  * PRIX (ml-boucle-1 et -2 : « Apprendre » propose d'abaisser son budget à 1'550'000) ; elle n'a pas encore
  * répondu sur ml-boucle-3, qui a baissé depuis qu'on le lui a proposé ; ml-boucle-4 est la seule de ses
  * suggestions que la correction écarte (57 → 49). Emma (c7) est intéressée par ml-boucle-5, n'a répondu ni sur

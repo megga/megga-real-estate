@@ -18,6 +18,8 @@ import type { SearchCriteria } from '@/types/contact'
 import type { LigneBoucleContact } from '@/components/crm/contacts-pager/saBoucle'
 
 const STATUTS_BOUCLE = ['sent', 'interested', 'rejected', 'visit_planned']
+/** La fenêtre de regroupement des événements du canal : le moteur écrit ses notes d'un bloc, en quelques millisecondes. */
+const REGROUPEMENT_MS = 300
 /**
  * Le match et son bien, colonnes légères (§7 de CLAUDE.md) ; le `status` d'un bien dit s'il est encore une occasion —
  * une annonce retirée, un mandat qui n'est plus en vente (lot E1) —, et `deleted_at` qu'un mandat est supprimé, ce que
@@ -88,16 +90,40 @@ export function useContactSentMatches(contactId: string | undefined): LectureBou
   // ⚠ Les UPDATE seulement : un match naît `suggested` et jamais proposé (`insert_*_matches`), donc aucun INSERT n'entre
   // dans la boucle — et le moteur, relancé quand on enregistre les critères d'un acheteur, en insère jusqu'à 400 par
   // recherche (`p_limit`), qui relançaient chacun les trois lectures.
+  // ⚠ Les UPDATE arrivent eux aussi en rafale : le même passage du moteur RENOTE les matchs à proposer du contact
+  // (`match-contact`), un événement par note écrite — des centaines quand ses critères changent, et un bien revenu
+  // peut en sortir. Regroupés, ils font UNE lecture. Et la lecture en cours est ANNULÉE avant d'invalider : TanStack
+  // ne l'annule lui-même que si la requête a déjà une donnée, et une invalidation reçue pendant la PREMIÈRE lecture
+  // s'y fondrait — son instantané précède l'écriture.
   // ⚠ Le contact est dans le nom du canal : si l'écran change de contact sans se remonter, realtime-js rendrait le canal
   // en cours de fermeture sous le même nom, et le nouvel abonnement resterait muet.
   useEffect(() => {
     if (!contactId) return
+    const cle = [CLE_FIL, 'sa-boucle', contactId]
+    // Armé tant qu'une invalidation attend la fin de sa rafale ; `undefined` une fois partie.
+    let regroupement: ReturnType<typeof setTimeout> | undefined
+    const relire = () => {
+      clearTimeout(regroupement)
+      regroupement = setTimeout(() => {
+        regroupement = undefined
+        void qc.cancelQueries({ queryKey: cle }).then(() => qc.invalidateQueries({ queryKey: cle }))
+      }, REGROUPEMENT_MS)
+    }
     const channel = supabase
       .channel(`contact-loop-${channelId}-${contactId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches', filter: `contact_id=eq.${contactId}` },
-        () => qc.invalidateQueries({ queryKey: [CLE_FIL, 'sa-boucle', contactId] }))
+        relire)
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      // Le minuteur jeté emporterait son invalidation : revenu sur ce contact dans les 15 s de `staleTime`, l'agent
+      // reverrait la lecture d'avant l'écriture. La requête est donc marquée périmée, SANS être relue — plus personne
+      // ne la regarde d'ici — : elle se relira au retour sur ce contact.
+      if (regroupement !== undefined) {
+        clearTimeout(regroupement)
+        void qc.invalidateQueries({ queryKey: cle, refetchType: 'none' })
+      }
+      supabase.removeChannel(channel)
+    }
   }, [contactId, channelId, qc])
 
   return {

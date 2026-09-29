@@ -17,10 +17,10 @@
  * `matches.client_search_id`) — ce que le moteur a noté. `contacts.search_criteria` n'est qu'un
  * repli : mesuré le 17.09.2026, il est vide pour 3 acheteurs sur 4.
  *
- * ⚠ UNE RECHERCHE MODIFIÉE GARDE LES RAISONS DE L'ANCIENNE : `insert_internal_matches` ne re-note pas
- * une paire existante (`ON CONFLICT DO NOTHING`). Seule une correction d'« Apprendre » (lot B) renote les
- * matchs à proposer de SA recherche (`matching-engine`, mode `rescore-search`). Aucun signal fiable ne
- * permet d'écarter les autres ici — `client_searches.updated_at` bouge à CHAQUE enregistrement du contact
+ * ⚠ UNE RECHERCHE MODIFIÉE EST RENOTÉE PAR LE MOTEUR, PAS ICI (lot E1) : le changement de ses critères le
+ * relance (`on_search_criteria_updated`, mode `match-contact`), qui renote ses matchs à proposer — un ajout à la
+ * main garde sa note. Jusqu'à son passage, asynchrone, le fil montre les raisons de l'ancienne : aucun signal
+ * fiable ne permet de les écarter ici — `client_searches.updated_at` bouge à CHAQUE enregistrement du contact
  * (trigger de synchro), et s'y fier effacerait les verdicts d'un acheteur dont on a corrigé la nationalité.
  *
  * ⚠ LA BOUCLE SE LIT EN ENTIER, sans pagination : ses statuts (`sent`, `interested`, `rejected`,
