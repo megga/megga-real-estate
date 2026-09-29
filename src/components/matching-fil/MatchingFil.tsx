@@ -72,6 +72,7 @@ import {
 import { cleAttente, construireAConclure, construireAttente, idsOnglets, ongletValide, type FilOnglet } from './filBoucle'
 import { ligneCourante, lireArrivee } from './filLiens'
 import { construireCorrections, filtrerCorrections, type Correction, type CorrectionChangement } from './filApprendre'
+import { compatiblesDuFil } from './filQuiPour'
 import { aUnSignal } from './filSignaux'
 import { FilStyleLignes } from './filAtomes'
 import FilAnnulation from './FilAnnulation'
@@ -273,9 +274,11 @@ export default function MatchingFil({ dark, onOpenRecherche }: { dark: boolean; 
   const resumeSelection = contactSelection ? selectionsVues.find((s) => s.acheteur.id === contactSelection) ?? null : null
   const attente = onglet === 'enAttente' && courant ? attentes.find((a) => cleAttente(a.acheteur.id) === courant) ?? null : null
   const aConclure = onglet === 'aConclure' && courant ? conclure.find((m) => m.id === courant) ?? null : null
-  // Ses acquéreurs compatibles : ses matchs que le fil connaît, à proposer (reportés compris) et de la boucle.
+  // Ses acquéreurs compatibles (lot E1, décision 13a) : ses matchs que le fil connaît, comptés comme sur les fiches
+  // (`STATUTS_COMPATIBLES`) — à proposer (reportés et revenus compris), proposés, intéressés, en visite. Ses refus, que la
+  // boucle porte pour « Apprendre », sortent du compte et de la liste.
   const compatibles = useMemo(
-    () => (bienQuiPour ? [...visibles, ...visiblesBoucle].filter((m) => m.bien.id === bienQuiPour && !m.bien.marche) : []),
+    () => (bienQuiPour ? compatiblesDuFil([...visibles, ...visiblesBoucle], bienQuiPour) : []),
     [bienQuiPour, visibles, visiblesBoucle],
   )
 

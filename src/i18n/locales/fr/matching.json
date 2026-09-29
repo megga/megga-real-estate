@@ -923,7 +923,8 @@
       },
       "chargementCompatibles": "Lecture des acquéreurs compatibles…",
       "erreurCompatibles": "Les acquéreurs compatibles n'ont pas pu être lus.",
-      "retiree": "Annonce retirée du marché : on ne peut plus la proposer à ses acquéreurs."
+      "retiree": "Annonce retirée du marché : on ne peut plus la proposer à ses acquéreurs.",
+      "horsVente": "Ce bien n'est plus disponible : on ne peut plus le proposer à ses acquéreurs."
     }
   }
 }

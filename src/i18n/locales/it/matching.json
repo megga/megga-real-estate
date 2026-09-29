@@ -923,7 +923,8 @@
       },
       "chargementCompatibles": "Lettura degli acquirenti compatibili…",
       "erreurCompatibles": "Non è stato possibile leggere gli acquirenti compatibili.",
-      "retiree": "Annuncio ritirato dal mercato: non viene più proposto ai suoi acquirenti."
+      "retiree": "Annuncio ritirato dal mercato: non viene più proposto ai suoi acquirenti.",
+      "horsVente": "Immobile non più disponibile: non viene più proposto ai suoi acquirenti."
     }
   }
 }

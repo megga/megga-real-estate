@@ -923,7 +923,8 @@
       },
       "chargementCompatibles": "Passende Käufer werden gelesen…",
       "erreurCompatibles": "Passende Käufer konnten nicht gelesen werden.",
-      "retiree": "Inserat vom Markt zurückgezogen: Es wird seinen Käufern nicht mehr vorgeschlagen."
+      "retiree": "Inserat vom Markt zurückgezogen: Es wird seinen Käufern nicht mehr vorgeschlagen.",
+      "horsVente": "Objekt nicht mehr verfügbar: Es wird seinen Käufern nicht mehr vorgeschlagen."
     }
   }
 }

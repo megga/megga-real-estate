@@ -27,7 +27,10 @@ const DELAI_PROSPECTS = 400
 interface Props {
   sp: CrmPalette
   bien: FilBien
-  /** Ses matchs connus du fil : à proposer, reportés, et ceux de la boucle. */
+  /**
+   * Ses acquéreurs compatibles connus du fil (`compatiblesDuFil`) : à proposer, reportés, revenus, proposés, intéressés,
+   * en visite — pas ses refus, comme sur les fiches.
+   */
   compatibles: FilMatch[]
   /** L'heure de la lecture du fil. */
   maintenant: number

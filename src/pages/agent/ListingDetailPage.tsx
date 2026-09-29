@@ -951,9 +951,11 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                 <div className="bf-bloc" ref={blocQuiPour}>
                   <BfGrp vx={vx}>{tr('fil.quiPour.titre', { ns: 'matching' })}</BfGrp>
                   {/* Anciens prospects : un mandat ACTIF seulement. Le moteur ne note que lui (sur un brouillon, un
-                      bien réservé, vendu ou archivé, l'appel partait pour un 404), et on ne propose pas un bien vendu. */}
+                      bien réservé, vendu ou archivé, l'appel partait pour un 404), et on ne propose pas un bien vendu.
+                      Hors vente (lot E1, décision 12a : la règle du fil), ses acquéreurs à proposer n'ont plus de ligne
+                      dans le fil : ils perdent « Ouvrir », et le bloc dit pourquoi. */}
                   <QuiPourFiche sp={sp} genre="mandat" bienId={id ?? null} location={bien.transaction_type === 'rent'}
-                    avecAnciens={bien.status === 'active'} exclure={enDeal}
+                    avecAnciens={bien.status === 'active'} horsVente={bien.status !== 'active'} exclure={enDeal}
                     onOuvrirFil={(requete) => navigate(`/dashboard/matching?${requete}`)}
                     onVoirContact={(contactId) => navigate(`/dashboard/contacts/${contactId}`)} />
                 </div>

@@ -923,7 +923,8 @@
       },
       "chargementCompatibles": "Reading matching buyers…",
       "erreurCompatibles": "Matching buyers could not be read.",
-      "retiree": "Listing withdrawn from the market: it is no longer proposed to its buyers."
+      "retiree": "Listing withdrawn from the market: it is no longer proposed to its buyers.",
+      "horsVente": "Property no longer available: it is no longer proposed to its buyers."
     }
   }
 }
