@@ -350,8 +350,15 @@ export const PHONE_EXAMPLES: Readonly<Record<string, string>> = {
 }
 
 /**
- * Options du sélecteur d'indicatif, dans l'ordre des pays (Suisse en tête, puis
- * alphabétique français) : le dirigeant cherche son pays par son NOM.
+ * Les indicatifs les plus composés depuis la Suisse : en tête de liste, dans cet ordre (Julien,
+ * 27.09.2026 : « ce sont des numéros fréquemment utilisés »). Chacun n'y figure qu'UNE fois — il
+ * quitte sa place alphabétique, sans quoi deux options porteraient la même valeur (voir plus bas).
+ */
+const INDICATIFS_FREQUENTS: readonly string[] = ['CH', 'IT', 'DE', 'FR']
+
+/**
+ * Options du sélecteur d'indicatif : la Suisse, l'Italie, l'Allemagne et la France en tête, puis
+ * les autres pays par ordre alphabétique de la langue — l'agent cherche son pays par son NOM.
  *
  * ⚠ La valeur est le code ISO, PAS l'indicatif. Dix pays partagent `+1`, l'Italie et
  * le Vatican `+39`, la Russie et le Kazakhstan `+7` : un `<select>` dont deux options
@@ -359,10 +366,15 @@ export const PHONE_EXAMPLES: Readonly<Record<string, string>> = {
  * affiché « Bahamas » au rendu suivant. L'ISO est aussi ce qui permet de retrouver le
  * bon exemple de numéro, que l'indicatif seul ne saurait pas désigner.
  */
-export function dialCodeOptions(language: string): { value: string; label: string }[] {
-  return countriesInLanguage(language)
-    .filter((c) => COUNTRY_DIAL_CODES[c.code])
-    .map((c) => ({ value: c.code, label: `${c.name} +${COUNTRY_DIAL_CODES[c.code]}` }))
+export function dialCodeOptions(language: string): { value: string; label: string; disabled?: boolean }[] {
+  const pays = countriesInLanguage(language).filter((c) => COUNTRY_DIAL_CODES[c.code])
+  const option = (c: Country) => ({ value: c.code, label: `${c.name} +${COUNTRY_DIAL_CODES[c.code]}` })
+  const frequents = INDICATIFS_FREQUENTS.flatMap((code) => pays.filter((c) => c.code === code)).map(option)
+  const reste = pays.filter((c) => !INDICATIFS_FREQUENTS.includes(c.code)).map(option)
+  // Une ligne entre les fréquents et le reste (Julien, 27.09.2026). ⚠ Elle est DÉSACTIVÉE : chaque
+  // appelant rend `disabled`, sans quoi elle se choisirait comme un pays, et sa valeur n'est l'ISO
+  // d'aucun — elle ne composerait aucun numéro.
+  return [...frequents, { value: '-', label: '──────────', disabled: true }, ...reste]
 }
 
 /**

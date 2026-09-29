@@ -123,15 +123,45 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'get_matches',
-      description: "Biens correspondant à un contact (moteur de matching). Pour « quels biens pour Sarah ? ». contact_id via search_contacts.",
+      description: "Biens VIVANTS d'un acheteur (moteur de matching) : en cours d'abord (intéressé, visite, proposé), puis les meilleurs à proposer ; pour chacun son état, son score — une ESTIMATION, à présenter comme telle — expliqué critère par critère, et son signal (nouveau, prix baissé). Refusés et écartés exclus. Pour « quels biens pour Sarah ? ». contact_id via search_contacts. L'id de chaque bien sert à schedule_visit (property_id d'un mandat, market_listing_id d'une annonce) et à get_buyers_for_property. N'envoie jamais un bien au client.",
       parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
     },
   },
   {
     type: 'function',
     function: {
+      name: 'get_buyers_for_property',
+      description: "Matching INVERSÉ : les acheteurs compatibles d'un bien — un mandat de l'agence ou une annonce du marché suivie —, par score, avec l'état de chacun (à proposer, proposé, intéressé, visite). Pour « qui pour la villa de Cologny ? », « quels acheteurs pour ce bien ? ». Le bien : son nom, son adresse ou sa ville, ou son id (via get_matches). Si plusieurs biens correspondent, l'outil les liste : demande à l'agent lequel. Lecture seule, n'écrit à personne.",
+      parameters: {
+        type: 'object',
+        properties: { bien: { type: 'string', description: 'Le bien : un nom, une adresse, une ville, ou son id.' } },
+        required: ['bien'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'record_match_outcome',
+      description: "Consigne la réponse d'un acheteur sur un bien, dite par l'agent : « J'ai proposé l'attique à Julie » (propose), « Julie est intéressée par l'attique » (interesse), « Julie refuse Florissant, trop cher » (pas_interesse + motif), « Julie n'a pas encore répondu » (pas_encore). N'écrit JAMAIS à l'acheteur : l'agent présente les biens par ses propres moyens. Appelle directement l'outil : le système montre ce qui sera écrit et demande lui-même la confirmation. contact_id via search_contacts ; le bien par son nom, son adresse ou sa ville, ou son id (get_matches).",
+      parameters: {
+        type: 'object',
+        properties: {
+          contact_id: { type: 'string' },
+          bien: { type: 'string', description: "Le bien : un nom, une adresse, une ville, ou son id. Peut rester vide si un seul bien attend la réponse de l'acheteur." },
+          reponse: { type: 'string', enum: ['propose', 'interesse', 'pas_interesse', 'pas_encore'] },
+          motif: { type: 'string', enum: ['prix', 'quartier', 'surface', 'pieces', 'type', 'equipements', 'etat', 'autre'], description: 'Obligatoire pour pas_interesse : « trop cher » = prix, « trop petit » = surface…' },
+          note: { type: 'string', description: "Précision facultative d'un refus, dans les mots de l'agent." },
+        },
+        required: ['contact_id', 'reponse'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_daily_brief',
-      description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ».",
+      description: "Point du jour : visites du jour de l'agent, relances dues, offres qui expirent, nouveaux leads vendeurs, actions de matching (retours à consigner, baisses de prix, nouveaux mandats, nouveaux biens, intéressés sans visite), leads à compléter. Pour « mon point du jour », « brief », « ma journée », « qu'est-ce que je fais aujourd'hui ? », « my daily brief ». Rends les lignes du matching telles quelles.",
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -139,17 +169,18 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
     type: 'function',
     function: {
       name: 'schedule_visit',
-      description: "Planifie une visite d'un BIEN pour un contact, EN INTERNE seulement : enregistre la visite dans le CRM, n'envoie RIEN au client (ni invitation, ni email, ni lien) et ne le prévient pas. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts, property_id via get_matches (ou demande à l'agent quel bien).",
+      description: "Planifie une visite d'un BIEN pour un contact, EN INTERNE seulement : enregistre la visite dans le CRM (un mandat : une visite ; une annonce du marché : un rendez-vous d'agenda), n'envoie RIEN au client (ni invitation, ni email, ni rappel, ni lien) et ne le prévient pas. Si l'acheteur est intéressé par ce bien, il passe en « visite planifiée » dans le Matching. Requiert le contact ET le bien. Pour « organise une visite du bien X avec Dubois mardi 14h ». contact_id via search_contacts ; l'id du bien via get_matches (property_id pour un mandat, market_listing_id pour une annonce) — ou demande à l'agent quel bien.",
       parameters: {
         type: 'object',
         properties: {
           contact_id: { type: 'string' },
-          property_id: { type: 'string', description: 'Bien à visiter (obligatoire).' },
-          scheduled_at: { type: 'string', description: 'Date/heure ISO 8601, ex 2026-06-05T14:00:00+02:00' },
+          property_id: { type: 'string', description: 'Mandat à visiter (ou market_listing_id pour une annonce du marché).' },
+          market_listing_id: { type: 'string', description: 'Annonce du marché à visiter, à la place de property_id.' },
+          scheduled_at: { type: 'string', description: 'Date/heure ISO 8601 avec décalage, ex 2026-06-05T14:00:00+02:00 (+01:00 en hiver — voir la consigne de conversion en tête de conversation). Une heure sans décalage est tolérée : lue à Genève.' },
           duration_minutes: { type: 'number', description: 'Durée en minutes (défaut 45).' },
           visit_type: { type: 'string', enum: ['sur_place', 'video'], description: 'Défaut sur_place.' },
         },
-        required: ['contact_id', 'property_id', 'scheduled_at'],
+        required: ['contact_id', 'scheduled_at'],
       },
     },
   },

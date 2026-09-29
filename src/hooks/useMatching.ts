@@ -1,9 +1,10 @@
 /**
- * Hook du module Matching pour MatchingPage : charge les `matches` de l'agence
+ * Hook du module Matching, lu par la fiche contact mobile (`MobileContactDetailScreen`) :
+ * charge les `matches` de l'agence
  * (biens internes + market_listings Flatfox), normalise les deux formes en une
  * forme unifiée `MatchResult`, et expose les gestes agent (ignore, réaction client,
  * relance du matching via l'Edge function `matching-engine`). « Je l'ai proposé »
- * n'est PAS ici : il passe par `execProposer` (useAtelierMatching), seul à poser le
+ * n'est PAS ici : il passe par `execProposer` (matchingGestes), seul à poser le
  * journal et la relance. Aucun geste n'écrit à l'acheteur.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -86,7 +87,7 @@ export interface MatchResult {
   id: string
   contactId: string
   contactName: string
-  /** Prénom et nom séparés : le journal et la relance de « Je l'ai proposé » les nomment. */
+  /** Prénom et nom séparés : aucun écran ne les lit, la forme unifiée les garde. */
   contactFirstName: string
   contactLastName: string
   propertyId: string | null
@@ -113,12 +114,12 @@ export interface MatchResult {
     /**
      * 'rent' = location (le prix est un LOYER MENSUEL), 'buy' = vente. La moitié des
      * annonces de marché actives sont des locations (42 743 sur 85 101, 13.09.2026) :
-     * sans ce champ, le catalogue les affichait sous « Prix de vente ».
+     * un prix lu sans ce champ passerait pour un prix de vente.
      */
     transaction_type?: 'buy' | 'rent' | null
     // Market-specific fields
     source_portal?: string
-    /** Identifiant du portail : il fait la référence affichée (`refAnnonceMarche`). */
+    /** Identifiant du portail : aucun écran ne le lit, la forme unifiée le garde. */
     source_id?: string | null
     source_url?: string
     agency_name?: string | null
@@ -278,9 +279,10 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
 
   const ignoreMatchMutation = useMutation({
     mutationFn: async (matchId: string) => {
+      // Le motif part avec, comme dans « Écarter » (`execDismiss`) : un écart du moteur resté à l'écran reviendrait.
       const { error } = await supabase
         .from('matches')
-        .update({ status: 'ignored' })
+        .update({ status: 'ignored', reaction_motif: null })
         .eq('id', matchId)
       if (error) throw error
     },
@@ -292,7 +294,8 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
   // ── Réaction du client à un dossier envoyé (interested / visit_planned /
   // rejected). On ne pose PAS response_at ici : le trigger DB
   // (set_match_response_at) en est la source unique. Invalide les DEUX
-  // queryKeys car la page Atelier lit ['atelier-matches'] et useMatching ['matches'].
+  // queryKeys car l'écran mobile de Matching lit ['atelier-matches'] (`useAtelierMatching`) et
+  // useMatching ['matches'].
   const reactionMutation = useMutation({
     mutationFn: async ({ matchId, reaction }: { matchId: string; reaction: MatchReaction }) => {
       const { error } = await supabase

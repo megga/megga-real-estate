@@ -103,7 +103,8 @@ export const ECRANS = {
  * Un témoin décrit UN balayage, il ne se généralise pas.
  */
 export const TEMOINS = {
-  'dashboard-pipeline': ['src/pages/agent/PipelinePage.tsx', 'crm/pipeline/StageColumn'],
+  // `PhaseColumn` depuis le 27.09.2026 : les colonnes d'étape (`StageColumn`) sont parties avec l'ancien board.
+  'dashboard-pipeline': ['src/pages/agent/PipelinePage.tsx', 'crm/pipeline/PhaseColumn'],
   'dev-messagerie': ['src/pages/dev/MessagerieShowcasePage.tsx', 'crm/messagerie/MailListRow'],
 }
 

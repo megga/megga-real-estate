@@ -5,8 +5,8 @@
 // dernier lecteur était le repli du prénom de la salutation, qui faisait dire
 // « Bonjour Gregory » à tout profil sans nom.
 //
-// ⛔ `PHOTO` ne sert que les données de démonstration : jamais de repli pour un
-// bien réel sans photo (voir `CatImg`, PageCatalogue.tsx).
+// ⛔ `PHOTO` ne sert que les données de démonstration (`FOCUS_QUEUE_DEMO`, le
+// banc `/dev/crm`) : jamais de repli pour un bien réel sans photo.
 
 export const fmtCHF = (n: number): string =>
   'CHF ' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "'")

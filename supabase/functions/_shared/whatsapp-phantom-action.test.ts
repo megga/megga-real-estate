@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { detectPhantomAction, phantomNextStep, PHANTOM_RETRY_NUDGE } from './whatsapp-phantom-action'
-import { t } from './whatsapp-i18n'
+import {
+  t, consigne, confirmConsigner, consignationDeja, consignationChangee, consignationNonConfirmee,
+  consignationImpossible, consignationEchec, consignerMotifManquant, consignerQuelleReponse, consignerQuelAcheteur,
+  consignerAucunBien, consignerPlusieursBiens, consignerTropDeBiens, consignerTropLarge, consignerEchoTropLarge,
+  consignerAnnonceRetiree, consignerPlusDisponible,
+} from './whatsapp-i18n'
 
 // L'incident du 10.09.2026, 19:38:52 UTC, mot pour mot : réponse finale de DeepSeek SANS aucun
 // appel d'outil. Rien n'était préparé ; un « oui » de l'agent serait reparti au cerveau.
@@ -269,5 +274,349 @@ describe('textes', () => {
     expect(t('en', 'phantomAction')).toMatch(/neither done nor waiting/)
     expect(detectPhantomAction(t('fr', 'phantomAction'))).toBeNull()
     expect(detectPhantomAction(t('en', 'phantomAction'))).toBeNull()
+  })
+})
+
+describe('lot D2 — consigner la réponse d’un acheteur passe par l’outil', () => {
+  it('une consignation simulée est détectée (FR, EN)', () => {
+    for (const s of [
+      'Je consigne : Julie pas intéressée par Florissant, motif prix. Tu confirmes ?',
+      'C’est noté, je consigne le refus de Julie.',
+      '✅ Consigné pour Julie Martin : « Attique 4 p. » — intéressé·e.',
+      "J'ai consigné le refus de Julie pour Florissant.",
+      "I'll record that Julie is not interested. Confirm?",
+      '✅ Recorded for Julie Martin: « Attique » — interested.',
+      "I've recorded her answer.",
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // Isole le mot d'action `consign` : « consignation » ne forme ni « je consigne », ni « j'ai
+  // consigné », ni un écho `✅` — seule sa présence dans ACTION_WORD, combinée à une demande de
+  // confirmation, doit faire détecter ce cas.
+  it('une forme nominale de « consigner » compte aussi comme mot d’action', () => {
+    expect(detectPhantomAction('La consignation de l’intérêt de Julie est prête. Tu confirmes ?')).toBe('confirm_request')
+    expect(detectPhantomAction('Julie : pas intéressée, à consigner. Confirme quand tu veux.')).toBe('confirm_request')
+    expect(detectPhantomAction('Recording her answer as interested — confirm?')).toBe('confirm_request')
+  })
+
+  // Lot D2 : normalize() retire l'accent — « consigné » (participe masculin, 8 lettres) devient l'exact
+  // « consigne » que la négation `(?!es?\b)` écarte comme nom, et il ne suit pas « je » non plus (« sera
+  // consigné », pas « je consigné »). Lu sur le texte BRUT (accent intact), où il se distingue du nom.
+  it('le participe masculin « consigné(s) » (accent intact) reste un mot d’action', () => {
+    for (const s of [
+      'Son refus sera consigné. Tu confirmes ?',
+      'Consigné pour Julie Martin : « Attique » — intéressée. Tu confirmes ?',
+      'Les deux refus de Julie seront consignés. Tu confirmes ?',
+      "Son intérêt pour l'Attique sera consigné. Confirme quand tu veux.",
+    ]) expect(detectPhantomAction(s), s).toBe('confirm_request')
+  })
+
+  // Contrepartie acceptée : le même mécanisme (mot d'action n'importe où + « Tu confirmes ? » nu, ailleurs dans
+  // le texte) reprend aussi ces deux constats sans rapport avec une consignation en cours — un défaut déjà
+  // documenté de la garde (elle ne relie pas la phrase qui porte le mot d'action à celle qui demande l'accord).
+  it('CONTREPARTIE — un participe/nom déjà associé ailleurs redevient pris avec lui', () => {
+    expect(detectPhantomAction('Julie Martin a déjà un intérêt consigné pour l’Attique. C’est bien d’elle ? Tu confirmes ?')).not.toBeNull()
+    expect(detectPhantomAction('L’acompte de CHF 50’000 est consigné chez le notaire. C’est bien le dossier Dubois ? Tu confirmes ?')).not.toBeNull()
+  })
+
+  it('une offre, une question, ou un fait passé nommé comme tel, passe', () => {
+    for (const s of [
+      'Tu veux que je consigne son refus ?',
+      'Si tu veux, je consigne le refus de Julie.',
+      "J'ai consigné son refus hier pour Florissant.",
+      'Want me to record her answer?',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  it('les comptes rendus de l’exécuteur sont ceux que la garde reconnaît', () => {
+    expect(detectPhantomAction(consigne('fr', { reponse: 'interesse', nom: 'Julie Martin', bien: 'Attique' }))).toBe('action_claim')
+    expect(detectPhantomAction(consigne('en', { reponse: 'pas_encore', nom: 'Julie Martin', bien: 'Attique' }))).toBe('action_claim')
+  })
+
+  // Les quatre réponses possibles, dans les deux langues : `consigne()` change de gabarit selon
+  // `reponse` (« proposé », « intéressé·e », « pas intéressé·e », « n'a pas encore répondu »), et
+  // chacun doit rester reconnu comme écho de l'exécuteur — pas seulement les deux cas du texte.
+  it('les quatre réponses de record_match_outcome sont toutes reconnues, dans les deux langues', () => {
+    const base = { nom: 'Julie Martin', bien: 'Attique 4 p. · Florissant 12, Genève', motif: 'prix' } as const
+    for (const lang of ['fr', 'en'] as const) {
+      for (const reponse of ['propose', 'interesse', 'pas_interesse', 'pas_encore'] as const) {
+        expect(detectPhantomAction(consigne(lang, { ...base, reponse })), `${lang}/${reponse}`).toBe('action_claim')
+      }
+    }
+  })
+
+  // `record` (lot D2) ne prend que le VERBE — le NOM « record » (la fiche, whatsapp-i18n.ts ~l.125/189/229/
+  // 312/515 : « her record », « two records », « a record high ») n'est plus un mot d'action à lui seul.
+  it('le NOM « record » (la fiche) n’est pas un mot d’action', () => {
+    for (const s of [
+      "I found two records named Julie Martin, one in Geneva and one in Carouge. Which one — can you confirm?",
+      "That's Julie Martin's record, right? Confirm?",
+      "Julie Martin's record shows a budget of CHF 1.2M. Can you confirm?",
+      "Got it. For the record, Julie already has a visit on Monday. Confirm?",
+      "That's Julie Martin's record for 2026, right? Confirm?",
+      'I updated the record this morning. Confirm?',
+      "There's no record that Julie answered. Can you confirm?",
+      'Her track record this year shows 3 visits. Confirm?',
+      "That's a new record this month for the agency. Confirm?",
+      'Julie’s record this year shows 3 visits. Confirm?',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // « recording »/« record » restent HORS de portée quand rien ne l'emploie comme verbe avec un objet de
+  // réponse : « records » (nom, noté ailleurs), « recording » (gérondif sans sujet), « on record » (un autre
+  // verbe, « keep ») — le mot lui-même ne suffit pas, il faut un vrai contexte de verbe transitif.
+  it('« record » reste hors de portée quand rien ne l’emploie comme verbe transitif d’action', () => {
+    for (const s of [
+      "I've noted it in your records?",
+      'The recording of the visit is already in the calendar.',
+      "I'll keep this on record for now.",
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // « Confirm the address? I'll record it. » ANNONCE l'action (« je vais l'enregistrer »), symétrique du futur
+  // proche français « Je vais consigner… » : elle rejoint les cas pris.
+  it('« I’ll record it » ANNONCE l’action, comme le futur proche français', () => {
+    expect(detectPhantomAction("Confirm the address? I'll record it.")).not.toBeNull()
+  })
+
+  // Lot D2 : « je vais/viens de/m'apprête à consigner » (FR), et le futur/« going to »/passé élargi (EN) —
+  // parallèles aux verbes déjà gardés (supprimer/envoyer/publier).
+  it('les autres temps de « consigner »/« record » sont pris', () => {
+    for (const s of [
+      'Je viens de consigner le refus de Julie pour Florissant.',
+      'Je vais consigner son refus pour Florissant.',
+      "Je m'apprête à consigner son intérêt.",
+      "I've just recorded her answer.",
+      "I've recorded Julie's answer.",
+      "I've recorded that Julie is not interested.",
+      "I'll record her answer.",
+      'I will record that Julie is not interested.',
+      "I'm going to record her refusal.",
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // Lot D2 : l'offre « donne/précise/indique-moi X et je le consigne », « dis-(le|la|les)-moi », « dis-moi ce
+  // qu'/quel/… » (paraphrases de consignerMotifManquant/consignerQuelleReponse, le refus rendu au modèle sur le
+  // chemin principal) n'annonce rien — elle demande une information qui PRÉCÈDE « et je ». EN « tell/give me » :
+  // même famille.
+  it('une offre « donne/dis-moi … et je le consigne » n’est pas une annonce', () => {
+    for (const s of [
+      'Donne-moi le motif et je le consigne.',
+      'Dis-le-moi et je le consigne.',
+      'Je le consigne dès que tu me dis ce qu’elle a répondu.',
+      'Précise-moi le bien et je consigne sa réponse.',
+      // L'élision n'est pas la seule forme de « ce qu' » : « ce que » aussi. « , » ou « et » devant « je » :
+      // même famille de coordination.
+      'Dis-moi ce que Julie a répondu et je le consigne.',
+      'Dis-moi ce qu’elle a répondu, je le consigne.',
+      'Tell me the reason and I’ll record it.',
+      'Give me the reason and I’ll record her answer.',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // Un DÉLAI (« une seconde », « deux minutes », « a moment ») n'est pas l'information qu'une offre demande —
+  // contrairement à « le motif »/« the reason », il ne dit rien sur l'action annoncée : la phrase reste une
+  // revendication, seulement précédée d'un mot de politesse.
+  it('un délai (« une seconde », « a moment ») n’exempte pas la revendication qui suit', () => {
+    for (const s of [
+      'Give me a second and I’ll send the message to Dubois.',
+      'Donne-moi une seconde et je l’envoie.',
+      'Donne-moi deux minutes et je supprime la fiche de Dubois.',
+      'Give me a moment and I’ll delete Dubois’s record.',
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // Une revendication qui PRÉCÈDE « dis-moi »/« tell me » n'est pas une offre : le « dis-moi » vient APRÈS le
+  // fait annoncé, jamais avant « et je »/« and I'll » — c'est une VARIANTE de l'incident d'origine du module (qui
+  // disait « Confirme quand tu veux », pas « dis-moi quand c'est bon »). Si l'offre exemptait la PHRASE entière
+  // dès qu'elle contenait « dis-moi »/« tell me », la revendication qui la précède passerait avec elle.
+  it('une revendication suivie de « dis-moi »/« tell me » dans la même phrase reste prise', () => {
+    for (const s of [
+      'C’est noté, je lance la suppression de Test Boutons, dis-moi quand c’est bon.',
+      'Je consigne son refus pour Florissant, dis-moi si c’est bon.',
+      'I’ve sent the message to Dubois — tell me if you need anything else.',
+      'I’ll delete the contact now, tell me if that’s wrong.',
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // Une demande D'ACCORD déguisée en offre (« dis-moi si c'est bon », « donne-moi ton go ») n'en est pas une —
+  // contrairement à une demande d'INFORMATION, elle n'apprend rien à l'agent : il ne reste, comme dans « Valide
+  // et je l'envoie », qu'à répondre oui ou non.
+  it('une demande d’accord déguisée en offre reste une demande de confirmation', () => {
+    for (const s of [
+      'Voici le brouillon pour Dubois : « Bonjour Monsieur, je reviens vers vous pour la visite. » Dis-moi si c’est bon et je l’envoie.',
+      'Dis-moi quand tu es prêt et je supprime la fiche de Dubois.',
+      'Donne-moi ton accord et je le supprime.',
+      'Donne-moi ton go et je le supprime.',
+      'Dis-moi « go » et je le supprime.',
+      'Dis-moi « ok » et je l’envoie.',
+      'Give me the go-ahead and I’ll delete Dubois’s record.',
+      'Tell me when you’re ready and I’ll delete Dubois’s record.',
+      // Un avis n'est pas non plus une information sur l'action elle-même.
+      'Précise-moi ton avis et je l’envoie.',
+      'Indique-moi ce que tu en penses et je l’envoie.',
+      'Tell me what you think and I’ll send it to Dubois.',
+      // Témoins : la même forme, avec un autre verbe d'introduction ou une autre formule d'accord.
+      'Précise-moi juste si c’est bon et je l’envoie.',
+      'Indique-moi quand tu es prêt et je supprime la fiche de Dubois.',
+      'Tell me when it suits you and I’ll delete Dubois’s record.',
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // … et la confirmation EXPLICITE reste prise : élargir l'offre à « dis-moi »/« donne-moi » ne doit pas laisser
+  // passer une vraie demande de « go »/« feu vert », guillemets compris.
+  it('« dis-moi go » / « donne-moi ton feu vert » restent des demandes de confirmation', () => {
+    for (const s of [
+      'Dis-moi go et je le supprime.',
+      'Donne-moi ton feu vert et je le supprime.',
+      'Dis-moi ok et je l’envoie.',
+      'Dis-moi « go » et je le supprime.',
+    ]) expect(detectPhantomAction(s), s).toBe('confirm_request')
+  })
+
+  // Lot D2 : le nom « consigne » (une instruction, whatsapp-tools comme le CRM en parlent) n'est une action QUE
+  // quand c'est le COPILOTE qui dit « je » — avec ou sans déterminant/possessif devant, au singulier ou au
+  // pluriel, ce n'en est jamais une : un blocage par liste de déterminants PRENAIT À TORT un nom SANS aucun
+  // déterminant (« Consigne reçue »), ou au pluriel (« tes consignes »), que la liste ne couvrait pas.
+  it('le nom « consigne », déterminé ou non, singulier ou pluriel, n’est pas un mot d’action', () => {
+    for (const s of [
+      'Bien reçu ta consigne : relancer Dubois vendredi à 9h. Tu confirmes ?',
+      'Envoie-moi la pièce avec ta consigne. Tu confirmes que c’est pour Dupont ?',
+      'Voici cette consigne pour l’équipe. Tu confirmes ?',
+      'C’est une consigne de Julien. Tu confirmes ?',
+      'Bien reçu tes consignes : relancer Dubois vendredi à 9h. Tu confirmes ?',
+      'Voici les consignes d’accès pour la visite de demain. Tu confirmes ?',
+      'Consigne reçue : relancer Dubois vendredi à 9h. Tu confirmes ?',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // Lot D2 : le pronom objet « la »/« les » devant le verbe (« je LA consigne ») reste une action — la forme
+  // conjuguée l'emporte sur l'exclusion du nom, qui ne s'applique qu'en l'absence de « je ». « te » (rare) : un
+  // pronom datif, même position.
+  it('« je la/les/te consigne » (pronom objet) reste un mot d’action', () => {
+    expect(detectPhantomAction('Tu me confirmes et je la consigne ?')).not.toBeNull()
+    expect(detectPhantomAction('Sa réponse, je la consigne dès que tu confirmes.')).not.toBeNull()
+    expect(detectPhantomAction('Je te consigne ça pour Julie. Tu confirmes ?')).not.toBeNull()
+    // Sans marqueur de confirmation ailleurs : seule la revendication PRESENT_CLAIMS peut la prendre.
+    expect(detectPhantomAction('Je te consigne ça pour Julie.')).toBe('action_claim')
+  })
+
+  // Lot D2 : objet restreint du passé français — le relais d'add_note (« j'ai consigné ta note »)
+  // n'est pas une consignation de réponse, contrairement à « j'ai consigné son refus ».
+  it('« j’ai consigné »/« I’ve recorded » exigent un objet de réponse, pas n’importe quel objet', () => {
+    expect(detectPhantomAction('J’ai consigné ta note dans la fiche de Julie.')).toBeNull()
+    expect(detectPhantomAction('C’est noté, j’ai consigné l’appel dans sa timeline.')).toBeNull()
+    expect(detectPhantomAction('I have recorded the note in her file.')).toBeNull()
+    // Toujours pris : la classe déjà documentée (FAUX POSITIF ASSUMÉ) d'un passé sans marqueur de temps,
+    // ici avec un objet qui EST dans la liste restreinte (« refus »).
+    expect(detectPhantomAction('Oui, j’ai consigné son refus pour Florissant.')).toBe('action_claim')
+  })
+
+  // Lot D2 : « pour » (la forme même du gabarit `consigne()`) et l'élision « qu' » manquaient à l'objet restreint
+  // du passé français ; « as (not) interested » et un nom possessif (Julie's) à l'anglais, au passé, au présent
+  // et au futur.
+  it('« consigné pour »/« qu’elle » (FR) et « … as (not) interested » (EN) sont pris', () => {
+    for (const s of [
+      'J’ai consigné pour Julie Martin : « Attique » — intéressée.',
+      'J’ai consigné qu’elle n’est pas intéressée par Florissant.',
+      'I’ve recorded her as not interested.',
+      'I’ve recorded Julie as not interested in Florissant.',
+      'I’ll record Julie’s answer.',
+      'I’ll record her as not interested.',
+      'I am going to record her answer.',
+      'I’m recording Julie as interested.',
+    ]) expect(detectPhantomAction(s), s).not.toBeNull()
+  })
+
+  // Lot D2 : « I'm recording » exige un objet de réponse — le récit AUTO de schedule_visit en cours
+  // (« I'm recording it in the CRM now ») n'en a pas.
+  it('« I’m recording » exige un objet de réponse, pas un « it » nu', () => {
+    expect(detectPhantomAction('Visit scheduled for Monday 2pm with Julie. I’m recording it in the CRM now — /undo within 30 s.')).toBeNull()
+    expect(detectPhantomAction('I’m recording her answer now.')).toBe('action_claim')
+  })
+
+  // Lot D2 : le passé élargi (« that »/« it » nus) prenait aussi un relais AUTO réellement fait — un rendez-vous,
+  // une note, un rappel — qui n'a rien à voir avec la consignation d'une réponse d'acheteur. « that » n'est gardé
+  // que si un mot de réponse (interested/answer/reply/refus…) suit dans la phrase ; « it » nu ne compte plus.
+  it('le passé élargi ne prend plus les relais AUTO réels (rendez-vous, note, rappel)', () => {
+    for (const s of [
+      'Visit scheduled for Monday 6 October at 2pm (30 min) for Julie Martin — « Attique ». I’ve recorded it in the calendar.',
+      'Done — I’ve recorded it in Julie’s timeline: “call back Monday”.',
+      'Reminder set for Friday 9am. I’ve recorded that you want to call the notary.',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // Lot D2 : un simple préfixe `✅ consigne`/`✅ recorded` prendrait aussi un relais d'add_note ou une note libre
+  // portant le même préfixe. `CONSIGNE_ECHO` ne reconnaît que la FORME des quatre gabarits.
+  it('un préfixe `✅ consigne`/`✅ recorded` qui n’est pas la forme de consigne() n’est pas pris', () => {
+    for (const s of [
+      '✅ Consigné dans la fiche de Julie : « rappeler lundi ».',
+      "✅ Recorded in Julie's timeline: “call back Monday”.",
+      // Même préposition que le gabarit (« pour X »), mais sans le tiret final qui le referme : proche, pas la forme.
+      '✅ Consigné pour Julie : « rappeler lundi ».',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  // Lot D2 : `confirmConsigner` pour « propose » et « pas_encore » ne portait aucun mot d'action (« Je note
+  // que… ») — son imitation SANS le suffixe système « (« oui » / « non ») » passait. Les huit gabarits (4
+  // réponses × 2 langues) sont tous pris, suffixe ou non.
+  it('l’imitation de la question système, SANS son suffixe, est prise pour les quatre réponses', () => {
+    for (const lang of ['fr', 'en'] as const) {
+      for (const reponse of ['propose', 'interesse', 'pas_interesse', 'pas_encore'] as const) {
+        const question = confirmConsigner(lang, { reponse, nom: 'Julie Martin', bien: 'Attique 4 p. · Florissant 12, Genève', motif: 'prix' })
+        const sansSuffixe = question.replace(/\s*\((?:«|")[^)]*\)$/, '')
+        expect(sansSuffixe, `${lang}/${reponse} : suffixe retiré`).not.toBe(question)
+        expect(detectPhantomAction(sansSuffixe), `${lang}/${reponse} : ${sansSuffixe}`).not.toBeNull()
+      }
+    }
+  })
+
+  // Le compte rendu d'un AUTRE outil ne doit pas être pris pour l'écho de la consignation — ni par un
+  // mot d'action isolé (`offre`, `record`), ni par les mots « consigné »/« consigner » que
+  // schedule_visit emploie pour RAPPORTER un état (jamais en « je »), ni par l'impératif d'un refus.
+  it('le compte rendu d’un AUTRE outil n’est pas pris pour l’écho de la consignation', () => {
+    for (const s of [
+      // record_offer (whatsapp-actions.ts) : « enregistrée », jamais « consignée », et sans ✅.
+      'Offre de CHF 850’000 enregistrée sur le dossier (statut : en attente).',
+      'Offer of CHF 850’000 recorded on the deal (status: pending).',
+      // schedule_visit (whatsapp-matching-outils.ts) : nomme « consigné »/« consigner » en rapportant
+      // un état de tiers, jamais en « je consigne »/« j'ai consigné ».
+      'Visite planifiée le lundi 6 octobre à 14h00 (30 min) pour Julie Martin — « Attique 4 p. · Florissant 12, Genève ». '
+        + 'L’intérêt de Julie Martin pour ce bien n’est pas consigné : demande à l’agent s’il faut le consigner (record_match_outcome).',
+      // consignerEchoTropLarge (whatsapp-i18n.ts) : un impératif adressé à l'agent, pas une revendication.
+      'Too many of Julie Martin’s properties match the words of « attique » for me to settle this over WhatsApp: record the answer from the CRM.',
+      'Contact *Julie Martin* créé.',
+    ]) expect(detectPhantomAction(s), s).toBeNull()
+  })
+
+  it('un « ✅ Consigné » recopié au milieu d’une réponse est pris, comme au début', () => {
+    expect(detectPhantomAction('Voici où on en est.\n✅ Consigné pour Julie Martin : « Attique » — intéressé·e.\nAutre chose ?')).toBe('action_claim')
+    expect(detectPhantomAction('Done — ✅ Recorded for Julie Martin: « Attique » — interested. Anything else?')).toBe('action_claim')
+  })
+
+  // Les phrases voisines ajoutées pour cet outil (whatsapp-i18n.ts) : aucune n'annonce ni ne revendique
+  // une action — ce sont des refus (rien n'est écrit) ou des constats d'état, jamais un « je consigne ».
+  it('les refus et statuts de consignation ne sont jamais pris pour une confirmation simulée', () => {
+    const nom = 'Julie Martin', bien = 'Attique 4 p. · Florissant 12, Genève', autreBien = 'Duplex 3 p. · Carouge'
+    for (const s of [
+      consignationDeja('fr', nom, bien), consignationDeja('en', nom, bien),
+      consignationChangee('fr', nom, bien), consignationChangee('en', nom, bien),
+      consignationImpossible('fr'), consignationImpossible('en'),
+      consignationEchec('fr'), consignationEchec('en'),
+      consignationNonConfirmee('fr'), consignationNonConfirmee('en'),
+      consignerMotifManquant('fr'), consignerMotifManquant('en'),
+      consignerQuelleReponse('fr'), consignerQuelleReponse('en'),
+      consignerQuelAcheteur('fr'), consignerQuelAcheteur('en'),
+      consignerAucunBien('fr', 'interesse', nom, []), consignerAucunBien('en', 'interesse', nom, []),
+      consignerAucunBien('fr', 'interesse', nom, [bien]), consignerAucunBien('en', 'interesse', nom, [bien]),
+      consignerPlusieursBiens('fr', nom, [bien, autreBien]), consignerPlusieursBiens('en', nom, [bien, autreBien]),
+      consignerTropDeBiens('fr', 'interesse', nom), consignerTropDeBiens('en', 'interesse', nom),
+      consignerTropLarge('fr', nom, 'attique'), consignerTropLarge('en', nom, 'attique'),
+      consignerEchoTropLarge('fr', nom, 'attique geneve'), consignerEchoTropLarge('en', nom, 'attique geneve'),
+      consignerAnnonceRetiree('fr', [bien]), consignerAnnonceRetiree('en', [bien]),
+      consignerAnnonceRetiree('fr', [bien, autreBien]), consignerAnnonceRetiree('en', [bien, autreBien]),
+      consignerPlusDisponible('fr', [bien]), consignerPlusDisponible('en', [bien]),
+      consignerPlusDisponible('fr', [bien, autreBien]), consignerPlusDisponible('en', [bien, autreBien]),
+    ]) expect(detectPhantomAction(s), s).toBeNull()
   })
 })

@@ -235,3 +235,56 @@ Gregory a envoyé le 21.09.2026 quinze demandes, bien au-delà du matching. Cell
 | — | Apimo comme moteur immobilier « en dessous » | Décision d'architecture à instruire séparément. |
 
 Gregory propose un cahier des charges technique (modules, priorités P0/P1/P2, données, automatisations, API, ce qu'il faut acheter plutôt que construire). À faire à part, si Julien le souhaite.
+
+## 12. Précisions du plan du lot B (21.09.2026)
+
+Plan : [2026-09-21-matching-lot-b-boucle.md](../plans/2026-09-21-matching-lot-b-boucle.md).
+
+- **Prix proposé** : `matches.prix_propose` est posé par la BASE au passage à `sent` (trigger
+  `set_match_prix_propose`) — une sélection propose N biens en une écriture, à N prix, et quatre écrivains
+  proposent. Nul pour un « prix sur demande ». La même transition efface la réponse d'avant, sa date comprise.
+- **Relance d'une sélection** : `reminders.match_ids` porte TOUS les biens d'une proposition de plusieurs biens
+  (une proposition d'un bien n'écrit que `match_id`, lu seul par le trigger) ; le trigger
+  `fermer_relance_proposition` la clôt quand plus aucun n'est `sent`, quel que soit l'écrivain, repoussée
+  (`snoozed`) comprise, relance verrouillée (deux réponses simultanées).
+- **Retour par baisse de prix** : trigger sur la BAISSE de prix des annonces et des mandats (un prix nul n'en est
+  pas une ; un prix qui réapparaît se compare au prix proposé) ; le match repasse `suggested` en gardant son
+  motif `prix` et son prix proposé ; ligne `match_retour_prix`. Les suppressions du moteur (prix d'un mandat
+  modifié, purge des annonces retirées) épargnent un match déjà proposé (`sent_at`).
+- **Apprendre** : refus comptés PAR RECHERCHE ; un refus pris en compte (`matches.apprentissage_at`, correction
+  validée ou ignorée) ne compte plus. Les corrections forment la section « Recherches à ajuster »
+  d'« À proposer ». Valider envoie à `matching-engine` (mode `rescore-search`) la SEULE clé corrigée :
+  renotation par `calculateScoreV2` et le pré-filtre dur du moteur (`match_candidate_listings`), puis, d'un
+  bloc (`matching_ajuster_recherche`), la clé fusionnée dans les critères d'aujourd'hui (et la fiche si
+  identique), les refus pris en compte et `recherche_ajustee` au journal. Un match ajouté à la main (sans
+  `score_version`) n'est pas renoté.
+- **Équipements** : « rendre obligatoire » devient « ajouter aux équipements voulus ce que tous les biens
+  acceptés ont et qu'aucun refusé n'a » — le moteur note les équipements en fraction ; un obligatoire strict
+  attend un critère du moteur. **Quartier** : seule une zone de ville sort ; le canton qu'elle nomme reste.
+  Ce qui s'écrit est ce que la fiche écrit : le type par son code (`villa`), un équipement par son libellé
+  (`vue lac`), jamais un slug du moteur.
+- **Planifier une visite** : `visits` pour un bien en mandat, événement `visite` de l'agenda
+  (`calendar_events`) pour une annonce du marché ; le deal avance à `visit_planned`, jamais en arrière. Aucun
+  rappel au client la veille (`reminder_sent` posé à la création : `visit-reminders-j1` lui écrirait).
+- **À conclure** garde « Pas intéressé » (avec motif). **Pas encore** écrit tout de suite, sans fenêtre
+  d'annulation.
+
+## 13. Précisions du plan du lot C (22.09.2026)
+
+Plan : [2026-09-22-matching-lot-c-explique-inverse.md](../plans/2026-09-22-matching-lot-c-explique-inverse.md).
+
+- **Trois axes, pas une 6ᵉ clé `reasons`.** Chambres (poids 10), état (8), off-market (10) entrent dans la
+  redistribution du moteur ; l'échelle reste ancrée sur le barème des six axes historiques, si bien qu'une
+  recherche sans ces critères garde exactement sa note. Un critère que le bien ne renseigne pas sort du
+  dénominateur. Le fil les explique sur les faits, aux mêmes règles que le moteur.
+- **Critères de l'acheteur** : `bedrooms_min`, `condition_min` (`good` < `renovated` < `new`), `off_market_only`,
+  posés sur la fiche contact.
+- **État** : saisi sur un mandat ; sinon neuf (construit il y a 5 ans au plus) ou rénové (il y a 10 ans au plus) ;
+  jamais « bon état » ni « à rénover » déduit d'une date.
+- **Off-market** : un interrupteur de l'agent sur le mandat (`properties.off_market`, décision de Julien du
+  22.09.2026). « Réseau Off-market » met le bien en service au lieu d'en faire un brouillon, que le moteur ne note
+  jamais.
+- **Signaux** : baisse (14 jours), nouveau (3 jours), nouveau mandat (7 jours) ; à score égal, ils passent devant.
+- **Anciens prospects** (§10 n° 6, proposition appliquée) : recherche close depuis plus de 90 jours, ou deal perdu
+  dans les 24 derniers mois ; notés à la demande, 20 au plus ; « Réactiver » rouvre la recherche et crée le match.
+- **Accès** : l'en-tête d'un groupe « Vos biens » du fil. La fiche du bien et celle d'une annonce : lot D.

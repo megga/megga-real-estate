@@ -7,6 +7,7 @@
 
 import type { Contact, SearchCriteria } from '@/types/contact'
 import { splitZones, PROP_TYPE_EN_TO_FR } from '@/lib/contactCriteria'
+import { rolesDeType, rolesOrdonnes, typeDeRoles } from '@/lib/contactRoles'
 import type { KycCase, KycDossierStatus } from '@/types/kyc'
 import type { Property } from '@/types/listing'
 import type { ContactTransaction } from '@/hooks/useTransactions'
@@ -88,9 +89,21 @@ function mapContactStatus(t: Contact['type']): CrmContact['status'] {
 
 /** Assemble un CrmContact complet depuis un Contact DB et son KycCase éventuel. */
 export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
+  // Étape 3. ASSAINIR d'abord, décider du repli ensuite. Un contact d'avant la migration
+  // n'a pas de rôles : son type en tient lieu, le temps que le remplissage passe. Mais un
+  // tableau qui ne porte que des valeurs inconnues de CE bundle (un ancien `both`, un rôle
+  // retiré depuis, un onglet resté sur une version d'avant — l'écran part avant les
+  // migrations) est vide UNE FOIS FILTRÉ, et doit retomber sur le type de la même façon.
+  // Décidé sur le tableau BRUT, le repli ne serait pas pris et le contact perdrait son
+  // type : un vendeur ressortirait « Acquéreur ». ⛔ Ne jamais inventer un rôle ici.
+  const connus = rolesOrdonnes(c.roles)
+  const roles = connus.length ? connus : rolesDeType(c.type)
   return {
     id: c.id,
-    type: mapContactType(c.type),
+    // Le type de l'UI dérive des RÔLES, plus de la colonne : les deux ne peuvent plus se
+    // contredire à l'écran, y compris entre l'écriture et le passage du déclencheur.
+    type: mapContactType(typeDeRoles(roles)),
+    roles,
     firstName: c.first_name,
     lastName: c.last_name,
     email: c.email ?? '',
@@ -235,6 +248,7 @@ export function transactionToCrmDeal(
     contactId,
     bienId: propertyId,
     stage,
+    dbStage: t.stage as TransactionStage,
     value,
     probability: STAGE_PROBABILITY[stage] ?? 0,
     ownerAgentId: t.assigned_to ?? '',

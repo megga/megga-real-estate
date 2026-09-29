@@ -729,8 +729,6 @@
       "title": "Acheteurs en cours",
       "pipeline": "Pipeline",
       "buyerFallback": "Acheteur",
-      "matchAffinity": "Match MEGGA AI · {{score}}% d'affinité",
-      "propose": "Proposer",
       "kycNotice": "<0>KYC à compléter</0> pour un acheteur, optionnel à ce stade, requis avant signature.",
       "startKyc": "Lancer"
     },
@@ -795,7 +793,11 @@
       "publishedTitle": "Annonce publiée",
       "updatedTitle": "Annonce mise à jour",
       "statusActive": "Statut passé en actif",
-      "auditAdded": "Entrée ajoutée au journal d'audit nLPD"
+      "auditAdded": "Entrée ajoutée au journal d'audit nLPD",
+      "offMarketTitle": "Bien passé en Off-market",
+      "publicTitle": "Bien rendu public",
+      "renote": "Les matchs de ce bien sont recalculés",
+      "offMarketErreur": "La diffusion n'a pas pu être changée. Réessayez."
     },
     "c2paAlert": {
       "title": "Photos sans certification d'authenticité",
@@ -1752,7 +1754,6 @@
     "visits": {
       "eyebrow": "Visites",
       "none": "Aucune visite planifiée.",
-      "plan": "Planifier",
       "past_one": "{{count}} visite passée",
       "past_other": "{{count}} visites passées"
     },
@@ -1769,7 +1770,10 @@
       "publicPreview": "Voir l'annonce publique",
       "previewToastTitle": "Aperçu public",
       "previewOnlineLine": "L'annonce est diffusée sur immobilier.ch.",
-      "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement."
+      "previewOfflineLine": "L'annonce n'est pas encore diffusée publiquement.",
+      "offMarketLigne": "Proposé à vos seuls acheteurs, jamais diffusé",
+      "passerOffMarket": "Passer en Off-market",
+      "rendrePublic": "Rendre public"
     },
     "back": "Retour à Mes biens",
     "cta": {
@@ -1780,10 +1784,6 @@
       "mandateExpires_other": "Mandat {{type}} · expire dans {{count}} jours",
       "mandateOverdue_one": "Mandat {{type}} · échu depuis {{count}} jour",
       "mandateOverdue_other": "Mandat {{type}} · échu depuis {{count}} jours"
-    },
-    "suggestions": {
-      "title": "Suggestions MEGGA AI",
-      "affinity": "{{score}} % d’affinité estimée"
     },
     "photos": {
       "none": "Aucune photo",
@@ -1800,6 +1800,7 @@
       "enCours": "Planification…",
       "erreur": "La visite n’a pas pu être enregistrée.",
       "dansCalendrier": "Elle apparaît dans votre Calendrier et dans les visites du bien.",
+      "rienEnvoye": "Rien n’est envoyé à {{prenom}}.",
       "demo": "Aperçu : rien n’a été enregistré.",
       "ouvrir": "Ouvrir la visite",
       "termine": "Terminé",
@@ -1876,7 +1877,7 @@
     "modifier": "Modifier",
     "continuer": "Continuer",
     "retour": "Retour",
-    "garder": "Enregistrer sans publier",
+    "garder": "Enregistrer le brouillon",
     "publier": "Publier l’annonce",
     "enCours": "Enregistrement…",
     "adresseAvant": "Ajoutez d’abord une adresse.",
@@ -2003,12 +2004,23 @@
     },
     "fini": {
       "publie": "Annonce publiée",
-      "garde": "Bien enregistré",
+      "garde": "Brouillon enregistré",
       "publieAide": "« {{titre}} » est en ligne dans Mes biens.",
-      "gardeAide": "« {{titre}} » est enregistré Off-market. Publiez-le depuis sa fiche quand il est prêt.",
+      "gardeAide": "« {{titre}} » est enregistré en brouillon. Publiez-le depuis sa fiche quand il est prêt.",
       "ouvrir": "Ouvrir la fiche",
       "autre": "Créer un autre bien",
-      "retour": "Retour à Mes biens"
-    }
+      "retour": "Retour à Mes biens",
+      "offMarket": "Bien en Off-market",
+      "offMarketAide": "« {{titre}} » est en service : il est proposé à vos acheteurs, jamais diffusé.",
+      "acquereurs": {
+        "recherche": "Recherche des acquéreurs compatibles…",
+        "trouves_one": "{{count}} acquéreur compatible",
+        "trouves_other": "{{count}} acquéreurs compatibles",
+        "aucun": "Aucun acquéreur compatible pour l'instant",
+        "erreur": "Les acquéreurs compatibles se retrouvent sur sa fiche.",
+        "voir": "Voir qui"
+      }
+    },
+    "proposerOffMarket": "Proposer en Off-market"
   }
 }

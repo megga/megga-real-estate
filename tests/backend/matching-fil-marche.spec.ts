@@ -1,4 +1,4 @@
-// Le fil de matchs, lot 2 : la RPC `matching_fil_marche()` (migration 20260922121000), une ligne
+// Le fil de matchs, lots 2 et C : la RPC `matching_fil_marche_resume()` (migration 20260930160000), une ligne
 // « Marché » par acheteur. Cloisonnement par agence, ce qu'une ligne compte (report futur exclu, échu
 // inclus, annonce `removed` exclue), les trois vignettes et leur ordre, le refus d'`anon`.
 // Tourne contre `supabase start` (SUPABASE_TEST_*), jamais la prod. skipIf sans clés.
@@ -9,12 +9,14 @@ import { anonClient, serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
-interface LigneMarche { contact_id: string; nombre: number; meilleur_score: number; vignettes: string[] }
+interface LigneMarche {
+  contact_id: string; nombre: number; meilleur_score: number; vignettes: string[]; nouveaux: number; baisses: number
+}
 
 const IMG = 'https://example.test/fil'
 const JOUR = 86_400_000
 
-describe.skipIf(!HAS_KEYS)('matching_fil_marche — une ligne « Marché » par acheteur', () => {
+describe.skipIf(!HAS_KEYS)('matching_fil_marche_resume — une ligne « Marché » par acheteur', () => {
   let s: TwoAgenciesSetup
   let svc: SupabaseClient
   /** Contacts et annonces semés : à supprimer AVANT les agences (FK NO ACTION). */
@@ -24,11 +26,20 @@ describe.skipIf(!HAS_KEYS)('matching_fil_marche — une ligne « Marché » par 
   let theo = ''
   let chezB = ''
 
-  const mkAnnonce = async (tag: string, champs: { photos?: string[] | null; photos_cf?: unknown; status?: string } = {}) => {
+  /**
+   * ⚠ Les champs de la pige se posent À L'INSERTION : `trg_ra_price_status` (BEFORE UPDATE, étendu à Flatfox par
+   * 20260930150000) remet `first_seen_at`, `price_at_first_seen` et `price_reduced_at` à leur valeur d'avant sur
+   * tout UPDATE — celui d'un test serait défait sans bruit. Il ne tourne pas à l'INSERT.
+   */
+  const mkAnnonce = async (tag: string, champs: {
+    photos?: string[] | null; photos_cf?: unknown; status?: string
+    first_seen_at?: string; price_at_first_seen?: number; current_price?: number; price_reduced_at?: string
+  } = {}) => {
     const { data, error } = await svc.from('market_listings').insert({
       source_id: `fil-marche-${tag}-${s.stamp}`, source_portal: 'flatfox', title: `Fil marché ${tag} ${s.stamp}`,
       city: 'Genève', canton: 'GE', type: 'apartment', transaction_type: 'buy',
       price: 1_200_000, current_price: 1_200_000, quality_score: 70,
+      ...champs,
       status: champs.status ?? 'active', photos: champs.photos ?? null, photos_cf: champs.photos_cf ?? null,
     }).select('id').single()
     if (error) throw new Error(`market_listings ${tag}: ${error.message}`)
@@ -95,7 +106,7 @@ describe.skipIf(!HAS_KEYS)('matching_fil_marche — une ligne « Marché » par 
   })
 
   const lignes = async (client: SupabaseClient): Promise<LigneMarche[]> => {
-    const { data, error } = await client.rpc('matching_fil_marche')
+    const { data, error } = await client.rpc('matching_fil_marche_resume')
     expect(error).toBeNull()
     return (data ?? []) as LigneMarche[]
   }
@@ -104,7 +115,7 @@ describe.skipIf(!HAS_KEYS)('matching_fil_marche — une ligne « Marché » par 
     const chezA = await lignes(s.clientA)
     expect(chezA.map((l) => l.contact_id).sort()).toEqual([julie, theo].sort())
     const deB = await lignes(s.clientB)
-    expect(deB).toEqual([{ contact_id: chezB, nombre: 1, meilleur_score: 100, vignettes: [`${IMG}/chez-b.jpg`] }])
+    expect(deB).toEqual([{ contact_id: chezB, nombre: 1, meilleur_score: 100, vignettes: [`${IMG}/chez-b.jpg`], nouveaux: 1, baisses: 0 }])
   })
 
   it('un report dans le futur et une annonce retirée sont hors de la ligne ; un report échu y entre', async () => {
@@ -124,9 +135,29 @@ describe.skipIf(!HAS_KEYS)('matching_fil_marche — une ligne « Marché » par 
     expect(l?.vignettes).toEqual([`${IMG}/avec-date.jpg`, `${IMG}/sans-date.jpg`])
   })
 
+  it('compte les annonces nouvelles (3 jours) et en baisse (14 jours) ; une baisse ne compte pas aussi comme nouvelle', async () => {
+    const c = await mkContact(s.agencyAId, 'Signaux')
+    const ilYA = (jours: number) => new Date(Date.now() - jours * JOUR).toISOString()
+    // Une baisse : premier prix 1'300'000, prix courant et affiché 1'200'000 (le défaut de `mkAnnonce`).
+    const baisse = { status: 'price_reduced', price_at_first_seen: 1_300_000, current_price: 1_200_000 }
+    const neuve = await mkAnnonce('sig-neuve')
+    const ancienne = await mkAnnonce('sig-ancienne', { first_seen_at: ilYA(10) })
+    const enBaisse = await mkAnnonce('sig-baisse', { ...baisse, first_seen_at: ilYA(2), price_reduced_at: ilYA(1) })
+    const baisseVieille = await mkAnnonce('sig-baisse-vieille', { ...baisse, first_seen_at: ilYA(30), price_reduced_at: ilYA(20) })
+    for (const a of [neuve, ancienne, enBaisse, baisseVieille]) {
+      const { error } = await svc.from('matches').insert({
+        agency_id: s.agencyAId, contact_id: c, market_listing_id: a, score: 70, status: 'suggested', source: 'market',
+      })
+      if (error) throw new Error(`matches: ${error.message}`)
+    }
+    const l = (await lignes(s.clientA)).find((x) => x.contact_id === c)
+    // `enBaisse` est aussi nouvelle (vue il y a deux jours) : la baisse d'abord, jamais les deux.
+    expect(l).toMatchObject({ nombre: 4, nouveaux: 1, baisses: 1 })
+  })
+
   it('un anonyme ne l’appelle pas — c’est le REVOKE qui le dit', async () => {
     // ⚠ Le message, pas l'absence de lignes : sans le REVOKE, l'appel rendrait [] (aucune agence).
-    const { error } = await anonClient().rpc('matching_fil_marche')
+    const { error } = await anonClient().rpc('matching_fil_marche_resume')
     expect(error?.message).toMatch(/permission denied/)
   })
 })

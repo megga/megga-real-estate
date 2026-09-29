@@ -82,6 +82,22 @@ export const CRM_KEYFRAMES = `
     from { opacity: 0; transform: translateY(-4px); }
     to   { opacity: 1; transform: none; }
   }
+  @keyframes crm-fondu-sortie {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  @keyframes crm-feuille-sortie {
+    from { opacity: 1; transform: none; }
+    to   { opacity: 0; transform: translateY(-6px) scale(.98); }
+  }
+  @keyframes crm-capsule-in {
+    from { opacity: 0; transform: translateY(12px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes crm-ligne-arrivee {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
   @keyframes qaFade {
     from { opacity: 0; transform: translateY(-2px); }
     to   { opacity: 1; transform: none; }

@@ -91,3 +91,24 @@
    plus discret que l'entrée des cartes (sgFadeUp), parce qu'il s'agit ici de
    remplacer une vue entière, pas de faire apparaître des éléments un à un. */
 @keyframes mrhViewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* « Ce qui a bougé » : la ligne survolée (la ligne ENTIÈRE, pastille des acheteurs comprise — lot D1)
+   prend le filet de l'écran pour fond, rien de plus.
+   ⚠ Le fond AU REPOS vit ici et non en style en ligne : un `background` en ligne l'emporte sur
+   toute règle de feuille, et le survol ne se serait jamais vu.
+   ⚠ UNE GRILLE POUR TOUTES LES LIGNES (lot D1) : la ligne dans la première colonne, la pastille dans la
+   seconde, commune (`subgrid`). Chaque ligne en flex, une ligne à pastille reculait sa date de ~108 px,
+   et la date sautait à l'arrivée des comptes ; la colonne commune les aligne toutes.
+   ⚠ BOUTON ÉTIRÉ : le `::after` du bouton de ligne couvre la ligne entière — la bande autour de la
+   pastille ouvre la fiche, comme avant elle. La pastille passe au-dessus (`z-index`) et reste cliquable. */
+.mrh-flux { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.mrh-flux-item { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; transition: background .15s; }
+.mrh-flux-item:hover { background: var(--mrh-line); }
+.mrh-flux-ligne { background: transparent; }
+.mrh-flux-ligne::after { content: ''; position: absolute; inset: 0; }
+.mrh-flux-pastille { position: relative; z-index: 1; }
+/* Le focus du bouton de ligne se dessine sur son `::after`, EN DEDANS : il désigne ce qu'un clic ouvre — la ligne
+   entière —, et la liste coupe ce qui déborde (`overflow: hidden`). L'anneau par défaut n'entourait que la première
+   colonne, et perdait ses bords haut et gauche (mesuré au banc). */
+.mrh-root .mrh-flux-ligne:focus-visible { outline: none; }
+.mrh-root .mrh-flux-ligne:focus-visible::after { outline: 2.5px solid var(--mrh-focus, #0041D9); outline-offset: -2.5px; }

@@ -36,6 +36,8 @@ import { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { PHOTO } from '@/components/crm/today/data'
 import type { KycDossierStatus } from '@/types/kyc'
+import { JOURS_BAISSE, JOURS_MANDAT, JOURS_NOUVEAU } from '@/components/matching-fil/filSignaux'
+import { STATUTS_COMPATIBLES } from '@/components/matching-fil/filQuiPour'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
 
@@ -50,11 +52,17 @@ const ilYA = (heures: number) => new Date(Date.now() - heures * 3_600_000).toISO
  * sur « acheteur », et la liste Contacts montrait un vendeur en acheteur — sans budget
  * ni critère, puisque rien ne les portait. `full_name`, `status` et `canton` n'existent
  * pas non plus ; ils restent pour les lecteurs du banc qui les attendaient.
+ *
+ * ⚠ `roles` (PLURIEL) est une vraie colonne depuis le 22.09.2026 — à ne pas confondre avec le
+ * `role` singulier ci-dessus, qui n'a jamais existé. C'est elle qui fait foi, `type` en dérive.
+ * Mais le banc n'a AUCUN déclencheur : c'est à chaque fixture d'être d'accord avec elle-même,
+ * comme pour les dates du lot C. `banc-contacts-roles.spec.ts` rejoue `typeDeRoles()` sur
+ * chaque ligne et rougit à la première qui diverge.
  */
 const contact = (id: string, prenom: string, nom: string, champs: Record<string, unknown>) => ({
   id, agency_id: AGENCE_BANC.id, entity_type: 'pp', user_id: null, deleted_user_id: null,
   full_name: `${prenom} ${nom}`, first_name: prenom, last_name: nom, status: 'active',
-  email: null, phone: null, type: 'buyer', source: 'manual', score: null, tags: [],
+  email: null, phone: null, type: 'buyer', roles: ['buyer'], source: 'manual', score: null, tags: [],
   notes: null, language: 'fr', form_data: null, search_criteria: null,
   birth_date: null, nationality: null, residence_country: null, home_address: null,
   wa_opt_in: false, wa_consent_at: null, wa_opt_out_at: null, wa_suppressed: false,
@@ -63,7 +71,9 @@ const contact = (id: string, prenom: string, nom: string, champs: Record<string,
   ...champs,
 })
 
-const CONTACTS = [
+// ⚠ EXPORTÉ pour `banc-contacts-roles.spec.ts` seul : c'est la seule façon de confronter les
+// fixtures à `typeDeRoles()` sans monter un écran. Les écrans, eux, passent par `CRM_TABLES`.
+export const CONTACTS = [
   contact('c1', 'Camille', 'Rochat', {
     email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03', canton: 'GE',
     type: 'buyer', score: 'hot', source: 'website', tags: ['Primo-accédante'],
@@ -74,7 +84,8 @@ const CONTACTS = [
   }),
   contact('c2', 'Théo', 'Baumgartner', {
     email: 'theo.b@example.ch', phone: '+41 78 220 14 77', canton: 'VD',
-    type: 'seller', score: 'warm', source: 'referral', language: 'de', tags: ['Mandat exclusif'],
+    // Étape 3 : le contact à TROIS rôles — la pastille « Vendeur », le « +2 », les trois noms au survol.
+    type: 'seller', roles: ['seller', 'referrer', 'trustee'], score: 'warm', source: 'referral', language: 'de', tags: ['Mandat exclusif'],
     notes: 'Vend son 5 pièces à Lutry ; souhaite signer avant la fin de l’année.',
     last_interaction_at: ilYA(74), created_at: ilYA(1400),
   }),
@@ -86,31 +97,33 @@ const CONTACTS = [
   }),
   contact('c4', 'Luca', 'Bernasconi', {
     email: 'luca.bernasconi@example.ch', phone: '+41 79 655 31 20', canton: 'GE',
-    type: 'tenant', score: 'hot', source: 'whatsapp_ai', language: 'it',
+    type: 'tenant', roles: ['tenant'], score: 'hot', source: 'whatsapp_ai', language: 'it',
     search_criteria: { transaction_type: 'rent', type: 'apartment', zones: ['Genève', 'GE'], budget_min: 2_500, budget_max: 3_200, rooms_min: 3.5 },
     last_interaction_at: ilYA(5), created_at: ilYA(60),
   }),
   contact('c5', 'Nadia', 'Haddad', {
     email: 'n.haddad@example.ch', phone: '+41 22 710 44 90', canton: 'GE',
-    type: 'landlord', score: 'cold', source: 'import', tags: ['Immeuble Plainpalais'],
+    type: 'landlord', roles: ['landlord'], score: 'cold', source: 'import', tags: ['Immeuble Plainpalais'],
     last_interaction_at: ilYA(620), created_at: ilYA(3000),
   }),
   contact('c6', 'Olivier', 'Mottier', {
     email: 'olivier.mottier@example.ch', phone: '+41 79 301 67 45', canton: 'VD',
-    type: 'both', score: 'warm', source: 'referral',
+    // Étape 3 : l'acquéreur-vendeur, enfin ÉCRIVABLE — `both` n'est plus qu'un type dérivé de ces deux rôles.
+    type: 'both', roles: ['buyer', 'seller'], score: 'warm', source: 'referral',
     notes: 'Vend sa maison de Pully pour acheter plus petit en ville.',
     search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Lausanne', 'VD'], budget_max: 1_100_000, rooms_min: 3.5 },
     last_interaction_at: ilYA(48), created_at: ilYA(400),
   }),
   contact('c7', 'Emma', 'Schneider', {
     email: 'emma.schneider@example.com', phone: '+41 76 488 02 19', canton: 'ZH',
-    type: 'investor', score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
+    type: 'investor', roles: ['investor'], score: 'hot', source: 'website', language: 'en', tags: ['Investisseuse'],
     search_criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Zürich', 'Genève', 'ZH', 'GE'], budget_min: 1_200_000, budget_max: 3_000_000 },
     last_interaction_at: ilYA(12), created_at: ilYA(150),
   }),
   // Le prospect entré par WhatsApp que la cloche annonce (`n1`, « Léa Martin (via WhatsApp) »).
+  // Étape 3 : le contact SANS rôle — aucune pastille sur sa ligne, et c'est ce vide qui rend `lead`.
   contact('c8', 'Léa', 'Martin', {
-    phone: '+41 78 902 11 36', type: 'lead', source: 'whatsapp_ai',
+    phone: '+41 78 902 11 36', type: 'lead', roles: [], source: 'whatsapp_ai',
     last_interaction_at: ilYA(0.2), created_at: ilYA(0.2),
   }),
   // Le fil de matchs (17.09.2026) : deux acheteurs dont la recherche TIENT sur Champel et sur
@@ -125,6 +138,35 @@ const CONTACTS = [
     email: 'a.lefevre@example.ch', canton: 'GE', type: 'buyer', score: 'warm', source: 'website', language: 'en',
     search_criteria: { transaction_type: 'buy', type: 'house', zones: ['Cologny', 'Vandœuvres', 'GE'], budget_min: 2_800_000, budget_max: 3_500_000, rooms_min: 6, surface_min: 240, features: ['piscine', 'jardin', 'cave'] },
     last_interaction_at: ilYA(90), created_at: ilYA(500),
+  }),
+  // Lot C (22.09.2026). Anastasia pose les TROIS critères du lot : 4 chambres, rénovée au moins, off-market.
+  // Philippe et Nathalie sont d'anciens prospects : leur fiche n'a plus de critères (le pont a fermé leur recherche).
+  contact('c11', 'Anastasia', 'Volkova', {
+    email: 'a.volkova@example.ch', phone: '+41 79 214 60 88', canton: 'GE', type: 'buyer', score: 'hot', source: 'referral', language: 'en',
+    search_criteria: {
+      transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Florissant', 'GE'], budget_min: 2_000_000, budget_max: 2_600_000,
+      rooms_min: 5, bedrooms_min: 4, condition_min: 'renovated', off_market_only: true, features: ['terrasse', 'vue lac'],
+    },
+    last_interaction_at: ilYA(20), created_at: ilYA(24 * 30),
+  }),
+  contact('c12', 'Philippe', 'Rey', {
+    email: 'philippe.rey@example.ch', phone: '+41 78 331 07 52', canton: 'GE', type: 'buyer', score: 'cold', source: 'website',
+    last_interaction_at: ilYA(24 * 130), created_at: ilYA(24 * 400),
+  }),
+  contact('c13', 'Nathalie', 'Gerber', {
+    email: 'n.gerber@example.ch', phone: '+41 76 540 93 17', canton: 'GE', type: 'buyer', score: 'warm', source: 'referral',
+    last_interaction_at: ilYA(24 * 25), created_at: ilYA(24 * 500),
+  }),
+  // Étape 3 (22.09.2026) : le RÉSEAU PUR, le cas qu'aucune autre ligne ne montrait. Aucun rôle
+  // de transaction, donc `type = 'lead'` : il se voit au sélecteur de rôles et compte pour
+  // « Private banker », mais aucun des quatre onglets ne le prend.
+  // ⚠ Sans recherche, sans score, sans dossier ni deal — un banquier privé n'achète rien ici, et
+  // lui inventer des critères ferait croire que le matching le prend.
+  contact('c14', 'Jean-Marc', 'Dupraz', {
+    email: 'jm.dupraz@example.ch', phone: '+41 22 819 03 27', canton: 'GE',
+    type: 'lead', roles: ['private_banker'], source: 'manual',
+    notes: 'Banquier privé à Genève ; il présente ses clients quand l’un d’eux vend ou achète.',
+    last_interaction_at: ilYA(24 * 6), created_at: ilYA(24 * 210),
   }),
 ]
 
@@ -229,7 +271,7 @@ function cloche(
 
 /**
  * Les deux annonces de marché que désignent les matchs de la cloche. ⚠ À PART de
- * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli du catalogue).
+ * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli d'un bien sans photo).
  */
 const ANNONCES_CLOCHE = [
   { id: 'ml-cloche-1', title: 'Appartement 3,5 pièces · Carouge', city: 'Carouge', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.carouge], photos_cf: null },
@@ -423,16 +465,38 @@ export const ANNONCE_MARCHE_BANC = {
   price: 2450, current_price: 2450, price_at_first_seen: 2600, price_per_m2: null,
   rooms: 3.5, bedrooms: 2, bathrooms: 1, surface_m2: 78,
   features: [], photos: [], photos_cf: null,
-  status: 'active', source_portal: 'flatfox',
+  status: 'price_reduced', source_portal: 'flatfox',
   source_url: 'https://flatfox.ch/fr/annonce/demo', source_id: '86339127',
   agency_name: 'Régie du Léman', agency_phone: '021 000 00 00',
   agency_logo_url: null, lat: 46.4583, lng: 6.3372,
   year_built: 2019, days_on_market: 12, land_surface: null,
+  // Pige (21.09.2026) : l'âge se lit dans first_seen_at, et removed_at dit un retrait. `price_reduced` :
+  // son historique (`HISTORIQUE_PRIX_BANC`) finit sur une baisse sous son premier loyer, 2600 → 2450, et
+  // `trg_ra_price_status` pose ce statut à tout loyer sous le premier (Flatfox compris depuis la pige).
+  first_seen_at: ilYA(24 * 42), removed_at: null,
   description: "Traversant, balcon plein sud, vue dégagée sur le lac et les Alpes.",
   floor: 3, parking_count: 1, year_renovated: null, usable_surface: 74,
   charges_monthly: 250, is_furnished: false, availability_date: '2026-10-01',
   visit_contact_name: 'Mme Dupont', agency_reference: 'RL-1180-42',
 }
+
+/**
+ * L'historique du prix de `ANNONCE_MARCHE_BANC` (pige, 21.09.2026) — ce que la fiche autonome lit dans
+ * `market_price_history`. Un relevé initial puis une baisse : la courbe, l'écart et la liste ont de quoi se
+ * dessiner. ⚠ Forme de LIGNE : le banc filtre `market_listing_id=eq.…` et trie `detected_at.desc,id.desc`.
+ */
+const HISTORIQUE_PRIX_BANC = [
+  {
+    id: 'mph-banc-1', market_listing_id: ANNONCE_MARCHE_BANC.id, kind: 'suivi', detected_at: ilYA(24 * 30),
+    old_price: null, new_price: 2600, change_pct: null, old_status: null, new_status: 'active',
+    transaction_type: 'rent', canton: 'VD', type: 'apartment', city: 'Rolle',
+  },
+  {
+    id: 'mph-banc-2', market_listing_id: ANNONCE_MARCHE_BANC.id, kind: 'baisse', detected_at: ilYA(24 * 6),
+    old_price: 2600, new_price: 2450, change_pct: -5.77, old_status: 'active', new_status: 'price_reduced',
+    transaction_type: 'rent', canton: 'VD', type: 'apartment', city: 'Rolle',
+  },
+]
 
 /**
  * Le reste du portefeuille de « Mes biens » : 48 biens, pour un total de 50.
@@ -549,18 +613,21 @@ const BIENS_CATALOGUE = Array.from({ length: 48 }, (_, i) => {
   }
 })
 
-/** Les jointures `property` des matchs — le banc n'applique pas `select`, la ligne les porte. */
+/**
+ * Les jointures `property` des matchs — le banc n'applique pas `select`, la ligne les porte. Leur `status` est celui de
+ * la table : « Sa boucle » le lit, et un mandat qui ne l'aurait pas n'y serait plus en vente (lot E1).
+ */
 const CHAMPEL_EMBARQUE = {
   title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
   city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
   photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
-  features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+  features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420, status: 'active',
 }
 const COLOGNY_EMBARQUE = {
   title: 'Villa individuelle · Cologny', price: 3_200_000, address: 'Chemin de Ruth 8',
   city: 'Cologny', canton: 'GE', postal_code: '1223', rooms: 7, bedrooms: 5, surface_m2: 260,
   photos: [PHOTO.cologny], type: 'house', description: 'Villa contemporaine avec piscine, jardin arboré de 1 200 m² et vue sur le lac.',
-  features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'], floor: null, year_built: 2011, charges_monthly: null,
+  features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'], floor: null, year_built: 2011, charges_monthly: null, status: 'active',
 }
 
 /**
@@ -586,14 +653,270 @@ const ANNONCES_FIL = [
   annonceFil('ml-fil-4', 'Appartement 6 pièces · Champel', 'Avenue Miremont 30', '1206', 2_450_000, 6, 175, ['Ascenseur', 'Balcon', 'Cave'], PHOTOS_APPART[3]!, '52101'),
 ]
 
+/**
+ * La BOUCLE du fil (lot B, 21.09.2026) — huit ventes du marché, notées par le vrai moteur À LEUR PREMIER PRIX
+ * (`banc-matching-boucle.spec.ts` les confronte à `calculateScoreV2` ; il ne renote pas une paire quand son prix bouge). Julie (c9) en a refusé deux pour le
+ * PRIX (ml-boucle-1 et -2 : « Apprendre » propose d'abaisser son budget à 1'550'000) ; elle n'a pas encore
+ * répondu sur ml-boucle-3, qui a baissé depuis qu'on le lui a proposé ; ml-boucle-4 est la seule de ses
+ * suggestions que la correction écarte (57 → 49). Emma (c7) est intéressée par ml-boucle-5, n'a répondu ni sur
+ * ml-boucle-6 ni sur ml-boucle-8 (proposés ensemble : « Retours de … » à deux biens), et ml-boucle-7, qu'elle
+ * a refusé pour le prix, est revenu par une baisse.
+ *
+ * ⚠ Mêmes colonnes que `annonceFil`, plus l'historique du prix : `price_at_first_seen` au-dessus du prix
+ * courant ⇒ baisse datée, et `price_reduced`, comme le pose `trg_ra_price_status` sur une vente RealAdvisor.
+ */
+const annonceBoucle = (
+  id: string, titre: string, lieu: { rue: string; npa: string; ville: string; canton: string },
+  prix: { actuel: number; premier: number }, pieces: number, surface: number, equipements: string[], photo: string, sourceId: string,
+) => ({
+  ...annonceFil(id, titre, lieu.rue, lieu.npa, prix.actuel, pieces, surface, equipements, photo, sourceId),
+  city: lieu.ville, canton: lieu.canton, price_at_first_seen: prix.premier, first_seen_at: ilYA(24 * 14), removed_at: null,
+  status: prix.premier > prix.actuel ? 'price_reduced' : 'active',
+  price_reduced_at: prix.premier > prix.actuel ? ilYA(24 * 2) : null,
+})
+const GENEVE = (rue: string, npa: string) => ({ rue, npa, ville: 'Genève', canton: 'GE' })
+const ZURICH = (rue: string, npa: string) => ({ rue, npa, ville: 'Zürich', canton: 'ZH' })
+const ANNONCES_BOUCLE = [
+  annonceBoucle('ml-boucle-1', 'Attique 4,5 pièces · Malagnou', GENEVE('Route de Malagnou 28', '1208'), { actuel: 1_580_000, premier: 1_580_000 }, 4.5, 112, ['Balcon', 'Ascenseur', 'Terrasse'], PHOTOS_APPART[4]!, '52210'),
+  annonceBoucle('ml-boucle-2', 'Appartement 5 pièces · Servette', GENEVE('Rue de la Servette 45', '1202'), { actuel: 1_560_000, premier: 1_560_000 }, 5, 118, ['Balcon', 'Ascenseur'], PHOTOS_APPART[5]!, '52211'),
+  annonceBoucle('ml-boucle-3', 'Appartement 4 pièces · Champel', GENEVE('Chemin des Crêts-de-Champel 9', '1206'), { actuel: 1_440_000, premier: 1_490_000 }, 4, 104, ['Balcon', 'Ascenseur'], PHOTOS_APPART[6]!, '52212'),
+  annonceBoucle('ml-boucle-4', 'Appartement 3,5 pièces · Onex', { rue: 'Avenue du Bois-de-la-Chapelle 15', npa: '1213', ville: 'Onex', canton: 'GE' }, { actuel: 1_750_000, premier: 1_750_000 }, 3.5, 92, ['Ascenseur'], PHOTOS_APPART[7]!, '52213'),
+  annonceBoucle('ml-boucle-5', 'Appartement 5,5 pièces · Enge', ZURICH('Seestrasse 120', '8002'), { actuel: 2_200_000, premier: 2_200_000 }, 5.5, 146, ['Balcon', 'Ascenseur'], PHOTOS_APPART[8]!, '52214'),
+  annonceBoucle('ml-boucle-6', 'Attique 4,5 pièces · Oerlikon', ZURICH('Schaffhauserstrasse 340', '8050'), { actuel: 2_650_000, premier: 2_650_000 }, 4.5, 128, ['Terrasse', 'Ascenseur'], PHOTOS_APPART[9]!, '52215'),
+  annonceBoucle('ml-boucle-7', 'Appartement 4,5 pièces · Seefeld', ZURICH('Seefeldstrasse 88', '8008'), { actuel: 2_480_000, premier: 2_590_000 }, 4.5, 121, ['Balcon', 'Ascenseur'], PHOTOS_APPART[10]!, '52216'),
+  annonceBoucle('ml-boucle-8', 'Appartement 4,5 pièces · Wollishofen', ZURICH('Albisstrasse 60', '8038'), { actuel: 1_980_000, premier: 1_980_000 }, 4.5, 118, ['Balcon', 'Cave'], PHOTOS_APPART[11]!, '52217'),
+]
+/**
+ * Lot C (22.09.2026) — deux ventes du marché pour Anastasia, chacune avec son signal « pourquoi maintenant » :
+ * ml-signal-1 vue il y a un jour (« Nouveau sur le marché », construite l'an dernier : neuve), ml-signal-2 baissée
+ * il y a cinq jours de CHF 250'000 (rénovée il y a trois ans ; ses chambres ne sont pas renseignées : « non
+ * évalué »). L'année suit l'horloge, comme le moteur (`maintenant`).
+ */
+const ANNEE_BANC = new Date().getUTCFullYear()
+const ANNONCES_SIGNAL = [
+  {
+    ...annonceFil('ml-signal-1', 'Appartement 6 pièces · Malagnou', 'Route de Malagnou 40', '1208', 2_480_000, 6, 172, ['Terrasse', 'Ascenseur'], PHOTOS_APPART[12]!, '52301'),
+    year_built: ANNEE_BANC - 1, first_seen_at: ilYA(24), price_reduced_at: null, removed_at: null,
+  },
+  {
+    ...annonceFil('ml-signal-2', 'Attique 5 pièces · Eaux-Vives', 'Quai Gustave-Ador 30', '1207', 2_450_000, 5, 150, ['Terrasse', 'Vue lac', 'Ascenseur'], PHOTOS_APPART[13]!, '52302'),
+    price_at_first_seen: 2_700_000, status: 'price_reduced', price_reduced_at: ilYA(24 * 5), first_seen_at: ilYA(24 * 40),
+    bedrooms: null, year_built: 1965, year_renovated: ANNEE_BANC - 3, removed_at: null,
+  },
+]
+/** Les jointures `contact` et `property` des matchs du lot C — le banc n'applique pas `select`. */
+const ANASTASIA_EMBARQUEE = { first_name: 'Anastasia', last_name: 'Volkova', email: 'a.volkova@example.ch', phone: '+41 79 214 60 88' }
+const FLORISSANT_EMBARQUE = {
+  title: 'Attique 5,5 pièces · Florissant', price: 2_350_000, address: 'Route de Florissant 58',
+  city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 5.5, bedrooms: 4, surface_m2: 168,
+  photos: [unsplash(PHOTOS_APPART[9]!)], type: 'apartment', description: 'Attique traversant, terrasse de 60 m² et vue sur le lac.',
+  features: ['Terrasse', 'Ascenseur', 'Vue lac'], floor: 7, year_built: 1972, charges_monthly: 690, status: 'active',
+}
+/** Les jointures `contact` des matchs de la boucle — le banc n'applique pas `select`, la ligne les porte. */
+const JULIE_EMBARQUEE = { first_name: 'Julie', last_name: 'Morand', email: 'julie.morand@example.ch', phone: '+41 79 530 18 64' }
+const EMMA_EMBARQUEE = { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' }
+/** Emma (c7) sur un bien de Zürich : ni pièces ni équipements dans sa recherche, le moteur reporte leur poids. */
+const RAISONS_EMMA_ZURICH = {
+  budget: { match: true, score: 47, detail: 'Dans le budget' },
+  zone: { match: true, score: 35, detail: 'Zürich correspond' },
+  type: { match: true, score: 18, detail: 'apartment' },
+  rooms: { match: false, score: 0, detail: 'Aucun critère' },
+  features: { match: false, score: 0, detail: '—' },
+}
+/** Lot E1 : la jointure `property` des deux matchs du mandat VENDU (p4) — son état est celui de la table. */
+const PETIT_SACONNEX_EMBARQUE = {
+  title: 'Appartement 4,5 pièces · Petit-Saconnex', price: 1_540_000, address: 'Avenue Trembley 20',
+  city: 'Genève', canton: 'GE', postal_code: '1209', rooms: 4.5, bedrooms: 3, surface_m2: 116,
+  photos: [unsplash(PHOTOS_APPART[2]!)], type: 'apartment', description: 'Traversant, balcon sur le parc, cuisine refaite.',
+  features: ['Balcon', 'Ascenseur'], floor: 3, year_built: 1985, charges_monthly: 480, status: 'sold',
+}
+
+/* ─── Le Pipeline (27.09.2026) ───────────────────────────────────────────────
+ * `transactions: []` rendait le Pipeline VIDE dans les trois états — il n'était pas au menu
+ * du banc, et la barre latérale y menait sur « Sortie neutralisée ». `/dev/pipeline` le montre,
+ * mais hors coquille et sur des deals DÉJÀ adaptés (slot `banc`) : ici il passe par ses vrais
+ * hooks (`usePipelineScreen`, `useTransaction`, `useOfferChain`).
+ *
+ * ⚠ CHAQUE DEAL PROLONGE UNE HISTOIRE QUE LE BANC RACONTE DÉJÀ, il n'en invente pas une autre :
+ * Camille signe demain chez le notaire (`ce1`) le bien qu'elle revisite aujourd'hui (`v1`) ;
+ * Antoine a refusé la villa de Cologny à 3'450'000 (`m5`) et le mandat vient de baisser ; Emma
+ * s'est dite intéressée par le loft (`m6`) ; Anastasia est LA prospecte du mandat off-market (`p3`) ;
+ * Nathalie porte le deal perdu que « Qui pour ce bien ? » cite (origine `deal_perdu`, 150 jours).
+ *
+ * ⚠ Quatre lecteurs, une ligne : le board et le Parcours lisent `property`, la fiche d'un bien
+ * filtre par `property_id`, la fiche deal lit `buyer` / `seller` / `agent`. Le banc n'applique pas
+ * `select` — la ligne porte la forme la PLUS LARGE des quatre.
+ *
+ * ⛔ Trois deals SORTENT du board — un perdu, un gagné, un rangé. Les inclure est la seule façon
+ * de vérifier qu'il les exclut (`banc-pipeline.spec.ts`).
+ */
+
+/** La jointure `property` d'un deal : les biens de l'agence, embarqués (p1-p3) ou du catalogue. */
+const BIENS_DES_DEALS: Record<string, Record<string, unknown>> = {
+  p1: CHAMPEL_EMBARQUE, p2: COLOGNY_EMBARQUE, p3: FLORISSANT_EMBARQUE,
+}
+const bienDuDeal = (id: string | null) => {
+  if (!id) return null
+  const b = BIENS_DES_DEALS[id] ?? BIENS_CATALOGUE.find((x) => x.id === id)
+  return b ? { id, ...b } : null
+}
+const agentDuDeal = (id: string) => {
+  const p = [AGENT_BANC, ...COLLEGUES_BANC].find((x) => x.id === id)
+  return p ? { full_name: p.full_name, avatar_url: null } : null
+}
+
+/**
+ * Une ligne `transactions` — ses colonnes RÉELLES, et ses jointures portées par la ligne.
+ * ⚠ Le contact du board est `contact_buyer_id ?? contact_seller_id` (`usePipelineScreen`) :
+ * un deal VENDEUR se lit sous le nom de son vendeur.
+ */
+const deal = (id: string, champs: {
+  contact_buyer_id?: string; contact_seller_id?: string; property_id?: string; assigned_to?: string
+  stage: string; status?: string; price_offered?: number; price_final?: number
+  created_at: string; updated_at: string; archived_at?: string
+}) => ({
+  id, agency_id: AGENCE_BANC.id, contact_buyer_id: null, contact_seller_id: null, property_id: null,
+  market_listing_id: null, mandate_type: null, notes: null, price_offered: null, price_final: null,
+  status: 'active', archived_at: null, assigned_to: AGENT_BANC.id,
+  ...champs,
+  property: bienDuDeal(champs.property_id ?? null),
+  buyer: CONTACTS.find((c) => c.id === champs.contact_buyer_id) ?? null,
+  seller: CONTACTS.find((c) => c.id === champs.contact_seller_id) ?? null,
+  agent: agentDuDeal(champs.assigned_to ?? AGENT_BANC.id),
+})
+
+/** Le prix d'une offre de d14, en fraction du prix affiché de pb44, arrondi à 5 000. */
+const prixD14 = (part: number) => {
+  const affiche = BIENS_CATALOGUE.find((b) => b.id === 'pb44')?.price ?? 0
+  return Math.round((affiche * part) / 5_000) * 5_000
+}
+
+// ⚠ EXPORTÉ pour `banc-pipeline.spec.ts` seul, comme `CONTACTS` : les écrans passent par `CRM_TABLES`.
+export const DEALS_BANC = [
+  // ── Au board : douze deals, les huit colonnes, et chaque colonne pour une raison.
+  deal('d1', { contact_buyer_id: 'c8', stage: 'new_lead', created_at: ilYA(0.2), updated_at: ilYA(0.2) }),
+  // Deux deals VENDEURS : Théo (estimation en retard) et Nadia (au board « Signé »).
+  deal('d2', { contact_seller_id: 'c2', stage: 'to_qualify', created_at: ilYA(24 * 9), updated_at: ilYA(74) }),
+  // L'ancien prospect à recontacter : en attente, sans prochaine action — la carte « Planifier une action ».
+  deal('d3', { contact_buyer_id: 'c12', stage: 'to_recontact', status: 'on_hold', created_at: ilYA(24 * 400), updated_at: ilYA(24 * 130) }),
+  deal('d4', { contact_buyer_id: 'c3', stage: 'active_search', created_at: ilYA(24 * 60), updated_at: ilYA(191) }),
+  deal('d5', { contact_buyer_id: 'c9', stage: 'active_search', created_at: ilYA(24 * 8), updated_at: ilYA(30) }),
+  deal('d6', { contact_buyer_id: 'c11', property_id: 'p3', stage: 'visit_planned', created_at: ilYA(24 * 2), updated_at: ilYA(20) }),
+  deal('d7', { contact_buyer_id: 'c6', property_id: 'pb36', stage: 'visit_planned', assigned_to: COLLEGUES_BANC[1].id, created_at: ilYA(24 * 12), updated_at: ilYA(48) }),
+  deal('d8', { contact_buyer_id: 'c10', property_id: 'p2', stage: 'visit_done', status: 'on_hold', created_at: ilYA(24 * 30), updated_at: ilYA(24 * 18) }),
+  // Une LOCATION : le montant de la carte est le loyer du bien (2'950 par mois).
+  deal('d9', { contact_buyer_id: 'c4', property_id: 'pb25', stage: 'interest_confirmed', assigned_to: COLLEGUES_BANC[0].id, created_at: ilYA(24 * 5), updated_at: ilYA(5) }),
+  // La négociation : trois tours d'offre, le dernier en attente (`OFFRES_BANC`) — « Deal · fiche » au menu.
+  deal('d10', { contact_buyer_id: 'c7', property_id: 'pb32', stage: 'negotiation', price_offered: 1_230_000, created_at: ilYA(24 * 5), updated_at: ilYA(24 * 2) }),
+  deal('d11', { contact_buyer_id: 'c1', property_id: 'p1', stage: 'notary', price_offered: 1_420_000, created_at: ilYA(24 * 40), updated_at: ilYA(24) }),
+  deal('d12', { contact_seller_id: 'c5', property_id: 'pb48', stage: 'signed', price_final: 3_100_000, created_at: ilYA(24 * 75), updated_at: ilYA(24 * 3) }),
+  // ── Hors du board.
+  deal('d13', { contact_buyer_id: 'c13', stage: 'lost', status: 'cancelled', created_at: ilYA(24 * 210), updated_at: ilYA(24 * 150) }),
+  // d14 : l'affaire CONCLUE du banc (« Deal · fiche conclue »). Emma a acheté pb44 — un bien que le catalogue
+  // donne déjà `sold` — au prix de sa seconde offre, acceptée (o6). Conclue il y a 90 jours, avant le chantier de
+  // la clôture : la fiche montre son récapitulatif, et ne lui réclame aucune clôture (au-delà de 30 jours).
+  deal('d14', { contact_buyer_id: 'c7', property_id: 'pb44', stage: 'signed', status: 'completed', price_final: prixD14(0.97), created_at: ilYA(24 * 200), updated_at: ilYA(24 * 90) }),
+  deal('d15', { contact_buyer_id: 'c4', property_id: 'pb10', stage: 'active_search', created_at: ilYA(24 * 40), updated_at: ilYA(24 * 20), archived_at: ilYA(24 * 20) }),
+]
+
+/**
+ * Les prochaines actions des deals — des `reminders` de la forme que le Pipeline POSE lui-même
+ * (`usePipelineReminderCreators` : `type: 'custom'`, `kind`, `channel: 'task'`, la note dans
+ * `message_template`). Le Calendrier et « Aujourd'hui » les montrent donc aussi, comme en production.
+ *
+ * ⚠ Les quatre branches d'échéance de la carte : en retard (d2), aujourd'hui (d1, d8, d9),
+ * demain (d7, d11), une date (le reste) ; et les six `kind` que la base accepte.
+ */
+const actionDeal = (id: string, transactionId: string, kind: string, note: string, heures: number) => {
+  const d = DEALS_BANC.find((x) => x.id === transactionId)!
+  const c = d.buyer ?? d.seller
+  return {
+    id, agency_id: AGENCE_BANC.id, transaction_id: transactionId, contact_id: c?.id ?? null,
+    property_id: d.property_id, match_id: null, type: 'custom', kind, trigger_rule: 'manual',
+    trigger_at: ilYA(heures), status: 'pending', channel: 'task', message_template: note,
+    calendar_label_id: null, created_at: d.updated_at,
+    contact: c ? { first_name: c.first_name, last_name: c.last_name } : null,
+    property: d.property,
+  }
+}
+// ⚠ Une seule action du jour AVANT la visite `v1` (13 h 30 sous l'horloge des e2e) : la case du 15
+// n'en montre que trois en vue Mois, et la visite doit y rester (`calendrier-deplacement.spec.ts`).
+const ACTIONS_DEALS = [
+  actionDeal('ra1', 'd1', 'call', 'Qualifier sa demande WhatsApp', -6),
+  actionDeal('ra2', 'd2', 'call', 'Rendez-vous d’estimation à Lutry', 26),
+  actionDeal('ra4', 'd4', 'match', 'Envoyer la sélection de Vandœuvres', -24 * 3),
+  actionDeal('ra5', 'd5', 'match', 'Envoyer trois biens du marché', -24 * 2),
+  actionDeal('ra6', 'd6', 'visit', 'Visite de l’attique de Florissant', -48),
+  actionDeal('ra7', 'd7', 'visit', 'Visite de l’appartement de Montreux', -24),
+  actionDeal('ra8', 'd8', 'call', "Annoncer la baisse à CHF 3'200'000", -1),
+  actionDeal('ra9', 'd9', 'kyc', 'Réunir son dossier de location', -7),
+  actionDeal('ra10', 'd10', 'offer', 'Réponse du vendeur attendue', -24 * 2),
+  // L'heure de `ce1` : la signature que le Calendrier montre déjà.
+  actionDeal('ra11', 'd11', 'note', 'Signature chez le notaire', -26),
+  actionDeal('ra12', 'd12', 'note', 'Préparer la remise des clés', -24 * 9),
+]
+
+/**
+ * La chaîne d'offres du deal d10 — lue par `crm_offer_chain` (la fiche deal) ET par `crm_offers`
+ * (les offres en attente de « Aujourd'hui »). ⚠ Le dernier tour est `pending` : la fiche n'offre
+ * « Accepter / Refuser » que sur lui. Il n'existe pas de statut `countered` — un tour auquel on a
+ * contre-offert est `rejected`, la contre-offre porte la suite.
+ */
+const offreDeal = (id: string, parent: string | null, kind: 'offer' | 'counter', amount: number, status: string, heures: number, repondu: number | null, deal = 'd10') => ({
+  id, deal_id: deal, agency_id: AGENCE_BANC.id, parent_offer_id: parent, kind,
+  from_party: kind === 'offer' ? 'buyer' : 'seller', by_id: kind === 'offer' ? null : AGENT_BANC.id,
+  by_label: kind === 'offer' ? 'Emma Schneider' : AGENT_BANC.full_name,
+  amount, currency: 'CHF', deposit: Math.round(amount * 0.1), closing_date: null,
+  conditions: {
+    financing: { active: kind === 'offer', days: kind === 'offer' ? 30 : null, note: null },
+    sale: { active: false, note: null }, diagnostic: { active: false, note: null },
+    occupancy: { active: false, note: null }, other: '',
+  },
+  expires_at: ilYA(heures - 24 * 7), attachments: [], notes: null, status,
+  created_at: ilYA(heures), responded_at: repondu === null ? null : ilYA(repondu),
+})
+/**
+ * Les faits de deux affaires, de la forme EXACTE que la base écrit (`trg_transaction_lifecycle` :
+ * `stage_change`, `entity_type = 'transaction'`, `old_stage` / `new_stage`) — l'historique de la
+ * fiche d'affaire les lit. Le banc n'a pas de trigger : sans eux, chaque historique serait vide.
+ */
+const faitDeal = (id: string, deal: string, de: string, vers: string, heures: number) => ({
+  id, agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'stage_change',
+  category: 'deal', severity: 'info', entity_type: 'transaction', entity_id: deal, object_label: `${de} → ${vers}`,
+  metadata: { old_stage: de, new_stage: vers }, created_at: ilYA(heures), actor: { full_name: AGENT_BANC.full_name },
+})
+const FAITS_DEALS = [
+  faitDeal('fd1', 'd10', 'visit_done', 'interest_confirmed', 24 * 5),
+  faitDeal('fd2', 'd10', 'interest_confirmed', 'offer', 24 * 4),
+  faitDeal('fd3', 'd10', 'offer', 'negotiation', 24 * 3),
+  faitDeal('fd4', 'd11', 'negotiation', 'reserved', 24 * 12),
+  faitDeal('fd5', 'd11', 'reserved', 'financing', 24 * 8),
+  faitDeal('fd6', 'd11', 'financing', 'notary', 24),
+  {
+    ...faitDeal('fd7', 'd14', 'signed', 'signed', 24 * 90),
+    action: 'status_change', object_label: 'active → completed', metadata: { old_status: 'active', new_status: 'completed' },
+  },
+]
+
+const OFFRES_BANC = [
+  offreDeal('o1', null, 'offer', 1_180_000, 'rejected', 24 * 4, 24 * 3.5),
+  offreDeal('o2', 'o1', 'counter', 1_260_000, 'rejected', 24 * 3, 24 * 2.2),
+  offreDeal('o3', 'o2', 'offer', 1_230_000, 'pending', 24 * 2, null),
+  // d14 : la négociation d'Emma sur pb44, close par l'offre acceptée — son montant est le prix final.
+  offreDeal('o4', null, 'offer', prixD14(0.93), 'rejected', 24 * 115, 24 * 114, 'd14'),
+  offreDeal('o5', 'o4', 'counter', prixD14(0.99), 'rejected', 24 * 110, 24 * 108, 'd14'),
+  offreDeal('o6', 'o5', 'offer', prixD14(0.97), 'accepted', 24 * 100, 24 * 99, 'd14'),
+]
+
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE, ...ANNONCES_FIL, ...ANNONCES_BOUCLE, ...ANNONCES_SIGNAL],
+  market_price_history: HISTORIQUE_PRIX_BANC,
   credit_ledger: [],
   credit_wallets: [],
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
-  activity_events: [...EVENEMENTS, ...TRAINE_JOURNAL],
+  activity_events: [...EVENEMENTS, ...FAITS_DEALS, ...TRAINE_JOURNAL],
   relance_sessions: [],
   relance_items: [],
   // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »
@@ -601,9 +924,19 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   // `due_at` — colonne qui n'existe pas dans `reminders` —, si bien que les trois
   // écrans du banc ne voyaient AUCUN rappel. Depuis le 13.09.2026, « Aujourd'hui »
   // montre donc r1 (+3 h) dans sa journée, et le Calendrier les deux.
+  // ⚠ `contact` : la jointure `contact:contacts(first_name, last_name)` que lit `useReminders` — le banc
+  // n'applique pas `select`, la ligne la porte. Sans elle, « Dossiers » nommait chacun de ces rappels
+  // « Contact » (son repli) : une limite du banc, antérieure au lot D1, relevée en le rejouant.
   reminders: [
-    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
-    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
+    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48), contact: { first_name: 'Camille', last_name: 'Rochat' } },
+    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52), contact: { first_name: 'Salomé', last_name: 'Perret' } },
+    // La boucle du fil (lot B) : UNE relance par proposition, qui couvre TOUS ses biens (`match_ids`). rb1
+    // reste ouverte — Julie a refusé m14 mais pas encore répondu sur m15 (`fermer_relance_proposition`) ;
+    // rb2, échue, couvre les deux biens proposés ensemble à Emma. Colonnes réelles de `reminders`, telles que `poserRelance` les pose.
+    { id: 'rb1', agency_id: AGENCE_BANC.id, contact_id: 'c9', property_id: null, transaction_id: null, match_id: 'm14', match_ids: ['m14', 'm15'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(-24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Julie Morand sur 2 biens proposés', created_at: ilYA(48), contact: { first_name: 'Julie', last_name: 'Morand' } },
+    { id: 'rb2', agency_id: AGENCE_BANC.id, contact_id: 'c7', property_id: null, transaction_id: null, match_id: 'm18', match_ids: ['m18', 'm21'], type: 'follow_up_sent_property', trigger_rule: 'manual', trigger_days: 3, trigger_at: ilYA(24), status: 'pending', channel: 'task', kind: null, completed_at: null, draft_message: null, calendar_label_id: null, message_template: 'Retour de Emma Schneider sur 2 biens proposés', created_at: ilYA(96), contact: { first_name: 'Emma', last_name: 'Schneider' } },
+    // Les prochaines actions des deals du Pipeline — voir `ACTIONS_DEALS`.
+    ...ACTIONS_DEALS,
   ],
   // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
   // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
@@ -652,7 +985,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       features: ['Balcon', 'Ascenseur', 'Cave', 'Parking'],
       mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 120), mandate_expires_at: ilYA(-24 * 180),
       views_count: 214, favorites_count: 12,
-      status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 120), condition: 'good', off_market: false, created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null,
     },
     {
       id: 'p2', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Villa individuelle · Cologny', type: 'house',
@@ -663,23 +996,61 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       features: ['Piscine', 'Jardin', 'Garage double', 'Vue lac'],
       mandate_type: 'simple', mandate_commission_pct: 2.5, mandate_signed_at: ilYA(24 * 340), mandate_expires_at: ilYA(-24 * 20),
       views_count: 486, favorites_count: 31,
-      status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 300), off_market: false, created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null,
+    },
+    // Lot C (22.09.2026) : un mandat NEUF et OFF-MARKET — « Nouveau mandat » en tête de « Vos biens », et
+    // « Qui pour ce bien ? » sur son en-tête, avec deux anciens prospects.
+    {
+      id: 'p3', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Attique 5,5 pièces · Florissant', type: 'apartment',
+      address: 'Route de Florissant 58', postal_code: '1206', city: 'Genève', canton: 'GE',
+      price: 2_350_000, charges_monthly: 690, rooms: 5.5, bedrooms: 4, bathrooms: 2, surface_m2: 168,
+      year_built: 1972, energy_class: 'C', floor: 7, condition: 'renovated', off_market: true,
+      description: 'Attique traversant, terrasse de 60 m² et vue sur le lac. Entièrement rénové.',
+      features: ['Terrasse', 'Ascenseur', 'Vue lac'],
+      mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 3), mandate_expires_at: ilYA(-24 * 180),
+      views_count: 0, favorites_count: 0,
+      status: 'active', transaction_type: 'sale', published_at: ilYA(24 * 2), created_at: ilYA(24 * 3),
+      photos: [unsplash(PHOTOS_APPART[9]!)], photos_cf: null,
+    },
+    // Lot E1 (27.09.2026) : un mandat VENDU. Julie n'a pas encore répondu sur lui (m26), Emma s'y est dite intéressée
+    // (m27) : « En attente » et « À conclure » les gardent, son état écrit (« Vendu ») ; « À proposer » ne le montre plus.
+    {
+      id: 'p4', agency_id: AGENCE_BANC.id, created_by: AGENT_BANC.id, partner_agency: null, title: 'Appartement 4,5 pièces · Petit-Saconnex', type: 'apartment',
+      address: 'Avenue Trembley 20', postal_code: '1209', city: 'Genève', canton: 'GE',
+      price: 1_540_000, charges_monthly: 480, rooms: 4.5, bedrooms: 3, bathrooms: 2, surface_m2: 116,
+      year_built: 1985, energy_class: 'C', floor: 3, condition: 'good', off_market: false,
+      description: 'Traversant, balcon sur le parc, cuisine refaite.',
+      features: ['Balcon', 'Ascenseur'],
+      mandate_type: 'exclusive', mandate_commission_pct: 3, mandate_signed_at: ilYA(24 * 90), mandate_expires_at: ilYA(-24 * 90),
+      views_count: 158, favorites_count: 11,
+      status: 'sold', transaction_type: 'sale', published_at: ilYA(24 * 85), created_at: ilYA(24 * 92),
+      photos: [unsplash(PHOTOS_APPART[2]!)], photos_cf: null,
     },
     ...BIENS_CATALOGUE,
   ],
   // Les recherches que le moteur a notées (`matches.client_search_id`) — ce que le fil de matchs
   // compare au bien. Recopiées de la fiche : en production, la fiche est souvent vide et la
   // recherche pleine ; le banc, lui, garde les deux égales pour ne tromper aucune des deux surfaces.
-  client_searches: ['c1', 'c7', 'c9', 'c10'].map((id) => ({
-    id: `cs${id.slice(1)}`, agency_id: AGENCE_BANC.id, contact_id: id, label: null, is_active: true,
-    criteria: CONTACTS.find((c) => c.id === id)?.search_criteria ?? null,
-    last_matched_at: null, created_at: ilYA(300), updated_at: ilYA(300),
-  })),
-  transactions: [],
-  // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
-  // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
-  // de Champel, et cinq intérieurs de stock dans sa galerie), le bien de l'agence n'en
-  // a qu'UNE (le collage de la fiche la répétait trois fois).
+  client_searches: [
+    ...['c1', 'c7', 'c9', 'c10', 'c11'].map((id) => ({
+      id: `cs${id.slice(1)}`, agency_id: AGENCE_BANC.id, contact_id: id, label: null, is_active: true,
+      criteria: CONTACTS.find((c) => c.id === id)?.search_criteria ?? null,
+      last_matched_at: null, created_at: ilYA(300), updated_at: ilYA(300),
+    })),
+    // Deux recherches CLOSES (lot C) : `updated_at` date leur clôture (le pont la pose). Philippe : il y a 120 jours ;
+    // Nathalie : il y a 20 jours, mais un deal perdu il y a 150 jours en fait une ancienne prospecte.
+    {
+      id: 'cs12', agency_id: AGENCE_BANC.id, contact_id: 'c12', label: null, is_active: false, last_matched_at: null,
+      criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'Champel', 'GE'], budget_max: 2_500_000, rooms_min: 5, features: ['terrasse'] },
+      created_at: ilYA(24 * 400), updated_at: ilYA(24 * 120),
+    },
+    {
+      id: 'cs13', agency_id: AGENCE_BANC.id, contact_id: 'c13', label: null, is_active: false, last_matched_at: null,
+      criteria: { transaction_type: 'buy', type: 'apartment', zones: ['Genève', 'GE'], budget_min: 1_800_000, budget_max: 2_400_000, rooms_min: 5, surface_min: 180 },
+      created_at: ilYA(24 * 500), updated_at: ilYA(24 * 20),
+    },
+  ],
+  transactions: DEALS_BANC,
   // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
   // ligne : le banc n'applique pas `select`.
   // ── Le fil de matchs (lot 1, 17.09.2026) : m2 à m6 sont des paires que le moteur PEUT créer —
@@ -748,9 +1119,12 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       property: CHAMPEL_EMBARQUE, market_listing: null,
     },
     {
+      // Refusé par Antoine pour le PRIX à 3'450'000, revenu à proposer quand le mandat est passé à 3'200'000
+      // (lot B, `match_retour_prix_mandat`) : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis ».
       id: 'm5', agency_id: AGENCE_BANC.id, client_search_id: 'cs10', contact_id: 'c10', source: 'internal',
       property_id: 'p2', market_listing_id: null,
-      score: 97, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(12),
+      score: 97, status: 'suggested', sent_via: 'agent', sent_at: ilYA(24 * 20), snoozed_until: null, created_at: ilYA(24 * 25),
+      response_at: ilYA(24 * 18), reaction_motif: 'prix', reaction_note: null, prix_propose: 3_450_000,
       reasons: {
         budget: { match: true, score: 32, detail: 'Dans le budget' },
         zone: { match: true, score: 24, detail: 'Cologny correspond' },
@@ -766,6 +1140,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       id: 'm6', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
       property_id: 'pb32', market_listing_id: null,
       score: 100, status: 'interested', sent_via: 'reception', sent_at: ilYA(24 * 6), snoozed_until: null, created_at: ilYA(24 * 6 + 2),
+      response_at: ilYA(24 * 5),
       reasons: {
         budget: { match: true, score: 47, detail: 'Dans le budget' },
         zone: { match: true, score: 35, detail: 'Genève correspond' },
@@ -774,7 +1149,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
         features: { match: false, score: 0, detail: '—' },
       },
       contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
-      property: { title: 'Loft 2,5 pièces · Genève', price: 1_290_000, city: 'Genève', canton: 'GE', rooms: 2.5, surface_m2: 86, photos: [], type: 'apartment' },
+      property: { title: 'Loft 2,5 pièces · Genève', price: 1_290_000, city: 'Genève', canton: 'GE', rooms: 2.5, surface_m2: 86, photos: [], type: 'apartment', status: 'active' },
       market_listing: null,
     },
     // ── Le marché du fil (lot 2, 17.09.2026) : m8 à m13, des paires acheteur × annonce ANNONCES_FIL
@@ -863,8 +1238,196 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       contact: { first_name: 'Emma', last_name: 'Schneider', email: 'emma.schneider@example.com', phone: '+41 76 488 02 19' },
       market_listing: ANNONCES_FIL[3], property: null,
     },
+    // ── La boucle du fil (lot B, 21.09.2026) : m14 à m21, sur ANNONCES_BOUCLE, notés par le vrai moteur
+    // (`banc-matching-boucle.spec.ts`). ⚠ Le banc ne joue AUCUN trigger : ce que la base poserait seule y est
+    // écrit tel qu'elle le laisserait — `prix_propose` au passage à `sent`, `response_at` à la réponse, le
+    // retour à `suggested` d'un refus « prix » quand le prix baisse (m20, et m5 plus haut).
+    {
+      id: 'm14', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-2',
+      score: 97, status: 'rejected', sent_via: 'agent', sent_at: ilYA(48), snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: ilYA(24), reaction_motif: 'prix', reaction_note: null, prix_propose: 1_560_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '5 pièces · 118 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[1], property: null,
+    },
+    {
+      id: 'm15', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-3',
+      score: 97, status: 'sent', sent_via: 'agent', sent_at: ilYA(48), snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_490_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4 pièces · 104 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[2], property: null,
+    },
+    {
+      id: 'm16', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-1',
+      score: 100, status: 'rejected', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 10),
+      response_at: ilYA(24 * 8), reaction_motif: 'prix', reaction_note: 'Au-dessus de ce que sa banque suit.', prix_propose: 1_580_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 112 m²' },
+        features: { match: true, score: 10, detail: '3/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[0], property: null,
+    },
+    {
+      id: 'm17', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-5',
+      score: 100, status: 'interested', sent_via: 'agent', sent_at: ilYA(24 * 5), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: ilYA(24 * 3), reaction_motif: null, reaction_note: null, prix_propose: 2_200_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[4], property: null,
+    },
+    {
+      id: 'm18', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-6',
+      score: 100, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 4), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 2_650_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[5], property: null,
+    },
+    {
+      id: 'm19', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-4',
+      score: 57, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(24 * 4),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: null, apprentissage_at: null,
+      reasons: {
+        budget: { match: false, score: 12, detail: '9% au-dessus du budget' },
+        zone: { match: true, score: 14, detail: 'Canton GE correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 15, detail: '3,5 pièces · 92 m²' },
+        features: { match: false, score: 3, detail: '1/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, market_listing: ANNONCES_BOUCLE[3], property: null,
+    },
+    {
+      id: 'm20', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-7',
+      score: 100, status: 'suggested', sent_via: 'agent', sent_at: ilYA(24 * 12), snoozed_until: null, created_at: ilYA(24 * 14),
+      response_at: ilYA(24 * 10), reaction_motif: 'prix', reaction_note: 'Attend une baisse.', prix_propose: 2_590_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[6], property: null,
+    },
+    {
+      id: 'm21', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'market',
+      property_id: null, market_listing_id: 'ml-boucle-8',
+      score: 100, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 4), snoozed_until: null, created_at: ilYA(24 * 7),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_980_000, apprentissage_at: null,
+      reasons: RAISONS_EMMA_ZURICH, contact: EMMA_EMBARQUEE, market_listing: ANNONCES_BOUCLE[7], property: null,
+    },
+    // ── Lot C (22.09.2026) : Florissant, off-market, et les deux annonces à signal d'Anastasia. ──
+    {
+      id: 'm22', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'internal',
+      property_id: 'p3', market_listing_id: null, score_version: 4,
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(40),
+      reasons: {
+        budget: { match: true, score: 27, detail: 'Dans le budget' },
+        zone: { match: true, score: 20, detail: 'Genève correspond' },
+        type: { match: true, score: 10, detail: 'apartment' },
+        rooms: { match: true, score: 10, detail: '5,5 pièces' },
+        features: { match: true, score: 8, detail: '2/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: FLORISSANT_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm23', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
+      property_id: 'p3', market_listing_id: null, score_version: 4,
+      score: 100, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(40),
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: EMMA_EMBARQUEE, property: FLORISSANT_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm24', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'market',
+      property_id: null, market_listing_id: 'ml-signal-1', score_version: 4,
+      score: 87, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(20),
+      reasons: {
+        budget: { match: true, score: 27, detail: 'Dans le budget' },
+        zone: { match: true, score: 20, detail: 'Genève correspond' },
+        type: { match: true, score: 10, detail: 'apartment' },
+        rooms: { match: true, score: 10, detail: '6 pièces' },
+        features: { match: true, score: 4, detail: '1/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: null, market_listing: ANNONCES_SIGNAL[0],
+    },
+    {
+      id: 'm25', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'market',
+      property_id: null, market_listing_id: 'ml-signal-2', score_version: 4,
+      score: 95, status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: ilYA(24 * 2),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Dans le budget · Prix baissé de 9%' },
+        zone: { match: true, score: 22, detail: 'Genève correspond' },
+        type: { match: true, score: 11, detail: 'apartment' },
+        rooms: { match: true, score: 11, detail: '5 pièces' },
+        features: { match: true, score: 9, detail: '2/2 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: null, market_listing: ANNONCES_SIGNAL[1],
+    },
+    // ── Lot E1 (27.09.2026) : le mandat VENDU de Petit-Saconnex (p4), noté par le vrai moteur (`banc-matching-e1.spec.ts`).
+    // Proposé à Julie il y a six jours ; proposé à Emma il y a neuf jours, intéressée depuis sept. Aucune relance ne les
+    // couvre et la réponse d'Emma sort de la fenêtre de « Pendant ton absence » : « Aujourd'hui » reste celui du lot D1
+    // (`banc-matching-d1.spec.ts`) — un mandat vendu n'y entre pas.
+    {
+      id: 'm26', agency_id: AGENCE_BANC.id, client_search_id: 'cs9', contact_id: 'c9', source: 'internal',
+      property_id: 'p4', market_listing_id: null, score_version: 4,
+      score: 97, status: 'sent', sent_via: 'agent', sent_at: ilYA(24 * 6), snoozed_until: null, created_at: ilYA(24 * 10),
+      response_at: null, reaction_motif: null, reaction_note: null, prix_propose: 1_540_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 32, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 22, detail: '4,5 pièces · 116 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: JULIE_EMBARQUEE, property: PETIT_SACONNEX_EMBARQUE, market_listing: null,
+    },
+    {
+      id: 'm27', agency_id: AGENCE_BANC.id, client_search_id: 'cs7', contact_id: 'c7', source: 'internal',
+      property_id: 'p4', market_listing_id: null, score_version: 4,
+      score: 100, status: 'interested', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 12),
+      response_at: ilYA(24 * 7), reaction_motif: null, reaction_note: null, prix_propose: 1_540_000, apprentissage_at: null,
+      reasons: {
+        budget: { match: true, score: 47, detail: 'Dans le budget' },
+        zone: { match: true, score: 35, detail: 'Genève correspond' },
+        type: { match: true, score: 18, detail: 'apartment' },
+        rooms: { match: false, score: 0, detail: 'Aucun critère' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+      contact: EMMA_EMBARQUEE, property: PETIT_SACONNEX_EMBARQUE, market_listing: null,
+    },
+    // m28 : Anastasia avait une visite prévue à Champel (p1), le bien que Camille achète (d11). Conclure d11
+    // propose de la prévenir : c'est le cas que la clôture existe pour ne pas oublier.
+    {
+      id: 'm28', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 91, status: 'visit_planned', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 10),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Dans le budget' },
+        zone: { match: true, score: 24, detail: 'Genève correspond' },
+        type: { match: true, score: 12, detail: 'apartment' },
+        rooms: { match: true, score: 18, detail: '4,5 pièces · 118 m²' },
+        features: { match: true, score: 7, detail: '2/3 critères' },
+      },
+      contact: ANASTASIA_EMBARQUEE, property: CHAMPEL_EMBARQUE, market_listing: null,
+    },
   ],
-  crm_offers: [],
+  crm_offers: OFFRES_BANC,
   seller_leads: [],
   kyc_cases: KYC_CASES,
   kyc_checklist_items: KYC_CHECKS,
@@ -898,6 +1461,157 @@ export const CRM_TABLES: Record<string, unknown[]> = {
 }
 
 /**
+ * `matching-engine` du banc — le mode `rescore-search` d'« Apprendre » (lot B) ; les autres modes rendent
+ * `{ ok: true, banc: true }`, comme toute edge sans fixture.
+ *
+ * ⛔ LE BANC NE NOTE PAS : `src/` ne charge pas le barème Deno (CLAUDE.md §4). Il connaît les notes du cas de
+ * démonstration — la recherche de Julie (cs9), budget maximum abaissé à 1'550'000 par ses deux refus « prix » —,
+ * CONFRONTÉES au moteur par `banc-matching-boucle.spec.ts`. Une autre valeur pose la clé et prend les refus en
+ * compte sans rien renoter (0 réévalué, et l'écran le dit) : le banc n'invente pas de note.
+ *
+ * Même contrat que l'edge : la SEULE clé corrigée (`correction: { cle, valeur }`), fusionnée dans les critères
+ * d'aujourd'hui. Mêmes écritures, dans le même ordre : les notes (sous le seuil : `ignored`, motif
+ * `recherche_ajustee`), puis, comme `matching_ajuster_recherche`, la clé dans la recherche et dans la fiche si
+ * elle portait les mêmes critères, les refus pris en compte, une ligne au journal.
+ */
+type RaisonBanc = { match: boolean; score: number; detail: string }
+/** Le seuil du barème (`DEFAULT_SCORING_CONFIG.threshold`, matching-normalize.ts). */
+const SEUIL_MOTEUR = 55
+/** Les notes du moteur pour la recherche de Julie au budget maximum de 1'550'000 : seul l'axe budget change. */
+const NOTES_JULIE_1550: Record<string, { score: number; budget?: RaisonBanc }> = {
+  m3: { score: 97 }, m8: { score: 97 }, m10: { score: 90 },
+  m9: { score: 94, budget: { match: true, score: 26, detail: '3% au-dessus du budget' } },
+  m19: { score: 49, budget: { match: false, score: 4, detail: '13% au-dessus du budget' } },
+}
+
+function renoterBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const recherche = (CRM_TABLES.client_searches as { id: string; contact_id: string; criteria: unknown }[])
+    .find((r) => r.id === a.client_search_id)
+  if (!recherche) return { error: 'search_not_found' }
+  const brute = a.correction && typeof a.correction === 'object' ? a.correction as { cle?: unknown; valeur?: unknown } : null
+  const correction = brute && typeof brute.cle === 'string' ? { cle: brute.cle, valeur: brute.valeur } : null
+  const avant = recherche.criteria
+  const criteres = correction ? { ...(avant as Record<string, unknown> | null), [correction.cle]: correction.valeur } : null
+  const refus = Array.isArray(a.refus_ids) ? a.refus_ids.filter((id): id is string => typeof id === 'string') : []
+  const matchs = CRM_TABLES.matches as {
+    id: string; status: string; client_search_id?: string | null; score: number
+    reasons: Record<string, unknown> | null; reaction_motif?: string | null; apprentissage_at?: string | null
+  }[]
+  const demonstration = recherche.id === 'cs9' && correction?.cle === 'budget_max' && correction.valeur === 1_550_000
+  let reevalues = 0
+  let ecartes = 0
+  for (const m of matchs) {
+    const note = demonstration ? NOTES_JULIE_1550[m.id] : undefined
+    if (!note || m.status !== 'suggested' || m.client_search_id !== recherche.id) continue
+    reevalues++
+    m.score = note.score
+    if (note.budget) m.reasons = { ...m.reasons, budget: note.budget }
+    if (note.score < SEUIL_MOTEUR) {
+      ecartes++
+      m.status = 'ignored'
+      m.reaction_motif = 'recherche_ajustee'
+    }
+  }
+  if (criteres) {
+    recherche.criteria = criteres
+    const fiche = (CRM_TABLES.contacts as { id: string; search_criteria: unknown }[]).find((c) => c.id === recherche.contact_id)
+    if (fiche && JSON.stringify(fiche.search_criteria) === JSON.stringify(avant)) fiche.search_criteria = criteres
+  }
+  const maintenant = new Date().toISOString()
+  for (const m of matchs) {
+    if (refus.includes(m.id) && m.status === 'rejected' && m.client_search_id === recherche.id) m.apprentissage_at = maintenant
+  }
+  const journal = CRM_TABLES.activity_events as Record<string, unknown>[]
+  journal.push({
+    id: crypto.randomUUID(), agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user',
+    action: criteres ? 'recherche_ajustee' : 'matchs_reevalues', entity_type: 'contact', entity_id: recherche.contact_id,
+    category: 'contact', severity: 'info', object_label: null, created_at: maintenant,
+    metadata: {
+      client_search_id: recherche.id, motif: a.motif ?? null, cle: correction?.cle ?? null, avant, apres: criteres ?? avant,
+      refus_ids: refus, reevalues, ecartes,
+    },
+  })
+  return { reevalues, ecartes, mode: 'rescore-search' }
+}
+
+/**
+ * « Qui pour ce bien ? » (lot C) — les anciens prospects de Florissant, NOTÉS par le vrai moteur (calculés le
+ * 22.09.2026, confrontés par `banc-matching-explique.spec.ts`). Le banc ne note pas : il rejoue seulement les
+ * deux règles d'état du moteur — ni un acheteur qui a déjà un match sur le bien, ni une recherche rouverte.
+ */
+const PROSPECTS_BANC: Record<string, {
+  contact_id: string; prenom: string; nom: string; client_search_id: string; score: number
+  origine: 'recherche_close' | 'deal_perdu'; depuis: string; reasons: Record<string, RaisonBanc>
+}[]> = {
+  p3: [
+    {
+      contact_id: 'c12', prenom: 'Philippe', nom: 'Rey', client_search_id: 'cs12', score: 100, origine: 'recherche_close', depuis: ilYA(24 * 120),
+      reasons: {
+        budget: { match: true, score: 36, detail: 'Dans le budget' },
+        zone: { match: true, score: 27, detail: 'Genève correspond' },
+        type: { match: true, score: 13, detail: 'apartment' },
+        rooms: { match: true, score: 13, detail: '5,5 pièces' },
+        features: { match: true, score: 11, detail: '1/1 critères' },
+      },
+    },
+    {
+      contact_id: 'c13', prenom: 'Nathalie', nom: 'Gerber', client_search_id: 'cs13', score: 96, origine: 'deal_perdu', depuis: ilYA(24 * 150),
+      reasons: {
+        budget: { match: true, score: 36, detail: 'Dans le budget' },
+        zone: { match: true, score: 27, detail: 'Genève correspond' },
+        type: { match: true, score: 13, detail: 'apartment' },
+        rooms: { match: true, score: 21, detail: '5,5 pièces · 168 m²' },
+        features: { match: false, score: 0, detail: '—' },
+      },
+    },
+  ],
+}
+
+function prospectsDuBanc(bienId: string | null) {
+  const matchs = CRM_TABLES.matches as { contact_id: string; property_id: string | null }[]
+  const recherches = CRM_TABLES.client_searches as { id: string; is_active: boolean | null }[]
+  return (bienId ? PROSPECTS_BANC[bienId] ?? [] : [])
+    .filter((p) => !matchs.some((m) => m.contact_id === p.contact_id && m.property_id === bienId))
+    .filter((p) => recherches.find((r) => r.id === p.client_search_id)?.is_active === false)
+}
+
+function prospectsBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const bienId = typeof a.property_id === 'string' ? a.property_id : null
+  return {
+    prospects: prospectsDuBanc(bienId).map((p) => ({
+      contact_id: p.contact_id, prenom: p.prenom, nom: p.nom, client_search_id: p.client_search_id,
+      score: p.score, origine: p.origine, depuis: p.depuis,
+    })),
+  }
+}
+
+function reactiverBanc(a: Record<string, unknown>): Record<string, unknown> {
+  const bienId = typeof a.property_id === 'string' ? a.property_id : null
+  const p = prospectsDuBanc(bienId).find((x) => x.client_search_id === a.client_search_id)
+  if (!p || !bienId) return { error: 'deja_sur_ce_bien' }
+  const maintenant = new Date().toISOString()
+  const recherche = (CRM_TABLES.client_searches as { id: string; is_active: boolean | null; updated_at: string }[])
+    .find((r) => r.id === p.client_search_id)
+  if (recherche) {
+    recherche.is_active = true
+    recherche.updated_at = maintenant
+  }
+  const id = `m-prospect-${p.contact_id}`
+  ;(CRM_TABLES.matches as Record<string, unknown>[]).push({
+    id, agency_id: AGENCE_BANC.id, client_search_id: p.client_search_id, contact_id: p.contact_id, source: 'internal',
+    property_id: bienId, market_listing_id: null, score: p.score, reasons: p.reasons, score_version: 4,
+    status: 'suggested', sent_via: null, sent_at: null, snoozed_until: null, created_at: maintenant,
+    contact: { first_name: p.prenom, last_name: p.nom, email: null, phone: null }, property: FLORISSANT_EMBARQUE, market_listing: null,
+  })
+  ;(CRM_TABLES.activity_events as Record<string, unknown>[]).push({
+    id: crypto.randomUUID(), agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'prospect_reactive',
+    entity_type: 'contact', entity_id: p.contact_id, category: 'contact', severity: 'info', object_label: null, created_at: maintenant,
+    metadata: { client_search_id: p.client_search_id, property_id: bienId, match_id: id, score: p.score, origine: a.origine ?? null },
+  })
+  return { match_id: id, score: p.score }
+}
+
+/**
  * Edge functions du banc.
  *
  * `extract-lead` — « Coller un message » de la fiche express. ⛔ PAS DE MODÈLE ICI : une
@@ -906,6 +1620,11 @@ export const CRM_TABLES: Record<string, unknown[]> = {
  * Rien ne sort du navigateur.
  */
 export const CRM_EDGES: Record<string, unknown> = {
+  // « Apprendre » (lot B) : voir `renoterBanc`. « Qui pour ce bien ? » (lot C) : `prospectsBanc`, `reactiverBanc`.
+  'matching-engine': (a: Record<string, unknown>) => (a.mode === 'rescore-search' ? renoterBanc(a)
+    : a.mode === 'prospects' ? prospectsBanc(a)
+      : a.mode === 'reactiver-prospect' ? reactiverBanc(a)
+        : { ok: true, banc: true }),
   'extract-lead': (a: Record<string, unknown>) => {
     const texte = String(a.text ?? '')
     const bas = texte.toLowerCase()
@@ -1020,11 +1739,11 @@ const CHANGELOG = [
 ]
 
 /**
- * `matching_fil_marche` — le résumé « Marché » du fil, CALCULÉ sur les tables du banc à chaque appel, avec
+ * `matching_fil_marche_resume` — le résumé « Marché » du fil, CALCULÉ sur les tables du banc à chaque appel, avec
  * les règles de la RPC : `suggested`, non reporté, annonce non retirée ; trois vignettes. Une valeur figée
  * ne bougerait pas quand un envoi ou un « Écarter » vide la sélection.
  *
- * ⚠ Mêmes vignettes et même ordre que `20260922121000_matching_fil_marche.sql`, sans quoi le banc montre
+ * ⚠ Mêmes vignettes et même ordre que `20260930121000_matching_fil_marche.sql`, sans quoi le banc montre
  * une ligne que la production ne rend pas : `photos_cf[0]` (chaîne, ou son `.thumb`) puis `photos[0]`, une
  * chaîne vide ne comptant pas ; rang par score décroissant, puis `created_at` décroissant avec l'absent
  * EN DERNIER, puis l'id ; les trois premières vignettes NON vides dans ce rang.
@@ -1042,8 +1761,13 @@ function resumeMarcheBanc() {
   const maintenant = Date.now()
   const annonces = new Map((CRM_TABLES.market_listings as {
     id: string; status?: string | null; photos?: string[] | null; photos_cf?: unknown
+    price?: number | null; current_price?: number | null; price_at_first_seen?: number | null
+    price_reduced_at?: string | null; first_seen_at?: string | null
   }[]).map((a) => [a.id, a]))
-  const parContact = new Map<string, { id: string; score: number; creeLe: string | null; vignette: string | null }[]>()
+  const parContact = new Map<string, {
+    id: string; score: number; creeLe: string | null; vignette: string | null; nouveau: boolean; enBaisse: boolean
+  }[]>()
+  const jour = 86_400_000
   for (const m of CRM_TABLES.matches as {
     id: string; contact_id: string; market_listing_id: string | null; status: string; score: number
     created_at: string | null; snoozed_until?: string | null
@@ -1053,7 +1777,14 @@ function resumeMarcheBanc() {
     const a = annonces.get(m.market_listing_id)
     if (!a || a.status === 'removed') continue
     const liste = parContact.get(m.contact_id) ?? []
-    liste.push({ id: m.id, score: m.score, creeLe: m.created_at, vignette: vignetteMarcheBanc(a.photos_cf, a.photos) })
+    // Les seuils de la RPC (`matching_fil_marche_resume`) : ceux de `filSignaux`, date future écartée comprise.
+    const prix = Number(a.current_price ?? a.price ?? 0)
+    const enBaisse = a.price_reduced_at != null && Date.parse(a.price_reduced_at) > maintenant - JOURS_BAISSE * jour
+      && Date.parse(a.price_reduced_at) <= maintenant
+      && Number(a.price_at_first_seen ?? 0) > prix && prix > 0
+    const nouveau = a.first_seen_at != null && Date.parse(a.first_seen_at) > maintenant - JOURS_NOUVEAU * jour
+      && Date.parse(a.first_seen_at) <= maintenant
+    liste.push({ id: m.id, score: m.score, creeLe: m.created_at, vignette: vignetteMarcheBanc(a.photos_cf, a.photos), nouveau, enBaisse })
     parContact.set(m.contact_id, liste)
   }
   // `created_at desc nulls last` : l'absent après toute date, sans jamais comparer une date absente.
@@ -1065,10 +1796,279 @@ function resumeMarcheBanc() {
       return {
         contact_id, nombre: l.length, meilleur_score: tries[0]!.score,
         vignettes: tries.map((x) => x.vignette).filter((v): v is string => v != null).slice(0, 3),
+        nouveaux: l.filter((x) => x.nouveau && !x.enBaisse).length,
+        baisses: l.filter((x) => x.enBaisse).length,
       }
     })
     .sort((x, y) => y.meilleur_score - x.meilleur_score || y.nombre - x.nombre)
 }
+
+/**
+ * Lot D1 (23.09.2026) — les RPC des surfaces, REJOUÉES sur les tables du banc à chaque appel, comme `resumeMarcheBanc` :
+ * les matchs et les rappels y sont écrivables, donc un geste consigné au banc se voit dans « Aujourd'hui ». Sans elles, le
+ * banc disait toujours « Tu es à jour », relance échue comprise.
+ * ⚠ MIROIRS de `…_matching_surfaces.sql` (`matching_actions_du_jour`, `pige_acheteurs_compatibles`, et le
+ * `today_absence` qu'elle réécrit) : mêmes règles, mêmes seuils (`filSignaux`), mêmes statuts compatibles
+ * (`STATUTS_COMPATIBLES`) — `banc-matching-d1.spec.ts` confronte leur sortie à l'histoire du banc. Une règle changée d'un
+ * côté se change de l'autre.
+ * ⚠ Le banc n'a pas de RLS : le filtre d'agence que la base tient de la RLS (`security invoker`) ou écrit en dur
+ * (`today_absence`, `security definer`) est écrit ici, sur `AGENCE_BANC`.
+ * ⛔ Ni de TRIGGER : ce que la base pose seule après un geste n'y est pas écrit. Deux effets sont rejoués ici, À LA
+ * LECTURE, parce que sans eux le banc mentait après un geste : la relance close par `fermer_relance_proposition`
+ * (`relanceClose`) et la réponse datée par `set_match_response_at` (`reponduLe`). Pas `set_match_prix_propose` : « Je
+ * l'ai proposé » sur le bien revenu d'Antoine (m5) garde au banc son prix de proposition et sa réponse d'avant, et
+ * l'action « prix » y reste, là où la base la retirerait — une limite du banc du lot B, pas de ces miroirs.
+ */
+type MatchBanc = {
+  id: string; agency_id: string; contact_id: string; property_id: string | null; market_listing_id: string | null
+  status: string; score: number; sent_at: string | null; response_at?: string | null; reaction_motif?: string | null
+  prix_propose?: number | null; snoozed_until?: string | null; updated_at?: string | null
+}
+type RappelBanc = {
+  id: string; agency_id: string; contact_id: string | null; property_id?: string | null; type: string; status: string
+  trigger_at: string | null; match_id?: string | null; match_ids?: string[] | null
+}
+type BienBanc = {
+  id: string; agency_id: string; title?: string | null; address?: string | null; city?: string | null; price?: number | null
+  status?: string; transaction_type?: string | null; mandate_signed_at?: string | null; published_at?: string | null
+  deleted_at?: string | null
+}
+type AnnonceBanc = {
+  id: string; title?: string | null; address?: string | null; city?: string | null; price?: number | null
+  current_price?: number | null; status?: string | null; transaction_type?: string | null; price_at_first_seen?: number | null
+  price_reduced_at?: string | null; first_seen_at?: string | null
+}
+type ContactBanc = { id: string; first_name: string | null; last_name: string | null }
+/** Une ligne de `matching_actions_du_jour` avant la coupe : `rang` est la sorte, qui ordonne. */
+type ActionBanc = {
+  genre: 'retour' | 'prix' | 'mandat' | 'marche'; rang: 1 | 2 | 3 | 4
+  contact_id: string | null; match_id: string | null; property_id: string | null; market_listing_id: string | null
+  statut: string | null; titre: string | null; ville: string | null; nombre: number | null; nouveaux: number | null
+  baisses: number | null; montant: number | null; location: boolean | null; quand: string | null
+}
+
+const JOUR_BANC = 86_400_000
+const STATUTS_COMPATIBLES_BANC = new Set<string>(STATUTS_COMPATIBLES)
+/** `x > now() - interval '<jours> days' and x <= now()` : une date récente, jamais future. */
+const recenteBanc = (iso: string | null | undefined, jours: number, maintenant: number): boolean =>
+  iso != null && Date.parse(iso) > maintenant - jours * JOUR_BANC && Date.parse(iso) <= maintenant
+/** `greatest(…)` / `max(…)` sur des dates : la plus récente des présentes, nulle s'il n'y en a aucune. */
+const plusRecenteBanc = (dates: readonly (string | null | undefined)[]): string | null =>
+  dates.reduce<string | null>((max, d) => (d != null && (max == null || Date.parse(d) > Date.parse(max)) ? d : max), null)
+/** `least(greatest(coalesce(v, défaut), min), max)` : la borne d'un paramètre. */
+const borneBanc = (v: unknown, defaut: number, min: number, max: number): number => {
+  const n = v == null ? defaut : Number(v)
+  return Math.min(Math.max(Number.isFinite(n) ? n : defaut, min), max)
+}
+/** `nullif(x, '')`. */
+const nonVideBanc = (s: string | null | undefined): string | null => (s == null || s === '' ? null : s)
+/** `type = 'rent'` : nul quand le type l'est. */
+const locationBanc = (type: string | null | undefined): boolean | null => (type == null ? null : type === 'rent')
+/** Un ordre `nulls last`, croissant (`sens` 1) ou décroissant (-1) : un absent reste en dernier dans les deux sens. */
+const ordreBanc = (x: string | number | null, y: string | number | null, sens: 1 | -1 = 1): number =>
+  x === y ? 0 : x == null ? 1 : y == null ? -1 : (x < y ? -1 : 1) * sens
+const tempsOuNulBanc = (iso: string | null): number | null => (iso == null ? null : Date.parse(iso))
+const matchsBanc = () => (CRM_TABLES.matches as MatchBanc[]).filter((m) => m.agency_id === AGENCE_BANC.id)
+const contactBanc = (id: string | null) => (CRM_TABLES.contacts as ContactBanc[]).find((c) => c.id === id)
+const bienBanc = (id: string | null | undefined) => (CRM_TABLES.properties as BienBanc[]).find((p) => p.id === id)
+const annonceBanc = (id: string | null | undefined) => (CRM_TABLES.market_listings as AnnonceBanc[]).find((x) => x.id === id)
+/** `coalesce(r.match_ids, array[r.match_id])` : les biens qu'une relance couvre. */
+const couvertsBanc = (r: RappelBanc): string[] => r.match_ids ?? (r.match_id ? [r.match_id] : [])
+/** Les biens d'une relance qui attendent encore leur réponse (`sent`) — de l'agence seule. */
+const envoyesBanc = (ids: readonly string[]) => matchsBanc().filter((m) => ids.includes(m.id) && m.status === 'sent')
+/**
+ * Une relance de PROPOSITION dont plus aucun bien n'attend : la base l'aurait close (`fermer_relance_proposition`, quand
+ * son dernier bien quitte `sent`) ; le banc, qui ne joue pas ce trigger, la garde `pending`. Lue ouverte, elle sortait de
+ * `today_absence` avec `nb_biens: 0`, le hook en faisait un rappel ordinaire, et « Reprendre » l'écrivait `done` —
+ * exactement ce que le lot D1 a retiré.
+ * ⚠ Seulement si elle COUVRE des biens. `automation-engine` (§4, l'acheteur chaud inactif) en pose une sans aucun
+ * (`match_id` nul) : aucun bien ne la désigne, le trigger ne la ferme jamais, et la base la rend avec `nb_biens: 0` —
+ * un rappel ordinaire, qui se reprend.
+ * ⚠ Rejouée à la LECTURE seulement : la table la garde `pending`, et « Dossiers », qui lit `reminders` sans passer par
+ * ces miroirs (`useReminders`), la montre encore — le banc n'a pas de déclencheur.
+ */
+const relanceClose = (r: RappelBanc): boolean =>
+  r.type === 'follow_up_sent_property' && couvertsBanc(r).length > 0 && envoyesBanc(couvertsBanc(r)).length === 0
+/**
+ * La date d'une réponse : `response_at`, que la base pose au passage du statut (`set_match_response_at`). Le banc ne joue
+ * pas ce trigger, mais son PATCH pose `updated_at` (`ecrire`, `bancSupabase.ts`) : l'heure du geste qui a consigné la
+ * réponse. ⚠ Au plus près, pas à l'identique : la base fige la PREMIÈRE réponse, `updated_at` suit le dernier PATCH.
+ */
+const reponduLe = (m: MatchBanc): string | null => m.response_at ?? m.updated_at ?? null
+
+/** `matching_actions_du_jour(p_limite)`, sur le banc. */
+function actionsDuJourBanc(a: Record<string, unknown>) {
+  const maintenant = Date.now()
+  const limite = borneBanc(a.p_limite, 5, 1, 20)
+  const vide = {
+    contact_id: null, match_id: null, property_id: null, market_listing_id: null, statut: null, titre: null, ville: null,
+    nombre: null, nouveaux: null, baisses: null, montant: null, location: null, quand: null,
+  }
+  const lignes: ActionBanc[] = []
+
+  // 1. Les retours dus : une relance de proposition échue dont un bien au moins attend encore sa réponse. Une ligne par
+  //    acheteur, datée de la plus ancienne de SES relances qui comptent (une relance sans bien `sent` ne compte pas).
+  const retours = new Map<string, { ids: Set<string>; quand: string }>()
+  for (const r of CRM_TABLES.reminders as RappelBanc[]) {
+    if (r.agency_id !== AGENCE_BANC.id || r.type !== 'follow_up_sent_property' || !['pending', 'triggered', 'snoozed'].includes(r.status)) continue
+    if (r.contact_id == null || r.trigger_at == null || !(Date.parse(r.trigger_at) <= maintenant)) continue
+    // Sans bien `sent`, rien ne se consigne : la jointure de la RPC sur les biens `sent` l'écarte des retours, qu'elle
+    // ait couvert des biens répondus depuis (la base l'aurait close : `relanceClose`) ou aucun (celle d'`automation-engine`).
+    const envoyes = envoyesBanc(couvertsBanc(r))
+    if (!envoyes.length) continue
+    const e = retours.get(r.contact_id) ?? { ids: new Set<string>(), quand: r.trigger_at }
+    for (const m of envoyes) e.ids.add(m.id)
+    if (Date.parse(r.trigger_at) < Date.parse(e.quand)) e.quand = r.trigger_at
+    retours.set(r.contact_id, e)
+  }
+  for (const [contact, e] of retours) lignes.push({ ...vide, genre: 'retour', rang: 1, contact_id: contact, nombre: e.ids.size, quand: e.quand })
+
+  // 2. Un prix passé sous le prix de proposition : proposé sans réponse, ou refusé pour le prix et revenu à proposer (son
+  //    report échu). Ni prix nul, ni annonce retirée, ni mandat vendu, retiré, supprimé — ou absent.
+  for (const m of matchsBanc()) {
+    if (m.prix_propose == null) continue
+    const revenu = m.status === 'suggested' && m.reaction_motif === 'prix'
+      && (m.snoozed_until == null || Date.parse(m.snoozed_until) <= maintenant)
+    if (m.status !== 'sent' && !revenu) continue
+    const bien = bienBanc(m.property_id)
+    const annonce = annonceBanc(m.market_listing_id)
+    if (annonce?.status === 'removed') continue
+    if (m.property_id != null && !(bien?.status === 'active' && bien.deleted_at == null)) continue
+    const brut = m.property_id != null ? bien?.price : annonce?.current_price ?? annonce?.price
+    const prix = brut == null ? null : Number(brut)
+    if (prix == null || !(prix > 0) || !(prix < m.prix_propose)) continue
+    lignes.push({
+      ...vide, genre: 'prix', rang: 2, contact_id: m.contact_id, match_id: m.id, property_id: m.property_id,
+      market_listing_id: m.market_listing_id, statut: m.status,
+      titre: nonVideBanc(bien?.title) ?? nonVideBanc(annonce?.title) ?? bien?.address ?? annonce?.address ?? null,
+      ville: bien?.city ?? annonce?.city ?? null, montant: m.prix_propose - prix,
+      location: locationBanc(bien?.transaction_type ?? annonce?.transaction_type), quand: m.sent_at,
+    })
+  }
+
+  // 3. Les nouveaux mandats : signés ou mis en service il y a 7 jours au plus (la plus récente des deux dates), actifs,
+  //    non supprimés, avec au moins un acquéreur compatible.
+  for (const p of CRM_TABLES.properties as BienBanc[]) {
+    if (p.agency_id !== AGENCE_BANC.id || p.status !== 'active' || p.deleted_at != null) continue
+    const quand = plusRecenteBanc([p.mandate_signed_at, p.published_at])
+    if (!recenteBanc(quand, JOURS_MANDAT, maintenant)) continue
+    const acheteurs = new Set(matchsBanc().filter((m) => m.property_id === p.id && STATUTS_COMPATIBLES_BANC.has(m.status)).map((m) => m.contact_id))
+    if (!acheteurs.size) continue
+    lignes.push({
+      ...vide, genre: 'mandat', rang: 3, property_id: p.id, titre: nonVideBanc(p.title) ?? p.address ?? null,
+      ville: p.city ?? null, nombre: acheteurs.size, location: locationBanc(p.transaction_type), quand,
+    })
+  }
+
+  // 4. Le marché, par acheteur : ses annonces jamais proposées (sans `prix_propose` — une baisse sur un bien déjà
+  //    proposé est l'action 2), nouvelles (3 jours) ou en baisse (14 jours). En baisse ne compte pas aussi en nouvelle.
+  const parContact = new Map<string, { annonce: AnnonceBanc; nouveau: boolean; enBaisse: boolean }[]>()
+  for (const m of matchsBanc()) {
+    if (m.status !== 'suggested' || m.market_listing_id == null || m.prix_propose != null) continue
+    if (m.snoozed_until != null && Date.parse(m.snoozed_until) > maintenant) continue
+    const x = annonceBanc(m.market_listing_id)
+    if (!x || x.status === 'removed') continue
+    const prix = Number(x.current_price ?? x.price ?? 0)
+    const enBaisse = recenteBanc(x.price_reduced_at, JOURS_BAISSE, maintenant) && Number(x.price_at_first_seen ?? 0) > prix && prix > 0
+    const nouveau = recenteBanc(x.first_seen_at, JOURS_NOUVEAU, maintenant)
+    if (!enBaisse && !nouveau) continue
+    parContact.set(m.contact_id, [...(parContact.get(m.contact_id) ?? []), { annonce: x, nouveau, enBaisse }])
+  }
+  for (const [contact, s] of parContact) {
+    // UNE annonce est nommée ; au-delà, on compte.
+    const seule = s.length === 1 ? s[0]!.annonce : null
+    const locations = s.map((x) => locationBanc(x.annonce.transaction_type))
+    lignes.push({
+      ...vide, genre: 'marche', rang: 4, contact_id: contact, market_listing_id: seule?.id ?? null,
+      titre: seule ? nonVideBanc(seule.title) ?? seule.address ?? null : null, ville: seule ? seule.city ?? null : null,
+      nombre: s.length, nouveaux: s.filter((x) => x.nouveau && !x.enBaisse).length, baisses: s.filter((x) => x.enBaisse).length,
+      // `bool_or` : vraie si l'une l'est, nulle si toutes le sont.
+      location: locations.includes(true) ? true : locations.includes(false) ? false : null,
+      quand: plusRecenteBanc(s.map((x) => (x.enBaisse ? x.annonce.price_reduced_at : x.annonce.first_seen_at))),
+    })
+  }
+
+  // L'ordre de la RPC : la sorte ; dans une sorte, la plus ancienne échéance, la plus forte baisse, le plus récent ; puis
+  // les identifiants, absents en dernier.
+  lignes.sort((x, y) => (x.rang - y.rang)
+    || (x.rang === 1 ? ordreBanc(tempsOuNulBanc(x.quand), tempsOuNulBanc(y.quand))
+      : x.rang === 2 ? ordreBanc(x.montant, y.montant, -1)
+        : ordreBanc(tempsOuNulBanc(x.quand), tempsOuNulBanc(y.quand), -1))
+    || ordreBanc(x.contact_id, y.contact_id) || ordreBanc(x.property_id, y.property_id) || ordreBanc(x.match_id, y.match_id))
+  // `count(*) over ()` : le total AVANT la coupe — ce que « Voir les N actions » promet.
+  const total = lignes.length
+  return lignes.slice(0, limite).map(({ rang: _rang, ...l }) => {
+    const c = contactBanc(l.contact_id)
+    return { ...l, prenom: c?.first_name ?? null, nom: c?.last_name ?? null, total }
+  })
+}
+
+/** `pige_acheteurs_compatibles(p_annonces)`, sur le banc : les 30 premiers identifiants, une ligne par annonce qui a un acheteur. */
+function acheteursPigeBanc(a: Record<string, unknown>) {
+  const ids = new Set((Array.isArray(a.p_annonces) ? a.p_annonces : []).slice(0, 30).filter((x): x is string => typeof x === 'string'))
+  const parAnnonce = new Map<string, Set<string>>()
+  for (const m of matchsBanc()) {
+    if (m.market_listing_id == null || !ids.has(m.market_listing_id) || !STATUTS_COMPATIBLES_BANC.has(m.status)) continue
+    parAnnonce.set(m.market_listing_id, (parAnnonce.get(m.market_listing_id) ?? new Set<string>()).add(m.contact_id))
+  }
+  return [...parAnnonce].map(([market_listing_id, acheteurs]) => ({ market_listing_id, acheteurs: acheteurs.size }))
+}
+
+/**
+ * `today_absence(p_fallback_hours)`, sur le banc. L'agent du banc n'a pas de présence (`agent_presence`) : la fenêtre est
+ * celle du repli. Les réactions y sont bornées ; les rappels échus NON, comme dans la fonction — ce qui attend attend
+ * d'autant plus qu'il est vieux.
+ */
+function absenceBanc(a: Record<string, unknown>) {
+  const maintenant = Date.now()
+  const depuis = maintenant - borneBanc(a.p_fallback_hours, 72, 1, 720) * 3_600_000
+  const reactions = matchsBanc().flatMap((m) => {
+    const le = reponduLe(m)
+    if ((m.status !== 'interested' && m.status !== 'rejected') || le == null || !(Date.parse(le) > depuis)) return []
+    // `join contacts` : une réponse sans acheteur n'est pas un signal.
+    const c = contactBanc(m.contact_id)
+    if (!c) return []
+    const p = bienBanc(m.property_id)
+    const x = annonceBanc(m.market_listing_id)
+    return [{
+      id: `match:${m.id}`, kind: m.status === 'interested' ? 'like' : 'skip', contact_id: m.contact_id,
+      first_name: c.first_name, last_name: c.last_name, subject: p?.title ?? p?.address ?? x?.title ?? null,
+      motif: m.reaction_motif ?? null, occurred_at: le, late: false, ref_id: m.id, reminder_type: null, nb_biens: null,
+    }]
+  })
+  const rappels = (CRM_TABLES.reminders as RappelBanc[]).flatMap((r) => {
+    if (r.agency_id !== AGENCE_BANC.id || (r.status !== 'pending' && r.status !== 'triggered')) return []
+    if (r.trigger_at == null || !(Date.parse(r.trigger_at) <= maintenant)) return []
+    // Close en base, elle n'attend plus rien : ce n'est plus un signal (`relanceClose`).
+    if (relanceClose(r)) return []
+    const c = contactBanc(r.contact_id)
+    const p = bienBanc(r.property_id)
+    return [{
+      id: `reminder:${r.id}`, kind: 'reminder', contact_id: r.contact_id, first_name: c?.first_name ?? null,
+      last_name: c?.last_name ?? null, subject: p?.title ?? p?.address ?? null, motif: null, occurred_at: r.trigger_at,
+      late: true, ref_id: r.id, reminder_type: r.type,
+      // Une relance de PROPOSITION dit combien de ses biens attendent encore leur réponse : « Reprendre » la consigne.
+      nb_biens: r.type === 'follow_up_sent_property' ? envoyesBanc(couvertsBanc(r)).length : null,
+    }]
+  })
+  const signals = [...reactions, ...rappels].sort((x, y) => Date.parse(y.occurred_at) - Date.parse(x.occurred_at)).slice(0, 50)
+  return { since: new Date(depuis).toISOString(), signals }
+}
+
+/**
+ * `focus_top_matches` : la file Focus des meilleurs matchs. ⚠ Le BUREAU ne la lit plus depuis le lot D1 (`useHotDeals` →
+ * `useFocusQueue({ matchs: false })` : la requête ne part pas, les matchs vivent dans le segment Matching). Son seul
+ * lecteur restant, `MobileTodayScreen`, n'est monté que par le banc `/dev/mobile`, en démo — le mobile routé
+ * (`MobileTodayHScreen`) ne la lit pas. Ces deux lignes font de ce banc un TÉMOIN : si le bureau relisait la file, deux
+ * matchs de Florissant (Anastasia, Emma) entreraient dans celle de « Dossiers ».
+ * ⚠ Une CONSTANTE, pas un miroir : deux lignes à la forme de la RPC, pour deux matchs RÉELS du banc (m22, m23), et
+ * écrites comme elle les écrirait — `reason_keys` en ordre alphabétique, les seuls axes tenus (Emma n'a ni pièces ni
+ * équipements dans sa recherche), la première photo du bien, et `kyc_risk_high` nul faute de dossier KYC.
+ */
+const FOCUS_TOP_BANC = [
+  { match_id: 'm22', contact_id: 'c11', contact_name: 'Anastasia Volkova', kind: 'internal', score: 100, lead_score: null, reasons_match_count: 5, reason_keys: ['budget', 'features', 'rooms', 'type', 'zone'], property_title: 'Attique 5,5 pièces · Florissant', property_price: 2_350_000, property_photo: unsplash(PHOTOS_APPART[9]!), city: 'Genève', kyc_risk_high: null, kyc_days_to_expiry: null },
+  { match_id: 'm23', contact_id: 'c7', contact_name: 'Emma Schneider', kind: 'internal', score: 100, lead_score: null, reasons_match_count: 3, reason_keys: ['budget', 'type', 'zone'], property_title: 'Attique 5,5 pièces · Florissant', property_price: 2_350_000, property_photo: unsplash(PHOTOS_APPART[9]!), city: 'Genève', kyc_risk_high: null, kyc_days_to_expiry: null },
+]
 
 /**
  * Ce que les trois RPC d'Analytics rendent quand il n'y a RIEN — un objet
@@ -1107,7 +2107,14 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
-  matching_fil_marche: () => resumeMarcheBanc(),
+  matching_fil_marche_resume: () => resumeMarcheBanc(),
+  // Lot D1 — les surfaces du CRM (miroirs des RPC : voir `actionsDuJourBanc`). À l'état « Vide », `today_absence`
+  // retombe sur `null`, que son hook lit comme « aucun signal », et les trois autres sur `[]` : rien à ajouter à
+  // `CRM_RPC_VIDE`.
+  matching_actions_du_jour: (a: Record<string, unknown>) => actionsDuJourBanc(a),
+  pige_acheteurs_compatibles: (a: Record<string, unknown>) => acheteursPigeBanc(a),
+  today_absence: (a: Record<string, unknown>) => absenceBanc(a),
+  focus_top_matches: FOCUS_TOP_BANC,
   // Les crédits du studio Labs. ⚠ Sous `/dev/crm`, `useCredits` passe par les fixtures du
   // studio (`LabsFixturesContext`) et n'atteint pas ces deux entrées ; elles répondent
   // aux surfaces qui liraient la RPC HORS de ce contexte — le solde d'une agence Pro
@@ -1166,6 +2173,9 @@ export const CRM_RPC: Record<string, unknown> = {
   kyc_by_contact_id: (a: Record<string, unknown>) =>
     KYC_CASES.filter((k) => k.contact_id === a.p_contact_id)
       .map(({ checks: _c, checklist: _l, decisions: _d, contact: _ct, ...row }) => row),
+  // La chaîne d'offres d'un deal, du premier tour au dernier — la fiche deal marque le DERNIER courant.
+  crm_offer_chain: (a: Record<string, unknown>) =>
+    OFFRES_BANC.filter((o) => o.deal_id === a.p_deal_id).sort((x, y) => x.created_at.localeCompare(y.created_at)),
   // Les doublons de la fiche express — la logique de `find_contact_duplicates` : e-mail
   // exact (casse ignorée), téléphone normalisé (chiffres seuls, `0` suisse ⇒ `41`),
   // prénom + nom exacts ; un contact par ligne, sa meilleure raison d'abord.

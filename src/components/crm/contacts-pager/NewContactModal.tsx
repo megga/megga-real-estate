@@ -24,6 +24,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { useTranslation } from 'react-i18next'
 import { type CrmPalette } from '@/components/crm/tokens'
 import type { CriteriaInput } from '@/lib/contactCriteria'
+import { ROLES_RESEAU, ROLES_TRANSACTION, porteDemande, roleDominant, rolesOrdonnes, type RoleContact } from '@/lib/contactRoles'
 import { NcvIcon, type NcvIconName } from '@/components/crm/contacts-pager/ncvIcon'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { encreSur, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
@@ -41,7 +42,12 @@ import { ChampAdresseSuisse, ChampDateNaissance, type PaletteChamps } from '@/co
 //   API publique
 // ═══════════════════════════════════════════════════════════════════════
 export interface NewContactData {
-  type: 'buyer' | 'tenant' | 'seller' | 'landlord'
+  /**
+   * Étape 3 : les rôles du contact, dans l'ordre du vocabulaire. Plusieurs possibles,
+   * ZÉRO permis — c'est alors un lead. `contacts.type` n'est plus saisi : il se dérive
+   * de ces rôles côté base (déclencheur `contacts_roles_sync`).
+   */
+  roles: RoleContact[]
   civility: string
   firstName: string
   lastName: string
@@ -56,11 +62,9 @@ export interface NewContactData {
   nationality: string | null
   residence_country: string | null
   home_address: string | null
-  criteria?: CriteriaInput // acheteur / locataire
+  criteria?: CriteriaInput // rôle de demande (acquéreur, locataire, investisseur)
   linkedBien?: { address: string; propType: string } // vendeur / bailleur
 }
-
-type ContactType = NewContactData['type']
 
 // ═══════════════════════════════════════════════════════════════════════
 //   Palette NCB dérivée de `sp` (mappe le design NCB_LIGHT / ncbBuildDark)
@@ -85,7 +89,8 @@ interface NcbC {
   popoverBg: string
   popoverBorder: string
   popoverShadow: string
-  typeColor: Record<ContactType, string>
+  /** ⚠ PARTIEL : quatre rôles sur douze portent une teinte (cf. `TYPE_COLOR`). */
+  typeColor: Partial<Record<RoleContact, string>>
   dark: boolean
   // ── Valeurs propres à l'aperçu vivant (le handoff les code en dur ; on les
   //    dérive ici pour éviter des ternaires `dark ? … : …` dispersés dans le JSX).
@@ -111,11 +116,28 @@ interface NcbC {
   ctaGhostInk: string
 }
 
-const TYPE_COLOR: Record<ContactType, string> = {
+/**
+ * ⛔ QUATRE TEINTES POUR DOUZE RÔLES, et c'est voulu : les huit autres s'allument en
+ * `inkSoft` (cf. `pastilleRole`). Inventer huit couleurs ferait huit décisions de
+ * direction que personne n'a prises — la même règle que la pastille de la liste.
+ */
+const TYPE_COLOR = {
   buyer: '#1E5BC6',
   tenant: '#0891B2',
   seller: '#C45A00',
   landlord: '#059669',
+} satisfies Partial<Record<RoleContact, string>>
+
+/**
+ * Fond et encre d'une pastille de rôle. Un rôle sans teinte — les sept de réseau,
+ * l'investisseur — et un contact SANS rôle retombent sur `inkSoft`.
+ *
+ * ⚠ L'encre ne peut pas y rester blanche : `inkSoft` vaut `#cccccc` en sombre, où du
+ * blanc tombe à 1,2:1. Les quatre teintes, elles, gardent le blanc qu'elles portaient.
+ */
+function pastilleRole(C: NcbC, role: RoleContact | null): { fond: string; encre: string } {
+  const teinte = role ? C.typeColor[role] : undefined
+  return { fond: teinte ?? C.inkSoft, encre: teinte ? '#fff' : encreSur(C.inkSoft) }
 }
 
 function buildC(sp: CrmPalette, dark: boolean): NcbC {
@@ -434,9 +456,14 @@ function NcbCtaM({ C, tone = 'ink', icon, onClick, disabled, children }: {
   )
 }
 
-function NcbTypePillM({ C, type, label }: { C: NcbC; type: ContactType; label: string }) {
+/**
+ * Pastille d'AFFICHAGE (aperçu vivant, écran de succès) : elle montre le rôle DOMINANT,
+ * `null` quand le contact n'en porte aucun — c'est alors un lead, et son libellé le dit.
+ */
+function NcbTypePillM({ C, role, label }: { C: NcbC; role: RoleContact | null; label: string }) {
+  const { fond, encre } = pastilleRole(C, role)
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: C.typeColor[type], color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: fond, color: encre, fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap' }}>
       {label}
     </span>
   )
@@ -880,15 +907,16 @@ interface PreviewLabels {
  * jamais — le spacer `flex:1` pousse les CTA en bas quelle que soit la hauteur.
  */
 function PreviewColM({
-  C, photo, initials, tint, type, typeLabel, fullName, email, phone, birth, budgetLine, cantonsLine,
+  C, photo, initials, tint, role, roleLabel, fullName, email, phone, birth, budgetLine, cantonsLine,
   isBuyer, labels, alerte, messages, canSubmit, submitLabel, onSubmit, onCancel, onPick, onClear,
 }: {
   C: NcbC
   photo: string | null
   initials: string
   tint: string
-  type: ContactType
-  typeLabel: string
+  /** Le rôle DOMINANT, celui qui peint — `null` pour un contact sans rôle. */
+  role: RoleContact | null
+  roleLabel: string
   fullName: string
   /** E-mail VALIDE seulement — une adresse à moitié tapée resterait en ghost. */
   email: string
@@ -899,6 +927,7 @@ function PreviewColM({
   budgetLine: string | null
   /** Cantons joints, ou null si aucun. */
   cantonsLine: string | null
+  /** Le contact CHERCHE quelque chose (rôle de demande) : la ligne argent est un budget. */
   isBuyer: boolean
   labels: PreviewLabels
   /** Posé au-dessus des erreurs et des CTA — les doublons possibles. */
@@ -919,7 +948,7 @@ function PreviewColM({
       <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: fullName ? C.nameInk : C.nameGhost, marginTop: 'var(--crm-space-lg)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {fullName || labels.namePlaceholder}
       </div>
-      <div style={{ marginTop: 'var(--crm-space-sm)' }}><NcbTypePillM C={C} type={type} label={typeLabel} /></div>
+      <div style={{ marginTop: 'var(--crm-space-sm)' }}><NcbTypePillM C={C} role={role} label={roleLabel} /></div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)', alignSelf: 'stretch', marginTop: 'var(--crm-space-6xl)', textAlign: 'left' }}>
         <MetaLineM C={C} icon="mail" ghost={!email}>{email || labels.email}</MetaLineM>
         <MetaLineM C={C} icon="phone" ghost={!phone}>{phone || labels.phone}</MetaLineM>
@@ -1104,7 +1133,8 @@ function SecTileM({ C, icon, title, sub, onClick }: { C: NcbC; icon: NcvIconName
 //   État de formulaire
 // ═══════════════════════════════════════════════════════════════════════
 interface FormState {
-  type: ContactType
+  /** Étape 3 : plusieurs rôles, ou aucun — un contact sans rôle est un lead. */
+  roles: RoleContact[]
   civ: string
   firstName: string
   lastName: string
@@ -1142,12 +1172,15 @@ const EMPTY: FormState = {
   // un défaut y serait persisté comme une donnée d'identification LBA que l'agent n'a
   // jamais vue ni confirmée, et qui alimente le scoring de risque pays (listes FATF).
   // Une case vide se lit « — » sur la fiche — l'absence de donnée reste visible.
-  type: 'buyer', civ: 'mrs', firstName: '', lastName: '', birth: '', nationality: '', residence: '', homeAddress: '',
+  // `buyer` pré-coché comme le type l'était — l'agent décoche s'il se trompe.
+  roles: ['buyer'], civ: 'mrs', firstName: '', lastName: '', birth: '', nationality: '', residence: '', homeAddress: '',
   email: '', phone: '', lang: 'fr', canal: 'whatsapp', photo: null,
   budgetMin: '', budgetMax: '', rentMax: '', pTypes: ['appartement'], cantons: ['GE', 'VD'], cities: [], rooms: '', surface: '', features: [], address: '', propType: 'appartement', note: '',
 }
 
-const TYPE_IDS: ContactType[] = ['buyer', 'tenant', 'seller', 'landlord']
+// Les deux rangées du choix de rôles : ce qu'on FAIT avec la personne, puis qui elle EST.
+const ROLE_IDS_TRANSACTION: readonly RoleContact[] = ROLES_TRANSACTION
+const ROLE_IDS_RESEAU: readonly RoleContact[] = ROLES_RESEAU
 
 const emailOkFn = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 const parseNum = (s: string): number | null => {
@@ -1266,8 +1299,20 @@ export default function NewContactModal({
     if (!(e.relatedTarget instanceof HTMLElement && e.relatedTarget.closest('[data-budget]'))) setBudgetEnSaisie(false)
   }
 
-  const isBuyer = f.type === 'buyer' || f.type === 'tenant'
-  const tc = C.typeColor[f.type]
+  // Étape 3 : TOUT se dérive des rôles, plus d'un type unique.
+  const dominant = roleDominant(f.roles)
+  // La MÊME règle que la fiche : un rôle de DEMANDE (acquéreur, locataire, investisseur)
+  // ouvre les critères ; côté offre, le bien confié se range sans matching.
+  //
+  // ⚠ `|| roles.length === 0` est un REPLI, pas la règle. Sans rôle, ni la demande ni
+  // l'offre ne sont établies — mais retomber sur l'offre faisait pire : on proposait à un
+  // lead non qualifié de décrire un bien, sous un titre « Bien à louer » que rien ne
+  // justifiait. Un lead qu'on saisit cherche presque toujours quelque chose. Le troisième
+  // état — n'afficher NI l'un NI l'autre — attend sa conception, et emportera cette ligne.
+  const isBuyer = porteDemande(f.roles) || f.roles.length === 0
+  // La fiche express n'a qu'UNE case d'argent : le locataire coché en fait un loyer.
+  const estLocataire = f.roles.includes('tenant')
+  const tc = pastilleRole(C, dominant).fond
   const fullName = `${f.firstName} ${f.lastName}`.trim()
   const initials = ((f.firstName[0] || '') + (f.lastName[0] || '')).toUpperCase()
   const emailOk = emailOkFn(f.email)
@@ -1290,7 +1335,10 @@ export default function NewContactModal({
   const bMax = lireMontant(f.budgetMax)
   const rMax = lireMontant(f.rentMax)
   // Un min au-dessus du max ne trouverait aucun bien : on refuse, sans inverser en silence.
-  const budgetKo = f.type === 'buyer' && bMin !== null && bMax !== null && bMin > bMax
+  // ⚠ La garde suit les CASES AFFICHÉES, pas le seul acquéreur : l'investisseur voit lui
+  // aussi les deux montants (il porte une demande), et le locataire n'en voit AUCUN — ses
+  // montants restés en mémoire bloqueraient le bouton sur une erreur invisible à l'écran.
+  const budgetKo = isBuyer && !estLocataire && bMin !== null && bMax !== null && bMin > bMax
   const budgetKoVisible = budgetKo && (tried || !budgetEnSaisie)
   const valid = identiteOk && !budgetKo
   const canSubmit = valid && !isPending
@@ -1304,11 +1352,14 @@ export default function NewContactModal({
     })
   }, [onIdentityChange, emailOk, telOk, f.email, f.phone, f.firstName, f.lastName])
 
-  const typeLabel = (id: ContactType) => t(`contactType.${id}`)
+  // ⚠ `roles.*`, jamais `contactType.*` : le type n'est plus qu'une dérivation de la base.
+  const roleLabel = (id: RoleContact) => t(`roles.${id}`)
+  // Sans rôle, la pastille dit ce que le contact EST alors : un lead.
+  const pastilleLabel = dominant ? roleLabel(dominant) : t('contactType.lead')
 
   const buildData = (): NewContactData => {
     const data: NewContactData = {
-      type: f.type,
+      roles: f.roles,
       civility: f.civ,
       firstName: f.firstName.trim(),
       lastName: f.lastName.trim(),
@@ -1323,11 +1374,11 @@ export default function NewContactModal({
     }
     if (isBuyer) {
       data.criteria = {
-        transaction: f.type === 'tenant' ? 'location' : 'vente',
+        transaction: estLocataire ? 'location' : 'vente',
         types: f.pTypes,
         cantons: f.cantons,
-        budgetMin: f.type === 'tenant' ? null : bMin,
-        budgetMax: f.type === 'tenant' ? rMax : bMax,
+        budgetMin: estLocataire ? null : bMin,
+        budgetMax: estLocataire ? rMax : bMax,
         roomsMin: parseNum(f.rooms),
         cities: f.cities,
         areaMin: parseNum(f.surface),
@@ -1378,8 +1429,10 @@ export default function NewContactModal({
       // L'identité complète se DÉPLIE si le message en porte : ce qui est prérempli doit se voir.
       if (x.nationality || x.residenceCountry || x.homeAddress) setMoreId(true)
       setF((s) => {
-        const type: ContactType = x.intent === 'seller' ? 'seller' : x.intent === 'tenant' ? 'tenant' : 'buyer'
-        const n = { ...s, type }
+        // ⛔ L'extraction AJOUTE le rôle déduit, elle n'écrase plus le choix de l'agent :
+        // coller un message remplaçait « Vendeur » par « Acquéreur » sans le dire.
+        const deduit: RoleContact = x.intent === 'seller' ? 'seller' : x.intent === 'tenant' ? 'tenant' : 'buyer'
+        const n = { ...s, roles: rolesOrdonnes([...s.roles, deduit]) }
         const vide = (v: string) => !v.trim()
         // Qui
         if (vide(s.firstName) && x.firstName) n.firstName = x.firstName
@@ -1393,15 +1446,15 @@ export default function NewContactModal({
         if (vide(s.homeAddress) && x.homeAddress) n.homeAddress = x.homeAddress
         // Ce qu'il cherche, ou ce qu'il confie
         const types = (x.propertyTypes ?? []).map((ty) => TYPE_EN_FR[ty]).filter(Boolean)
-        if (type === 'seller') {
+        if (deduit === 'seller') {
           if (vide(s.address) && (x.propertyAddress || lieux.length)) n.address = x.propertyAddress || lieux.join(', ')
           if (types[0]) n.propType = types[0]
         } else {
           if (x.rooms && vide(s.rooms)) n.rooms = String(x.rooms)
           if (x.surfaceMin && vide(s.surface)) n.surface = String(x.surfaceMin)
-          if (type === 'buyer' && x.budget && vide(s.budgetMax)) n.budgetMax = groupe(x.budget)
-          if (type === 'buyer' && x.budgetMin && vide(s.budgetMin)) n.budgetMin = groupe(x.budgetMin)
-          if (type === 'tenant' && x.budget && vide(s.rentMax)) n.rentMax = groupe(x.budget)
+          if (deduit === 'buyer' && x.budget && vide(s.budgetMax)) n.budgetMax = groupe(x.budget)
+          if (deduit === 'buyer' && x.budgetMin && vide(s.budgetMin)) n.budgetMin = groupe(x.budgetMin)
+          if (deduit === 'tenant' && x.budget && vide(s.rentMax)) n.rentMax = groupe(x.budget)
           // Types, cantons : le message REMPLACE la présélection par défaut (appartement ;
           // GE, VD) — c'est lui qui dit ce que cherche ce client-là.
           if (types.length) n.pTypes = types
@@ -1430,7 +1483,8 @@ export default function NewContactModal({
     }
   }
 
-  const kycConcerne = f.type === 'buyer' || f.type === 'seller'
+  // Inchangé : l'identification LBA se réclame de l'acquéreur et du vendeur, pas des autres.
+  const kycConcerne = f.roles.includes('buyer') || f.roles.includes('seller')
   const identiteManquante = [
     { champ: 'birth', vide: !f.birth.trim(), label: t('newContactPager.birth') },
     { champ: 'nationality', vide: !f.nationality, label: t('newContactPager.nationality') },
@@ -1490,7 +1544,8 @@ export default function NewContactModal({
 
   // ══════════════════ Écran de confirmation « héros » ══════════════════
   if (created) {
-    const GREEN = C.typeColor.landlord
+    // ⚠ Lu au CONSTANT et non à `C.typeColor`, devenu partiel : lui seul garantit la teinte.
+    const GREEN = TYPE_COLOR.landlord
     const heroVeil = C.dark ? 'rgba(3,3,3,0.10)' : 'rgba(255,255,255,0.12)'
     const heroSub = C.dark ? 'rgba(3,3,3,0.60)' : 'rgba(255,255,255,0.72)'
     const heroChev = C.dark ? 'rgba(3,3,3,0.70)' : 'rgba(255,255,255,0.85)'
@@ -1505,7 +1560,7 @@ export default function NewContactModal({
                 <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: GREEN }}>{t('newContactPager.created.eyebrow')}</div>
                 <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.5, color: C.ink, marginTop: 1 }}>{fullName}</div>
               </div>
-              <NcbTypePillM C={C} type={f.type} label={typeLabel(f.type)} />
+              <NcbTypePillM C={C} role={dominant} label={pastilleLabel} />
             </div>
             <button
               type="button"
@@ -1540,17 +1595,19 @@ export default function NewContactModal({
   // Ligne méta « argent » : jamais de concaténation brute, formatCHF porte
   // l'apostrophe suisse (CHF 900'000) exigée par CLAUDE.md §6.
   const budgetLine = isBuyer
-    ? (f.type === 'tenant'
+    ? (estLocataire
       ? (rMax !== null ? formatRent(rMax) : null)
       : (bMin !== null || bMax !== null ? `${bMin !== null ? formatCHF(bMin) : '…'} – ${bMax !== null ? formatCHF(bMax) : '…'}` : null))
     : (f.address.trim() || null)
   const budgetFallback = isBuyer
-    ? (f.type === 'tenant' ? t('newContactPager.preview.rentMax') : t('newContactPager.preview.budget'))
+    ? (estLocataire ? t('newContactPager.preview.rentMax') : t('newContactPager.preview.budget'))
     : t('newContactPager.preview.propertyAddress')
   const critTitle = isBuyer
-    // « Critères » tout court : l'achat ou la location se lit déjà dans le sélecteur de type.
+    // « Critères » tout court : l'achat ou la location se lit déjà dans les rôles cochés.
     ? t('newContactPager.criteria')
-    : (f.type === 'seller' ? t('newContact.property.titleSell') : t('newContact.property.titleRent'))
+    // ⚠ `seller` d'abord : c'est LUI qui dit « bien à vendre ». Le bailleur, et tout contact
+    // sans rôle de demande, garde « bien à louer ».
+    : (f.roles.includes('seller') ? t('newContact.property.titleSell') : t('newContact.property.titleRent'))
   const messages: string[] = []
   // Message dédié : sinon une date impossible grise le CTA en affichant « Prénom, nom
   // et e-mail valide requis », alors que ces trois champs sont corrects.
@@ -1599,8 +1656,8 @@ export default function NewContactModal({
             photo={f.photo}
             initials={initials}
             tint={tc}
-            type={f.type}
-            typeLabel={typeLabel(f.type)}
+            role={dominant}
+            roleLabel={pastilleLabel}
             fullName={fullName}
             email={emailOk ? f.email.trim() : ''}
             // Affiché comme l'agent l'a tapé, indicatif devant — la valeur ENVOYÉE reste
@@ -1645,29 +1702,38 @@ export default function NewContactModal({
           <div className="ncbm-form" style={{ flex: 1, minWidth: 0, background: C.cardSubtle, borderLeft: `1px solid ${C.line}`, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--crm-space-lg) var(--crm-space-2xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl)', borderBottom: `1px solid ${C.line}` }}>
               <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: C.ink }}>{t('newContactPager.expressCard')}</div>
-              {/* Type — segmenté compact : il décide du second compartiment, il se
-                  choisit donc AVANT, et d'un seul regard. */}
-              <div style={{ display: 'flex', gap: 'var(--crm-space-2xs)', background: C.white, padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', boxShadow: C.shadowSm }}>
-                {TYPE_IDS.map((id) => {
-                  const on = f.type === id
-                  const col = C.typeColor[id]
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => setF((s) => ({ ...s, type: id }))}
-                      style={{
-                        height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
-                        background: on ? col : 'transparent', color: on ? '#fff' : C.inkSoft,
-                      }}
-                    >
-                      {typeLabel(id)}
-                    </button>
-                  )
-                })}
-              </div>
+              {/* Rôles — choix MULTIPLE, deux rangées : ce qu'on fait avec la personne
+                  (transaction), puis qui elle est (réseau). Ils décident du second
+                  compartiment, ils se choisissent donc AVANT, et d'un seul regard.
+                  ⚠ Zéro rôle est permis : le contact est alors un lead. */}
+              {([ROLE_IDS_TRANSACTION, ROLE_IDS_RESEAU] as const).map((liste, rangee) => (
+                <div key={rangee} style={{ display: 'flex', gap: 'var(--crm-space-2xs)', background: C.white, padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)', boxShadow: C.shadowSm, flexWrap: 'wrap' }}>
+                  {liste.map((id) => {
+                    const on = f.roles.includes(id)
+                    const { fond, encre } = pastilleRole(C, id)
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        // Bascule, pas remplacement : `aria-pressed` reste, et il dit la vérité —
+                        // plusieurs boutons peuvent être enfoncés à la fois.
+                        aria-pressed={on}
+                        onClick={() => setF((s) => ({
+                          ...s,
+                          roles: s.roles.includes(id) ? s.roles.filter((x) => x !== id) : rolesOrdonnes([...s.roles, id]),
+                        }))}
+                        style={{
+                          height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+                          fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
+                          background: on ? fond : 'transparent', color: on ? encre : C.inkSoft,
+                        }}
+                      >
+                        {roleLabel(id)}
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
               <div style={{ flex: 1 }} />
               {onExtract && (() => {
                 // Deux états. Avant : « ✦ Coller un message ». Après : « ⚠ À vérifier », en ambre
@@ -1740,7 +1806,7 @@ export default function NewContactModal({
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 8.5rem) minmax(0, 1fr)', gap: 'var(--crm-space-sm)' }}>
                     <select className="ncbm-in" value={paysTel} onChange={(e) => majPaysTel(e.target.value)}
                             aria-label={t('newContactPager.dialCode')} style={selW(C)}>
-                      {optionsIndicatif.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      {optionsIndicatif.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
                     </select>
                     <input className="ncbm-in" type="tel" inputMode="tel" autoComplete="off" value={numeroLocal}
                            onChange={(e) => majNumeroLocal(e.target.value)} style={{ ...inpW(C, tried && !joignable), ...MONO }} />
@@ -1851,7 +1917,7 @@ export default function NewContactModal({
                   <>
                     {/* Montants, puis pièces et surface. Le locataire n'a qu'un montant : ses
                         trois cases tiennent sur une rangée. */}
-                    {f.type === 'tenant' ? (
+                    {estLocataire ? (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 'var(--crm-space-lg)' }}>
                         <NcvFieldM C={C} label={t('newContactPager.rentMax')}>
                           <NcbMontantM C={C} value={f.rentMax} onChange={setMontant('rentMax')} placeholder={t('newContactPager.rentMaxPlaceholder')} />

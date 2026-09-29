@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "To handle",
-    "likedTitle": "Interested in {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}}%",
     "proposeVisit": "Propose a visit",
-    "later": "Later",
-    "handled": "Visit in preparation · logged in their file",
-    "openAtelier": "Open the atelier",
-    "empty": "No property proposed yet.",
-    "pillLiked": "Interested",
-    "pillSent": "Proposed",
-    "pillDismissed": "Not interested",
-    "metaDismissed": "Reason logged · recalibrates matching",
-    "motif": "“{{motif}}”"
+    "etat": {
+      "propose": "Proposed",
+      "interesse": "Interested",
+      "visite": "Viewing planned",
+      "refuse": "Not interested",
+      "revenu": "Returned"
+    },
+    "compteurs": {
+      "proposes_one": "Proposed",
+      "proposes_other": "Proposed",
+      "interesses_one": "Interested",
+      "interesses_other": "Interested",
+      "refuses_one": "Not interested",
+      "refuses_other": "Not interested"
+    },
+    "detail": {
+      "propose": "Proposed on {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposed on {{date}}",
+      "interesse": "Interested on {{date}}",
+      "refuse": "Not interested · {{motif}}",
+      "revenu": "Ready to propose again"
+    },
+    "note": "“{{note}}”",
+    "bienSansTitre": "Untitled property",
+    "aTraiter": {
+      "interesse": "Interested in {{titre}}",
+      "ouvrir": "Open in Matching"
+    },
+    "correction": {
+      "titre": "Search to adjust · {{motif}}",
+      "detail_one": "{{count}} decline for this reason",
+      "detail_other": "{{count}} declines for this reason",
+      "voir": "See the adjustment"
+    }
   },
   "title": "Contacts",
   "add_button": "Add",
@@ -31,14 +52,19 @@
   "next": "Next",
   "filter_type": "Type",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Buyer",
     "seller": "Seller",
-    "both": "Buyer/Seller",
-    "lead": "Lead",
-    "investor": "Investor",
     "tenant": "Tenant",
-    "landlord": "Landlord"
+    "landlord": "Landlord",
+    "investor": "Investor",
+    "family_office": "Family office",
+    "referrer": "Referrer",
+    "private_banker": "Private banker",
+    "lawyer": "Lawyer",
+    "trustee": "Trustee",
+    "broker": "Broker",
+    "architect": "Architect"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +297,6 @@
       "empty": "No document attached to this contact.",
       "addedOn": "Added on {{date}}"
     },
-    "type": {
-      "buyer": "Buyer",
-      "seller": "Seller",
-      "lead": "Lead"
-    },
     "new": "New",
     "via": "Via {{source}}",
     "unknownSource": "Unknown source",
@@ -347,7 +368,10 @@
     "tenant": "Tenants",
     "hot": "Hot leads",
     "kyc": "KYC to complete",
-    "stale": "Inactive 14d+"
+    "stale": "Inactive 14d+",
+    "role": "Role",
+    "roleAll": "All roles",
+    "roleOverlap": "A contact can hold several roles: the segments add up to more than the total."
   },
   "nextAction": {
     "planifier_visite": "Schedule a visit",
@@ -777,7 +801,7 @@
   "health": {
     "title": "Portfolio health",
     "intro": "Where your contacts come from, where the blind spots are. Click a segment to filter the list.",
-    "byAudience": "By audience",
+    "byRole": "By role",
     "kycCoverage": "KYC coverage",
     "sources": "Acquisition sources",
     "kpi": {
@@ -964,7 +988,8 @@
       "address": "Address",
       "addressPlaceholder": "Street…, ZIP City",
       "countryNone": "Not specified",
-      "saveError": "The identity could not be saved. Please try again."
+      "saveError": "The identity could not be saved. Please try again.",
+      "roles": "Roles"
     },
     "coord": {
       "identity": "Identity",
@@ -1008,7 +1033,17 @@
       "areaMinEdit": "Min area (m²)",
       "mustHave": "Must-haves",
       "minPlaceholder": "Min",
-      "maxPlaceholder": "Max"
+      "maxPlaceholder": "Max",
+      "bedroomsMin": "Min bedrooms",
+      "condition": "Minimum condition",
+      "conditionAny": "Any",
+      "conditions": {
+        "good": "Good condition",
+        "renovated": "Renovated",
+        "new": "New"
+      },
+      "offMarket": "Off-market",
+      "offMarketOnly": "Off-market only"
     },
     "propType": {
       "appartement": "Apartment",
@@ -1064,10 +1099,9 @@
     },
     "loop": {
       "toHandleCount": "To handle ({{count}})",
-      "transmittedCount": "Properties proposed ({{count}})",
+      "propertiesCount": "Their properties ({{count}})",
       "openInMatching": "Open in Matching",
-      "ignore": "Ignore",
-      "nothingToHandle": "All up to date, nothing to handle right now.",
+      "nothingToHandle": "Nothing to handle",
       "emptyTitle": "No properties proposed yet",
       "emptyBody": "Propose properties to {{name}}, then log their answers.<1/>They land here."
     },

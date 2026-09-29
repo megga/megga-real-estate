@@ -18,8 +18,8 @@ import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, P
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
-  execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
-  execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
+  execGetContactBrief, execListFollowups, execGetDailyBrief,
+  execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink, prepareInviteOptin,
   prepareSendClientEmail, prepareDeleteContact, prepareSendClientMessage, prepareUpdatePipeline,
@@ -32,6 +32,7 @@ import {
   findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
+import { execGetMatches, execGetBuyersForProperty, prepareRecordMatchOutcome, execScheduleVisit } from '../_shared/whatsapp-matching-outils.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
 import { MEGGA_STYLE_BLOCK } from '../_shared/megga-prose.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
@@ -532,6 +533,7 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
     case 'get_contact_brief': return execGetContactBrief(ctx, args)
     case 'list_followups': return execListFollowups(ctx, args)
     case 'get_matches': return execGetMatches(ctx, args)
+    case 'get_buyers_for_property': return execGetBuyersForProperty(ctx, args)
     case 'get_daily_brief': return execGetDailyBrief(ctx, args)
     case 'search_listings': return execSearchListings(ctx, args)
     case 'get_kyc_status': return execGetKycStatus(ctx, args)
@@ -623,6 +625,11 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'update_pipeline') {
     const p = await prepareUpdatePipeline(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'record_match_outcome') {
+    // Lot D2 : le bien se cherche parmi les matchs de l'acheteur ; aucun ou plusieurs, le refus les nomme au modèle.
+    const p = await prepareRecordMatchOutcome(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   }

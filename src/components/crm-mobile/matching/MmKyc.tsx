@@ -2,7 +2,7 @@
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
-import type { AtelierKyc } from '@/components/matching-atelier/types'
+import type { AtelierKyc } from './types'
 
 /**
  * Chip KYC — rappel doux, NON-bloquant (jamais rouge « bloqué », cf. règle

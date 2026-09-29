@@ -9,11 +9,19 @@
  * ne s'enregistrait JAMAIS (elle revenait à sa place au rechargement).
  */
 import { test, expect, type Page } from '@playwright/test'
+import { attendreRideauLeve } from './helpers/rideau'
 
 // Chaque écran d'onglet vivant garde son DOM ; on vise celui qui est MONTRÉ.
 const ecran = (page: Page) => page.locator('[data-onglet]:not([aria-hidden="true"])')
 const colonne = (page: Page, i: number) => ecran(page).locator(`[data-cal-col="${i}"]`)
 const fantome = (page: Page) => page.locator('[data-cal-fantome]')
+/**
+ * La tâche du mardi 11:30 (`r1`). Le Calendrier titre une relance par son contact, « Tâche »
+ * n'étant que le repli d'une relance sans contact — et depuis le lot D1 le rappel du banc porte
+ * la jointure `contact` que la production lui donne. ⚠ Camille a aussi une relance le mercredi
+ * (sa signature, 10:30) : on la vise dans SA colonne, et déplacée, à son heure.
+ */
+const TACHE_MARDI = 'Relance Camille Rochat'
 
 interface Ecriture { url: string; method: string; body: string }
 
@@ -49,12 +57,14 @@ async function glisser(page: Page, depuis: { x: number; y: number; width: number
 }
 
 test.beforeEach(async ({ page }) => {
-  // Un mardi matin : la visite (mar. 13:30, 45 min) et les deux tâches (mar. et mer.
+  // Un mardi matin : la visite (mar. 13:30, 45 min) et les deux relances (mar. et mer.
   // 11:30) du banc tombent dans la semaine affichée.
   await page.clock.setFixedTime(new Date('2026-09-15T08:30:00'))
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto(`/dev/crm?entree=${encodeURIComponent('/dashboard/calendar')}`)
   await ecran(page).locator('button', { hasText: 'Visite —' }).first().waitFor({ timeout: 30_000 })
+  // Les glissés se font par coordonnées : sous le rideau d'arrivée, ils ne partaient pas.
+  await attendreRideauLeve(page)
   // Replier les commandes du banc : ouvertes, elles couvrent le coin bas droit.
   const commande = page.locator('button[title$="/dashboard/calendar"]').first()
   if (await commande.isVisible()) await page.locator('button', { hasText: 'Aperçu' }).first().click()
@@ -98,18 +108,18 @@ test('une visite glissée de mardi à jeudi change de jour, garde son heure, et 
 })
 
 test('une tâche glissée au lendemain, une heure plus tard, s’enregistre — elle ne revenait jamais à sa place', async ({ page }) => {
-  const tache = colonne(page, 1).locator('button', { hasText: 'Tâche' }).first()
+  const tache = colonne(page, 1).locator('button', { hasText: TACHE_MARDI })
   const b = (await tache.boundingBox())!
   const mercredi = (await colonne(page, 2).boundingBox())!
   const heure = mercredi.height / 24
   await glisser(page, b, mercredi.x + mercredi.width / 2, b.y + Math.min(10, b.height / 2) + heure)
   // Un bloc court : l'heure d'arrivée ET le titre — la plage entière le tronquait en « T… ».
   await expect(fantome(page)).toContainText('12:30')
-  await expect(fantome(page)).toContainText('Tâche')
+  await expect(fantome(page)).toContainText(TACHE_MARDI)
   await page.mouse.up()
 
-  await expect(colonne(page, 1).locator('button', { hasText: 'Tâche' })).toHaveCount(0)
-  await expect(colonne(page, 2).locator('button', { hasText: 'Tâche' })).toHaveCount(2)
+  await expect(colonne(page, 1).locator('button', { hasText: TACHE_MARDI })).toHaveCount(0)
+  await expect(colonne(page, 2).locator('button', { hasText: TACHE_MARDI }).filter({ hasText: '12:30' })).toHaveCount(1)
 
   await expect.poll(() => ecritures(page, 'reminders')).toHaveLength(1)
   const corps = JSON.parse((await ecritures(page, 'reminders'))[0].body)
@@ -162,7 +172,7 @@ test('en vue Mois, une pastille glissée sur une autre case change de jour — l
 // jusqu'au rechargement (revue du 15.09.2026). Et sa fiche offrait « Notaire », qu'aucune table
 // ne suivait.
 test('renommer une tâche l’enregistre — sans la rouvrir — et sa fiche n’offre qu’un type de tâche', async ({ page }) => {
-  await colonne(page, 1).locator('button', { hasText: 'Tâche' }).first().click()
+  await colonne(page, 1).locator('button', { hasText: TACHE_MARDI }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Modifier' }).click()
   const fiche = page.getByRole('dialog', { name: "Modifier l'événement" })
   await expect(fiche.getByRole('button', { name: /Tâche \/ Relance/ })).toHaveCount(1)

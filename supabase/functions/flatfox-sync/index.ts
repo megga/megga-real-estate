@@ -598,36 +598,66 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
 
 // ─── Sweep : marque 'removed' les biens Flatfox non vus depuis sync_start_at ───
 
+/** Retraits par appel de `flatfox_balayer_retraits` : un lot tient largement sous le statement_timeout. */
+const SWEEP_LOT = 500
+/**
+ * Part du vivier au-delà de laquelle un balayage est un INCIDENT et ne retire rien : la même que le
+ * rattrapage de la migration 20260930145000. Un passage retirait 400 à 1 400 annonces par nuit avant la
+ * panne du 05.09.2026, sur ~36 000.
+ */
+const SWEEP_PART_MAX = 0.4
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function runSweep(supabase: any, syncStartAt: string, _totalSeen: number, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean }> {
-  // Count via DB (plus fiable que stats fragmentés entre chunks parallèles)
-  const { count: actuallySeen } = await supabase
-    .from('market_listings')
-    .select('id', { count: 'exact', head: true })
-    .eq('source_portal', 'flatfox')
-    .gte('last_seen_at', syncStartAt)
-  const totalSeen = actuallySeen ?? 0
+async function runSweep(supabase: any, syncStartAt: string, totalSeen: number, totalExpected: number): Promise<{ removed: number; skipped_safety: boolean; erreur: string | null }> {
+  // ⛔ LE COMPTE DU RUN, PLUS UN `count: 'exact'`. Le comptage en base (toutes les Flatfox revues depuis
+  // syncStartAt) prenait ~6 s sous le statement_timeout de 8 s, et son erreur n'était pas lue : un
+  // timeout valait 0 revue, donc un `safety_skipped` « à 0 % » sans message (deux nuits
+  // `safety_skipped` relevées, le 11.09 et le 17.09.2026).
+  // Il servait quand les blocs tournaient en parallèle et que leurs compteurs se perdaient ; depuis le
+  // verrou unique (`flatfox_sync_runs_one_running`) et les relais en série, `stats.upserted` suit chaque
+  // bloc. Chaque ligne comptée a été écrite avec `last_seen_at = nowIso ≥ syncStartAt`. Il SURcompte
+  // d'une poignée (une annonce retirée de Flatfox pendant la marche arrière décale la suivante dans la
+  // page d'après : 35 983 pour 35 931 attendues le 21.09.2026, 0,14 %), sans effet sur un seuil à 80 %.
+  // Ce que le comptage en base voyait EN PLUS — un `last_seen_at` qui ne s'écrirait pas — se lit
+  // désormais sur le critère du balayage lui-même, côté serveur : le plafond relatif ci-dessous.
   const ratio = totalExpected > 0 ? totalSeen / totalExpected : 0
   console.log(`[sweep check] totalSeen=${totalSeen} totalExpected=${totalExpected} ratio=${Math.round(ratio * 100)}%`)
   if (ratio < SAFETY_MIN_RATIO) {
     console.warn(`⚠️ Safety skip: only ${Math.round(ratio * 100)}% of expected listings upserted (${totalSeen}/${totalExpected}, threshold ${Math.round(SAFETY_MIN_RATIO * 100)}%). Sweep skipped to avoid wipe.`)
-    return { removed: 0, skipped_safety: true }
+    return { removed: 0, skipped_safety: true, erreur: null }
   }
-  // Marque comme removed : biens Flatfox encore actifs mais non revus dans ce sync.
-  // On ne supprime JAMAIS les rows (historique conservé).
-  const { data, error } = await supabase
-    .from('market_listings')
-    .update({ status: 'removed', updated_at: new Date().toISOString() })
-    .eq('source_portal', 'flatfox')
-    .in('status', ['active', 'price_reduced'])
-    .lt('last_seen_at', syncStartAt)
-    .select('id', { count: 'exact' })
-  if (error) {
-    console.error('sweep error:', error.message)
-    return { removed: 0, skipped_safety: false }
+  // ⛔ PAR LOTS, PAR LA RPC. L'UPDATE unique d'avant (toutes les Flatfox non revues en une requête)
+  // dépassait le statement_timeout de 8 s de PostgREST depuis le 05.09.2026 : `total_removed = 0` chaque
+  // nuit, run pourtant `completed`, et 12 492 annonces disparues restées « actives » au 21.09.2026.
+  // `flatfox_balayer_retraits` retire au plus SWEEP_LOT annonces par appel (index partiel
+  // `idx_ml_flatfox_vivantes_vues`) ; on rappelle tant qu'un lot revient plein.
+  // On ne supprime JAMAIS les rows : le statut passe à `removed`, et les déclencheurs datent le retrait
+  // (`removed_at`) et l'écrivent à l'historique.
+  //
+  // ⛔ PLAFOND RELATIF, TOUT OU RIEN (il remplace un plafond ABSOLU de 60 lots, soit 30 000 retraits,
+  // qui ne disait rien d'un catalogue de 36 000). Le vivier d'avant balayage = revues + candidates ;
+  // candidates ≤ 40 % du vivier ⟺ candidates ≤ revues × 0,4 / 0,6. Les revues sont bornées par ce que
+  // Flatfox annonce : un compteur gonflé ne relève pas le plafond. `flatfox_balayer_retraits` le vérifie
+  // au PREMIER lot, sur `last_seen_at` même, et lève sans rien retirer au-delà — comme le rattrapage.
+  const plafond = Math.floor((Math.min(totalSeen, totalExpected) * SWEEP_PART_MAX) / (1 - SWEEP_PART_MAX))
+  // Garde de boucle : sous le plafond vérifié, ceil(plafond / lot) lots pleins au plus, plus le dernier.
+  const lotsMax = Math.ceil(plafond / SWEEP_LOT) + 1
+  let removed = 0
+  for (let lot = 0; lot < lotsMax; lot++) {
+    const { data, error } = await supabase.rpc('flatfox_balayer_retraits', {
+      p_sync_start: syncStartAt,
+      p_limit: SWEEP_LOT,
+      ...(lot === 0 ? { p_plafond: plafond } : {}),
+    })
+    if (error) {
+      console.error('sweep error:', error.message)
+      return { removed, skipped_safety: false, erreur: error.message }
+    }
+    const n = Number(data ?? 0)
+    removed += n
+    if (n < SWEEP_LOT) return { removed, skipped_safety: false, erreur: null }
   }
-  const removed = Array.isArray(data) ? data.length : 0
-  return { removed, skipped_safety: false }
+  return { removed, skipped_safety: false, erreur: `plafond relatif de ${plafond} retraits dépassé en cours de balayage` }
 }
 
 // ─── Main handler ────────────────────────────────────────────────
@@ -677,10 +707,13 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
       // la perte a duré du 29.05 au 03.09 sans que rien ne la signale, et c'est ce
       // silence — pas la perte elle-même — qui l'a rendue durable.
       const residu: string[] = []
+      // ⛔ Le balayage échouait en silence du 05.09 au 21.09.2026 : le run finissait `completed` avec
+      // 0 retrait. Un échec de balayage dit désormais son nom, et le run finit `failed`.
+      if (sweep.erreur) residu.push(`balayage interrompu après ${sweep.removed} retrait(s) : ${sweep.erreur}`)
       if (stats.errors > 0) residu.push(`${stats.errors} ligne(s) en échec d'upsert`)
       if (stats.skippedNoCanton > 0) residu.push(`${stats.skippedNoCanton} écartée(s) faute de canton (annonces hors Suisse ou NPA invalide)`)
       await finalizeRun(supabase, runId, {
-        status: sweep.skipped_safety ? 'safety_skipped' : 'completed',
+        status: sweep.erreur ? 'failed' : sweep.skipped_safety ? 'safety_skipped' : 'completed',
         totalSeen: stats.upserted,
         removed: sweep.removed,
         errorMessage: residu.length > 0 ? residu.join(' · ') : undefined,

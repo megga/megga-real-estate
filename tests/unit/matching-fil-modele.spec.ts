@@ -6,11 +6,11 @@
  * une fixture qui invente sa formulation éprouve un écran que la production ne rend jamais.
  */
 import { describe, expect, it } from 'vitest'
-import { calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
+import { axesComplementaires, calculateScoreV2, DEFAULT_SCORING_CONFIG } from '../../supabase/functions/_shared/matching-normalize'
 import {
-  cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection, criteresNonTenus,
-  initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
-  type FilBien, type FilFiltres, type FilMatch, type FilSelectionResume,
+  bienDeCle, cleBien, cleEquipement, cleSelection, compterHistorique, construireFil, construireSelections, contactDeSelection,
+  criteresNonTenus, horsVente, initiales, lignesCriteres, optionsFiltres, palierScore, precoches, premierEcart,
+  type FilBien, type FilFiltres, type FilMatch, type FilSelectionResume, type SuiviMatch,
 } from '@/components/matching-fil/filModele'
 
 const MAINTENANT = Date.parse('2026-09-17T12:00:00.000Z')
@@ -48,7 +48,7 @@ describe('construireFil', () => {
     ], SANS_FILTRE, MAINTENANT)
     expect(vue.groupes.map((g) => g.bien.id)).toEqual(['p2', 'p1'])
     expect(vue.groupes[1]!.matchs.map((m) => m.id)).toEqual(['m2', 'm3'])
-    expect(vue.ordre).toEqual(['m5', 'm2', 'm3'])
+    expect(vue.ordre).toEqual(['bien:p2', 'm5', 'bien:p1', 'm2', 'm3'])
     expect(vue.compte).toBe(3)
   })
 
@@ -59,7 +59,7 @@ describe('construireFil', () => {
       match('a', 80, champel, antoine, { creeLe: '2026-09-01T00:00:00.000Z' }),
       match('d', 80, champel, antoine, { creeLe: null }),
     ], SANS_FILTRE, MAINTENANT)
-    expect(vue.ordre).toEqual(['c', 'a', 'b', 'd'])
+    expect(vue.ordre).toEqual(['bien:p1', 'c', 'a', 'b', 'd'])
   })
 
   it('un reporté quitte les lignes et le compte ; un report échu revient', () => {
@@ -68,7 +68,7 @@ describe('construireFil', () => {
       match('m9', 70, champel, antoine, { reporteJusquau: '2026-09-19T00:00:00.000Z' }),
       match('m3', 90, champel, julie, { reporteJusquau: '2026-09-16T00:00:00.000Z' }),
     ], SANS_FILTRE, MAINTENANT)
-    expect(vue.ordre).toEqual(['m3'])
+    expect(vue.ordre).toEqual(['bien:p1', 'm3'])
     expect(vue.compte).toBe(1)
     expect(vue.reportes.map((m) => m.id)).toEqual(['m9', 'm4'])
   })
@@ -96,11 +96,57 @@ describe('construireFil', () => {
       match('m2', 91, champel, emma), match('m3', 90, champel, julie),
       match('m5', 93, cologny, antoine), match('m6', 70, vandoeuvres, julie),
     ]
-    expect(construireFil(tous, { ...SANS_FILTRE, bienId: 'p1' }, MAINTENANT).ordre).toEqual(['m2', 'm3'])
-    expect(construireFil(tous, { ...SANS_FILTRE, acheteurId: 'c7' }, MAINTENANT).ordre).toEqual(['m2'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'lefevre' }, MAINTENANT).ordre).toEqual(['m5'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: '  COLOGNY ' }, MAINTENANT).ordre).toEqual(['m5'])
-    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'vandoeuvres' }, MAINTENANT).ordre).toEqual(['m6'])
+    expect(construireFil(tous, { ...SANS_FILTRE, bienId: 'p1' }, MAINTENANT).ordre).toEqual(['bien:p1', 'm2', 'm3'])
+    expect(construireFil(tous, { ...SANS_FILTRE, acheteurId: 'c7' }, MAINTENANT).ordre).toEqual(['bien:p1', 'm2'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'lefevre' }, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: '  COLOGNY ' }, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
+    expect(construireFil(tous, { ...SANS_FILTRE, texte: 'vandoeuvres' }, MAINTENANT).ordre).toEqual(['bien:p3', 'm6'])
+  })
+
+  it('l’en-tête d’un bien est une ligne de l’ordre, pas du compte', () => {
+    const vue = construireFil([match('m2', 91, champel, emma)], SANS_FILTRE, MAINTENANT)
+    expect(vue.ordre[0]).toBe(cleBien('p1'))
+    expect(bienDeCle(vue.ordre[0]!)).toBe('p1')
+    expect(bienDeCle('m2')).toBeNull()
+    expect(vue.compte).toBe(1)
+  })
+})
+
+describe('lot E1 — un mandat qui n’est plus en vente ne se propose plus (décision 12a)', () => {
+  const vendu = bien('p9', { titre: 'Villa vendue', enVente: false, statut: 'sold' })
+  const champel = bien('p1', { titre: 'Champel', enVente: true, statut: 'active' })
+  const julie = acheteur('c9', { prenom: 'Julie', nom: 'Morand' })
+  const emma = acheteur('c7', { prenom: 'Emma', nom: 'Schneider' })
+  // Refusé pour le prix, revenu par une baisse : un match encore à proposer, qui garde son suivi.
+  const revenu: SuiviMatch = {
+    statut: 'suggested', proposeLe: '2026-09-01T10:00:00.000Z', reponduLe: '2026-09-02T10:00:00.000Z', motif: 'prix',
+    note: null, prixPropose: 3_450_000, apprisLe: null,
+  }
+
+  it('ni sa suggestion, ni son bien revenu, ni son reporté n’entrent dans « À proposer » ; le compte suit', () => {
+    const vue = construireFil([
+      match('m1', 95, vendu, julie),
+      match('m2', 92, vendu, emma, { suivi: revenu }),
+      match('m3', 88, vendu, emma, { reporteJusquau: '2026-09-30T00:00:00.000Z' }),
+      match('m4', 70, champel, julie),
+    ], SANS_FILTRE, MAINTENANT)
+    expect(vue.groupes.map((g) => g.bien.id)).toEqual(['p1'])
+    expect(vue.reportes).toEqual([])
+    expect(vue.compte).toBe(1)
+    expect(vue.ordre).toEqual(['bien:p1', 'm4'])
+  })
+
+  it('« Qui pour ce bien ? » ne s’offre plus : son en-tête n’est plus une ligne du fil', () => {
+    const vue = construireFil([match('m1', 95, vendu, julie)], SANS_FILTRE, MAINTENANT)
+    expect(vue.ordre).not.toContain(cleBien('p9'))
+    expect(vue.groupes).toEqual([])
+  })
+
+  it('seul `enVente: false` retire : un bien sans le drapeau (une annonce, un bien lu hors du fil) reste à proposer', () => {
+    expect(horsVente(vendu)).toBe(true)
+    expect(horsVente(champel)).toBe(false)
+    expect(horsVente(bien('p2'))).toBe(false)
+    expect(construireFil([match('m5', 80, bien('p2'), emma)], SANS_FILTRE, MAINTENANT).ordre).toEqual(['bien:p2', 'm5'])
   })
 })
 
@@ -127,6 +173,15 @@ describe('optionsFiltres', () => {
     expect(o.acheteurs).toEqual([
       { id: 'c2', libelle: 'Élodie Roux' }, { id: 'c3', libelle: 'Marc Favre' }, { id: 'c1', libelle: 'Zoé Aubert' },
     ])
+  })
+
+  it('les acheteurs de la boucle (lot B) en sont aussi, sans ajouter de bien', () => {
+    const villa = bien('p1', { titre: 'Villa' })
+    const zoe = acheteur('c1', { prenom: 'Zoé', nom: 'Aubert' })
+    const lea = acheteur('c4', { prenom: 'Léa', nom: 'Martin' })
+    const o = optionsFiltres([match('1', 90, villa, zoe)], [], [lea, zoe])
+    expect(o.biens).toEqual([{ id: 'p1', libelle: 'Villa' }])
+    expect(o.acheteurs).toEqual([{ id: 'c4', libelle: 'Léa Martin' }, { id: 'c1', libelle: 'Zoé Aubert' }])
   })
 })
 
@@ -430,5 +485,57 @@ describe('criteresNonTenus — ce qui reste à vérifier, même règle que le pr
       },
     })
     expect(criteresNonTenus(lignesCriteres(m))).toEqual(['budget', 'zone', 'type'])
+  })
+})
+
+describe('lot C : chambres, état, off-market — des faits, à la règle du moteur', () => {
+  const T = Date.parse('2026-09-22T12:00:00.000Z')
+  const recherche = { bedrooms_min: 3, condition_min: 'renovated', off_market_only: true } as const
+  const ligne = (b: Partial<FilBien>, cle: string) =>
+    lignesCriteres(match('m', 90, bien('p', b), acheteur('c'), { criteres: recherche }), T).find((l) => l.cle === cle)
+
+  it('chambres : un fait ; 0 et absent ne sont pas évalués', () => {
+    expect(ligne({ chambres: 3 }, 'chambres')).toMatchObject({ ok: true, chambres: 3, min: 3 })
+    expect(ligne({ chambres: 2 }, 'chambres')).toMatchObject({ ok: false })
+    expect(ligne({ chambres: 0 }, 'chambres')).toMatchObject({ ok: null, chambres: null })
+    expect(ligne({}, 'chambres')).toMatchObject({ ok: null })
+  })
+  it('état : saisi, ou déduit des années qui disent quelque chose', () => {
+    expect(ligne({ etatSaisi: 'good' }, 'etat')).toMatchObject({ ok: false, etat: { etat: 'good', source: 'saisi' } })
+    expect(ligne({ anneeConstruction: 2024 }, 'etat')).toMatchObject({ ok: true, etat: { etat: 'new', source: 'construction', annee: 2024 } })
+    expect(ligne({ anneeRenovation: 2019 }, 'etat')).toMatchObject({ ok: true, etat: { etat: 'renovated', annee: 2019 } })
+    expect(ligne({ anneeConstruction: 1968 }, 'etat')).toMatchObject({ ok: null, etat: null })
+  })
+  it('off-market : un mandat off-market tient ; un bien public ou une annonce du marché, non', () => {
+    expect(ligne({ offMarket: true }, 'offMarket')).toMatchObject({ ok: true })
+    expect(ligne({}, 'offMarket')).toMatchObject({ ok: false })
+    expect(ligne({ marche: { ref: 'MG-FL-1', sourceUrl: null } }, 'offMarket')).toMatchObject({ ok: false })
+  })
+  it('« à rénover » n’est pas un état minimum : aucune ligne, comme le moteur n’en fait pas un axe', () => {
+    const l = lignesCriteres(match('m', 90, bien('p', { etatSaisi: 'good' }), acheteur('c'), { criteres: { condition_min: 'to_renovate' as never } }), T)
+    expect(l.find((x) => x.cle === 'etat')).toBeUndefined()
+  })
+  it('aucune ligne pour un critère que la recherche ne pose pas', () => {
+    const l = lignesCriteres(match('m', 90, bien('p', { chambres: 3, offMarket: true }), acheteur('c'), { criteres: { type: 'apartment' } }), T)
+    expect(l.map((x) => x.cle)).toEqual(['type'])
+  })
+  it('même verdict que le moteur : ✓ = tenu en entier, sans verdict = axe inactif', () => {
+    const cas: Partial<FilBien>[] = [
+      { chambres: 3 }, { chambres: 2 }, { chambres: 1 }, { chambres: 0 }, {},
+      { etatSaisi: 'new' }, { etatSaisi: 'good' }, { etatSaisi: 'to_renovate' },
+      { anneeConstruction: 2023 }, { anneeRenovation: 2017 }, { anneeConstruction: 1970 },
+      { offMarket: true }, { offMarket: false },
+    ]
+    const verdict = (a: { active: boolean; frac: number }) => (a.active ? a.frac === 1 : null)
+    for (const b of cas) {
+      const lignes = lignesCriteres(match('m', 90, bien('p', b), acheteur('c'), { criteres: recherche }), T)
+      const axes = axesComplementaires({
+        bedrooms: b.chambres ?? null, condition: b.etatSaisi ?? null, year_built: b.anneeConstruction ?? null,
+        year_renovated: b.anneeRenovation ?? null, off_market: b.offMarket === true,
+      }, recherche, T)
+      expect(lignes.find((l) => l.cle === 'chambres')?.ok, JSON.stringify(b)).toBe(verdict(axes.chambres))
+      expect(lignes.find((l) => l.cle === 'etat')?.ok, JSON.stringify(b)).toBe(verdict(axes.etat))
+      expect(lignes.find((l) => l.cle === 'offMarket')?.ok, JSON.stringify(b)).toBe(verdict(axes.offMarket))
+    }
   })
 })

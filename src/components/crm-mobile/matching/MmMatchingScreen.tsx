@@ -15,12 +15,12 @@ import {
   execRelance,
   execSnooze,
   execWake,
-  useAtelierMatching,
   type GesteContext,
-} from '@/hooks/useAtelierMatching'
-import { PendingRegistry, type AtelierGestes, type PendingHandle } from '@/components/matching-atelier/pendingTriage'
-import type { AtelierBuyer, AtelierListing, AtelierTab } from '@/components/matching-atelier/types'
-import { atlReturnDate } from '@/components/matching-atelier/format'
+} from '@/lib/matchingGestes'
+import { useAtelierMatching } from '@/hooks/useAtelierMatching'
+import { PendingRegistry, type PendingHandle } from '@/lib/matchingAnnulation'
+import type { AtelierBuyer, AtelierGestes, AtelierListing, AtelierTab } from './types'
+import { atlReturnDate } from './format'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
@@ -49,7 +49,7 @@ const TOAST_MS = 4200 // < UNDO_WINDOW_MS (4500) — l'undo reste cliquable jusq
 
 /**
  * Matching mobile — inbox par ACHETEUR (VUE 1 liste ↔ VUE 2 focus). Réutilise
- * `useAtelierMatching` + ses exécuteurs purs via `PendingRegistry` (undo 5 s,
+ * `useAtelierMatching` + les exécuteurs purs de `matchingGestes` via `PendingRegistry` (undo 5 s,
  * flush au démontage = contrat audit). Aucune écriture directe sur `matches` ;
  * les gestes ciblent le matchId du BIEN concerné (un acheteur = N matchId).
  * KYC non-bloquant. Seeds derrière `demo` (harnais /dev/mobile, no-auth).
@@ -157,7 +157,11 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
       await execReact(e.buyer, reaction)
       return null
     }, { onSettled: refresh, onError: () => echec(matchId) }),
-    wake: (matchId) => { void execWake(matchId).then(refresh).catch(() => echec(matchId)) },
+    wake: (matchId) => {
+      const e = matchIndex.get(matchId)
+      if (!e || !ctx) return
+      void execWake(ctx, e.buyer).then(refresh).catch(() => echec(matchId))
+    },
     visit: (matchId) => {
       const e = matchIndex.get(matchId)
       if (!e || e.listing.kind !== 'property') return

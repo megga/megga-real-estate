@@ -25,6 +25,7 @@ function annonce(extra: Partial<MarketListing> = {}): MarketListing {
     agency: 'Bernard Nicod', agency_phone: '021 000 00 00',
     agency_logo_url: 'https://exemple.ch/logo.png',
     days_on_market: 12, postedAt: 'il y a 12 j', postedRank: 12,
+    enLigneDepuis: null, retireeLe: null,
     photos: ['https://cdn/1.jpg', 'https://cdn/2.jpg'],
     description: 'Belle vue', floor: 3, parking_count: 1, year_renovated: 2020,
     usable_surface: 118, charges_monthly: 250, is_furnished: false,

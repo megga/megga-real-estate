@@ -67,9 +67,10 @@ interface RawEvent {
 }
 
 /**
- * Le type de chaque action CONNUE — les 100 de la table du journal (`common:audit.action`)
- * et celles que la production écrit sans y figurer. Explicite plutôt que deviné : l'ancien
- * classement par motifs rangeait `match_suggested` en « Système », et `lead` en « IA ».
+ * Le type de chaque action CONNUE — les 125 de la table du journal (`common:audit.action`, 29.09.2026),
+ * moins les six que la cloche écarte : le courrier (`HORS_CLOCHE`) et le technique (`TECHNIQUE`).
+ * Une action hors de la table tombe sur le repli par motifs (`KIND_PAR_MOTIF`). Explicite plutôt que
+ * deviné : l'ancien classement par motifs rangeait `match_suggested` en « Système », et `lead` en « IA ».
  */
 const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // Contacts et leads entrants
@@ -90,7 +91,13 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   // libellés restent au journal (dix ans) et chaque libellé doit garder son type (sans eux, le second
   // tomberait en « Système » : agent-notifications-scenarios.spec.ts).
   match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
-  match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching',
+  match_reporte: 'matching', match_ecarte: 'matching', match_propose: 'matching', match_reactive: 'matching',
+  // La boucle chez l'agent (lot B, 21.09.2026) : réponses consignées, relance repoussée, retour d'un bien par
+  // une baisse de prix, et « Apprendre » (recherche ajustée, correction ignorée).
+  match_reaction: 'matching', match_pas_encore: 'matching', match_retour_prix: 'matching',
+  recherche_ajustee: 'matching', matchs_reevalues: 'matching', correction_ignoree: 'matching',
+  // « Qui pour ce bien ? » (lot C, 22.09.2026) : un ancien prospect réactivé par l'agent.
+  prospect_reactive: 'matching',
   // Agenda
   visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
   onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',
@@ -108,6 +115,8 @@ const KIND_PAR_ACTION: Record<string, NotifKind> = {
   bien_soft_deleted: 'bien', bien_hard_deleted: 'bien', property_created: 'bien', property_updated: 'bien',
   property_photo_added: 'bien', property_published_to_portal: 'bien', property_withdrawn_from_portal: 'bien',
   idx_feed_pushed: 'bien', extract_property_pdf: 'bien', extract_property_url: 'bien',
+  // L'interrupteur Off-market d'un mandat (lot C, 22.09.2026).
+  bien_off_market: 'bien', bien_rendu_public: 'bien',
   // Conformité : KYC des clients, KYB de l'agence
   kyc_case_opened: 'kyc', kyc_document_attached: 'kyc', kyc_link_sent: 'kyc', kyc_report_import: 'kyc',
   kyc_report_sent: 'kyc', kyc_screening: 'kyc', kyc_screening_match: 'kyc',

@@ -157,12 +157,19 @@ const HORS_ASSUMES = new Map<string, number>([
   // ne s'y pose, rien ne s'y lit — le bleu et le cyan, eux, sont les barreaux de marque.
   // 504 → 502 le 21.09.2026 : le cyan de l'état « vu » de la fiche contact part avec la page de
   // réception de l'acheteur (le matching reste chez l'agent).
-  ['src/components/crm', 502],
+  // 502 → 501 le 23.09.2026 : le bleu des cartes de match (`MATCH: '#6F8CFF'`) quitte
+  // « Dossiers » avec elles — les matchs vivent dans le segment Matching (lot D1).
+  // 501 → 477 le 27.09.2026 : le catalogue de matchs d'« Aujourd'hui » (`PageCatalogue`)
+  // est retiré avec ses vingt-quatre littéraux hors barreaux ; l'écran n'a plus qu'une page
+  // (lot E1). → 460 le 29.09.2026, à la fusion avec le Pipeline : l'ancien Pipeline (huit colonnes, liste, bento de signature,
+  // « Nouveau deal » et sa palette) est retiré — la refonte à cinq phases le remplace.
+  ['src/components/crm', 460],
   ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
   // l'encre d'alerte recopiée `#8C5A00`.
-  ['src/components/crm-dossiers', 57],
+  // 57 → 53 le 27.09.2026 : la palette de l'ancienne fiche deal (`dealTokens`) part avec elle.
+  ['src/components/crm-dossiers', 53],
   // `crm-wizard` (47) est SORTI le 16.09.2026 : l'ancien wizard et sa palette sont retirés,
   // il ne reste dans ce dossier que le modèle de saisie et deux hooks, sans une couleur.
   // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
@@ -171,7 +178,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // exactement la famille que l'en-tête de ce fichier range hors de la direction par nature.
   ['src/components/propertyx', 42],
   ['src/components/listings', 37],
-  ['src/pages/dev', 26],
+  // 26 → 22 le 27.09.2026 : les fixtures du banc de l'atelier de bureau (`matchingAtelierFixtures`, quatre teintes
+  // d'avatar hors barreaux) partent avec lui (lot E1).
+  ['src/pages/dev', 22],
   // 4 → 3 le 14.09.2026 : la carte « Actions MEGGA AI » du journal d'audit, et son violet
   // `#7A4FD8` écrit à la main, sont partis avec les trois autres cartes de chiffres.
   ['src/pages/agent', 3],
@@ -201,8 +210,6 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/pages/public', 4],
   ['src/components/auth', 4],
   ['src/types/visit.ts', 4],
-  // 3 → 2 le 21.09.2026 : la feuille d'envoi `AtlSendSheet` est retirée.
-  ['src/components/matching-atelier', 2],
   ['src/components/admin', 2],
   ['src/components/layout', 1],
   ['src/components/ui', 1],

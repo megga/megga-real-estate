@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils'
 interface Option {
   value: string
   label: string
+  /** Une option qu'on voit sans pouvoir la choisir — une ligne de séparation, par exemple. */
+  disabled?: boolean
 }
 
 interface Props extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -17,7 +19,7 @@ export default function MxSelect({ options, className, wrapperClassName, ...rest
     <div className={cn('input select-input-wrapper', wrapperClassName)}>
       <select className={cn('input select-input w-select', className)} {...rest}>
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} disabled={o.disabled}>
             {o.label}
           </option>
         ))}

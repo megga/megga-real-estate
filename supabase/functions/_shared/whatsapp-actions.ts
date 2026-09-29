@@ -356,7 +356,8 @@ export async function execListFollowups(ctx: ActionCtx, _a: Args): Promise<strin
 
 // Résout titre/montant/ville/pièces d'une liste de matches en 2 requêtes BATCH (pas de N+1),
 // via le projecteur PUR projectMatchListing (champ absent → omis, jamais inventé). Property
-// prioritaire sur market_listing. Partagé par execGetMatches ET execPrepareMeeting.
+// prioritaire sur market_listing. Sert execPrepareMeeting ; `get_matches` a son propre exécuteur depuis le
+// lot D2 (`whatsapp-matching-outils.ts`), qui lit aussi l'état et l'explication de chaque bien.
 async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]): Promise<ResolvedMatchView[]> {
   const propIds = [...new Set(matches.map((m) => m.property_id).filter((x): x is string => !!x))]
   const mlIds = [...new Set(matches.map((m) => m.market_listing_id).filter((x): x is string => !!x))]
@@ -386,29 +387,12 @@ async function resolveMatchListings(ctx: ActionCtx, matches: MatchListingInput[]
   )
 }
 
-/** Biens correspondant à un contact (moteur de matching). */
-export async function execGetMatches(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id)
-  if (!contactId) return 'Erreur: contact_id requis.'
-  const { data, error } = await ctx.supabase
-    .from('matches').select('score, status, market_listing_id, property_id')
-    .eq('contact_id', contactId).eq('agency_id', ctx.agencyId)
-    .order('score', { ascending: false }).limit(5)
-  if (error) return `Erreur: ${error.message}`
-  if (!data?.length) return 'Aucun bien correspondant (recherche peut-être pas encore lancée).'
-  // Enrichi (titre/montant/ville/pièces réels) : l'id reste l'UUID du bien (clé pour schedule_visit),
-  // mais il n'est plus SEUL — accompagné des vraies données, le modèle n'a plus à inventer un bien.
-  // Un bien non résolu ne porte que id/score/statut (jamais de titre/ville inventés).
-  const biens = await resolveMatchListings(ctx, data as MatchListingInput[])
-  return JSON.stringify({ biens })
-}
-
 /**
- * Point du jour : les MÊMES cinq sections que le push de 07h30 (visites, rendez-vous du
- * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs), lues par le même
- * `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du jour », que
- * le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit s'y retrouver.
+ * Point du jour : les MÊMES six sections que le push de 07h30 (visites, rendez-vous du
+ * Calendrier, relances dues, offres qui expirent, nouveaux leads vendeurs, actions de matching),
+ * lues par le même `loadAgencyData`, plus les leads à compléter. C'est la réponse à « mon point du
+ * jour », que le template `agent_daily_brief` fait écrire à l'agent : le décompte du matin doit
+ * s'y retrouver.
  */
 export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
@@ -433,7 +417,9 @@ export async function execGetDailyBrief(ctx: ActionCtx, _a: Args): Promise<strin
 // ── Phase 4C / C4 : outils ACTION (tier 🟢 auto — état CRM interne, réversible) ─
 // Aucun envoi client / KYC / argent / signature ici (→ tiers confirm/never).
 
-const frDateTime = (iso: string): string =>
+/** Une date ISO en clair, à la suisse (jour.mois.année heure:minute), toujours à l'heure de Genève — quel que soit
+ *  le fuseau du runtime qui l'appelle. */
+export const frDateTime = (iso: string): string =>
   new Date(iso).toLocaleString('fr-CH', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Zurich' })
 
 /** Vérifie qu'un contact appartient à l'agence (garde SQL). Renvoie son nom ou null.
@@ -469,38 +455,6 @@ async function resolveContactDeal(
   const p = Array.isArray(row.properties) ? (row.properties[0] ?? null) : row.properties
   const party: 'buyer' | 'seller' = row.contact_seller_id === contactId ? 'seller' : 'buyer'
   return { id: row.id, label: p?.title || p?.address || p?.city || 'dossier', stage: row.stage, party }
-}
-
-/** Planifie une visite (table visits). property_id ET contact_id obligatoires (NOT NULL). */
-export async function execScheduleVisit(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const contactId = s(a.contact_id), propertyId = s(a.property_id), when = s(a.scheduled_at)
-  if (!contactId) return 'Erreur: contact_id requis (via search_contacts).'
-  if (!propertyId) return 'Erreur: pour quel bien ? (property_id requis, via get_matches ou demande à l’agent).'
-  if (!when || !Number.isFinite(Date.parse(when))) return 'Erreur: date/heure (scheduled_at, ISO 8601) requise.'
-  const contact = await contactInAgency(ctx, contactId)
-  if (!contact) return 'Erreur: contact introuvable dans votre agence.'
-  const { data: prop } = await ctx.supabase
-    .from('properties').select('id, title').eq('id', propertyId).eq('agency_id', ctx.agencyId).maybeSingle()
-  if (!prop) return 'Erreur: bien introuvable dans votre agence.'
-  const propTitle = (prop as { title: string | null }).title ?? 'bien'
-
-  const visitType = s(a.visit_type) === 'video' ? 'video' : 'sur_place'
-  const buyerName = `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim() || null
-  const iso = new Date(when).toISOString()
-  const row: Record<string, unknown> = {
-    agency_id: ctx.agencyId, agent_id: ctx.profileId,
-    property_id: propertyId, contact_id: contactId,
-    scheduled_at: iso, status: 'planned', visit_type: visitType, buyer_name: buyerName,
-  }
-  if (typeof a.duration_minutes === 'number' && a.duration_minutes > 0) row.duration_minutes = Math.min(a.duration_minutes, 480)
-  if (visitType === 'video') row.video_platform = 'google_meet'
-  const { data: visit, error } = await ctx.supabase.from('visits').insert(row).select('id').single()
-  if (error) return `Erreur planification: ${error.message}`
-  await logTimeline(ctx, 'visit_scheduled', `${propTitle} — ${frDateTime(iso)}`, contactId)
-  const undoOk = await recordAutoUndo(ctx, 'schedule_visit', { visit_id: visit.id })
-  const base = `Visite planifiée le ${frDateTime(iso)} pour ${buyerName ?? 'le contact'} (bien : ${propTitle}).`
-  return undoOk ? base + undoHint(ctx.lang ?? 'fr') : base
 }
 
 /** Crée un rappel/tâche agent (table reminders). type=custom, trigger_rule=manual. */
@@ -776,7 +730,7 @@ function zoneToCantonCode(zone: string): string | null {
   return CANTON_BY_NAME[k] ?? null
 }
 
-/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : eq(status)+eq(transaction_type)
+/** Recherche d'annonces (market_listings). Perf-safe (CLAUDE.md §7) : statut vivant + eq(transaction_type)
  *  sur index, tri quality_score (indexé). Géo INDEXÉE : une zone reconnue comme canton → `canton IN`
  *  (idx_ml_active_tx_canton_type) ; une commune → `city ILIKE` servi par le GIN trigram
  *  idx_ml_city_trgm (sinon scan de ~34k lignes = timeout). Total via count:'estimated' (jamais
@@ -788,7 +742,12 @@ export async function execSearchListings(ctx: ActionCtx, a: Args): Promise<strin
   let q = ctx.supabase
     .from('market_listings')
     .select('id, title, transaction_type, price, rent, rent_chf, rooms, surface_m2, city, canton, source_url', { count: 'estimated' })
-    .eq('status', 'active')
+    // ⛔ Vivante = `active` OU `price_reduced` : une annonce en baisse reste en vente. `eq('active')`
+    // écartait les ventes RealAdvisor en baisse (depuis le 19.06.2026) et, avec la pige du 21.09.2026,
+    // les locations Flatfox en baisse — les plus intéressantes à proposer. Ce `in` est au mot près le
+    // prédicat partiel de idx_ml_active_tx_canton_type, idx_ml_city_trgm et
+    // idx_market_listings_quality_score (le tri).
+    .in('status', ['active', 'price_reduced'])
     .eq('transaction_type', txType)
 
   const type = canonicalPropertyType(s(a.property_type))
@@ -2433,7 +2392,7 @@ Titre court et percutant (style « ATTIQUE D'EXCEPTION À LOUER À CHAMPEL »). 
 // prepare_meeting (read-tier, agent-facing) : pour UN contact, MEGGA rend une synthèse de
 // préparation de RDV — fiche + où on en est + biens correspondants + visite à venir + 3 points
 // concrets à aborder. Agrégation des MÊMES requêtes que execGetContactBrief (fiche + recherches
-// actives + timeline + compréhension), execGetMatches (biens) et execGetDailyBrief (table visits),
+// actives + timeline + compréhension), l'ancien execGetMatches (biens) et execGetDailyBrief (table visits),
 // puis une petite couche DeepSeek pour les 3 points (ancrés UNIQUEMENT sur le contexte fourni).
 // Rien n'est envoyé : le résultat revient à l'agent dans son 1:1. Accès DB scopé agence → garde
 // hasAgency. NE DOIT JAMAIS throw : runTool n'a pas de try/catch → toute erreur renvoie une chaîne
@@ -2502,7 +2461,7 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
   const searches = (searchRows ?? []) as Array<{ label: string | null; criteria: unknown }>
 
-  // 3. Biens correspondants (matches top 5) — mêmes requête/scope que execGetMatches, enrichis
+  // 3. Biens correspondants (matches top 5) — la requête de l'ancien execGetMatches (avant le lot D2), enrichis
   //    best-effort des titres/prix via properties / market_listings (champ absent → omis).
   const { data: matchRows } = await ctx.supabase
     .from('matches').select('score, status, market_listing_id, property_id')

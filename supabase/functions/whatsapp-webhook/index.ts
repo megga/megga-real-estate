@@ -25,6 +25,7 @@ import { planConfirmation, resolveButtonDecision, parseConfirmReplyId, deliverCo
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 import { urlFonction } from '../_shared/function-url.ts'
 import { bienDansMessage, refusBienDansMessage } from '../_shared/message-sans-bien.ts'
+import { executeRecordMatchOutcome, annulerVisite } from '../_shared/whatsapp-matching-outils.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1243,11 +1244,14 @@ async function rollbackAutoAction(
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }
   if (row.tool === 'schedule_visit') {
-    const id = String(p.visit_id ?? ''); if (!id) return null
-    const { data: done, error } = await admin.from('visits').delete().eq('id', id).eq('agency_id', agencyId).select('id')
-    if (error) { console.error('undo schedule_visit failed:', error.message.slice(0, 120)); return null }
-    if (!done || done.length === 0) return null  // rien d'affecté (déjà supprimé / autre agence) → pas de fausse confirmation
-    await audit('contact', 'visit', id, 'undo visite')
+    // Lot D2 : la visite (ou l'événement d'agenda d'une annonce), le match et l'étape du deal se défont d'un bloc, par la
+    // base (`wa_matching_visite_annuler`, signé MEGGA AI). Un payload d'avant le lot, `{ visit_id }`, y passe aussi.
+    const id = String(p.visite_id ?? p.visit_id ?? p.evenement_id ?? ''); if (!id) return null
+    if (!(await annulerVisite(admin, agencyId, agentLink.profile_id, p))) return null  // rien de défait → pas de fausse confirmation
+    // `calendar_event` n'existe nulle part comme entity_type (grep sur supabase/functions et supabase/migrations,
+    // 25.09.2026) : l'audit garde `visit`, avec l'id de la VISITE quand il y en a une — jamais celui d'un événement
+    // d'agenda, que ce mot ne désigne pas.
+    await audit('contact', 'visit', String(p.visite_id ?? p.visit_id ?? '') || null, 'undo visite')
     return undoneAuto(lang, undoNoun(lang, row.tool))
   }
   if (row.tool === 'create_reminder') {
@@ -1475,6 +1479,12 @@ async function executePending(
   if (pending.tool === 'update_pipeline') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return execUpdatePipeline(ctx, pending.args)
+  }
+  if (pending.tool === 'record_match_outcome') {
+    // Lot D2 : la réponse d'un acheteur, écrite d'un bloc par la base (`wa_matching_consigner`, signé MEGGA AI), qui
+    // revérifie le statut de départ. N'écrit jamais au client.
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeRecordMatchOutcome(ctx, pending.args)
   }
   if (pending.tool === 'record_offer') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }

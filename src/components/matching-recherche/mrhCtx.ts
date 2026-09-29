@@ -75,8 +75,8 @@ export const MRH_PRICE_DROP = '#B45309'
  * un correctif qui déplace le défaut d'un thème à l'autre. C'est la garde étendue
  * aux surfaces sombres qui l'a dit, pas l'œil.
  *
- * `#E89B5A` n'est pas choisi non plus : c'est déjà le pendant sombre de
- * `--sys-yellow` dans `atelier.css` (`.sga[data-theme="dark"] .tone-yellow`). La
- * feuille connaissait la réponse ; les composants la lisent maintenant aussi.
+ * `#E89B5A` n'est pas choisi non plus : c'était le pendant sombre de `--sys-yellow`
+ * dans la feuille de l'atelier de bureau (`.sga[data-theme="dark"] .tone-yellow`),
+ * partie avec lui. La feuille connaissait la réponse ; les composants la lisent.
  */
 export const mrhPriceDropInk = (dark: boolean): string => (dark ? '#E89B5A' : MRH_PRICE_DROP)

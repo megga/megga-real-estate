@@ -28,9 +28,9 @@ function avatarColor(id: string): string {
 }
 
 const DEMO: CrmContact[] = [
-  { id: 'c1', type: 'buyer', firstName: 'Marie', lastName: 'Bertrand', email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', lang: 'fr', status: 'active', score: 84, source: 'website', assignedTo: 'a', createdAt: '2026-04-02', lastActivityAt: '2026-06-20', kyc: { status: 'verified' }, tags: ['famille'], avatarBg: '#0041D9' },
-  { id: 'c2', type: 'seller', firstName: 'Jean-Marc', lastName: 'Aebischer', email: 'jm.aeb@gmail.com', phone: '+41 78 220 11 33', lang: 'fr', status: 'qualified', score: 72, source: 'referral', assignedTo: 'a', createdAt: '2026-03-15', lastActivityAt: '2026-06-18', kyc: { status: 'pending' }, avatarBg: '#C45A00' },
-  { id: 'c3', type: 'buyer', firstName: 'Nadia', lastName: 'Berset', email: 'nadia.berset@proton.me', phone: '+41 76 555 00 99', lang: 'fr', status: 'lead', score: 58, source: 'call', assignedTo: 'a', createdAt: '2026-05-01', lastActivityAt: '2026-06-10', kyc: { status: 'none' }, avatarBg: '#0891B2' },
+  { id: 'c1', type: 'buyer', roles: ['buyer'], firstName: 'Marie', lastName: 'Bertrand', email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02', lang: 'fr', status: 'active', score: 84, source: 'website', assignedTo: 'a', createdAt: '2026-04-02', lastActivityAt: '2026-06-20', kyc: { status: 'verified' }, tags: ['famille'], avatarBg: '#0041D9' },
+  { id: 'c2', type: 'seller', roles: ['seller'], firstName: 'Jean-Marc', lastName: 'Aebischer', email: 'jm.aeb@gmail.com', phone: '+41 78 220 11 33', lang: 'fr', status: 'qualified', score: 72, source: 'referral', assignedTo: 'a', createdAt: '2026-03-15', lastActivityAt: '2026-06-18', kyc: { status: 'pending' }, avatarBg: '#C45A00' },
+  { id: 'c3', type: 'buyer', roles: ['buyer'], firstName: 'Nadia', lastName: 'Berset', email: 'nadia.berset@proton.me', phone: '+41 76 555 00 99', lang: 'fr', status: 'lead', score: 58, source: 'call', assignedTo: 'a', createdAt: '2026-05-01', lastActivityAt: '2026-06-10', kyc: { status: 'none' }, avatarBg: '#0891B2' },
 ]
 
 /**

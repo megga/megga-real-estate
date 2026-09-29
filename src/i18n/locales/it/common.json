@@ -527,12 +527,22 @@
       "whatsapp_send_blocked": "Invio WhatsApp bloccato",
       "match_ecarte": "Match scartato",
       "match_reporte": "Match rinviato",
+      "match_reactive": "Match riattivato",
       "match_propose": "Immobile proposto dall'agente",
       "labs_image_generated": "Immagine generata nello studio Labs",
       "labs_video_generated": "Video generato nello studio Labs",
       "labs_folder_created": "Cartella Labs creata",
       "labs_folder_renamed": "Cartella Labs rinominata",
-      "labs_folder_deleted": "Cartella Labs eliminata"
+      "labs_folder_deleted": "Cartella Labs eliminata",
+      "match_reaction": "Risposta dell'acquirente registrata",
+      "match_pas_encore": "Ancora nessuna risposta dell'acquirente",
+      "match_retour_prix": "Immobile rifiutato tornato dopo un calo di prezzo",
+      "recherche_ajustee": "Ricerca adattata dopo i rifiuti",
+      "matchs_reevalues": "Match rivalutati",
+      "correction_ignoree": "Correzione della ricerca ignorata",
+      "prospect_reactive": "Ex potenziale acquirente riattivato per un immobile",
+      "bien_off_market": "Immobile passato a off-market",
+      "bien_rendu_public": "Immobile reso pubblico"
     },
     "entity": {
       "admin_console": "Console di amministrazione",

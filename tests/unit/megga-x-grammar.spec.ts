@@ -66,16 +66,16 @@ const PAGES = new Set([
   // Née portée (16.09.2026) : la création d'annonce en quatre étapes, écrite en jetons.
   'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
-  // Le pager Matching et son conteneur d'atelier — les deux dernières surfaces
-  // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
-  // l'entrer quand même est ce qui empêche qu'il cesse de l'être.
-  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  // Le pager Matching, dernière surface du périmètre bureau. (`MatchingAtelierPage`,
+  // son conteneur d'atelier, en faisait partie ; il est parti avec l'atelier de
+  // bureau au lot E1, le 29.09.2026 : le fil de matchs tient la page 0.)
+  'MatchingPage.tsx',
   // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferPage`
   // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer
   // quand même est ce qui empêche qu'il cesse de l'être.
   'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
   // « Aujourd'hui », la page d'accueil du CRM (lot A1, 15 août 2026). Elle ne
-  // porte que le pager et le chrome — les deux pages vivent dans `today/`.
+  // porte que le chrome et le cadre — sa page, unique, vit dans `today/`.
   'TodayPage.tsx',
   // Les trois pages KYC (lot A2). `KycExportPage` et `KycOnboardingPage` sont
   // ROUTÉES — /dashboard/kyc/:id/export et kyc/bienvenue — et le plan du chantier
@@ -126,7 +126,7 @@ const PAGES = new Set([
 const PAGES_ACQUISES = [
   'ListingDetailPage.tsx', 'ListingsPage.tsx', 'NouveauBienPage.tsx',
   'ContactDetailPage.tsx', 'ContactsPage.tsx',
-  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  'MatchingPage.tsx',
   'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
   'TodayPage.tsx',
   'KycPage.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
@@ -451,7 +451,6 @@ const ZONES: RootSpec[] = [
   // survol — du chrome posé SUR la carte. L'exemption couvrait tout un fichier
   // pour protéger une poignée de teintes de fond.
   { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
   // Le fil de matchs (17.09.2026), né porté : aucun littéral, aucune graisse au-dessus de 600.
   { root: 'src/components/matching-fil', keep: (n) => /\.tsx?$/.test(n) },
   // Les 19 pages de la console super-admin (lot 3 du chantier MEGGA X,
@@ -544,7 +543,7 @@ const ZONES: RootSpec[] = [
   // sortir maintenant ferait de « c'est gelé » un motif d'exemption — le même
   // glissement que « c'est vert » en serait un. Ils sont entrés PROPRES, et une
   // zone propre reste au cliquet précisément pour qu'elle le demeure : c'est
-  // l'argument déjà écrit pour `MatchingAtelierPage` et `OfferPage`.
+  // l'argument déjà écrit pour `OfferPage`.
   // Les quatre exemptés, eux, le sont parce qu'ils SÈMENT un état (session,
   // intercepteur de fetch) — c'est ce qui les rend inexerçables, pas leur
   // absence du bundle.
@@ -792,13 +791,9 @@ function cssLisible(css: string): string {
  * est une décision de PRODUIT, posée et non prise ici — d'où l'inventaire.
  */
 const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interlettrage?: number; taille?: number }>([
-  // ⚠ 55 marqueurs sur 143 payés le 15 août 2026 : les 44 graisses passent à
-  // 600, et les CINQ micro-capitales partent AVEC leur interlettrage — sur de la
-  // casse normale, un tracking positif disloque le mot, ils voyagent ensemble.
-  // Restent les 88 tailles, dont 47 hors échelle : elles demandent un arbitrage
-  // par site (17 valeurs distinctes, des demi-pas aux chiffres d'affichage), et
-  // l'échelle PROPRE du fichier (`.t1`=13,5 px, `.t3`=17) en fait partie.
-  ['src/components/matching-atelier/atelier.css', { taille: 88 }],
+  // Vide depuis le 27.09.2026 : sa seule entrée, `atelier.css` (88 tailles), est partie avec l'atelier de bureau
+  // (lot E1). Une feuille qui porterait de la grammaire devra y entrer, ou être exemptée : c'est la clause « chaque
+  // feuille CSS de src/ est lue ».
 ])
 
 /**
@@ -1018,7 +1013,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // carte d'état perd ses deux `marginTop: 5` en littéral.
   // {47,66} -> {44,61} (21.09.2026) : les liens de réception de la fiche (`CdLinks` et sa modale
   // de retrait) partent avec la page de l'acheteur ; le matching reste chez l'agent.
-  ['src/components/crm/contacts-pager', { hors: 44, total: 61 }],
+  // {44,61} -> {42,59} (23.09.2026) : « Sa boucle » refaite (lot D1) écrit ses marges en jetons —
+  // le `marginTop: 3` du motif et le `marginBottom: 6` de l'en-tête des biens proposés sont partis.
+  ['src/components/crm/contacts-pager', { hors: 42, total: 59 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
   // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,
@@ -1026,7 +1023,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/notifications', { hors: 0, total: 0 }],
   // {32,38} -> {30,36} (13.09.2026) : la colonne « Valeur » de la liste passe de
   // `paddingRight: 56` au barreau `7xl` — le montant s'y cassait sur deux lignes.
-  ['src/components/crm/pipeline', { hors: 30, total: 36 }],
+  // {30,36} -> {7,9} (27.09.2026) : l'ancien Pipeline est retiré — colonnes d'étape, liste,
+  // timeline, bento de signature, « Nouveau deal » —, la refonte à cinq phases écrit en jetons.
+  ['src/components/crm/pipeline', { hors: 7, total: 9 }],
   // {2,2} -> {1,1} (05.09.2026). Le sous-titre du menu de compte — « rôle ·
   // agence », puis l'e-mail quand il existait — a été retiré (décision Julien :
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
@@ -1040,7 +1039,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
-  ['src/components/crm/today', { hors: 43, total: 54 }],
+  // {43,54} -> {26,34} (27.09.2026) : le catalogue de matchs (`PageCatalogue`) est retiré avec
+  // ses littéraux — « Aujourd'hui » n'a plus qu'une page (lot E1).
+  ['src/components/crm/today', { hors: 26, total: 34 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
   // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
   // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
@@ -1055,13 +1056,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/layout', { hors: 9, total: 94 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
-  // {37,50} -> {31,43} (21.09.2026) : la feuille d'envoi `AtlSendSheet` est retirée, « Je l'ai
-  // proposé » n'envoie plus rien à l'acheteur.
-  ['src/components/matching-atelier', { hors: 31, total: 43 }],
   ['src/components/matching-fil', { hors: 0, total: 0 }],
   // {123,185} -> {112,171} (21.09.2026) : la feuille d'envoi `MrhSendSheet` est retirée, la
   // Recherche ajoute à la sélection de l'acheteur au lieu de lui envoyer un lien.
-  ['src/components/matching-recherche', { hors: 112, total: 171 }],
+  // {112,171} -> {106,165} (21.09.2026) : les groupes de segments de l'en-tête passent aux jetons
+  // (`segments`), et « Ce qui a bougé » (`MrhBouge`) et l'historique du prix (`MrhHistoriquePrix`)
+  // naissent sans littéral.
+  ['src/components/matching-recherche', { hors: 106, total: 165 }],
   ['src/components/onboarding-call', { hors: 0, total: 27 }],
   ['src/components/propertyx', { hors: 2, total: 3 }],
   // {8,12} -> {1,2} (04.09.2026). `CrmPageSkeleton` décalquait un chrome qui
@@ -1128,7 +1129,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // latérale. Il lit `--crm-radius-4xl`.
   // ⚠ 762 le 21.09.2026 : la fiche d'une annonce du marché perd son « Envoyer par e-mail » et son
   // historique d'envoi (le matching reste chez l'agent).
-  ['src/pages/agent', { hors: 215, total: 762 }],
+  // 215/762 → 211/758 le 27.09.2026 : « Aujourd'hui » n'a plus qu'une page (lot E1) — ses points de
+  // page et son indice de molette partent avec leurs quatre littéraux hors échelle. → 145/662 le 29.09.2026, à la
+  // fusion avec le Pipeline : `PipelinePage` et `DealDetailPage` sont réécrites par la refonte à cinq phases ; l'ancienne fiche
+  // « Atelier scindé » portait l'essentiel de ces littéraux.
+  ['src/pages/agent', { hors: 145, total: 662 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   // {66,257} -> {10,178} (21.09.2026) : `BuyerReceptionPage` est retirée avec la page de
   // réception acheteur (le matching reste chez l'agent), et ses littéraux avec elle.
@@ -1410,15 +1415,47 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
  * explique un retrait fait rougir la garde : le garde-fou trébuche sur sa
  * propre documentation. Défaut déjà rencontré sur `t.primary`
  * (`megga-x-crm-tokens.spec.ts`).
+ *
+ * ⛔ ET IL A RENDU LE CLIQUET AVEUGLE SUR 108 LIGNES, EN DEMANDANT LUI-MÊME
+ * QU'ON DESCENDE SON COMPTE (22.09.2026).
+ *
+ * Il passait en DEUX temps — les blocs, puis les lignes. Un `//` qui CONTIENT
+ * `/*` ouvrait donc un bloc FANTÔME, puisque la ligne qui le portait n'était pas
+ * encore retirée. `ContactDetailPage.tsx` en porte un depuis toujours dans son
+ * en-tête : le chemin `src/hooks/*`, écrit en commentaire de ligne.
+ *
+ * Il n'avait jamais rien coûté, pour une raison qui ne tient à rien : ce fichier
+ * ne contenait AUCUN bloc `/* … *\/`, donc le fantôme ne se refermait jamais et
+ * la regex ne trouvait aucune paire. L'étape 3 y a écrit son premier JSDoc — et
+ * le fantôme s'est refermé DESSUS, avalant les lignes 11 à 119 : tous les
+ * imports et le haut du composant, dont `marginTop: 14` et `padding: '0 16px'`.
+ *
+ * ⛔ CE QUI REND LE DÉFAUT GRAVE, c'est la forme qu'il prend en sortie. La zone
+ * `src/pages/agent` tombait de {215, 762} à {213, 760}, et « l'inventaire ne
+ * garde aucun crédit » réclamait de descendre le compte — la clause écrite pour
+ * empêcher qu'on réintroduise en silence réclamait d'inscrire un nettoyage qui
+ * n'avait pas eu lieu, et de rendre ces 108 lignes invisibles POUR DE BON. Un
+ * cliquet qui se resserre sur un angle mort est pire que pas de cliquet : il
+ * signe.
+ *
+ * ⚠ Et le remède n'est PAS d'inverser les deux passes : `/* x // y *\/` perdrait
+ * alors son fermant et avalerait la fin du fichier. Il faut UN seul balayage de
+ * gauche à droite où, à chaque position, le premier ouvrant l'emporte — ce que
+ * fait l'alternance ci-dessous.
+ *
+ * ⚠ Mesuré sur tout `src/` le 22.09.2026 : DEUX fichiers se lisent autrement,
+ * `App.tsx` (6 749 caractères rendus visibles, hors des racines de ce spec) et
+ * `ContactDetailPage.tsx` (3 289). Le second est ici ; le premier reste aveugle
+ * à toute garde qui retirerait ses commentaires en deux temps.
  */
 function sansCommentaires(code: string): string {
-  return code
-    // ⚠ Un bloc `/* … */` de N lignes doit rendre N sauts de ligne, pas une
-    // espace : sinon tout ce qui suit REMONTE, et chaque `fichier:ligne` que ce
-    // spec rapporte désigne la mauvaise ligne. Une garde qui envoie au mauvais
-    // endroit coûte plus de temps qu'elle n'en fait gagner.
-    .replace(/\/\*[\s\S]*?\*\//g, (bloc) => '\n'.repeat((bloc.match(/\n/g) ?? []).length))
-    .replace(/\/\/[^\n]*/g, ' ')
+  // ⚠ Un bloc `/* … */` de N lignes doit rendre N sauts de ligne, pas une
+  // espace : sinon tout ce qui suit REMONTE, et chaque `fichier:ligne` que ce
+  // spec rapporte désigne la mauvaise ligne. Une garde qui envoie au mauvais
+  // endroit coûte plus de temps qu'elle n'en fait gagner.
+  return code.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (com) =>
+    com.startsWith('//') ? ' ' : '\n'.repeat((com.match(/\n/g) ?? []).length),
+  )
 }
 
 const scan = scanRoots(ZONES)
@@ -2295,7 +2332,9 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-dossiers',
       'src/pages/agent',
       'src/components/matching-recherche',
-      'src/components/matching-atelier',
+      // Le fil de matchs tient la place de `src/components/matching-atelier`, sorti de cette liste le 27.09.2026 : le
+      // dossier est parti avec l'atelier de bureau (lot E1).
+      'src/components/matching-fil',
       'src/pages/admin',
       'src/components/admin',
       'src/components/crm/today',

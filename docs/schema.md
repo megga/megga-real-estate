@@ -75,7 +75,18 @@ contacts (
   -- Identité
   first_name, last_name, email, phone, whatsapp_phone, language, nationality,
   -- Classification
+  roles,         -- text[] (étape 3, 22.09.2026) — LA SOURCE DE VÉRITÉ. Douze valeurs :
+                 --   transaction : buyer | seller | tenant | landlord | investor
+                 --   réseau      : family_office | referrer | private_banker | lawyer | trustee | broker | architect
+                 --   Vide = un lead ; « prospect » n'est PAS un rôle, c'est un stade.
+                 --   Index GIN `idx_contacts_roles` (filtre et recherche par rôle).
   type,          -- 'buyer' | 'seller' | 'investor' | 'tenant' | 'landlord' | 'both' | 'lead'
+                 -- ⚠ DÉRIVÉ de `roles` par le déclencheur `trg_contacts_roles_sync`, dans les DEUX
+                 --   sens : écrire `roles` recalcule `type` (both si acquéreur ET côté offre, sinon
+                 --   le premier rôle de transaction, sinon lead) ; écrire `type` seul (l'IA, un
+                 --   import, `create_lead_with_optional_deal`) AJOUTE le rôle correspondant sans
+                 --   effacer les rôles de réseau. Gardé parce que ~100 lecteurs en dépendent encore,
+                 --   dont trois politiques RLS et quatre fonctions SQL.
   source,        -- 'website' | 'referral' | 'portal' | 'walk_in' | 'social' | 'cold_call' | 'other'
   score,         -- 'hot' | 'warm' | 'cold'
   -- Budget
@@ -113,8 +124,10 @@ labs_assets (
   model, provider,  -- 'gemini' | 'fal' | 'upload'
   provider_request_id, provider_status_url, provider_response_url,   -- file d'attente fal.ai (pas des secrets)
   error_code,
-  cost_chf,         -- ⛔ le COÛT FOURNISSEUR (CHF), pour la console — ne sort JAMAIS vers l'agent
+  cost_chf,         -- ⛔ le COÛT FOURNISSEUR (CHF), pour la console — ILLISIBLE par authenticated
+                    --    (revoke + grant de colonnes, 20260922100400) ; les edges rendent assetPourAgent()
   credits,          -- ce que la production a coûté à l'agence, en crédits (débité AVANT le fournisseur)
+  finalizing_until, -- bail de finalisation d'une vidéo (labs_asset_claim_finalize, 20260922100300) — colonne serveur
   is_favorite, metadata,
   created_at, completed_at,
   deleted_at        -- suppression DOUCE : le fichier R2 vit encore, aucune policy DELETE
@@ -124,6 +137,8 @@ labs_assets (
   -- modifie que folder_id, is_favorite, deleted_at (trigger tg_labs_assets_guard rétablit le reste).
   -- Publiée en Realtime (replica identity full). Bucket Storage `labs` (public, {agency_id}/{uuid}.ext)
   -- pour les imports ; productions sur R2 sous labs/{agency_id}/.
+  -- ⚠ SELECT par colonnes (20260922100400) : une colonne AJOUTÉE naît illisible pour authenticated —
+  -- l'accorder dans sa migration. L'écran lit LABS_ASSET_COLONNES, jamais select('*') (42501).
 
 -- Crédits (20.09.2026, migration 20260921110000) — la monnaie du studio Labs
 credit_plan_allowances (
@@ -144,7 +159,8 @@ credit_wallets (
   stripe_payment_method_id, card_brand, card_last4,   -- la carte du premier achat (setup_future_usage)
   created_at, updated_at
 )
-  -- RLS select agence ; AUCUNE policy d'écriture : tout passe par les RPC.
+  -- Illisible en direct par authenticated depuis 20260922100200 (elle portait l'identifiant Stripe du
+  -- moyen de paiement) : l'écran passe par credits_balance(). AUCUNE écriture directe : tout passe par les RPC.
 
 credit_ledger (
   id, agency_id → agencies,
@@ -159,9 +175,13 @@ credit_ledger (
   -- Append-only, RLS select agence. Index uniques : un paiement Stripe ne crédite qu'une
   -- fois (ref_type, ref_id) ; une production n'est débitée et remboursée qu'une fois
   -- (kind, ref_type, ref_id). C'est ce qui rend un rejeu de webhook inoffensif.
-  -- RPC : credits_balance() [authenticated], credits_set_auto_topup() [authenticated],
-  --       credits_debit / credits_refund / credits_purchase / credits_set_card /
-  --       credits_auto_topup_claim / credits_auto_topup_release / credits_wallet_ensure [service_role].
+  -- RPC : credits_balance() [authenticated], credits_set_auto_topup() [authenticated, DIRIGEANT seul —
+  --       is_agency_admin(), 20260922100200], credits_debit / credits_refund / credits_purchase /
+  --       credits_set_card / credits_auto_topup_claim (client Stripe `cus_…` seulement) /
+  --       credits_auto_topup_release / credits_wallet_ensure [service_role].
+  -- Plan : agency_plan_effectif(agence) [service_role, 20260922100000] — l'abonnement actif / en essai / en retard,
+  --       sinon starter ; JAMAIS agencies.plan. La dotation d'une montée de plan se calcule contre
+  --       ce que le mois a DÉJÀ donné (grand livre), pas contre le plan précédent.
 
 -- Biens immobiliers
 properties (
@@ -177,14 +197,19 @@ properties (
   availability_date, created_by, created_at, published_at, updated_at
 )
   -- type: 'apartment' | 'house' | 'villa' | 'commercial' | 'land'
-  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'off_market' | 'archived'
+  -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'archived'
+  --   (⚠ 'off_market' n'a jamais été un statut de l'enum : c'est la colonne `off_market`, lot C.)
   -- condition: 'new' | 'renovated' | 'good' | 'to_renovate'
+  -- off_market: boolean, défaut false (lot C, 22.09.2026) — proposé aux seuls acheteurs de l'agence, jamais
+  --   diffusé ; posé par l'agent (fiche du bien, « Nouveau bien ») ; noté par le moteur pour une recherche
+  --   `off_market_only` ; le basculer renote le mandat (trigger `trg_property_off_market`).
 
 -- Recherches clients (sauvegardes)
 client_searches (
   id, agency_id, contact_id,
   label,            -- "Recherche 4p Eaux-Vives"
-  criteria,         -- jsonb : type, budget_min, budget_max, rooms_min, rooms_max, surface_min, zones[], features[]
+  criteria,         -- jsonb : type, budget_min, budget_max, rooms_min, rooms_max, surface_min, zones[], features[],
+                    --   + bedrooms_min, condition_min ('good'|'renovated'|'new'), off_market_only (lot C)
   is_active,        -- true = surveillance continue activée
   last_matched_at,  -- Dernière fois que le matching a trouvé des résultats
   created_at, updated_at
@@ -522,6 +547,29 @@ market_listings (
 --    existe et ne sert pas ; c'est `mapListingRow` (src/components/matching-recherche/types.ts)
 --    qui répartit `current_price ?? price` entre vente et location. Un mapper qui lit `rent`
 --    affiche un loyer nul, à l'écran, sans erreur.
+```
+
+`market_listings.removed_at` (21.09.2026) : la date à laquelle le CRM a CONSTATÉ le retrait, posée par
+`trg_ml_date_retrait` au passage à `removed`, effacée au retour. NULL pour toute annonce retirée avant la mise en
+service de la pige : on ne reconstitue pas le passé. ⚠ `updated_at` n'en tient pas lieu : la sonde de résurrection
+RealAdvisor le repousse chaque nuit sur les retirées.
+
+```sql
+-- Historique des prix et des statuts du marché, écrit par DÉCLENCHEUR (`ml_historique_prix`, SECURITY DEFINER)
+-- et par lui seul. Lisible par tout agent authentifié, jamais écrit par un client.
+market_price_history (
+  id, market_listing_id,               -- FK market_listings ON DELETE CASCADE
+  kind,                                -- suivi | apparition | baisse | hausse | prix | retrait | retour | statut
+  old_price, new_price,                -- prix effectif (current_price ?? price) avant / après
+  change_pct,                          -- borné à ±999,99
+  old_status, new_status,
+  transaction_type, canton, type, city, -- contexte À L'INSTANT de l'événement : pige_mouvements filtre dessus
+  detected_at
+)
+-- `suivi` = relevé initial de chaque annonce vivante à la mise en service ; `apparition` = chaque insertion
+-- depuis, datée à la DÉTECTION par la collecte (pas à la publication). Index : `idx_market_price_history_listing`
+-- (market_listing_id, detected_at desc) pour la fiche, `idx_mph_evenements` (kind, detected_at desc, id desc)
+-- pour le flux « Ce qui a bougé » (RPC `pige_mouvements`, SECURITY INVOKER, paginée par clé, sans comptage).
 ```
 
 EXCEPTION — tables KYB : le filtrage par agence NE SUFFIT PAS. Elles portent la PII

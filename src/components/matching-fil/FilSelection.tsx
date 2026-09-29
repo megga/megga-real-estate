@@ -10,6 +10,9 @@
  * ⚠ Seul ce qui reste À VÉRIFIER s'affiche, pas la grille complète : sur vingt biens, c'est ce qui les
  * distingue. Même règle que le pré-cochage (`criteresNonTenus`) : un bien laissé décoché dit pourquoi.
  *
+ * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) le dit sous ses détails (`texteSignal`). Un
+ * bien nouveau sur le marché ou en baisse le dit aussi, daté (lot C), et passe devant à score égal.
+ *
  * ⚠ Chaque case porte `data-bien` : `MatchingFil` y rend le focus après un « Écarter » ou son annulation.
  */
 import { useId, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react'
@@ -17,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { criteresNonTenus, initiales, lignesCriteres, palierScore, type FilMatch, type FilSelectionResume } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, teinteEcart, teinteTenu } from './filAffichage'
+import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, texteSignalMatch, unSeulClic } from './filAffichage'
 import { FilAvatar, FilScore, FilVignette } from './filAtomes'
 import { resumeRecherche } from './filValeurs'
 
@@ -40,14 +43,13 @@ interface Props {
   onReessayer: () => void
   onProposer: () => void
   onVoirContact: () => void
+  /** L'heure de la lecture : les signaux « pourquoi maintenant » s'y mesurent (lot C). */
+  maintenant: number
 }
-
-/** Le second clic d'un double clic tombe sur ce que le premier a déplacé : ignoré (`detail` 2). */
-const unSeulClic = (faire: () => void) => (e: MouseEvent) => { if (e.detail > 1) return; faire() }
 
 export default function FilSelection({
   sp, resume, matchs, coches, aPlus, isLoading, isError, aDesDonnees, isFetching,
-  onCocher, onEcarter, onVoirPlus, onReessayer, onProposer, onVoirContact,
+  onCocher, onEcarter, onVoirPlus, onReessayer, onProposer, onVoirContact, maintenant,
 }: Props) {
   const { t, i18n } = useTranslation('matching')
   const nombre = (n: number): string => n.toLocaleString(i18n.language)
@@ -75,7 +77,7 @@ export default function FilSelection({
   const voirPlus = useRef<HTMLButtonElement>(null)
   const attente = useRef<{ avant: number; bouton: HTMLElement } | null>(null)
   const lancer = (faire: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
-    if (e.detail > 1 || isFetching) return
+    if (secondClic(e) || isFetching) return
     attente.current = document.activeElement === e.currentTarget ? { avant: matchs.length, bouton: e.currentTarget } : null
     faire()
   }
@@ -147,7 +149,7 @@ export default function FilSelection({
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
             {matchs.map((m) => (
-              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} nombre={nombre} onCocher={onCocher} onEcarter={onEcarter} />
+              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} nombre={nombre} maintenant={maintenant} onCocher={onCocher} onEcarter={onEcarter} />
             ))}
           </ul>
         )}
@@ -187,13 +189,16 @@ export default function FilSelection({
   )
 }
 
-function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
-  sp: CrmPalette; m: FilMatch; coche: boolean; nombre: (n: number) => string
+function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
+  sp: CrmPalette; m: FilMatch; coche: boolean; nombre: (n: number) => string; maintenant: number
   onCocher: (id: string, coche: boolean) => void; onEcarter: (m: FilMatch) => void
 }) {
   const { t } = useTranslation('matching')
   const lignes = lignesCriteres(m)
   const aVerifier = criteresNonTenus(lignes)
+  // Le signal du match (lot B : revenu par une baisse depuis la proposition), sinon celui du bien (lot C :
+  // nouveau sur le marché, prix baissé), daté.
+  const signal = texteSignalMatch(m, t, maintenant)
   // Aucun verdict du tout : le dire tel quel plutôt que lister chaque critère « à vérifier ».
   const nonEvalues = lignes.length > 0 && lignes.every((l) => l.ok === null)
   const details = [
@@ -201,11 +206,12 @@ function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
     m.bien.pieces != null ? t('fil.selection.pieces', { count: m.bien.pieces, valeur: nombre(m.bien.pieces) }) : null,
     m.bien.surface != null ? t('fil.valeurs.m2', { valeur: nombre(m.bien.surface) }) : null,
   ].filter(Boolean).join(' · ')
+  // Sans écart, rien : l'alerte ne se lit que là où il y en a une.
   const resume = lignes.length === 0 ? t('fil.sansCriteres')
-    : aVerifier.length === 0 ? t('fil.sansEcart')
+    : aVerifier.length === 0 ? null
       : nonEvalues ? t('fil.nonEvalues')
         : t('fil.selection.ecarts', { liste: aVerifier.map((c) => t(`fil.criteres.${c}`)).join(', ') })
-  const icone = lignes.length === 0 || nonEvalues ? null : aVerifier.length > 0 ? 'alert' : 'check'
+  const alerte = lignes.length > 0 && !nonEvalues && aVerifier.length > 0
   return (
     <li style={{
       display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md)',
@@ -223,14 +229,17 @@ function Bien({ sp, m, coche, nombre, onCocher, onEcarter }: {
             {m.bien.titre}
           </span>
           <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{details}</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-            {icone && (
-              <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
-                <MEIcon name={icone} size={12} color={icone === 'alert' ? teinteEcart(sp) : teinteTenu(sp)} />
-              </span>
-            )}
-            {resume}
-          </span>
+          {signal && <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.ink }}>{signal}</span>}
+          {resume && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
+              {alerte && (
+                <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
+                  <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
+                </span>
+              )}
+              {resume}
+            </span>
+          )}
         </span>
       </label>
       <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} />

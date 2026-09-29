@@ -40,7 +40,7 @@
  * l'arbre, et tout banc routé doit être gelé. Une liste n'aurait jamais vu
  * arriver un banc neuf ; l'arbre, si.
  *
- * ⚠ ÊTRE ABSENT DU BUNDLE REND UNE EXEMPTION POSSIBLE, PAS NÉCESSAIRE. Les sept
+ * ⚠ ÊTRE ABSENT DU BUNDLE REND UNE EXEMPTION POSSIBLE, PAS NÉCESSAIRE. Les six
  * gelés RESTENT dans le cliquet de grammaire : ils y sont entrés propres, et une
  * zone propre y reste précisément pour qu'elle le demeure. Les quatre premiers,
  * eux, sont exemptés parce qu'ils SÈMENT un état (session, intercepteur de
@@ -71,13 +71,15 @@ const BANCS_HORS_BUNDLE = [
   // ── Les sept derniers, gelés le 15 août 2026 ────────────────────────────
   // Ils étaient LIVRÉS : un chunk dans `dist/assets/` et une route déclarée.
   // La décision de les geler est de PRODUIT, pas de direction artistique —
-  // ce fichier ne fait que la rendre vérifiable.
+  // ce fichier ne fait que la rendre vérifiable. Ils ne sont plus que six :
+  // `/dev/matching-atelier` est parti avec l'atelier de bureau le 27.09.2026
+  // (lot E1).
   { chemin: 'src/pages/dev/SentryTestPage.tsx', route: '/dev/sentry-test' },
-  { chemin: 'src/pages/dev/MatchingShowcasePage.tsx', route: '/dev/matching-atelier' },
   { chemin: 'src/pages/dev/MobileShowcasePage.tsx', route: '/dev/mobile' },
   { chemin: 'src/pages/dev/BiensShowcasePage.tsx', route: '/dev/biens' },
   { chemin: 'src/pages/dev/ContactsShowcasePage.tsx', route: '/dev/contacts' },
-  { chemin: 'src/pages/dev/PipelineShowcasePage.tsx', route: '/dev/pipeline' },
+  // (`/dev/pipeline` est parti le 27.09.2026 avec l'ancien board : le Pipeline refait se
+  // regarde dans `/dev/crm`, sur ses vrais hooks.)
   { chemin: 'src/pages/dev/ModalesShowcasePage.tsx', route: '/dev/modales' },
 ].map((b) => ({ ...b, fichier: b.chemin.split('/').pop()!.replace('.tsx', '') }))
 

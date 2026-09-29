@@ -39,11 +39,11 @@ import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
 import WhatsAppConnectModal from '@/components/crm/contacts-pager/WhatsAppConnectModal'
 import ContactDetailPager from '@/components/crm/contacts-pager/ContactDetailPager'
 import {
-  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LOOP, DEMO_NOTES,
+  DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LOOP, DEMO_FICHE_LOOP_VIDE, DEMO_NOTES,
 } from './demoFixtures'
 import { readCrmDark } from '@/lib/crmDark'
 
-type Surface = 'liste' | 'fiche' | 'premier' | 'vide' | 'fiche-vide'
+type Surface = 'liste' | 'fiche' | 'premier' | 'vide' | 'fiche-vide' | 'fiche-chargement' | 'fiche-erreur'
 
 const SURFACES: { id: Surface; label: string }[] = [
   { id: 'liste', label: 'Liste' },
@@ -55,6 +55,10 @@ const SURFACES: { id: Surface; label: string }[] = [
   // l'agent croise tous les jours et que personne ne pouvait regarder ici.
   { id: 'vide', label: 'Liste · vide' },
   { id: 'fiche-vide', label: 'Fiche · vide' },
+  // « Sa boucle » en lecture et en échec : deux états où la boucle est INCONNUE, pas vide. Sans eux, le banc ne
+  // montrait que le vide — celui que la fiche affichait à tort pendant la lecture comme après un échec.
+  { id: 'fiche-chargement', label: 'Fiche · chargement' },
+  { id: 'fiche-erreur', label: 'Fiche · erreur' },
 ]
 
 /** Les callbacks de persistance du pager : le banc n'écrit nulle part. */
@@ -88,7 +92,11 @@ export default function ContactsShowcasePage() {
   const selecteur = (
     <div style={{
       position: 'fixed', bottom: 14, right: 14, zIndex: 9500, display: 'inline-flex',
-      background: sp.cardBg, borderRadius: 'var(--crm-radius-pill)',
+      // Neuf entrées ne tiennent plus sur une ligne à 1024 px : la barre passait SOUS la pastille « Aperçu » du coin
+      // gauche (mesuré : 30 → 1010 px, contre 14 → 231 px pour la pastille). Elle s'arrête avant elle et passe à la
+      // ligne, d'où un rayon qui tient sur deux lignes.
+      flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 'calc(100vw - 260px)',
+      background: sp.cardBg, borderRadius: 'var(--crm-radius-xl)',
       padding: 'var(--crm-space-2xs)', gap: 'var(--crm-space-2xs)',
       border: `1px solid ${sp.cardBorder}`,
     }}>
@@ -155,10 +163,13 @@ export default function ContactsShowcasePage() {
             rien vaut moins que pas de ligne. */}
         <CrmWorkspace active="contacts" sp={sp} dark={dark} setDark={setDark}>
 
-        {surface === 'fiche' || surface === 'fiche-vide' ? (
+        {surface === 'fiche' || surface === 'fiche-vide' || surface === 'fiche-chargement' || surface === 'fiche-erreur' ? (
           <ContactDetailPager
             fiche={DEMO_FICHE}
-            loop={surface === 'fiche-vide' ? { ...DEMO_FICHE_LOOP, items: [], pendingLikes: [] } : DEMO_FICHE_LOOP}
+            // En lecture ou en échec, la page réelle n'a encore rien lu : une boucle vide, que l'état doit couvrir.
+            loop={surface === 'fiche' ? DEMO_FICHE_LOOP : DEMO_FICHE_LOOP_VIDE}
+            lectureBoucle={surface === 'fiche-chargement' ? 'chargement' : surface === 'fiche-erreur' ? 'erreur' : 'pret'}
+            onReessayer={NOOP}
             sp={sp}
             dark={dark}
             onBack={() => setSurface('liste')}
@@ -174,7 +185,7 @@ export default function ContactsShowcasePage() {
             onOpenKyc={NOOP}
             onOpenMatching={NOOP}
             onOpenListings={NOOP}
-            onProposeVisit={NOOP}
+            onOuvrirFil={NOOP}
           />
         ) : (
           <ContactsPager

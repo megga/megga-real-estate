@@ -45,15 +45,22 @@
  * ⚠ Et elle balaye le DOSSIER, pas les fichiers où le défaut a été remarqué :
  * la sonde de rendu ne montrait l'avatar que dans deux vues sur quatre — les
  * deux surfaces de création ne sont rendues qu'après un geste.
+ *
+ * ⚠ LE 27.09.2026, L'ANCIEN BOARD EST PARTI, et quatre clauses avec lui : la
+ * pilule d'étape (`crmStagePillBg`), l'encre et le total du panneau d'étape
+ * (`crmStageTint`), et les palettes de l'ancienne fiche (`dsPalette`) et de
+ * l'ancien « Nouveau deal » (`ndPalette`). Le board à cinq phases ne pose plus
+ * de texte sur une teinte d'étape : ses colonnes sont neutres, et ses puces de
+ * stade portent l'encre du thème. Ce qui reste gardé ici vaut pour tout le
+ * dossier : l'avatar, l'encre blanche en dur, les encres de thème, la modale
+ * d'offre.
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { CRM_STAGE_ORDER, crmPalette, crmStagePillBg, crmStageTint } from '@/components/crm/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { AVATAR_PALETTE } from '@/lib/crmAdapters'
-import { dsPalette } from '@/components/crm-dossiers/dealTokens'
 import { omPalette } from '@/components/crm-dossiers/offer-modal/omTokens'
-import { ndPalette } from '@/components/crm/pipeline/ndTokens'
 
 const AA = 4.5
 
@@ -215,25 +222,10 @@ function aplatsDeDonnee(code: string): RegExp {
  * trouvait plus. C'est ce que `litPalette` exigeait, et c'est ce qui a évité
  * qu'un refactor la neutralise en silence.
  */
-const dsClair = dsPalette(false, crmPalette(false))
-const dsSombre = dsPalette(true, crmPalette(true))
 const omClair = omPalette(false, crmPalette(false))
 const omSombre = omPalette(true, crmPalette(true))
-const ndClair = ndPalette(false, crmPalette(false))
-const ndSombre = ndPalette(true, crmPalette(true))
-const CANVAS_SOMBRE = crmPalette(true).pageBg
 
 const PALETTES: { nom: string; encres: string[]; surfaces: string[] }[] = [
-  {
-    nom: 'fiche deal · clair (DsLIGHT)',
-    encres: [dsClair.ink, dsClair.soft, dsClair.muted],
-    surfaces: [dsClair.card, dsClair.sub],
-  },
-  {
-    nom: 'fiche deal · sombre (DsDARK)',
-    encres: [dsSombre.ink, dsSombre.soft, dsSombre.muted],
-    surfaces: [aplatir(dsSombre.card, CANVAS_SOMBRE), aplatir(dsSombre.sub, CANVAS_SOMBRE)],
-  },
   {
     nom: 'modale d’offre · clair (OM_LIGHT)',
     encres: [omClair.ink, omClair.inkSoft, omClair.muted],
@@ -244,45 +236,16 @@ const PALETTES: { nom: string; encres: string[]; surfaces: string[] }[] = [
     encres: [omSombre.ink, omSombre.inkSoft, omSombre.muted],
     surfaces: [omSombre.card, omSombre.cardSubtle, omSombre.bg],
   },
-  {
-    nom: 'nouveau deal · clair (ndPalette)',
-    encres: [ndClair.ink, ndClair.inkSoft, ndClair.muted],
-    surfaces: [ndClair.card, ndClair.cardSubtle, ndClair.bg],
-  },
-  {
-    nom: 'nouveau deal · sombre (ndPalette)',
-    encres: [ndSombre.ink, ndSombre.inkSoft, ndSombre.muted],
-    surfaces: [aplatir(ndSombre.card, ndSombre.bg), aplatir(ndSombre.cardSubtle, ndSombre.bg), ndSombre.bg],
-  },
 ]
 
 describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
-/**
- * Le fond RÉELLEMENT vu derrière une colonne de kanban.
- *
- * ⛔ DEPUIS LE 20.09.2026 `crmStageTint().panel` VAUT `'transparent'` EN SOMBRE
- * — la grammaire lignée a retiré le fond des colonnes. `canal()` ne sait pas
- * lire ce mot, et c'est la clause « le balayage voit l'arbre » qui l'a dit,
- * exactement comme elle avait attrapé le `rgb(…)` de `crmMix` : un mot illisible
- * rend `NaN`, et `NaN` passe TOUS les seuils.
- *
- * Le remède n'est pas de laisser passer `'transparent'` — ça rendrait les
- * mesures d'en dessous vides — mais de mesurer ce que l'œil voit vraiment :
- * une colonne sans fond laisse voir le CANVAS. Même règle que l'avertissement
- * porté par `encreSur` sur les voiles translucides.
- */
-function fondColonne(stage: StageId, dark: boolean): string {
-  const { panel } = crmStageTint(stage, dark)
-  return panel === 'transparent' ? crmPalette(dark).pageBg : panel
-}
 
   it('le balayage voit l’arbre', () => {
     expect(SOURCES.length).toBeGreaterThan(8)
-    expect(SOURCES.map((s) => s.nom)).toContain(`${DOSSIER}/PipelineList.tsx`)
+    expect(SOURCES.map((s) => s.nom)).toContain(`${DOSSIER}/PhaseColumn.tsx`)
     expect(SOURCES.every((s) => s.code.length > 0)).toBe(true)
     // Sans ça, un import cassé rendrait les tests de palette vrais par vacuité.
     expect(AVATAR_PALETTE.length).toBe(8)
-    expect(CRM_STAGE_ORDER.length).toBe(8)
     for (const { nom, encres, surfaces } of PALETTES) {
       expect(encres.length, `${nom} : aucune encre`).toBeGreaterThan(2)
       expect(surfaces.length, `${nom} : aucune surface`).toBeGreaterThan(1)
@@ -296,13 +259,6 @@ function fondColonne(stage: StageId, dark: boolean): string {
     // mesure doit être lisible par `canal`. Sans lui, `crmMix` — qui rend
     // `rgb(…)` — rendait NaN, et NaN passe TOUS les seuils.
     const illisibles: string[] = []
-    for (const dark of [false, true]) {
-      for (const stage of CRM_STAGE_ORDER) {
-        for (const c of [fondColonne(stage, dark), crmStagePillBg(stage, dark)]) {
-          if (!lisible(c)) illisibles.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${c}`)
-        }
-      }
-    }
     for (const c of AVATAR_PALETTE) if (!lisible(c)) illisibles.push(`avatar ${c}`)
     expect(illisibles, `couleurs que la sonde ne sait pas lire :\n  ${illisibles.join('\n  ')}`).toEqual([])
   })
@@ -363,7 +319,8 @@ function fondColonne(stage: StageId, dark: boolean): string {
     }
     // ⛔ Sans ce compteur, un `blocsDeStyle` cassé rendrait la clause verte sur
     // zéro bloc — la vacuité que ce fichier entier essaie d'éviter.
-    expect(blocsVus, 'aucun aplat de donnée vu : le découpage en blocs est cassé').toBeGreaterThanOrEqual(6)
+    // ⚠ 6 → 3 le 27.09.2026 : l'ancien board (carte, liste, « Nouveau deal ») en portait trois.
+    expect(blocsVus, 'aucun aplat de donnée vu : le découpage en blocs est cassé').toBeGreaterThanOrEqual(3)
     expect(fautifs, `encre figée sur un aplat de donnée :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
@@ -373,29 +330,6 @@ function fondColonne(stage: StageId, dark: boolean): string {
       .filter((x) => x.rc < AA)
       .map((x) => `${x.t} → ${arrondi(x.rc)}:1`)
     expect(fautes, `teintes d’avatar sous l’AA :\n  ${fautes.join('\n  ')}`).toEqual([])
-  })
-
-  /**
-   * FAMILLE C — la pilule d'étape.
-   *
-   * ⛔ `crmStagePillBg` PROMET « contraste ≥ 4.5:1 » et ne le tient qu'en clair.
-   * En sombre elle rend la teinte brute et l'encre blanche tombe à 2,34:1 sur
-   * « Intérêt confirmé ». On fige donc la promesse au lieu de la croire.
-   *
-   * ⚠ On teste la fonction sur les DEUX thèmes ET les HUIT étapes : la sonde de
-   * rendu n'en voyait que sept, faute d'un deal en « Visite effectuée ». Une
-   * garde calée sur ce que la fixture montrait aurait laissé la huitième passer.
-   */
-  it('la pilule d’étape est lisible sur les huit étapes, dans les deux thèmes', () => {
-    const fautes: string[] = []
-    for (const dark of [false, true]) {
-      for (const stage of CRM_STAGE_ORDER) {
-        const fond = crmStagePillBg(stage, dark)
-        const rc = contraste(encreSur(fond), fond)
-        if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} (${fond}) → ${arrondi(rc)}:1`)
-      }
-    }
-    expect(fautes, `pilules sous l’AA :\n  ${fautes.join('\n  ')}`).toEqual([])
   })
 
   /**
@@ -424,59 +358,6 @@ function fondColonne(stage: StageId, dark: boolean): string {
   })
 
   /**
-   * FAMILLE D — le total de colonne, sur le voile d'étape.
-   *
-   * ⚠ Ici le fond est un VOILE, pas un aplat : `crmStageTint().panel` mélange la
-   * teinte à la surface. `encreSur` s'y tromperait (sa docstring le dit) — on
-   * mesure donc l'encre réelle contre le panneau composé, sans la dériver.
-   *
-   * Deux teintes sur huit échouent en clair (indigo 4,39 · bleu 4,49) et la
-   * famille entière tient dans 0,4 du plancher : ce n'est pas deux colonnes
-   * malchanceuses, c'est un dégradé qui traverse le seuil.
-   */
-  it('l’encre du panneau d’étape atteint l’AA sur les huit voiles', () => {
-    const fautes: string[] = []
-    for (const dark of [false, true]) {
-      for (const stage of CRM_STAGE_ORDER) {
-        const { tintInk } = crmStageTint(stage, dark)
-        const fond = fondColonne(stage, dark)
-        const rc = contraste(tintInk, fond)
-        if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${tintInk} sur ${fond} → ${arrondi(rc)}:1`)
-      }
-    }
-    expect(fautes, `encre de panneau sous l’AA :\n  ${fautes.join('\n  ')}`).toEqual([])
-  })
-
-  /**
-   * ⛔ ET LA MESURE QUI JUSTIFIE LE CHANGEMENT D'ENCRE — gardée pour qu'on ne
-   * revienne pas à `sp.sub` en croyant simplifier.
-   *
-   * `sp.sub` plafonne à 4,39:1 sur l'indigo et 4,49:1 sur le bleu. La famille
-   * entière tient dans 0,4 du plancher sur les huit teintes : ce ne sont pas
-   * deux colonnes malchanceuses, c'est un dégradé qui traverse le seuil. En
-   * sombre elle passerait (5,63:1) — d'où l'obligation de mesurer les DEUX
-   * thèmes, sans quoi la clause serait verte et l'écran faux.
-   */
-  it('sp.sub ne suffit PAS sur le voile d’étape — la raison du reciblage', () => {
-    const sousAA = CRM_STAGE_ORDER
-      .filter((s) => contraste(crmPalette(false).sub, crmStageTint(s, false).panel) < AA)
-    expect(sousAA.length, 'si ceci devient 0, la note ci-dessus a cessé d’être vraie').toBe(2)
-  })
-
-  /**
-   * Atome : le total de colonne prend l'encre du PANNEAU, pas l'encre secondaire
-   * générique. Ancré sur la fonction, pas sur l'expression du jour.
-   */
-  it('le total de colonne ne reprend pas l’encre secondaire générique', () => {
-    const col = SOURCES.find((s) => s.nom.endsWith('StageColumn.tsx'))
-    expect(col, 'fichier introuvable : la clause serait vraie par vacuité').toBeTruthy()
-    const src = sansCommentaires(col!.code)
-    const ligne = src.split('\n').find((l) => /crm-text-sm.*fontWeight: 600, color:/.test(l))
-    expect(ligne, 'la ligne du total a changé de forme — revérifier').toBeTruthy()
-    expect(ligne, `le total doit dériver du panneau :\n  ${ligne}`).toMatch(/color:\s*tint\.tintInk/)
-  })
-
-  /**
    * ENCRE TRANSLUCIDE COMPOSÉE — la forme de garde héritée du Matching, où le
    * motif s'est présenté TROIS fois (`--ink-muted`, `--ink-dim`, le séparateur
    * « · »). Il s'en présente une QUATRIÈME ici : `axisText`, les en-têtes de la
@@ -493,13 +374,18 @@ function fondColonne(stage: StageId, dark: boolean): string {
       sombre: [crmPalette(true).pageBg, aplatir(crmPalette(true).cardBg, crmPalette(true).pageBg)],
     }
     const fautes: string[] = []
-    let paires = 0
+    const PAIRE = /(?:const|let)\s+(\w+)\s*=\s*dark\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/g
+    // ⚠ CONTRÔLE POSITIF SUR UN TÉMOIN ÉCRIT ICI. Depuis le 27.09.2026 le périmètre n'écrit
+    // plus AUCUNE paire de thème à la main — l'ancien board en portait, le nouveau lit ses
+    // jetons. Le balayage ne peut donc plus prouver sur lui-même qu'il voit : il le prouve
+    // sur ce témoin, et mesure quand même toute paire qui reviendrait.
+    const temoin = "const axe = dark ? 'rgba(255,255,255,0.34)' : 'rgba(3,3,3,0.34)'"
+    expect([...temoin.matchAll(PAIRE)].length, 'le motif ne reconnaît plus une paire de thème').toBe(1)
     for (const { nom, code } of SOURCES) {
       const src = sansCommentaires(code)
       const blocs = blocsDeStyle(src)
-      for (const m of src.matchAll(/(?:const|let)\s+(\w+)\s*=\s*dark\s*\?\s*'([^']+)'\s*:\s*'([^']+)'/g)) {
+      for (const m of src.matchAll(PAIRE)) {
         const [, id, sombre, clair] = m
-        paires++
         const commeEncre = new RegExp(`color:\\s*${id}\\b`)
         if (!commeEncre.test(src)) continue
         // ⚠ FAUX POSITIF ÉCARTÉ, ET IL COMPTE : `avFg` est l'encre de l'avatar,
@@ -519,11 +405,6 @@ function fondColonne(stage: StageId, dark: boolean): string {
         }
       }
     }
-    // ⚠ Le témoin porte sur le MOTIF, pas sur le nombre de fautes : après
-    // correctif il ne reste légitimement aucune encre de thème sans aplat, et
-    // exiger « au moins une mesurée » ferait rougir la clause sur un code sain.
-    // Ce qu'il faut prouver, c'est que le balayage voit encore des paires.
-    expect(paires, 'plus aucune paire de thème : le motif ne matche plus rien').toBeGreaterThanOrEqual(2)
     expect(fautes, `encre de thème sous l’AA :\n  ${fautes.join('\n  ')}`).toEqual([])
   })
 
@@ -542,7 +423,6 @@ function fondColonne(stage: StageId, dark: boolean): string {
   it('l’aplat « ghost » reste lisible sous encre dérivée', () => {
     const fautes: string[] = []
     for (const [nom, ghost] of [
-      ['nouveau deal · clair', ndClair.ghost], ['nouveau deal · sombre', ndSombre.ghost],
       ['modale d’offre · clair', omClair.ghost], ['modale d’offre · sombre', omSombre.ghost],
     ] as const) {
       const rc = contraste(encreSur(ghost), ghost)
@@ -553,7 +433,11 @@ function fondColonne(stage: StageId, dark: boolean): string {
 
   it('aucun état désactivé ne fige son encre', () => {
     const fautifs: string[] = []
-    let vus = 0
+    const GHOST = /background:[^,\n]*\bghost\b/
+    // ⚠ Témoin écrit ICI depuis le 27.09.2026 : le seul site du périmètre — le CTA de l'ancien
+    // « Nouveau deal » — est parti avec lui. Le motif prouve sur ce bloc qu'il voit encore.
+    expect(GHOST.test("style={{ background: disabled ? om.ghost : om.accent, color: encreSur(fond) }}"),
+      'le motif ne reconnaît plus un aplat « ghost »').toBe(true)
     for (const { nom, code } of SOURCES) {
       for (const bloc of blocsDeStyle(sansCommentaires(code))) {
         // ⚠ BORNER SUR LA VIRGULE, PAS SUR LE POINT-VIRGULE. Un littéral d'objet
@@ -561,16 +445,12 @@ function fondColonne(stage: StageId, dark: boolean): string {
         // bout du bloc et attrapait le `ghost` d'un `boxShadow` inset comme s'il
         // était un fond. Faux positif sur du code juste — donc une garde qu'on
         // finit par désarmer.
-        if (!/background:[^,\n]*\bghost\b/.test(bloc)) continue
-        vus++
+        if (!GHOST.test(bloc)) continue
         if (!/color:[^,\n]*encreSur\(/.test(bloc)) fautifs.push(`${nom} → ${bloc.replace(/\s+/g, ' ').slice(0, 90)}`)
       }
     }
-    // ⚠ UN seul site, pas deux : la modale d'offre range son fond dans
-    // `fondCta` avant de le poser, donc `background:` n'y nomme plus `ghost`.
-    // Elle reste couverte par la clause de VALEUR ci-dessus et par « aucune
-    // encre blanche en dur » — mais le compter ici serait faux.
-    expect(vus, 'aucun aplat « ghost » vu : le motif ne matche plus').toBeGreaterThanOrEqual(1)
+    // ⚠ La modale d'offre range son fond dans `fondCta` avant de le poser, donc `background:`
+    // n'y nomme plus `ghost` : elle reste couverte par la clause de VALEUR ci-dessus.
     expect(fautifs, `encre figée sur un aplat désactivé :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 

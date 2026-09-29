@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "Zu bearbeiten",
-    "likedTitle": "Interessiert an {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · Match {{score}} %",
     "proposeVisit": "Besichtigung vorschlagen",
-    "later": "Später",
-    "handled": "Besichtigung in Vorbereitung · in seinem Profil vermerkt",
-    "openAtelier": "Atelier öffnen",
-    "empty": "Noch kein Objekt vorgeschlagen.",
-    "pillLiked": "Interessiert",
-    "pillSent": "Vorgeschlagen",
-    "pillDismissed": "Nicht interessiert",
-    "metaDismissed": "Grund vermerkt · kalibriert das Matching neu",
-    "motif": "«{{motif}}»"
+    "etat": {
+      "propose": "Vorgeschlagen",
+      "interesse": "Interessiert",
+      "visite": "Besichtigung geplant",
+      "refuse": "Nicht interessiert",
+      "revenu": "Wieder da"
+    },
+    "compteurs": {
+      "proposes_one": "Vorgeschlagen",
+      "proposes_other": "Vorgeschlagen",
+      "interesses_one": "Interessiert",
+      "interesses_other": "Interessiert",
+      "refuses_one": "Nicht interessiert",
+      "refuses_other": "Nicht interessiert"
+    },
+    "detail": {
+      "propose": "Vorgeschlagen am {{date}} · {{prix}}",
+      "proposeSansPrix": "Vorgeschlagen am {{date}}",
+      "interesse": "Interessiert seit {{date}}",
+      "refuse": "Nicht interessiert · {{motif}}",
+      "revenu": "Wieder vorzuschlagen"
+    },
+    "note": "„{{note}}“",
+    "bienSansTitre": "Objekt ohne Titel",
+    "aTraiter": {
+      "interesse": "Interessiert an {{titre}}",
+      "ouvrir": "Im Matching öffnen"
+    },
+    "correction": {
+      "titre": "Suche anpassen · {{motif}}",
+      "detail_one": "{{count}} Absage aus diesem Grund",
+      "detail_other": "{{count}} Absagen aus diesem Grund",
+      "voir": "Anpassung ansehen"
+    }
   },
   "title": "Kontakte",
   "add_button": "Hinzufügen",
@@ -31,14 +52,19 @@
   "next": "Weiter",
   "filter_type": "Typ",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Käufer",
     "seller": "Verkäufer",
-    "both": "Käufer/Verkäufer",
-    "lead": "Lead",
-    "investor": "Investor",
     "tenant": "Mieter",
-    "landlord": "Vermieter"
+    "landlord": "Vermieter",
+    "investor": "Investor",
+    "family_office": "Family Office",
+    "referrer": "Empfehlungsgeber",
+    "private_banker": "Private Banker",
+    "lawyer": "Anwalt",
+    "trustee": "Trustee",
+    "broker": "Makler",
+    "architect": "Architekt"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +297,6 @@
       "empty": "Keine Dokumente für diesen Kontakt angehängt.",
       "addedOn": "Hinzugefügt am {{date}}"
     },
-    "type": {
-      "buyer": "Käufer",
-      "seller": "Verkäufer",
-      "lead": "Lead"
-    },
     "new": "Neu",
     "via": "Via {{source}}",
     "unknownSource": "Unbekannte Quelle",
@@ -347,7 +368,10 @@
     "tenant": "Mieter",
     "hot": "Heisse Leads",
     "kyc": "KYC zu vervollständigen",
-    "stale": "Ohne Aktivität 14 T.+"
+    "stale": "Ohne Aktivität 14 T.+",
+    "role": "Rolle",
+    "roleAll": "Alle Rollen",
+    "roleOverlap": "Ein Kontakt kann mehrere Rollen haben: Die Summe der Segmente übersteigt das Total."
   },
   "nextAction": {
     "planifier_visite": "Besichtigung planen",
@@ -777,7 +801,7 @@
   "health": {
     "title": "Zustand des Portfolios",
     "intro": "Woher Ihre Kontakte kommen, wo die blinden Flecken liegen. Klicken Sie auf ein Segment, um die Liste zu filtern.",
-    "byAudience": "Nach Zielgruppe",
+    "byRole": "Nach Rolle",
     "kycCoverage": "KYC-Abdeckung",
     "sources": "Akquisequellen",
     "kpi": {
@@ -964,7 +988,8 @@
       "address": "Adresse",
       "addressPlaceholder": "Strasse…, PLZ Ort",
       "countryNone": "Nicht angegeben",
-      "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen."
+      "saveError": "Die Identität konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      "roles": "Rollen"
     },
     "coord": {
       "identity": "Identität",
@@ -1008,7 +1033,17 @@
       "areaMinEdit": "Min. Fläche (m²)",
       "mustHave": "Muss-Kriterien",
       "minPlaceholder": "Min",
-      "maxPlaceholder": "Max"
+      "maxPlaceholder": "Max",
+      "bedroomsMin": "Min. Schlafzimmer",
+      "condition": "Mindestzustand",
+      "conditionAny": "Egal",
+      "conditions": {
+        "good": "Guter Zustand",
+        "renovated": "Renoviert",
+        "new": "Neubau"
+      },
+      "offMarket": "Off-market",
+      "offMarketOnly": "Nur Off-market"
     },
     "propType": {
       "appartement": "Wohnung",
@@ -1064,10 +1099,9 @@
     },
     "loop": {
       "toHandleCount": "Zu bearbeiten ({{count}})",
-      "transmittedCount": "Vorgeschlagene Objekte ({{count}})",
+      "propertiesCount": "Objekte ({{count}})",
       "openInMatching": "Im Matching öffnen",
-      "ignore": "Ignorieren",
-      "nothingToHandle": "Alles aktuell, derzeit nichts zu bearbeiten.",
+      "nothingToHandle": "Nichts zu bearbeiten",
       "emptyTitle": "Noch keine Objekte vorgeschlagen",
       "emptyBody": "Schlagen Sie {{name}} Objekte vor und erfassen Sie die Antworten.<1/>Sie erscheinen hier."
     },

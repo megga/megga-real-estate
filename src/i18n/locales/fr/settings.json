@@ -1129,7 +1129,8 @@
       "noCard": "Aucune carte enregistrée. Achetez un pack par carte : elle sera enregistrée pour la recharge automatique.",
       "lastError": "La dernière recharge a échoué ({{error}}). Vérifiez la carte, la recharge réessaiera au prochain débit.",
       "saved": "Enregistré",
-      "saveError": "Le réglage n'a pas pu être enregistré."
+      "saveError": "Le réglage n'a pas pu être enregistré.",
+      "adminOnly": "Réservé aux administrateurs de l'agence : la recharge automatique débite sa carte."
     },
     "ledger": {
       "title": "Historique",

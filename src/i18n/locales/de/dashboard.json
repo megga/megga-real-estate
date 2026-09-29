@@ -154,7 +154,6 @@
       "statMinConcentration": "Min. Konzentration",
       "statRescheduled_one": "neu geplant",
       "statRescheduled_other": "neu geplant",
-      "viewCatalogue": "Match-Katalog ansehen",
       "upNext": "Als Nächstes",
       "lastPriority": "Letzte Priorität in der Warteschlange."
     },
@@ -222,123 +221,6 @@
       "tempHot": "heiss",
       "tempWarm": "lauwarm",
       "tempCold": "kalt"
-    },
-    "pager": {
-      "today": "Heute",
-      "catalogue": "Katalog",
-      "wheelTo": "Mit dem Mausrad zu {{label}}"
-    },
-    "catalogue": {
-      "title": "Match-Katalog",
-      "empty": "Keine Matches in diesem Filter.",
-      "emptyAll": "Noch keine Matches.",
-      "proposed": "Vorgeschlagen",
-      "proposedCount_one": "{{count}} vorgeschlagen",
-      "proposedCount_other": "{{count}} vorgeschlagen",
-      "filters": {
-        "all": "Alle",
-        "followUp": "Erneut kontaktieren",
-        "new": "Neue"
-      },
-      "sorts": {
-        "score": "Score",
-        "value": "Wert",
-        "recency": "Aktualität"
-      },
-      "sort": {
-        "by": "Sortieren {{label}}",
-        "byDot": "Sortieren · {{label}}",
-        "change": "Sortierung ändern"
-      },
-      "status": {
-        "new": "Neu",
-        "sent": "Objekt vorgeschlagen",
-        "visitPlanned": "Besichtigung geplant",
-        "interested": "Interessiert"
-      },
-      "proposeError": "Der Vorschlag konnte nicht gespeichert werden. Bitte erneut versuchen.",
-      "why": {
-        "fallback": "Neues Match, erster Kontakt herzustellen."
-      },
-      "advertiser": {
-        "marketWatch": "Marktbeobachtung",
-        "internalMandate": "Internes Mandat",
-        "externalAdvertiser": "Externer Inserent",
-        "yourAgency": "Ihre Agentur",
-        "source": "Source"
-      },
-      "detail": {
-        "eyebrow": "Match-Details",
-        "photos": "photos"
-      },
-      "section": {
-        "specs": "Merkmale",
-        "highlights": "Vorzüge",
-        "description": "Description",
-        "location": "Lage",
-        "salePrice": "Verkaufspreis",
-        "rent": "Monatsmiete",
-        "buyer": "Käufer",
-        "compatibility": "Übereinstimmung",
-        "advertiser": "Inserent"
-      },
-      "spec": {
-        "rooms": "Zimmer",
-        "roomsCount": "{{rooms}} Zimmer",
-        "surface": "Surface",
-        "bedrooms": "Schlafzimmer",
-        "bathrooms": "Nasszellen",
-        "year": "Jahr",
-        "floor": "Etage",
-        "villa": "Villa"
-      },
-      "price": {
-        "charges": "Nebenkosten",
-        "perMonth": "CHF {{amount}} / Monat",
-        "perMonthShort": "/Monat",
-        "onMarket": "Am Markt",
-        "today": "Heute",
-        "days_one": "{{count}} Tag",
-        "days_other": "{{count}} Tage"
-      },
-      "buyer": {
-        "searching": "{{tag}} · sucht {{specs}}"
-      },
-      "compat": {
-        "perfect": "Profil perfekt abgestimmt",
-        "aligned": "Gut auf die Suche abgestimmt",
-        "someGaps": "Abgestimmt, einige Abweichungen",
-        "manyGaps": "Mehrere Abweichungen zu klären"
-      },
-      "criteria": {
-        "budget": "Budget",
-        "zone": "Gebiet",
-        "type": "Type",
-        "rooms": "Zimmer",
-        "features": "Wünsche",
-        "toRefine": "zu verfeinern"
-      },
-      "action": {
-        "addToFile": "Ich habe es {{name}} vorgeschlagen",
-        "added": "{{name}} vorgeschlagen",
-        "openInMatching": "In Matching öffnen"
-      },
-      "gallery": {
-        "closeHint": "Schliessen (Esc)",
-        "previous": "Vorherige",
-        "next": "Nächste",
-        "backToWall": "Zurück zur Wand",
-        "title": "Ganzer Katalog",
-        "subtitle": "Vollständige Galerie"
-      },
-      "more": {
-        "otherMatches_one": "weiteres Match",
-        "otherMatches_other": "weitere Matches",
-        "viewWhole": "Ganzen Katalog ansehen"
-      },
-      "place": {
-        "fallback": "Objekt"
-      }
     },
     "relance": {
       "temp": {
@@ -422,7 +304,8 @@
       "freeWindow": "{{duration}} frei · Nachfass-Session",
       "tabs": {
         "deals": "Dossiers",
-        "listings": "Inserate"
+        "listings": "Inserate",
+        "matching": "Matching"
       },
       "hotCount_one": "{{count}} heiss",
       "hotCount_other": "{{count}} heisse",
@@ -455,16 +338,19 @@
         "markAll": "Alle als gesehen markieren",
         "count_one": "{{count}} Signal",
         "count_other": "{{count}} Signale",
-        "groupBuyers": "Käuferrückmeldungen",
+        "groupBuyers": "Erfasste Rückmeldungen",
         "groupReminders": "Erinnerungen",
-        "liked": "mag {{subject}}",
-        "skipped": "hat {{subject}} abgelehnt",
-        "reminderDue": "Dossier {{subject}} wieder aufnehmen",
+        "reminderDue": "Erinnerung wieder aufnehmen",
+        "reminderDueSubject": "Erinnerung wieder aufnehmen · {{subject}}",
         "ctaProposeVisit": "Besichtigung vorschlagen",
         "ctaRecalibrate": "Neu justieren",
         "ctaResume": "Aufnehmen",
         "unknownContact": "Kontakt",
-        "unknownProperty": "ein Objekt"
+        "unknownProperty": "ein Objekt",
+        "interesse": "interessiert an {{subject}}",
+        "pasInteresse": "nicht interessiert an {{subject}}",
+        "retourAttendu_one": "Rückmeldung zu {{count}} vorgeschlagenen Objekt fällig",
+        "retourAttendu_other": "Rückmeldung zu {{count}} vorgeschlagenen Objekten fällig"
       },
       "toast": {
         "allUpToDate": "Alles aktuell",
@@ -525,10 +411,37 @@
         "ctaKyc": "KYC öffnen",
         "ctaSign": "Vorbereiten",
         "ctaOffer": "Angebot ansehen",
-        "ctaMatch": "Matches ansehen",
         "ctaVisit": "Besichtigung ansehen",
         "ctaSeller": "Öffnen",
         "ctaListing": "Objekt ansehen"
+      },
+      "matching": {
+        "compte_one": "{{count}} Aktion",
+        "compte_other": "{{count}} Aktionen",
+        "retour_one": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekt",
+        "retour_other": "Rückmeldung von {{prenom}} erfassen · {{count}} Objekte",
+        "prixPropose": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} vorgeschlagen wurde",
+        "prixRefuse": "Preis um {{montant}} gesenkt beim Objekt, das {{prenom}} abgelehnt hat",
+        "mandat_one": "Neues Mandat · {{count}} passender Käufer",
+        "mandat_other": "Neues Mandat · {{count}} passende Käufer",
+        "marcheNouveau": "Neues Objekt in {{ville}} für {{prenom}}",
+        "marcheNouveauSansVille": "Neues Objekt für {{prenom}}",
+        "marcheBaisse": "Preissenkung in {{ville}} für {{prenom}}",
+        "marcheBaisseSansVille": "Preissenkung für {{prenom}}",
+        "marchePlusieurs": "{{prenom}} · {{liste}}",
+        "nouveaux_one": "{{count}} neues Objekt",
+        "nouveaux_other": "{{count}} neue Objekte",
+        "baisses_one": "{{count}} Preissenkung",
+        "baisses_other": "{{count}} Preissenkungen",
+        "ctaRetour": "Erfassen",
+        "ctaPrix": "Öffnen",
+        "ctaMandat": "Wer passt",
+        "ctaMarche": "Objekte ansehen",
+        "voirTout": "Alles im Matching ansehen",
+        "voirToutCompte_one": "Die Aktion im Matching ansehen",
+        "voirToutCompte_other": "Alle {{count}} Aktionen im Matching ansehen",
+        "vide": "Heute keine Matching-Aktion.",
+        "erreur": "Matching-Aktionen nicht verfügbar: Laden fehlgeschlagen."
       }
     }
   },

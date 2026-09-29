@@ -37,7 +37,7 @@ const CARD_COLS =
   'id,title,address,city,postal_code,canton,type,transaction_type,price,current_price,' +
   'price_at_first_seen,price_per_m2,rooms,bedrooms,bathrooms,surface_m2,features,photos,photos_cf,' +
   'status,source_portal,source_url,source_id,agency_name,agency_phone,agency_logo_url,lat,lng,' +
-  'year_built,days_on_market,land_surface,' +
+  'year_built,days_on_market,land_surface,first_seen_at,removed_at,' +
   'agency_profile:agency_profiles(logo_url)'
 
 /** Plafond de candidats PAR transaction (= `p_limit` de la RPC). */
@@ -116,6 +116,21 @@ async function candidateCount(p: MatchingSearchParams, tx: 'buy' | 'rent'): Prom
 }
 
 /**
+ * Colonnes de carte d'une liste d'annonces, mappées par `mapListingRow` — l'ordre rendu n'est PAS celui
+ * des ids. Lecture par clé primaire, découpée en lots de `ID_CHUNK` (au-delà, le proxy rend un 414).
+ * Partagée avec le flux de la pige (`usePige.ts`) : même sélection de colonnes, même mapper.
+ */
+export async function chargerCartes(ids: string[]): Promise<MrhBien[]> {
+  if (!ids.length) return []
+  const lots: string[][] = []
+  for (let i = 0; i < ids.length; i += ID_CHUNK) lots.push(ids.slice(i, i + ID_CHUNK))
+  const reponses = await Promise.all(lots.map((lot) => supabase.from('market_listings').select(CARD_COLS).in('id', lot)))
+  const echec = reponses.find((r) => r.error)
+  if (echec?.error) throw echec.error
+  return reponses.flatMap((r) => r.data ?? []).map((row) => mapListingRow(row as unknown as Record<string, unknown>))
+}
+
+/**
  * Annonces du marché connecté correspondant aux filtres durs, mappées pour l'UI.
  * Enabled même sans filtre (vue « Tout » = meilleures annonces des deux transactions).
  */
@@ -146,20 +161,8 @@ export function useMatchingSearch(params: MatchingSearchParams) {
           if (list[rank] && ids.length < MAX_CANDIDATES) ids.push(list[rank])
         }
       }
-      if (!ids.length) return []
-      // Découpage du `.in()` : voir ID_CHUNK — au-delà, le proxy renvoie un 414.
-      const chunks: string[][] = []
-      for (let i = 0; i < ids.length; i += ID_CHUNK) chunks.push(ids.slice(i, i + ID_CHUNK))
-      const responses = await Promise.all(
-        chunks.map((chunk) => supabase.from('market_listings').select(CARD_COLS).in('id', chunk)),
-      )
-      const failed = responses.find((r) => r.error)
-      if (failed?.error) throw failed.error
-      const data = responses.flatMap((r) => r.data ?? [])
       const order = new Map(ids.map((id, i) => [id, i]))
-      return (data ?? [])
-        .map((row) => mapListingRow(row as unknown as Record<string, unknown>))
-        .sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9))
+      return (await chargerCartes(ids)).sort((a, b) => (order.get(a.id) ?? 1e9) - (order.get(b.id) ?? 1e9))
     },
   })
   // `blocked` = la query n'a pas le DROIT de partir (gate `enabled` faux). React

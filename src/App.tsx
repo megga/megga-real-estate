@@ -174,9 +174,6 @@ const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage
 const SentryTestPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/SentryTestPage'))
   : () => null
-const MatchingShowcasePage = import.meta.env.DEV
-  ? lazy(() => import('@/pages/dev/MatchingShowcasePage'))
-  : () => null
 const MobileShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/MobileShowcasePage'))
   : () => null
@@ -185,9 +182,6 @@ const BiensShowcasePage = import.meta.env.DEV
   : () => null
 const ContactsShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/ContactsShowcasePage'))
-  : () => null
-const PipelineShowcasePage = import.meta.env.DEV
-  ? lazy(() => import('@/pages/dev/PipelineShowcasePage'))
   : () => null
 const ModalesShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
@@ -220,7 +214,7 @@ const OnboardingPreviewPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
   : () => null
 // Banc de la console super-admin — DEV seulement, même ternaire et même raison.
-// ⚠ Il s'écarte des autres bancs (`/dev/pipeline`, `/dev/biens`), qui sont
+// ⚠ Il s'écarte des autres bancs (`/dev/biens`, `/dev/contacts`), qui sont
 // permanents : ceux-là montrent l'écran d'un agent, celui-ci monte le chrome de
 // la PLATEFORME — badge « ADMIN », MRR, registre des agences, journal de
 // sécurité. Le servir publiquement inviterait la question « est-ce réel ? » et
@@ -402,7 +396,7 @@ const ROUTES_TABLEAU_DE_BORD = (
   {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
       Mobile (< 768px) : fiche lecture seule (P7). */}
   <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<ListingDetailPage />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
-  {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
+  {/* La fiche d'affaire (refonte du 27.09.2026) : cinq phases, prochaine action, offres, clôture. */}
   <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailPage />} mobile={<MobileDealDetailPage />} /></ByParam>} />
   {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
   <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferPage /></ByParam>} />
@@ -416,10 +410,10 @@ const ROUTES_TABLEAU_DE_BORD = (
   {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
   <Route path="import-lead" element={<ImportLeadPage />} />
   {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
-      page 0 = atelier triptyque « par score » · page 1 = recherche
-      hybride du marché (vente + location). Deep-links portés par
-      l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
-      Mobile (< 768px) : inbox acheteurs + focus. */}
+      page 0 = le fil de matchs, sur lequel « Matching » s'ouvre · page 1 =
+      recherche hybride du marché (vente + location). Liens d'arrivée du
+      fil (filLiens.ts) : ?contact=<id> · ?annonce=p:<id> · ?onglet= ·
+      ?ligne= · ?attente=. Mobile (< 768px) : inbox acheteurs + focus. */}
   <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPage />} mobile={<MobileMatchingPage />} />} />
   {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
   <Route path="journey" element={<ResponsiveRoute desktop={<JourneyPage />} mobile={<MobileJourneyPage />} />} />
@@ -650,22 +644,12 @@ function AppRoutes() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
-              {/* Matching — QA visuelle du PAGER entier (chrome, 2 pages, bascule
-                  de thème, états d'exception). Mocks du handoff, zéro écriture.
-                  Le chemin garde son nom d'origine : il est cité tel quel dans le
-                  cerveau comme le banc où s'éprouvent les modales de l'atelier. */}
-              <Route path="/dev/matching-atelier" element={<MatchingShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
               {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}
               <Route path="/dev/biens" element={<BiensShowcasePage />} />
               {/* Contacts — même raison, même idiome (liste, fiche, premier lancement). */}
               <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
-              {/* Pipeline — la page RÉELLE par le slot `banc` : 3 vues, 8 colonnes,
-                  états d'exception, modales, bascule de thème. Une seule vue à la
-                  fois : `DealCard` porte un `layoutId` GLOBAL, et deux vues
-                  montées ensemble videraient les colonnes jumelles. */}
-              <Route path="/dev/pipeline" element={<PipelineShowcasePage />} />
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
                   JAMAIS rendues hors production, donc jamais éprouvées. */}
               <Route path="/dev/modales" element={<ModalesShowcasePage />} />

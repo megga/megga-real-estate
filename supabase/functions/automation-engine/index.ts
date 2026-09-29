@@ -283,18 +283,31 @@ serve(async (req) => {
     // ══════════════════════════════════════════════════════════════════════════
     // 3. Lead inactif depuis 30 jours
     // Condition: contacts.last_interaction_at < NOW() - 30 days AND type IN (buyer, lead, investor)
+    // ET au moins un rôle de TRANSACTION (ou aucun rôle du tout), cf. la garde ci-dessous.
     // ══════════════════════════════════════════════════════════════════════════
     {
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
 
       const { data: dormantLeads } = await supabase
         .from('contacts')
-        .select('id')
+        .select('id, roles')
         .eq('agency_id', agency_id)
         .in('type', ['buyer', 'lead', 'investor', 'both'])
         .lt('last_interaction_at', thirtyDaysAgo)
 
-      for (const contact of dormantLeads || []) {
+      // ⚠ La liste des rôles de TRANSACTION ci-dessous est écrite EN DUR, et c'est VOULU :
+      // `supabase/functions/` tourne sous Deno et ne peut pas importer `src/lib/contactRoles.ts`
+      // (bundle navigateur). La « factoriser » casserait le déploiement des edge functions.
+      // Un contact SANS aucun rôle, lui, passe la garde : c'est un vrai lead, celui que R3 vise.
+      // Étape 3 : un contact qui ne porte que des rôles de RÉSEAU (avocat, private banker…)
+      // prend `type = 'lead'` faute de rôle de transaction. Ce n'est pas un lead dormant :
+      // sans cette garde, l'avocat de l'étude arrive en relance au 31ᵉ jour.
+      const dormants = (dormantLeads || []).filter((c) => {
+        const roles = Array.isArray(c.roles) ? (c.roles as string[]) : []
+        return roles.length === 0 || roles.some((r) => ['buyer', 'seller', 'tenant', 'landlord', 'investor'].includes(r))
+      })
+
+      for (const contact of dormants) {
         const exists = await reminderExists(contact.id, 'dormant_lead')
         if (!exists) {
           await createReminder({

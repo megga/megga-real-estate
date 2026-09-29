@@ -1,19 +1,40 @@
 {
   "loop": {
-    "inboxTitle": "Da gestire",
-    "likedTitle": "Interessato a {{title}}",
-    "likedSub": "{{when}} · {{price}}{{score}}",
-    "matchPct": " · match {{score}}%",
     "proposeVisit": "Proponi la visita",
-    "later": "Più tardi",
-    "handled": "Visita in preparazione · registrata nella sua scheda",
-    "openAtelier": "Apri l'atelier",
-    "empty": "Nessun immobile proposto per il momento.",
-    "pillLiked": "Interessato",
-    "pillSent": "Proposto",
-    "pillDismissed": "Non interessato",
-    "metaDismissed": "Motivo registrato · ricalibra il matching",
-    "motif": "«{{motif}}»"
+    "etat": {
+      "propose": "Proposto",
+      "interesse": "Interessato/a",
+      "visite": "Visita pianificata",
+      "refuse": "Non interessato/a",
+      "revenu": "Tornato"
+    },
+    "compteurs": {
+      "proposes_one": "Proposto",
+      "proposes_other": "Proposti",
+      "interesses_one": "Interessato",
+      "interesses_other": "Interessati",
+      "refuses_one": "Non interessato",
+      "refuses_other": "Non interessati"
+    },
+    "detail": {
+      "propose": "Proposto il {{date}} · {{prix}}",
+      "proposeSansPrix": "Proposto il {{date}}",
+      "interesse": "Interessato/a il {{date}}",
+      "refuse": "Non interessato/a · {{motif}}",
+      "revenu": "Da riproporre"
+    },
+    "note": "«{{note}}»",
+    "bienSansTitre": "Immobile senza titolo",
+    "aTraiter": {
+      "interesse": "Interessato/a a {{titre}}",
+      "ouvrir": "Apri nel Matching"
+    },
+    "correction": {
+      "titre": "Ricerca da adattare · {{motif}}",
+      "detail_one": "{{count}} rifiuto per questo motivo",
+      "detail_other": "{{count}} rifiuti per questo motivo",
+      "voir": "Vedi la correzione"
+    }
   },
   "title": "Contatti",
   "add_button": "Aggiungere",
@@ -31,14 +52,19 @@
   "next": "Successivo",
   "filter_type": "Tipo",
   "filter_score": "Score",
-  "type": {
+  "roles": {
     "buyer": "Acquirente",
     "seller": "Venditore",
-    "both": "Acquirente/Venditore",
-    "lead": "Lead",
-    "investor": "Investitore",
     "tenant": "Inquilino",
-    "landlord": "Locatore"
+    "landlord": "Locatore",
+    "investor": "Investitore",
+    "family_office": "Family office",
+    "referrer": "Segnalatore",
+    "private_banker": "Private banker",
+    "lawyer": "Avvocato",
+    "trustee": "Trustee",
+    "broker": "Intermediario",
+    "architect": "Architetto"
   },
   "score": {
     "hot": "Hot",
@@ -271,11 +297,6 @@
       "empty": "Nessun documento allegato per questo contatto.",
       "addedOn": "Aggiunto il {{date}}"
     },
-    "type": {
-      "buyer": "Acquirente",
-      "seller": "Venditore",
-      "lead": "Lead"
-    },
     "new": "Nuovo",
     "via": "Via {{source}}",
     "unknownSource": "Fonte sconosciuta",
@@ -347,7 +368,10 @@
     "tenant": "Inquilini",
     "hot": "Lead caldi",
     "kyc": "KYC da completare",
-    "stale": "Senza attività 14 g+"
+    "stale": "Senza attività 14 g+",
+    "role": "Ruolo",
+    "roleAll": "Tutti i ruoli",
+    "roleOverlap": "Un contatto può avere più ruoli: la somma dei segmenti supera il totale."
   },
   "nextAction": {
     "planifier_visite": "Pianifica una visita",
@@ -777,7 +801,7 @@
   "health": {
     "title": "Stato del portafoglio",
     "intro": "Da dove arrivano i tuoi contatti, dove sono i punti ciechi. Clicca su un segmento per filtrare l'elenco.",
-    "byAudience": "Per pubblico",
+    "byRole": "Per ruolo",
     "kycCoverage": "Copertura KYC",
     "sources": "Fonti di acquisizione",
     "kpi": {
@@ -964,7 +988,8 @@
       "address": "Indirizzo",
       "addressPlaceholder": "Via…, NPA Città",
       "countryNone": "Non indicato",
-      "saveError": "Impossibile salvare l'identità. Riprova."
+      "saveError": "Impossibile salvare l'identità. Riprova.",
+      "roles": "Ruoli"
     },
     "coord": {
       "identity": "Identità",
@@ -1008,7 +1033,17 @@
       "areaMinEdit": "Superficie min (m²)",
       "mustHave": "Indispensabili",
       "minPlaceholder": "Min",
-      "maxPlaceholder": "Max"
+      "maxPlaceholder": "Max",
+      "bedroomsMin": "Camere min",
+      "condition": "Stato minimo",
+      "conditionAny": "Indifferente",
+      "conditions": {
+        "good": "Buono stato",
+        "renovated": "Ristrutturato",
+        "new": "Nuovo"
+      },
+      "offMarket": "Off-market",
+      "offMarketOnly": "Solo off-market"
     },
     "propType": {
       "appartement": "Appartamento",
@@ -1064,10 +1099,9 @@
     },
     "loop": {
       "toHandleCount": "Da gestire ({{count}})",
-      "transmittedCount": "Immobili proposti ({{count}})",
+      "propertiesCount": "I suoi immobili ({{count}})",
       "openInMatching": "Apri nel Matching",
-      "ignore": "Ignora",
-      "nothingToHandle": "Tutto aggiornato, nulla da gestire al momento.",
+      "nothingToHandle": "Nulla da gestire",
       "emptyTitle": "Nessun immobile proposto",
       "emptyBody": "Proponga immobili a {{name}}, poi registri le risposte.<1/>Appariranno qui."
     },

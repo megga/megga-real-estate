@@ -168,7 +168,7 @@ describe('toolTier', () => {
 describe('CONFIRM_TOOLS — les seuls outils que stashPending prépare', () => {
   it('contient exactement les outils confirm du registre', () => {
     expect([...CONFIRM_TOOLS].sort()).toEqual([
-      'delete_contact', 'invite_optin', 'open_kyc_case', 'publish_to_portals', 'record_offer',
+      'delete_contact', 'invite_optin', 'open_kyc_case', 'publish_to_portals', 'record_match_outcome', 'record_offer',
       'send_client_email', 'send_client_message', 'send_kyc_link',
       'update_pipeline', 'withdraw_from_portals',
     ])

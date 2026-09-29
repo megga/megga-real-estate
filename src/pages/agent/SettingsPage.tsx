@@ -112,7 +112,9 @@ export default function SettingsPage() {
       case 'integrations': return <IntegrationsSection />
       case 'security': return <SecuritySection />
       case 'billing': return <BillingSection />
-      case 'credits': return <CreditsSection sp={sp} surf={surf} dark={dark} />
+      // « Voir les plans » (plan qui n'ouvre pas le studio) mène à la Facturation : sans
+      // ce rappel, le bouton de la section ne faisait rien.
+      case 'credits': return <CreditsSection sp={sp} surf={surf} dark={dark} onGoToSection={setActive} />
       default: return null
     }
   }

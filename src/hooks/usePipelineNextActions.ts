@@ -37,6 +37,22 @@ export function useTransactionNextReminder(transactionId: string | undefined) {
   }
 }
 
+/** Termine la prochaine action d'un deal (« Fait » de la fiche d'affaire) : la relance sort
+ *  des listes actives — pipeline, Calendrier, « Aujourd'hui » — sans être effacée. */
+export function useCompleteReminder() {
+  const update = useUpdateMutation(supabase.from('reminders'), ['id'])
+  return {
+    mutateAsync: async (id: string) => {
+      await update.mutateAsync({
+        id,
+        status: 'done',
+        completed_at: new Date().toISOString(),
+      } as unknown as Parameters<typeof update.mutateAsync>[0])
+    },
+    isPending: update.isPending,
+  }
+}
+
 /** Replanifie l'échéance d'un reminder (poignée de la vue Timeline) : jour
  *  choisi par le drag, heure d'origine conservée par l'appelant. Repasse le
  *  statut à 'pending' (un reminder 'triggered'/'snoozed' replanifié redevient
@@ -111,7 +127,34 @@ export function usePipelineReminderCreators() {
     [agencyId, insert],
   )
 
-  return { createFirstFollowUp, createVisitReminder, isPending: insert.isPending }
+  /** Prochaine action posée à la main sur un deal qui n'en avait pas (groupe « À planifier »
+   *  de l'agenda) : même forme que les deux créateurs ci-dessus, le `kind` au choix. */
+  const createNextAction = useCallback(
+    async ({ transactionId, contactId, kind, at, note }: {
+      transactionId: string
+      contactId: string | null
+      kind: 'call' | 'visit' | 'kyc' | 'match' | 'offer' | 'note'
+      at: Date
+      note: string
+    }) => {
+      if (!agencyId) throw new Error('Aucune agence rattachée')
+      await insert.mutateAsync([{
+        agency_id: agencyId,
+        transaction_id: transactionId,
+        contact_id: contactId,
+        type: 'custom',
+        kind,
+        trigger_rule: 'manual',
+        trigger_at: at.toISOString(),
+        status: 'pending',
+        channel: 'task',
+        message_template: note,
+      }])
+    },
+    [agencyId, insert],
+  )
+
+  return { createFirstFollowUp, createVisitReminder, createNextAction, isPending: insert.isPending }
 }
 
 /** Annule les reminders actifs d'une transaction — hygiène à la clôture d'un

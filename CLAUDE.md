@@ -142,7 +142,9 @@ Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (getmegga.com 
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine getmegga.com
-               Backend conservé : market_listings ~253k (dont ~41k flatfox actives au 10.09.2026) + flatfox-sync
+               Backend conservé : market_listings ~253k (dont ~36k flatfox vivantes au 21.09.2026 : celles
+               que Flatfox publie ; la base en portait ~48k « actives », dont ~12 500 fantômes du balayage
+               en panne depuis le 05.09, que la pige rattrape, cf. §8) + flatfox-sync
                (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
@@ -231,12 +233,13 @@ parce qu'une page marketing se PARCOURT, le CRM s'HABITE. Valeurs dans
 | survol — un **ÉTAT**, pas un palier | `sp.focusSurface` | `#1b1e23` |
 | **LE FILET** — un seul, discret | `sp.cardBorder` | `#2b2d30` |
 
-⚠ **La grammaire du Pipeline est LIGNÉE** : les colonnes ne se remplissent plus,
-leur teinte d'étape est mélangée à **0,94 vers le canvas** — assez pour que le
-balayage indigo→orange reste lisible (ΔL\* 2,73 à 3,93), quatre fois plus faible
-que le filet. Ne pas monter ce facteur sans remesurer les DEUX bouts du
-balayage : à 0,95 l'indigo passe sous le seuil et le bout froid s'efface avant
-le chaud.
+⚠ **La grammaire du Pipeline est LIGNÉE, dans les DEUX thèmes depuis le 27.09.2026** —
+le board à cinq phases a remplacé les huit colonnes d'étape, et leur teinte mélangée
+vers le canvas est partie avec elles : aucune colonne n'a plus de fond, clair
+compris. La phase se lit au libellé et au FILET du haut (3 px, sa teinte) ; mis bout
+à bout, les cinq filets gardent le balayage indigo → orange. Les colonnes se
+séparent par un voile d'encre (0,09 en sombre, 0,08 en clair). Garde :
+[pipeline-ligne.spec.ts](tests/unit/pipeline-ligne.spec.ts).
 
 1. **La séparation vient de la BORDURE**, et désormais d'ELLE SEULE —
    `sp.shadow` vaut `'none'` en sombre. Il n'y a plus d'écart de luminance du
@@ -389,10 +392,16 @@ d'écran n'est restée sur Graphite).
   dans son CADRE** (`MailModalShell`, `cadre ?? document.body` ; Julien, 14.09.2026 : « le flou
   doit épouser le pager ») : leur voile couvre la Messagerie et non l'écran, et elles se
   masquent avec l'écran de leur onglet. Les ramener dans `<body>` rendrait le voile plein écran.
+  Même règle, depuis le 27.09.2026, pour « Nouveau deal », la confirmation « Perdu » et le
+  panneau de clôture du Pipeline (prop `cadre`) : voile 0,4 et flou 6 px, comme `MailModalShell`.
   ⚠ **« TOUJOURS … avec `z-[100]` » n'est
-  vrai ni pour l'un ni pour l'autre.** Mesuré le 20.09.2026 : **41 fichiers appellent
-  `createPortal`** (36 le 05.09.2026, dont 33 nommés modale/panneau/dialogue — la règle
-  tenait à trois près ; les trois du studio Labs la suivent) —
+  vrai ni pour l'un ni pour l'autre.** Remesuré le 29.09.2026 : **41 fichiers appellent
+  `createPortal`** — 42 au sommet du lot D2, le lot E1 (sur branche) retirant l'hôte des
+  calques de l'atelier (`AtlOverlayHost.tsx`) ; 41 aussi le 20.09.2026, 36 le 05.09.2026,
+  dont 33 nommés modale/panneau/dialogue (la règle tenait à trois près ; les trois du
+  studio Labs la suivent). ⚠ `grep -rl createPortal src` en rend **43** : deux fichiers
+  ne le nomment qu'en commentaire (`MxModal.tsx`, qui dit justement ne pas s'en servir, et
+  `AnnouncementFormModal.tsx`) ; le registre blanchit les commentaires —
   mais le z-index est un **désordre assumé nulle part** : **185 sites `zIndex`
   portant 50 valeurs DISTINCTES** (remesuré le 14.09.2026 au motif du registre,
   commentaires blanchis ; 175 et 44 le 16.08 — les deux dernières valeurs venues, 4099
@@ -415,16 +424,16 @@ d'écran n'est restée sur Graphite).
     (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
     = sourdine ; « Nouveau bien », 4 étapes : actif = pilule d'accent, fait = coche) ;
   - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
-    dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
-    AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
-    `DealDetailPage:100` et `MobileDealDetailScreen:179` rendent tous deux
-    `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
-    la même forme que la barre segmentée. Le « 8 » était juste (8 colonnes UI pour 14
-    stades DB), la forme non.
-    ⚠ Et les deux segments ne se peignent pas pareil : le mobile met l'étape
-    courante en `accent`, le bureau la peint en `ink` — donc **le bureau n'applique
-    pas la règle du 10 août** (« l'élément ACTIF porte l'accent »). Écart réel, non
-    tranché.
+    dans un formulaire (segments de 4 px). ⚠ Deux formes depuis le 27.09.2026 : la
+    fiche d'affaire du BUREAU (`DealDetailPage`) rend les **cinq phases**, chaque
+    segment à la TEINTE de sa phase — pleine pour la phase en cours, adoucie pour les
+    passées, filet pour les suivantes, vert pour une affaire conclue. Écart ASSUMÉ avec
+    « l'élément actif porte l'accent » : ici la couleur ENCODE la phase, la même que les
+    colonnes du kanban. Le MOBILE (`MobileDealDetailScreen:179`) garde sa barre de
+    8 segments d'étape, la courante en `accent`.
+    ⛔ Ce point a dit « `dealStepper`, 8 CERCLES » jusqu'au 16 août 2026 : il n'y a
+    jamais eu de cercle. L'écart « le bureau peint l'étape courante en `ink` » est
+    parti avec l'ancienne fiche.
   - **cercles numérotés** — l'idiome que ce point ne nommait pas. `KycStepper`
     (alias `SgStepper`, [primitives.tsx:341](src/components/crm-dossiers/primitives.tsx))
     rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
@@ -718,7 +727,7 @@ idx_market_listings_tx_type_status ON market_listings (transaction_type, status,
 const channelId = useId()
 const channel = supabase.channel(`nom-${channelId}`)
 ```
-Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente était fausse aux deux tiers** : elle nommait `useAdminNotifications.ts` et `useMessaging.ts`, qui **n'existent plus dans `src/`**. Les abonnements vivants sont désormais **six** (05.09.2026) : `useAdminLiveFeed.ts`, `useAgentNotifications.ts`, `useVisitDetail.ts`, `useContactSentMatches.ts` (« Sa boucle » de la fiche contact, sur `matches` : depuis le 21.09.2026 il fait apparaître une réponse **consignée par un collègue**, plus une réaction de l'acheteur — sa page de réception est retirée), `useRealtimeHealth.ts` et `useMailRealtime.ts` (messagerie, sur `mail_threads`) — tous en `useId()`. ⚠ Un fichier nommé ici qui n'existe pas est pire qu'une absence de liste : il donne l'illusion d'un inventaire, et personne ne rouvre un inventaire.
+Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente était fausse aux deux tiers** : elle nommait `useAdminNotifications.ts` et `useMessaging.ts`, qui **n'existent plus dans `src/`**. Les abonnements vivants sont désormais **huit** (23.09.2026, sur la branche du lot D1 : `grep -rln "removeChannel" src` ; six le 05.09.2026) : `useAdminLiveFeed.ts`, `useAgentNotifications.ts`, `useVisitDetail.ts`, `useContactSentMatches.ts` (« Sa boucle » de la fiche contact, sur `matches` : depuis le 21.09.2026 il fait apparaître une réponse **consignée par un collègue**, plus une réaction de l'acheteur — sa page de réception est retirée), `useRealtimeHealth.ts`, `useMailRealtime.ts` (messagerie, sur `mail_threads`), `useLabsAssets.ts` (studio Labs, sur `labs_assets` de l'agence : une vidéo passée `ready` chez un collègue remonte dans la galerie ; il existait déjà, cette liste l'omettait) et `useAcquereursNouveauMandat.ts` (écran de fin de « Nouveau bien », lot D1 : sur `matches` du bien mis en service, ses acquéreurs compatibles comptés en direct) — tous en `useId()`. ⚠ Un fichier nommé ici qui n'existe pas est pire qu'une absence de liste : il donne l'illusion d'un inventaire, et personne ne rouvre un inventaire.
 
 ### Formatters type-defensive
 `formatCHF(amount)` et `formatRent(amount)` acceptent `number | string | null | undefined`. Retournent `'CHF —'` pour les valeurs invalides. Ne JAMAIS appeler `.toFixed()` directement sur une valeur de formulaire.
@@ -739,7 +748,8 @@ par 24 h (régime de croisière ~111 000 lignes, 52 parcours par appel sous le s
 d'instantané ont donc rejoint la liste le 13.09.2026 : **`cron-health-snapshot-5min`**
 (`*/5 * * * *`, écrit `cron_health_snapshot` sous le rôle postgres, sans timeout ; `get_cron_health`
 ne fait plus qu'une jointure de 52 lignes) et **`flatfox-active-count-hourly`** (`5 * * * *`,
-compte exact des annonces Flatfox actives dans `app_config.flatfox_active_count` — le
+compte exact des annonces Flatfox vivantes, `active` ou `price_reduced` depuis la pige du 21.09.2026,
+dans `app_config.flatfox_active_count` — le
 `count: 'exact'` d'admin-monitoring et de la page de monitoring expirait 23 fois par jour, en
 violation écrite de la règle de ce §7). Migrations `20260913120100` et `20260913120200`.
 C'est le régime de péremption propre aux prétentions de base de données — elles ne se lisent dans
@@ -773,12 +783,13 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
 - `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `getmegga.com`
-- Backend conservé intact : `market_listings` (~130k Flatfox, ~123k RealAdvisor, ~91k actives — **remesuré le 03.09.2026**), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+- Backend conservé intact : `market_listings` (~130k Flatfox, ~123k RealAdvisor, ~91k actives — **remesuré le 03.09.2026**), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public ; depuis le 21.09.2026 (pige, étape 1b), `market_price_history` s'écrit par déclencheur (écrivain unique) et `removed_at` date le retrait
+  ⚠ **Le balayage Flatfox était en panne MUETTE depuis le 05.09.2026** : l'UPDATE unique de retrait expirait sous le statement_timeout, chaque nuit, dans un run `completed` à 0 retrait — **12 492 annonces disparues restaient « actives » au 21.09.2026**, un quart des locations servies au matching. La pige le remplace par un balayage par lots (`flatfox_balayer_retraits`) et rattrape ces fantômes dans sa migration `20260930145000`, AVANT ses déclencheurs (ils n'entrent pas dans « Retirés ») ; un balayage en échec finit désormais le run en `failed`. Le compte Flatfox tombe donc d'un coup à la fusion (~48k → ~36k) : c'est la correction, pas une panne.
   ⚠ **Le +32k de RealAdvisor en 17 jours n'est PAS de la collecte, c'est de la rétention subie** — ne pas le lire comme une croissance du catalogue. Le sweep de retrait est plafonné à un POURCENTAGE du vivier qu'il régule (3 % du live), donc plus on sur-détient, plus on a le droit de retirer, mais moins vite que l'arriéré ne grossit : 16 nuits `capped` d'affilée du 19.08 au 03.09. Mesuré le 03.09 : notre live valait 53 047 contre **41 369 annonces que RealAdvisor déclare** (somme des 26 cantons = total_count national, à l'unité près) — ~11 700 biens de trop, soit **un bien sur quatre servi au matching qui n'est plus en vente**. Plafond porté à 6 % le 03.09 (`app_config.realadvisor_sweep_cap_pct`), à remettre à 3 % une fois le live redescendu. Un gate empirique `id_in` sur 360 candidats donne 1,1 % de faux absents : la détection est saine, c'est le drainage qui était trop lent.
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching (chez l'agent seul depuis le 21.09.2026 : « Je l'ai proposé », « J'ai relancé », « Pas intéressé » consignent, rien ne part vers l'acheteur), Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts (⚠ **rôles multiples sur branche le 22.09.2026, fusion à la fin** : `contacts.roles` fait foi, douze valeurs — cinq de transaction, sept de réseau —, `contacts.type` en DÉRIVE par déclencheur dans les deux sens et reste écrit, parce que ~100 lecteurs en dépendent, dont trois politiques RLS ; la liste range par rôle et non plus par audience, `audienceOf` est retirée), Pipeline à cinq phases (refonte du 27.09.2026, qui remplace le v2 Sugar Pure et ses 8 colonnes : 14 stades DB → 5 phases ; Kanban + Timeline, zones Conclu / Perdu, « Nouveau deal » refait, fiche d'affaire, clôture et après-vente, menus du clic droit sur la carte, la ligne, le fond et la fiche, nextAction = reminders ; le téléphone garde son écran), Matching (chez l'agent seul depuis le 21.09.2026 : « Je l'ai proposé », « J'ai relancé », « Pas intéressé » consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » et les fiches d'annonce l'historique du prix, même date ; lot C sur branche le 22.09.2026, fusion à la fin : chambres, état et off-market notés sans 6ᵉ clé `reasons`, `properties.off_market` posé par l'agent, signaux « pourquoi maintenant », « Qui pour ce bien ? » et ses anciens prospects ; lot D1 sur branche le 23.09.2026, fusion à la fin et jamais sans le lot E, qui met en production le fil où mènent ses liens : segment « Matching » d'« Aujourd'hui » (`matching_actions_du_jour`), « Sa boucle » entière avec ses biens revenus, « Qui pour ce bien ? » sur la fiche d'un mandat et sur celle d'une annonce, acquéreurs comptés en direct à la fin de « Nouveau bien », et dans « Ce qui a bougé » une pastille « N acheteurs » sur les lignes qui en ont (`pige_acheteurs_compatibles`) ; lot D2 sur branche le 24.09.2026, fusion à la fin et jamais sans le lot E : le copilote WhatsApp consigne la réponse d'un acheteur après un « oui » de l'agent (`record_match_outcome`), dit qui pour un bien (`get_buyers_for_property`), rend les biens vivants d'un acheteur avec leur état et leur score expliqué (`get_matches`), planifie une visite qui fait passer un intéressé en « visite planifiée » sans rien écrire au client (`schedule_visit`), et son point du matin parle du matching (`matching_actions_agence`), chaque écriture métier signée MEGGA AI par une fonction de base ; lot E1 sur branche le 29.09.2026, fusion à la fin avec toute la pile : le fil devient le Matching du bureau — « Matching » s'ouvre sur lui, l'atelier de bureau et le catalogue d'« Aujourd'hui » sont retirés —, un lien d'arrivée ne s'applique qu'une fois (`jetonArrivee`), une agence sans acheteur y trouve une couverture de premier lancement, un mandat qui n'est plus en vente ne se propose plus nulle part, un deal perdu ou archivé ne reçoit plus de geste neuf (`dealOuvert`), et le moteur renote une recherche modifiée — un match qu'il en a écarté y revient si elle le retient à nouveau — et, chaque nuit, les notes d'une version antérieure), Mes biens (pager galerie + à-suivre · filtres et regroupements · « Nouveau bien » en 4 étapes avec aperçu — l'ancien wizard de 7 étapes est retiré le 16.09.2026 · fiche bord à bord), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
 
 **Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
 mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
@@ -871,6 +882,22 @@ qui débite sans annoncer le montant. ⛔ **Le coût fournisseur et la marge ne
 sortent JAMAIS de `_shared/credits.ts`** — `credits-confidentialite.spec.ts` les
 interdit à `src/`, et `tests/backend/credits.spec.ts` mesure la marge (≥ 2× au tarif
 de base, ≥ 1,5× au pack le moins cher, dotation < 50 % du plan au pire cas).
+⛔ **REVUE POST-FUSION DU 21.09.2026 — six défauts bloquants corrigés** (migrations
+`20260922100000` à `…100400`, une par défaut) : (1) `cost_chf` ne sortait pas de `src/` mais sortait de la BASE —
+lisible par tout membre, rendu par les edges, copié dans le journal que `/dashboard/audit`
+affiche ; colonne fermée à `authenticated`, réponses par `assetPourAgent`, l'écran lit
+`LABS_ASSET_COLONNES`. (2) La carte n'était JAMAIS gardée : `setup_future_usage` est posé
+par moyen de paiement, et on lisait le champ de premier niveau (`carteGardeePourRecharge`).
+(3) Le plan se lit sur l'abonnement (`agency_plan_effectif`), jamais `agencies.plan` ; une
+montée de plan se paie contre ce que le mois a déjà donné. (4) `credits-checkout` envoyait à
+Stripe le client factice `manual_<agence>` (`clientStripeReel`). (5) Une vidéo finie mais
+non sondée était jetée au bout de 15 min : l'âge ne tranche plus qu'APRÈS fal.ai, et un bail
+(`labs_asset_claim_finalize`) ne laisse passer qu'un finaliseur. (6) Un crédit en échec après
+une charge de carte était acquitté (webhook, recharge automatique) ; il fait désormais
+rejouer Stripe. La recharge automatique se règle par un DIRIGEANT (`is_agency_admin()`), et
+un Starter voit « À partir du plan Pro » dans Labs, jamais « Recharger ». ⚠ Hors dépôt : le
+point de terminaison Stripe doit être abonné à `payment_intent.succeeded`, filet de la
+recharge automatique.
 
 ⚠ **Le studio savait PRODUIRE et ne savait pas RANGER — repris le 20.09.2026.** Classer une
 production demandait de l'ouvrir et d'y trouver une liste déroulante (trois gestes et un

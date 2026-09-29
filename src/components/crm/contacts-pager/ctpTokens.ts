@@ -16,7 +16,10 @@
  */
 
 /**
- * Teintes par audience. Partagées avec le point de couleur de la page Santé.
+ * Teintes de RÔLE — trois, pas douze (étape 3, 22.09.2026). Partagées avec le point de
+ * couleur de la page Santé. ⛔ Les neuf autres rôles n'ont PAS de teinte et n'en auront
+ * pas par défaut : elles se mesurent (celles-ci portent le blanc à l'AA), et neuf de plus
+ * seraient neuf décisions de direction. Sans teinte : filet + encre sourde.
  *
  * ⚠ `seller` et `tenant` FONCÉS le 16.09.2026, à teinte constante (#C45A00 → #BA4C00,
  * #0891B2 → #0E7490). Clairs, ils ne portaient pas le blanc à l'AA (4,37 et 3,68:1) :
@@ -41,7 +44,8 @@ export const MEGGA_AI_VIOLET = '#7c3aed'
  * correctif VOLONTAIRE, à conserver — ne pas « réaligner » sur #1E5BC6 en sombre
  * au nom de la fidélité au prototype.
  *
- * Ne s'applique QU'au texte : `CtpTypePill` pose `CTP_FN[audience]` en fond
- * plein et en dérive son encre par `encreSur()`.
+ * Ne s'applique QU'au texte : `CtpRolePill` pose `CTP_FN[rôle]` en fond plein et
+ * en dérive son encre par `encreSur()` — pour les TROIS rôles qui ont une teinte ;
+ * les neuf autres prennent le filet et l'encre sourde, sans aplat (étape 3).
  */
 export const FN_BUYER_INK = (dark: boolean): string => (dark ? '#6F8CFF' : CTP_FN.buyer)

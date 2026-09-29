@@ -16,9 +16,21 @@
  * ⛔ LES ÉQUIPEMENTS SE COMPARENT AVEC LA RÈGLE DU MOTEUR (`slugify` puis inclusion,
  * `matching-normalize.ts`). Une règle à nous afficherait « 0 sur 1 » à côté d'un ✓ du moteur, ou
  * l'inverse ; `matching-fil-modele.spec.ts` la confronte à `calculateScoreV2`.
+ *
+ * ⛔ CHAMBRES, ÉTAT, OFF-MARKET (lot C) SONT DES FAITS, comme pièces et surface : le moteur les note sans les
+ * écrire dans `reasons` (contrat de cinq clés). Même règle que lui — un critère que le bien ne renseigne pas n'a
+ * pas de verdict —, confrontée à `axesComplementaires` par `matching-fil-modele.spec.ts`.
  */
 import type { SearchCriteria } from '@/types/contact'
 import { splitZones } from '@/lib/contactCriteria'
+
+/**
+ * Préfixe des clés de requête du fil : l'invalider rafraîchit aussi les sélections ouvertes et « Aujourd'hui » (le
+ * segment Matching, « Pendant ton absence »). Défini ICI, dans le module pur, et ré-exporté par `useMatchingFil` :
+ * « Aujourd'hui » l'importe, et `useMatchingFil` tire statiquement le module des gestes (`matchingGestes`) — l'écran
+ * mobile le chargeait pour une chaîne.
+ */
+export const CLE_FIL = 'matching-fil'
 
 type AxeMoteur = 'budget' | 'zone' | 'type' | 'rooms' | 'features'
 type RaisonMoteur = { match: boolean; score: number; detail: string }
@@ -42,6 +54,47 @@ export interface FilBien {
   photo: string | null
   /** Annonce du MARCHÉ (lot 2) : sa référence et son lien d'origine. Absent pour un bien en mandat. */
   marche?: { ref: string; sourceUrl: string | null }
+  /** Lot C. Chambres ; 0 ou absent : inconnues (le wizard écrit 0 pour « non renseigné »). */
+  chambres?: number | null
+  /** Lot C. L'état saisi sur un mandat (`condition`) ; une annonce du marché n'en porte pas. */
+  etatSaisi?: string | null
+  anneeConstruction?: number | null
+  anneeRenovation?: number | null
+  /** Lot C. L'interrupteur de l'agent ; une annonce du marché est publique. */
+  offMarket?: boolean
+  /** Lot C, signaux : première apparition sur le marché, premier prix, date de la dernière baisse. */
+  vuLe?: string | null
+  prixInitial?: number | null
+  baisseLe?: string | null
+  /** Lot C, signal : la signature du mandat ou sa mise en service, la plus récente des deux. */
+  mandatLe?: string | null
+  /**
+   * Lot E1 (décision 12a). Un mandat EN VENTE : `active` et non supprimé, la règle du copilote WhatsApp (`occasion`,
+   * `get_matches`) — le fil ne lit pas un mandat supprimé. `false` : il ne se propose plus (`horsVente`). Absent : une
+   * annonce du marché, ou un bien lu hors du fil.
+   */
+  enVente?: boolean
+  /** Lot E1. Le statut d'un mandat (`properties.status`) : l'état qu'« En attente » et « À conclure » écrivent. */
+  statut?: string | null
+}
+
+/**
+ * Où en est un match dans la boucle chez l'agent (lot B) : proposé, répondu, et ce qui a été consigné.
+ * Absent d'un match jamais proposé.
+ */
+export interface SuiviMatch {
+  statut: 'suggested' | 'sent' | 'interested' | 'rejected' | 'visit_planned'
+  /** `sent_at` : la proposition (ou la dernière relance consignée). */
+  proposeLe: string | null
+  /** `response_at` : la PREMIÈRE réponse consignée (trigger `set_match_response_at`). */
+  reponduLe: string | null
+  /** Le motif d'un refus (`reaction_motif`), un code : `fil.motifs.*` l'écrit. */
+  motif: string | null
+  note: string | null
+  /** Le prix du bien quand il a été proposé (`prix_propose`) : c'est lui qui dit « prix baissé de … ». */
+  prixPropose: number | null
+  /** `apprentissage_at` : ce refus a déjà nourri une correction de recherche, validée ou ignorée. */
+  apprisLe: string | null
 }
 
 export interface FilMatch {
@@ -52,6 +105,10 @@ export interface FilMatch {
   criteres: SearchCriteria | null
   creeLe: string | null
   reporteJusquau: string | null
+  /** La recherche notée (`client_search_id`) : c'est elle qu'« Apprendre » corrige (lot B). */
+  rechercheId?: string | null
+  /** La boucle (lot B) ; absent d'un match jamais proposé. */
+  suivi?: SuiviMatch
   bien: FilBien
   acheteur: {
     id: string
@@ -71,7 +128,7 @@ export interface FilVue {
   reportes: FilMatch[]
   /** Lignes d'« À traiter » : un acheteur sous un bien vaut une ligne (§3.1). */
   compte: number
-  /** Ordre de lecture des lignes, celui de ↑/↓. */
+  /** Ordre de lecture des lignes, celui de ↑/↓ : chaque groupe s'ouvre sur l'en-tête de son bien (`cleBien`). */
   ordre: string[]
 }
 
@@ -87,6 +144,9 @@ export type LigneCritere =
   | ({ cle: 'pieces'; min: number | null; max: number | null; pieces: number | null } & Verdict)
   | ({ cle: 'surface'; min: number; surface: number | null } & Verdict)
   | ({ cle: 'equipements'; voulus: string[]; presents: string[] } & Verdict)
+  | ({ cle: 'chambres'; min: number; chambres: number | null } & Verdict)
+  | ({ cle: 'etat'; voulu: EtatBien; etat: EtatConnu | null } & Verdict)
+  | ({ cle: 'offMarket'; offMarket: boolean } & Verdict)
 
 /** Trois paliers, bureau et mobile (§3.5). Le seuil du moteur (55) borne le bas. */
 export function palierScore(score: number): PalierScore {
@@ -101,16 +161,17 @@ const plier = (s: string): string =>
     .normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 
 /** Le `slugify` du moteur, à l'identique (`matching-normalize.ts`). */
-const slug = (s: string): string =>
+export const slug = (s: string): string =>
   (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 /** Horodatage d'une date ISO ; une date absente ou illisible vaut 0, pour que le tri reste total. */
-const temps = (iso: string | null): number => {
+export const temps = (iso: string | null): number => {
   const t = iso ? Date.parse(iso) : NaN
   return Number.isFinite(t) ? t : 0
 }
 
-function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
+/** Un match retenu par les filtres du fil : le bien, l'acheteur, et le texte (bien, ville, adresse, acheteur). */
+export function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
   if (f.bienId && m.bien.id !== f.bienId) return false
   if (f.acheteurId && m.acheteur.id !== f.acheteurId) return false
   const texte = plier(f.texte.trim())
@@ -118,17 +179,35 @@ function passeFiltres(m: FilMatch, f: FilFiltres): boolean {
   return plier([m.bien.titre, m.bien.ville ?? '', m.bien.adresse ?? '', m.acheteur.prenom, m.acheteur.nom].join(' ')).includes(texte)
 }
 
-/** Score décroissant, puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. */
-function avant(a: FilMatch, b: FilMatch): number {
-  return b.score - a.score || temps(b.creeLe) - temps(a.creeLe) || a.id.localeCompare(b.id)
-}
+/**
+ * Un mandat qui n'est plus en vente (lot E1, décision 12a, conception §5.3) : il ne se propose plus. Ses suggestions,
+ * ses biens revenus et ses reportés sortent d'« À proposer » (`construireFil`), et avec eux l'en-tête qui ouvre « Qui
+ * pour ce bien ? ». « En attente » et « À conclure » le gardent, son état écrit : une réponse en cours se consigne
+ * encore. Ses refus nourrissent encore « Apprendre » : un refus dit quelque chose de l'acheteur, pas du bien.
+ * ⚠ Un mandat LU et pas `active` : un mandat supprimé n'est pas lu du tout (`useMatchingFil`, comme `get_matches`) —
+ * il sort de tous les onglets, et ne doit pas y revenir par une lecture qui le garderait.
+ */
+export const horsVente = (b: FilBien): boolean => b.enVente === false
 
-/** Le fil « À traiter » : groupes par bien, reportés à part, compte et ordre de lecture. */
-export function construireFil(matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number): FilVue {
+/**
+ * Le fil « À traiter » : groupes par bien, reportés à part, compte et ordre de lecture. L'ordre : score
+ * décroissant, puis — à score égal — ce qui porte un signal (`signal`, lot C : `aUnSignal` de filSignaux.ts ;
+ * absent, aucun), puis le plus récent, puis l'id : un ordre TOTAL, donc une navigation stable. Un groupe se
+ * range par son premier match. ⚠ Le comparateur est PASSÉ, pas importé : filSignaux lit ce module.
+ * ⚠ Le copilote WhatsApp (lot D2) recopie ce comparateur (`avant`, local, non exporté) dans `vueGetMatches`
+ * (`_shared/whatsapp-matching.ts`) : confronté par `tests/unit/whatsapp-matching-fil.spec.ts`, par la sortie
+ * publique de `construireFil` puisque `avant` lui-même ne l'est pas.
+ * ⚠ Lot E1 : un mandat qui n'est plus en vente n'y entre pas (`horsVente`), ni en ligne, ni en reporté.
+ */
+export function construireFil(
+  matchs: readonly FilMatch[], filtres: FilFiltres, maintenant: number, signal: (m: FilMatch) => boolean = () => false,
+): FilVue {
+  const avant = (a: FilMatch, b: FilMatch): number =>
+    b.score - a.score || Number(signal(b)) - Number(signal(a)) || temps(b.creeLe) - temps(a.creeLe) || a.id.localeCompare(b.id)
   const reportes: FilMatch[] = []
   const parBien = new Map<string, { bien: FilBien; matchs: FilMatch[] }>()
   for (const m of matchs) {
-    if (!passeFiltres(m, filtres)) continue
+    if (horsVente(m.bien) || !passeFiltres(m, filtres)) continue
     if (m.reporteJusquau != null && temps(m.reporteJusquau) > maintenant) {
       reportes.push(m)
       continue
@@ -141,18 +220,20 @@ export function construireFil(matchs: readonly FilMatch[], filtres: FilFiltres, 
   const groupes = [...parBien.values()]
     .map((g) => ({ bien: g.bien, matchs: [...g.matchs].sort(avant) }))
     .sort((a, b) => avant(a.matchs[0]!, b.matchs[0]!))
-  const ordre = groupes.flatMap((g) => g.matchs.map((m) => m.id))
-  return { groupes, reportes, compte: ordre.length, ordre }
+  // L'en-tête de chaque bien ouvre son groupe (« Qui pour ce bien ? », lot C) : une ligne de l'ordre, pas du compte.
+  const ordre = groupes.flatMap((g) => [cleBien(g.bien.id), ...g.matchs.map((m) => m.id)])
+  return { groupes, reportes, compte: groupes.reduce((n, g) => n + g.matchs.length, 0), ordre }
 }
 
 /**
  * Les choix des filtres Bien et Acheteur : chacun une fois, triés par libellé. Les acheteurs des lignes
  * « Marché » (`selections`) en sont aussi : sans eux, un acheteur qui n'a que des biens du marché ne
- * pouvait pas être filtré. Le filtre Bien ne vise que les biens en mandat : il écarte toutes les lignes
- * « Marché » (`construireSelections`).
+ * pouvait pas être filtré ; de même ceux de la boucle (`autres`, lot B), qui n'ont peut-être plus rien à
+ * proposer. Le filtre Bien ne vise que les biens en mandat : il écarte toutes les lignes « Marché »
+ * (`construireSelections`).
  */
 export function optionsFiltres(
-  matchs: readonly FilMatch[], selections: readonly FilSelectionResume[] = [],
+  matchs: readonly FilMatch[], selections: readonly FilSelectionResume[] = [], autres: readonly FilMatch['acheteur'][] = [],
 ): { biens: OptionFiltre[]; acheteurs: OptionFiltre[] } {
   const biens = new Map<string, string>()
   const acheteurs = new Map<string, string>()
@@ -161,6 +242,7 @@ export function optionsFiltres(
     acheteurs.set(m.acheteur.id, `${m.acheteur.prenom} ${m.acheteur.nom}`)
   }
   for (const s of selections) acheteurs.set(s.acheteur.id, `${s.acheteur.prenom} ${s.acheteur.nom}`)
+  for (const a of autres) acheteurs.set(a.id, `${a.prenom} ${a.nom}`)
   const trier = (e: Map<string, string>): OptionFiltre[] =>
     [...e].map(([id, libelle]) => ({ id, libelle })).sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr') || a.id.localeCompare(b.id))
   return { biens: trier(biens), acheteurs: trier(acheteurs) }
@@ -171,13 +253,48 @@ export function cleEquipement(brut: string): string {
   return slug(brut.replace(/^custom:/i, ''))
 }
 
-const chaines = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [])
+/** Les chaînes non vides d'un tableau jsonb — une zone ou un équipement mal saisi n'existe pas. */
+export const chaines = (v: unknown): string[] =>
+  (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '') : [])
 
 /** Détails que le moteur écrit pour un axe INACTIF (aucun critère de son côté) : pas un verdict. */
 const INACTIF = new Set(['—', 'Aucun critère'])
 
-/** Les lignes « Recherché / Ce bien » : une par critère que la recherche a posé (§4.4). */
-export function lignesCriteres(m: FilMatch): LigneCritere[] {
+/**
+ * L'état d'un bien, du moins bon au meilleur, et ses seuils : ceux du moteur (`ETATS_BIEN`, `ANS_NEUF`,
+ * `ANS_RENOVE`, `etatDuBien` dans matching-normalize.ts), à l'identique — `matching-fil-modele.spec.ts` les
+ * confronte. Neuf : construit il y a 5 ans au plus, ou en chantier ; rénové : il y a 10 ans au plus.
+ */
+const ETATS = ['to_renovate', 'good', 'renovated', 'new'] as const
+type EtatBien = (typeof ETATS)[number]
+type EtatConnu = { etat: EtatBien; source: 'saisi' | 'construction' | 'renovation'; annee: number | null }
+const ANS_NEUF = 5
+const ANS_RENOVE = 10
+const ANS_CHANTIER = 5
+const estEtat = (v: unknown): v is EtatBien => typeof v === 'string' && (ETATS as readonly string[]).includes(v)
+/** L'état MINIMUM qu'une recherche peut poser : « à rénover » n'en est pas un, tout bien le tient (règle du moteur). */
+const MINIMUMS: ReadonlySet<EtatBien> = new Set(['good', 'renovated', 'new'])
+
+/** L'état d'un bien, ou `null` : ⛔ jamais « bon état » ni « à rénover » déduit d'une date. */
+function etatDuBien(b: FilBien, annee: number): EtatConnu | null {
+  if (estEtat(b.etatSaisi)) return { etat: b.etatSaisi, source: 'saisi', annee: null }
+  const construit = b.anneeConstruction
+  if (construit != null && construit > 0 && construit >= annee - ANS_NEUF && construit <= annee + ANS_CHANTIER) {
+    return { etat: 'new', source: 'construction', annee: construit }
+  }
+  const renove = b.anneeRenovation
+  if (renove != null && renove > 0 && renove >= annee - ANS_RENOVE && renove <= annee) {
+    return { etat: 'renovated', source: 'renovation', annee: renove }
+  }
+  return null
+}
+
+/**
+ * Les lignes « Recherché / Ce bien » : une par critère que la recherche a posé (§4.4).
+ * ⚠ Recopiée par le copilote WhatsApp (lot D2, `expliquer` dans `_shared/whatsapp-matching.ts`), confrontée par
+ * `tests/unit/whatsapp-matching-fil.spec.ts`.
+ */
+export function lignesCriteres(m: FilMatch, maintenant: number = Date.now()): LigneCritere[] {
   const c = m.criteres
   if (!c) return []
   const raisons = m.raisons ?? {}
@@ -210,9 +327,20 @@ export function lignesCriteres(m: FilMatch): LigneCritere[] {
       ok: p == null ? null : (c.rooms_min == null || p >= c.rooms_min) && (c.rooms_max == null || p <= c.rooms_max),
     })
   }
+  // Lot C. ⛔ UN FAIT, comme les pièces, à la règle du MOTEUR : 0 chambre n'est pas une valeur, et un critère
+  // que le bien ne renseigne pas n'a pas de verdict — il n'a pas compté dans la note.
+  if (typeof c.bedrooms_min === 'number' && c.bedrooms_min > 0) {
+    const n = m.bien.chambres != null && m.bien.chambres > 0 ? m.bien.chambres : null
+    lignes.push({ cle: 'chambres', min: c.bedrooms_min, chambres: n, ecart: null, ok: n == null ? null : n >= c.bedrooms_min })
+  }
   if (c.surface_min != null) {
     const s = m.bien.surface
     lignes.push({ cle: 'surface', min: c.surface_min, surface: s, ok: s == null ? null : s >= c.surface_min, ecart: null })
+  }
+  if (estEtat(c.condition_min) && MINIMUMS.has(c.condition_min)) {
+    const voulu = c.condition_min
+    const e = etatDuBien(m.bien, new Date(maintenant).getUTCFullYear())
+    lignes.push({ cle: 'etat', voulu, etat: e, ecart: null, ok: e == null ? null : ETATS.indexOf(e.etat) >= ETATS.indexOf(voulu) })
   }
   // Un équipement dont le slug est vide (« — ») n'existe pas pour le moteur : il n'existe pas ici.
   const voulus = chaines(c.features).filter((v) => slug(v) !== '')
@@ -223,6 +351,11 @@ export function lignesCriteres(m: FilMatch): LigneCritere[] {
       return offerts.some((h) => h === w || h.includes(w) || w.includes(h))
     })
     lignes.push({ cle: 'equipements', voulus, presents, ...verdict('features', true) })
+  }
+  // Off-market : toujours évalué — un mandat porte son interrupteur, une annonce du marché est publique.
+  if (c.off_market_only === true) {
+    const off = m.bien.offMarket === true
+    lignes.push({ cle: 'offMarket', offMarket: off, ecart: null, ok: off })
   }
   return lignes
 }
@@ -262,7 +395,18 @@ export interface FilSelectionResume {
   meilleurScore: number
   /** Jusqu'à trois vignettes, du meilleur bien au moins bon. */
   vignettes: string[]
+  /** Lot C : ses annonces nouvelles (3 jours) et en baisse (14 jours), comptées par la base. */
+  nouveaux?: number
+  baisses?: number
 }
+
+const PREFIXE_BIEN = 'bien:'
+
+/** La ligne « Qui pour ce bien ? » d'un bien en mandat (lot C) : son en-tête, dans l'ordre du fil. */
+export const cleBien = (bienId: string): string => `${PREFIXE_BIEN}${bienId}`
+
+/** Le bien d'un en-tête, ou `null` pour toute autre ligne. */
+export const bienDeCle = (cle: string): string | null => (cle.startsWith(PREFIXE_BIEN) ? cle.slice(PREFIXE_BIEN.length) : null)
 
 const PREFIXE_SELECTION = 'marche:'
 
@@ -273,9 +417,13 @@ export const cleSelection = (contactId: string): string => `${PREFIXE_SELECTION}
 export const contactDeSelection = (cle: string): string | null =>
   (cle.startsWith(PREFIXE_SELECTION) ? cle.slice(PREFIXE_SELECTION.length) : null)
 
+/** Une ligne « Marché » porte un signal (lot C) : une annonce nouvelle ou en baisse. */
+const aDesSignaux = (s: FilSelectionResume): boolean => (s.nouveaux ?? 0) + (s.baisses ?? 0) > 0
+
 /**
- * Les lignes « Marché » retenues par les filtres, par meilleur score (§3.2). Un filtre sur un BIEN les
- * écarte toutes : un bien en mandat n'est dans aucune sélection du marché.
+ * Les lignes « Marché » retenues par les filtres, par meilleur score, puis, à score égal, celles qui portent
+ * un signal (lot C). Un filtre sur un BIEN les écarte toutes : un bien en mandat n'est dans aucune sélection
+ * du marché.
  */
 export function construireSelections(resumes: readonly FilSelectionResume[], filtres: FilFiltres): FilSelectionResume[] {
   if (filtres.bienId) return []
@@ -286,7 +434,7 @@ export function construireSelections(resumes: readonly FilSelectionResume[], fil
     .filter((s) => !filtres.acheteurId || s.acheteur.id === filtres.acheteurId)
     .filter((s) => !texte || plier(nom(s)).includes(texte))
     .sort((a, b) =>
-      b.meilleurScore - a.meilleurScore || b.nombre - a.nombre
+      b.meilleurScore - a.meilleurScore || Number(aDesSignaux(b)) - Number(aDesSignaux(a)) || b.nombre - a.nombre
       || nom(a).localeCompare(nom(b), 'fr') || a.acheteur.id.localeCompare(b.acheteur.id))
 }
 
@@ -327,4 +475,51 @@ export function precoches(matchs: readonly FilMatch[], max = 5): string[] {
     })
     .slice(0, max)
     .map((m) => m.id)
+}
+
+// Les aides de LECTURE, pures : le fil (`useMatchingFil`) et les surfaces du lot D1 — « Sa boucle », « Qui pour ce
+// bien ? » — les partagent. Elles vivent ici, pas dans un module de hook : `useMatchingFil` tire statiquement
+// le module des gestes (`matchingGestes`), et lire une ligne n'a pas à le charger — la fiche d'une annonce du
+// marché ne le charge pas ; celle d'un mandat, pour « Planifier une visite ».
+
+/**
+ * Les lignes d'une lecture PostgREST (ou du banc) ; son erreur est LEVÉE, pour que TanStack la tienne pour un échec.
+ * Pur : il attend la requête qu'on lui passe, sans importer de client.
+ */
+export async function lire<T>(requete: PromiseLike<{ data: unknown; error: unknown }>): Promise<T[]> {
+  const { data, error } = await requete
+  if (error) throw error
+  return (data ?? []) as T[]
+}
+
+/** Un nombre lu en base (`numeric` arrive en chaîne) ; `null` s'il n'en est pas un. */
+export const nombreOuNull = (v: number | string | null): number | null => {
+  if (v == null || v === '') return null
+  const n = typeof v === 'string' ? Number(v) : v
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Les équipements d'un bien : un tableau de chaînes, ou un objet `{ equipement: vrai }`.
+ * ⚠ Recopiée par le copilote (`whatsapp-matching.ts`, qui ne peut pas importer `src/` — sa propre copie, privée,
+ * y vit à côté de `bienDAnnonce`/`bienDeMandat`) ; `tests/unit/whatsapp-matching-fil.spec.ts` l'appelle (via
+ * `versBien`/`versBienMarche`) pour confronter les deux formes.
+ */
+export function listeEquipements(brut: unknown): string[] {
+  if (Array.isArray(brut)) return brut.filter((f): f is string => typeof f === 'string')
+  if (brut && typeof brut === 'object') {
+    return Object.entries(brut as Record<string, unknown>).filter(([, v]) => Boolean(v)).map(([k]) => k)
+  }
+  return []
+}
+
+/** La vignette d'une annonce : `photos_cf` porte des URL en chaîne OU des objets `{thumb, …}`, sinon `photos`. */
+export function photoAnnonce(cf: unknown, photos: string[] | null): string | null {
+  const premier: unknown = Array.isArray(cf) ? cf[0] : undefined
+  if (typeof premier === 'string' && premier) return premier
+  if (premier && typeof premier === 'object') {
+    const thumb = (premier as Record<string, unknown>).thumb
+    if (typeof thumb === 'string' && thumb) return thumb
+  }
+  return photos?.find((p) => typeof p === 'string' && p !== '') ?? null
 }

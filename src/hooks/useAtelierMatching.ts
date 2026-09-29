@@ -1,50 +1,33 @@
-// Atelier Matching — données + gestes métier (contrat HANDOFF_MATCHING_COUTURES).
-//
-// Données : matches (+ contact + property/market_listing) groupés par annonce
-// pivot (`p:<uuid>` interne / `m:<uuid>` veille marché) + KYC du dernier
-// dossier acheteur par contact. Le mode « Par acheteur » réutilise les mêmes
-// matches re-groupés par contact (poolFor).
-//
-// Gestes (exécutés par la page APRÈS la fenêtre d'annulation de 5 s — undo
-// Gmail-style : rien n'est écrit tant que le toast offre « Annuler ») :
-//   proposer     → « Je l'ai proposé » : le match, s'il est encore 'suggested' → 'sent',
-//                  sent_via='agent' + Deal new_lead (créé ou rattaché) + activity_events
-//                  'match_propose' + relance interne +3 j + jalon Intercom first_match_sent.
-//                  Plus rien à proposer → rien d'autre n'est écrit (`deja`)
-//   proposerSelection → ses matchs encore 'suggested' → 'sent' 'agent' + UN deal,
-//                  UN 'match_propose', UNE relance +3 j, sur les SEULS matchs marqués (fil)
-//   relance      → « J'ai relancé » : matches.sent_at=now + activity_events 'relance' +
-//                  relance de proposition repoussée +3 j
-//   react        → Intéressé / Pas intéressé : matches.status + relance de proposition close
-//   snooze       → matches.snoozed_until=+7 j + reminder 'custom' à échéance
-//                  (la ligne « de retour » remonte dans Aujourd'hui) + 'match_reporte'
-//   dismiss      → matches.status='ignored' (le moteur ne re-propose jamais
-//                  un couple existant — aucun deal) + activity_events 'match_ecarte'
-//   wake         → snoozed_until=null + reminder annulé (immédiat, hors queue)
-//
-// ⛔ Aucun geste n'écrit à l'acheteur — ni e-mail, ni lien, ni WhatsApp (décision de
-// Julien, 21.09.2026 : le matching reste chez l'agent). L'agent présente les biens par
-// ses propres moyens ; le CRM consigne et lui rappelle de noter la réponse.
+/**
+ * Matching au téléphone — la lecture de l'écran mobile (`MobileMatchingScreen`, contrat HANDOFF_MATCHING_COUTURES), et
+ * d'elle seule : l'atelier de bureau, qui la partageait, est retiré (lot E1) ; elle part avec l'écran mobile au lot E2
+ * (conception `2026-09-27-matching-lot-e1-bureau-design.md` §6.2). Son retour se borne à ce que l'écran lit.
+ *
+ * Données : matches (+ contact + property/market_listing) groupés par annonce pivot (`p:<uuid>` interne / `m:<uuid>`
+ * veille marché) + KYC du dernier dossier acheteur par contact. La vue focus du mobile réutilise les mêmes matches
+ * regroupés par contact (`poolFor`, `buyerFor`).
+ *
+ * Les gestes que l'agent pose sur ces matchs ne sont pas ici : ils vivent dans `@/lib/matchingGestes`, que le fil de
+ * matchs partage — un seul écrivain par geste.
+ */
 
 import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { INTERCOM_EVENTS } from '@/lib/intercom'
-import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
-import type { Json, TablesInsert } from '@/types/database'
+import { isSnoozed, refAnnonceMarche, refBienInterne } from '@/lib/matchingGestes'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
-import { composeAiHint } from '@/components/matching-atelier/composeAiHint'
-import { fmtBudgetRange } from '@/components/matching-atelier/format'
+import { composeAiHint } from '@/components/crm-mobile/matching/composeAiHint'
+import { fmtBudgetRange } from '@/components/crm-mobile/matching/format'
 import type {
   AtelierBuyer,
   AtelierListing,
   AtelierPivot,
   AtelierPoolMatch,
   AtelierReason,
-} from '@/components/matching-atelier/types'
+} from '@/components/crm-mobile/matching/types'
 
 // ─── Rows Supabase (snake_case, embeds) ─────────────────────────────────
 interface RawContact {
@@ -155,10 +138,6 @@ function gallery(photos: string[] | null): AtelierListing['gallery'] {
   }))
 }
 
-/** Référence affichée d'une annonce du marché — la même dans l'atelier et dans le fil de matchs. */
-export const refAnnonceMarche = (portail: string | null, sourceId: string | null, id: string): string =>
-  `MG-${portail === 'flatfox' ? 'FL' : 'MK'}-${sourceId ?? id.slice(0, 6)}`
-
 /** Bien de veille marché (market_listings) → AtelierListing : clé `m:<id>`, prix courant + prix barré si baisse détectée. */
 export function mapMarketListing(row: RawMarketRow): AtelierListing {
   const features = featureList(row.features).map(f => f.toLowerCase())
@@ -201,9 +180,6 @@ export function mapMarketListing(row: RawMarketRow): AtelierListing {
     isFurnished: row.is_furnished ?? false,
   }
 }
-
-/** Référence affichée d'un bien interne — la même dans l'atelier et dans le fil de matchs. */
-export const refBienInterne = (id: string): string => `MG-IN-${id.slice(0, 6).toUpperCase()}`
 
 /** Bien interne (properties) → AtelierListing : clé `p:<id>`, jours-sur-marché dérivés de created_at. */
 export function mapProperty(row: RawPropertyRow): AtelierListing {
@@ -299,20 +275,18 @@ const MATCH_SELECT =
 
 export interface UseAtelierMatchingReturn {
   isLoading: boolean
-  /** true si la query matches ou kyc a échoué — état d'erreur de l'atelier. */
+  /** true si la query matches ou kyc a échoué — état d'erreur de l'écran mobile. */
   isError: boolean
   pivots: AtelierPivot[]
-  pivotByKey: Map<string, AtelierPivot>
-  defaultPivotKey: string | null
-  /** Tous les biens matchés d'un acheteur (mode « Par acheteur »), score desc */
+  /** Tous les biens matchés d'un acheteur (vue focus du mobile), score desc */
   poolFor: (contactId: string, currentKey: string | null) => AtelierPoolMatch[]
-  /** Profil acheteur (meilleur match) — deep-link ?contact= */
+  /** Profil acheteur (meilleur match) — la vue focus du mobile */
   buyerFor: (contactId: string) => AtelierBuyer | null
   refresh: () => void
 }
 
 /**
- * Données de l'Atelier Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
+ * Données de l'écran mobile de Matching : matches (annonce pivot ↔ acheteurs) enrichis KYC,
  * groupés par annonce (pivots) et re-groupables par acheteur (poolFor / buyerFor).
  * Les couples écartés/rejetés sont exclus de la file.
  */
@@ -401,7 +375,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [])
 
   // Groupes par annonce pivot — écartés/rejetés exclus de la file
-  const { pivots, pivotByKey } = useMemo(() => {
+  const pivots = useMemo(() => {
     const groups = new Map<string, AtelierPivot>()
     for (const m of rawMatches) {
       if (m.status === 'ignored' || m.status === 'rejected') continue
@@ -418,10 +392,9 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
       if (m.status === 'suggested' && !isSnoozed(b.snoozedUntil)) entry.actionable++
       groups.set(L.key, entry)
     }
-    const list = Array.from(groups.values())
+    return Array.from(groups.values())
       .map(g => ({ ...g, buyers: g.buyers.sort((a, z) => z.score - a.score) }))
       .sort((a, z) => z.actionable - a.actionable || z.buyers.length - a.buyers.length)
-    return { pivots: list, pivotByKey: new Map(list.map(g => [g.listing.key, g])) }
   }, [rawMatches, listingOf, toBuyer])
 
   const poolFor = useCallback((contactId: string, currentKey: string | null): AtelierPoolMatch[] => {
@@ -459,402 +432,12 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
 
   return {
     // Idem useContactsScreen : le KYC n'alimente qu'un badge, il ne doit pas
-    // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
+    // remettre tout l'écran en chargement quand il se rafraîchit.
     isLoading: matchesLoading,
     isError: matchesError || kycError,
     pivots,
-    pivotByKey,
-    defaultPivotKey: pivots[0]?.listing.key ?? null,
     poolFor,
     buyerFor,
     refresh,
   }
-}
-
-/** true tant que le report (snooze) d'un match n'est pas échu. */
-export const isSnoozed = (until: string | null): boolean =>
-  until != null && new Date(until).getTime() > Date.now()
-
-// ═══════════════════ Gestes métier (exécuteurs) ═══════════════════════════
-// Appelés par la page APRÈS la fenêtre d'annulation (5 s) — cf. en-tête.
-
-export interface GesteContext {
-  agencyId: string
-  userId: string
-}
-
-/**
- * Ce qu'une proposition rend à son appelant et, par lui, au registre d'annulation (`pendingTriage`) :
- * le deal, pour « Voir le deal → », et `deja`.
- *
- * `deja` : aucun des matchs n'était encore à proposer à cet acheteur — déjà proposé, répondu ou
- * écarté entre-temps (un collègue, un autre onglet, un double geste), ou d'un autre acheteur. RIEN
- * d'autre n'est alors écrit : ni deal, ni journal, ni relance. C'est un RÉSULTAT et non une erreur :
- * l'état voulu est déjà là, ou a été tranché autrement. Un rejet passerait par `onError`, qui dit
- * « échec » à l'agent et remonte l'atelier ; l'appelant rafraîchit, et la file se remet d'accord.
- */
-export interface ResultatProposition {
-  dealId: string | null
-  deja: boolean
-}
-
-/**
- * Ce qu'un geste lit d'un acheteur et d'un bien, et rien de plus : le journal et la relance nomment
- * l'acheteur, le bien par sa référence et son titre ; le deal se rattache par le genre et l'id du
- * bien. Le fil de matchs et « Aujourd'hui » n'ont pas la forme complète de l'atelier : les
- * exécuteurs restent la source UNIQUE des écritures, et ne leur demandent que ce qu'ils lisent.
- */
-export type AcheteurGeste = Pick<AtelierBuyer, 'id' | 'matchId' | 'first' | 'last' | 'score'>
-export type BienGeste = Pick<AtelierListing, 'kind' | 'id' | 'ref' | 'title'>
-
-/**
- * Le deal d'un acheteur à qui l'on propose un bien : l'actif le plus récent s'il existe — un bien en
- * mandat y est rattaché s'il n'en porte aucun, jamais écrasé —, sinon un `new_lead` créé sur ce bien.
- * Partagé par la proposition d'un bien et celle d'une sélection, pour qu'elles ne divergent pas.
- */
-async function rattacherDeal(ctx: GesteContext, contactId: string, listing: Pick<BienGeste, 'kind' | 'id'>): Promise<string> {
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id, property_id')
-    .eq('agency_id', ctx.agencyId)
-    .eq('contact_buyer_id', contactId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-
-  if (existing && existing.length > 0) {
-    const deal = existing[0] as { id: string; property_id: string | null }
-    if (listing.kind === 'property' && !deal.property_id) {
-      await supabase.from('transactions').update({ property_id: listing.id }).eq('id', deal.id)
-    }
-    return deal.id
-  }
-  const insert: TablesInsert<'transactions'> = {
-    agency_id: ctx.agencyId,
-    contact_buyer_id: contactId,
-    assigned_to: ctx.userId,
-    stage: 'new_lead',
-    status: 'active',
-  }
-  if (listing.kind === 'property') insert.property_id = listing.id
-  else insert.market_listing_id = listing.id
-  const { data: created, error } = await supabase.from('transactions').insert(insert).select('id').single()
-  if (error) throw error
-  return (created as { id: string }).id
-}
-
-/**
- * « Je l'ai proposé » (E) — l'agent a présenté le bien à l'acheteur, par ses propres moyens.
- *
- * ⛔ LE CRM N'ENVOIE RIEN À L'ACHETEUR (décision de Julien, 21.09.2026 : le matching reste chez
- * l'agent). Le geste consigne : le match passe `sent` avec `sent_via = 'agent'`, le deal est
- * rattaché (ou créé en `new_lead`), une ligne `match_propose` au journal, et UNE relance interne
- * à +3 jours (canal `task`) pour que l'agent consigne la réponse.
- *
- * Le marquage ne touche le match que s'il est ENCORE `suggested` et qu'il est bien celui de CET
- * acheteur. ⛔ Sinon, un double geste (ou celui d'un collègue) réécrivait un match déjà proposé, voire
- * `interested`, en `sent`, et posait un deuxième deal, une deuxième ligne de journal, une deuxième
- * relance. Aucune ligne marquée : rien d'autre n'est écrit, `deja` le dit (cf. `ResultatProposition`).
- */
-export async function execProposer(
-  ctx: GesteContext,
-  buyer: AcheteurGeste,
-  listing: BienGeste,
-): Promise<ResultatProposition> {
-  // 1. Match → proposé par l'agent, s'il est encore à proposer
-  const { data: marques, error: mErr } = await supabase
-    .from('matches')
-    .update({ status: 'sent', sent_via: 'agent', sent_at: new Date().toISOString() })
-    .eq('id', buyer.matchId)
-    .eq('contact_id', buyer.id)
-    .eq('status', 'suggested')
-    .select('id')
-  if (mErr) throw mErr
-  if (!marques || marques.length === 0) return { dealId: null, deja: true }
-  // Jalon Intercom (une première proposition par agent). Signal seul : ni le bien ni l'acheteur ne partent.
-  void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
-
-  // 2. Deal : rattacher au deal actif existant, sinon créer en new_lead
-  const dealId = await rattacherDeal(ctx, buyer.id, listing)
-
-  // 3. Timeline contact (consignation systématique)
-  await logEvent(ctx, {
-    action: 'match_propose',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last} · ${listing.title}`,
-    metadata: { match_ids: [buyer.matchId], deal_id: dealId, bien_refs: [listing.ref], nombre: 1, score: buyer.score },
-  })
-
-  // 4. La relance interne : l'agent notera la réponse de l'acheteur
-  await poserRelance(ctx, {
-    contactId: buyer.id,
-    matchId: buyer.matchId,
-    dealId,
-    propertyId: listing.kind === 'property' ? listing.id : null,
-    message: `Retour de ${buyer.first} ${buyer.last} sur ${listing.ref}`,
-  })
-
-  return { dealId, deja: false }
-}
-
-/** Un bien d'une sélection du marché, tel que la proposition le consigne. */
-export interface PropositionSelection { matchId: string; score: number; bien: BienGeste }
-
-/**
- * « J'ai proposé N biens » — la sélection du marché d'un acheteur, que l'agent lui a présentée par ses
- * propres moyens. ⛔ Rien ne part vers l'acheteur (décision du 21.09.2026) : même consignation que
- * `execProposer`, pour la sélection entière.
- *
- * Le marquage ne touche que les matchs encore `suggested` DE CET ACHETEUR. ⛔ Sans cette restriction, un
- * match déjà `interested` ou `ignored` repris dans la sélection serait réécrit en `sent` : il sortirait
- * de « Réponses », et la réponse consignée par l'agent serait perdue.
- *
- * ⛔ LE SUIVI NE PORTE QUE CE QUI A ÉTÉ MARQUÉ : le journal (`match_ids`, `bien_refs`, `nombre`), le deal
- * et la relance se calculent sur les matchs que la base a réellement réécrits, pas sur ceux qu'on lui a
- * soumis. Aucun : rien d'autre n'est écrit, `deja` le dit (cf. `ResultatProposition`).
- *
- * ⛔ UN GESTE, UN SUIVI : un deal, UNE ligne de journal et UNE relance à +3 j pour la sélection entière.
- * Appeler `execProposer` N fois poserait N relances identiques pour le même acheteur dans
- * « Aujourd'hui ». Le deal et la relance portent le MEILLEUR bien de la sélection.
- */
-export async function execProposerSelection(
-  ctx: GesteContext,
-  acheteur: Pick<AtelierBuyer, 'id' | 'first' | 'last'>,
-  propositions: readonly PropositionSelection[],
-): Promise<ResultatProposition> {
-  if (propositions.length === 0) return { dealId: null, deja: true }
-  const { data: marques, error: mErr } = await supabase
-    .from('matches')
-    .update({ status: 'sent', sent_via: 'agent', sent_at: new Date().toISOString() })
-    .in('id', propositions.map((p) => p.matchId))
-    .eq('contact_id', acheteur.id)
-    .eq('status', 'suggested')
-    .select('id')
-  if (mErr) throw mErr
-  const marquesIds = new Set((marques ?? []).map((r) => r.id))
-  const proposees = propositions.filter((p) => marquesIds.has(p.matchId))
-  if (proposees.length === 0) return { dealId: null, deja: true }
-  void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
-
-  const meilleur = proposees.reduce((a, b) => (b.score > a.score ? b : a))
-  const dealId = await rattacherDeal(ctx, acheteur.id, meilleur.bien)
-  const n = proposees.length
-  const biens = `${n} bien${n > 1 ? 's' : ''}`
-
-  await logEvent(ctx, {
-    action: 'match_propose',
-    contactId: acheteur.id,
-    label: `${acheteur.first} ${acheteur.last} · ${biens}`,
-    metadata: {
-      match_ids: proposees.map((p) => p.matchId), deal_id: dealId, bien_refs: proposees.map((p) => p.bien.ref), nombre: n,
-    },
-  })
-
-  // Une sélection du marché ne porte aucun bien en mandat : la relance n'en nomme pas.
-  await poserRelance(ctx, {
-    contactId: acheteur.id,
-    matchId: meilleur.matchId,
-    dealId,
-    propertyId: null,
-    message: `Retour de ${acheteur.first} ${acheteur.last} sur ${biens} proposé${n > 1 ? 's' : ''}`,
-  })
-
-  return { dealId, deja: false }
-}
-
-/**
- * « J'ai relancé » (R) — l'agent a relancé l'acheteur lui-même ; le CRM repousse la relance interne.
- *
- * ⛔ Rien ne part vers l'acheteur (décision du 21.09.2026) : le geste lui envoyait jusque-là un e-mail
- * de relance. Pas de nouveau deal ; le match reste `sent`, `sent_at` date la dernière sollicitation.
- */
-export async function execRelance(
-  ctx: GesteContext,
-  buyer: AcheteurGeste,
-  listing: BienGeste,
-): Promise<void> {
-  // 1. Dernière sollicitation = maintenant (le match reste 'sent' / sans retour)
-  const { error: mErr } = await supabase
-    .from('matches')
-    .update({ sent_at: new Date().toISOString() })
-    .eq('id', buyer.matchId)
-  if (mErr) throw mErr
-
-  // 2. Timeline
-  await logEvent(ctx, {
-    action: 'relance',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last} · ${listing.title}`,
-    metadata: { match_id: buyer.matchId, bien_ref: listing.ref, canal: 'agent' },
-  })
-
-  // 3. Relance interne repoussée de 3 j (celle du match, sinon posée). Seule la relance de
-  // PROPOSITION se reprend, la plus récente : un match porte aussi le rappel d'un report
-  // (`custom`, « de retour dans la file »), que ce geste ne doit ni dater ni réécrire.
-  const message = `Retour de ${buyer.first} ${buyer.last} sur ${listing.ref}, après relance`
-  const { data: pending } = await supabase
-    .from('reminders')
-    .select('id')
-    .eq('match_id', buyer.matchId)
-    .eq('type', 'follow_up_sent_property')
-    .in('status', ['pending', 'triggered'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-  if (pending && pending.length > 0) {
-    await supabase
-      .from('reminders')
-      .update({ trigger_at: inDays(DELAI_RELANCE_JOURS), status: 'pending', message_template: message })
-      .eq('id', (pending[0] as { id: string }).id)
-  } else {
-    await poserRelance(ctx, {
-      contactId: buyer.id,
-      matchId: buyer.matchId,
-      dealId: null,
-      propertyId: listing.kind === 'property' ? listing.id : null,
-      message,
-    })
-  }
-}
-
-/** « Plus tard » (P) — snooze +7 j sur le match, retour visible dans Aujourd'hui, consigné au journal */
-export async function execSnooze(ctx: GesteContext, buyer: AcheteurGeste): Promise<void> {
-  const until = inDays(7)
-  const { error } = await supabase
-    .from('matches')
-    .update({ snoozed_until: until })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-
-  await supabase.from('reminders').insert({
-    agency_id: ctx.agencyId,
-    contact_id: buyer.id,
-    match_id: buyer.matchId,
-    type: 'custom',
-    trigger_rule: 'manual',
-    trigger_days: 7,
-    trigger_at: until,
-    status: 'pending',
-    channel: 'notification',
-    message_template: `${buyer.first} ${buyer.last} — acheteur reporté, de retour dans la file matching`,
-  })
-
-  await logEvent(ctx, {
-    action: 'match_reporte',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last}`,
-    metadata: { match_id: buyer.matchId, jusqu_au: until, score: buyer.score },
-  })
-}
-
-/** « Écarter » (X) — le couple n'est plus jamais proposé. Aucun deal ; consigné au journal. */
-export async function execDismiss(ctx: GesteContext, buyer: AcheteurGeste): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ status: 'ignored' })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-
-  await logEvent(ctx, {
-    action: 'match_ecarte',
-    contactId: buyer.id,
-    label: `${buyer.first} ${buyer.last}`,
-    metadata: { match_id: buyer.matchId, score: buyer.score },
-  })
-}
-
-/** La réponse de l'acheteur à un bien proposé, consignée par l'agent (Intéressé / Pas intéressé).
- *  Pose matches.status -> déclenche set_match_response_at (response_at) + log_match_reaction
- *  (audit, tracé `actor_kind = 'user'`) — la boucle se ferme chez l'agent.
- *
- *  La réponse est là : la relance de proposition du match (« Retour de … ») n'a plus d'objet et
- *  passe `done`. Sans ça, elle remontait dans « Aujourd'hui » pour un acheteur qui avait répondu.
- *  Un refus est signalé sans faire lever : la réponse, elle, est consignée. */
-export async function execReact(
-  buyer: Pick<AtelierBuyer, 'matchId'>,
-  reaction: 'interested' | 'rejected',
-): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ status: reaction })
-    .eq('id', buyer.matchId)
-  if (error) throw error
-
-  const { error: rErr } = await supabase
-    .from('reminders')
-    .update({ status: 'done', completed_at: new Date().toISOString() })
-    .eq('match_id', buyer.matchId)
-    .eq('type', 'follow_up_sent_property')
-    .in('status', ['pending', 'triggered'])
-  if (rErr) console.error('[atelier] reminder close failed', rErr)
-}
-
-/** Réactivation manuelle anticipée d'un reporté (parking) — immédiat */
-export async function execWake(matchId: string): Promise<void> {
-  const { error } = await supabase
-    .from('matches')
-    .update({ snoozed_until: null })
-    .eq('id', matchId)
-  if (error) throw error
-  await supabase
-    .from('reminders')
-    .update({ status: 'cancelled' })
-    .eq('match_id', matchId)
-    .eq('type', 'custom')
-    .in('status', ['pending', 'triggered'])
-}
-
-// ─── privé ──────────────────────────────────────────────────────────────
-const inDays = (d: number): string => new Date(Date.now() + d * 864e5).toISOString()
-
-/** Délai de la relance interne : posée par « Je l'ai proposé », repoussée d'autant par « J'ai relancé ». */
-const DELAI_RELANCE_JOURS = 3
-
-/**
- * La relance interne d'une proposition : une tâche de l'agent (canal `task`), jamais un message à
- * l'acheteur. Elle remplace la relance J+3 automatique d'`automation-engine`, retirée avec ce lot : elle
- * doublait celle-ci et pouvait écrire au client. Partagée par les trois gestes pour qu'ils ne
- * divergent pas.
- *
- * Un refus est signalé sans faire lever : le match est déjà proposé et le journal écrit, le geste ne
- * doit pas passer pour échoué — mais il ne doit pas passer inaperçu non plus (même règle que `logEvent`).
- */
-async function poserRelance(
-  ctx: GesteContext,
-  r: { contactId: string; matchId: string; dealId: string | null; propertyId: string | null; message: string },
-): Promise<void> {
-  const { error } = await supabase.from('reminders').insert({
-    agency_id: ctx.agencyId,
-    contact_id: r.contactId,
-    property_id: r.propertyId,
-    transaction_id: r.dealId,
-    match_id: r.matchId,
-    type: 'follow_up_sent_property',
-    trigger_rule: 'manual',
-    trigger_days: DELAI_RELANCE_JOURS,
-    trigger_at: inDays(DELAI_RELANCE_JOURS),
-    status: 'pending',
-    channel: 'task',
-    message_template: r.message,
-  })
-  if (error) console.error('[atelier] reminder insert failed', error)
-}
-
-async function logEvent(
-  ctx: GesteContext,
-  e: { action: string; contactId: string; label: string; metadata: Record<string, unknown> },
-): Promise<void> {
-  const { error } = await supabase.from('activity_events').insert({
-    agency_id: ctx.agencyId,
-    actor_id: ctx.userId,
-    actor_kind: 'user',
-    action: e.action,
-    entity_type: 'contact',
-    entity_id: e.contactId,
-    category: 'deal',
-    severity: 'info',
-    object_label: e.label,
-    metadata: e.metadata as Json,
-  })
-  // Consignation = exigence du contrat ; une erreur RLS ne doit pas passer inaperçue
-  if (error) console.error('[atelier] activity_events insert failed', error)
 }

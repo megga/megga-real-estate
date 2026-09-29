@@ -40,8 +40,9 @@ export function usePublierWizard(set: (patch: Partial<WizardData>) => void) {
   const [erreur, setErreur] = useState<string | null>(null)
 
   /**
-   * @param statut `active` publie ; `draft` enregistre tout — photos et vendeur compris —
-   *               sans mettre en ligne (le bien reste Off-market, `published_at` vide).
+   * @param statut `active` met le bien en service — publié, ou Off-market selon `data.visibility` ;
+   *               `draft` enregistre tout, photos et vendeur compris, en brouillon (`published_at` vide) :
+   *               un brouillon n'est jamais noté par le moteur.
    */
   async function publier(
     data: WizardData,

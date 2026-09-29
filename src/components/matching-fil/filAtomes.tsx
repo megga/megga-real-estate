@@ -1,13 +1,14 @@
 /**
- * Atomes du fil de matchs — l'avatar, la vignette d'un bien et le score, partagés par la liste, le
- * panneau et la sélection du marché : un même acheteur ou un même score ne se dessine jamais de deux
- * façons sur un écran.
+ * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, le bouton d'un geste et le survol des
+ * lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
+ * dessinent jamais de deux façons sur un écran.
  */
+import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import type { PalierScore } from './filModele'
-import { teinteScore } from './filAffichage'
+import { teinteScore, unSeulClic } from './filAffichage'
 
 /** Initiales sur la sous-surface, neutres : une couleur d'avatar n'encode rien ici. */
 export function FilAvatar({ sp, texte, taille }: { sp: CrmPalette; texte: string; taille: number }) {
@@ -55,4 +56,42 @@ export function FilScore({ sp, score, palier, grand = false }: { sp: CrmPalette;
       <span className="sr-only">{libelle}</span>
     </span>
   )
+}
+
+/**
+ * Le bouton d'un geste, sa touche ÉCRITE dessus (jamais cachée) : le principal porte l'accent (CLAUDE.md §3),
+ * les autres un filet. `bien` pose `data-bien` : le fil y rend le focus après un geste annulé.
+ *
+ * ⛔ Un double clic trie DEUX lignes : le premier clic fait passer la sélection à la suivante (même bouton,
+ * sous le curseur), le second la trie à son tour. D'où la garde du fil (`unSeulClic`).
+ */
+export function FilBouton({ sp, touche, onClick, principal = false, compact = false, bien, ouvert, desactive = false, children }: {
+  sp: CrmPalette; touche?: string; onClick: () => void; principal?: boolean; compact?: boolean
+  bien?: string; ouvert?: boolean; desactive?: boolean; children: ReactNode
+}) {
+  const { t } = useTranslation('matching')
+  return (
+    <button type="button" onClick={unSeulClic(onClick)} disabled={desactive} data-bien={bien} aria-expanded={ouvert}
+      title={touche ? t('fil.actions.raccourci', { touche }) : undefined} aria-keyshortcuts={touche} style={{
+        display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: compact ? 32 : 40,
+        paddingLeft: compact ? 'var(--crm-space-lg)' : 'var(--crm-space-2xl)',
+        paddingRight: compact ? 'var(--crm-space-lg)' : 'var(--crm-space-2xl)',
+        borderRadius: 'var(--crm-radius-pill)', border: principal ? 0 : `1px solid ${sp.cardBorder}`,
+        cursor: desactive ? 'not-allowed' : 'pointer', opacity: desactive ? 0.5 : 1, fontFamily: 'inherit',
+        background: principal ? sp.accent : 'transparent', color: principal ? sp.accentInk : sp.ink,
+        fontSize: compact ? 'var(--crm-text-sm)' : 'var(--crm-text-md)', fontWeight: 600,
+      }}>
+      {children}
+      {touche && <kbd aria-hidden style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: principal ? sp.accentInk : sp.sub }}>{touche}</kbd>}
+    </button>
+  )
+}
+
+/**
+ * Le survol des lignes du fil (`.fil-ligne`), posé UNE fois par le conteneur : trois listes le partagent, et
+ * celle qui le portait l'emportait quand on changeait d'onglet. `--fil-fond` suit le fond : l'anneau des
+ * vignettes d'une ligne « Marché » en prend la teinte.
+ */
+export function FilStyleLignes({ sp }: { sp: CrmPalette }) {
+  return <style>{`.fil-ligne:hover { background: ${sp.focusSurface} !important; --fil-fond: ${sp.focusSurface} !important; }`}</style>
 }

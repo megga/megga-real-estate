@@ -8,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import { tablePrixStripe } from '../_shared/stripe-prices.ts'
-import { packParId } from '../_shared/credits.ts'
+import { carteGardeePourRecharge, packParId } from '../_shared/credits.ts'
 import {
   buildStripeIdentityRecord,
   isStripeVerificationStatus,
@@ -349,7 +349,9 @@ async function crediterAchatDepuisSession(
   try {
     const pi = await stripe.paymentIntents.retrieve(piId, { expand: ['payment_method'] })
     const pm = pi.payment_method as Stripe.PaymentMethod | null
-    if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && pi.setup_future_usage === 'off_session') {
+    // ⛔ `carteGardeePourRecharge` : `credits-checkout` demande la garde PAR MOYEN DE
+    // PAIEMENT ; le champ de premier niveau reste `null`, et le lire seul ne gardait rien.
+    if (pm && typeof pm === 'object' && pm.type === 'card' && pm.card && carteGardeePourRecharge(pi)) {
       await admin.rpc('credits_set_card', {
         p_agency: agencyId,
         p_payment_method_id: pm.id,
@@ -774,7 +776,7 @@ serve(async (req) => {
         const agencyId = pi.metadata.agency_id
         const pack = packParId(pi.metadata.pack)
         if (!agencyId || !pack) break
-        const { data } = await supabaseAdmin.rpc('credits_purchase', {
+        const { data, error } = await supabaseAdmin.rpc('credits_purchase', {
           p_agency: agencyId,
           p_amount: pack.credits,
           p_kind: 'auto_topup',
@@ -783,7 +785,24 @@ serve(async (req) => {
           p_amount_chf: pack.chf,
           p_metadata: { pack: pack.id, auto: true, via: 'webhook' },
         })
-        const r = (data ?? {}) as { duplicate?: boolean }
+        // ⛔ Une carte DÉBITÉE dont le crédit échoue ne s'acquitte pas : l'exception libère la
+        // réservation et rend 500, Stripe rejoue. Acquitter ici, comme avant la revue du
+        // 21.09.2026, perdait le crédit pour de bon — la charge, elle, restait.
+        if (error) throw error
+        const r = (data ?? {}) as { duplicate?: boolean; balance?: number }
+        // Crédité ICI, pas par le chemin synchrone : le journal de l'agence porte le fait, une fois.
+        if (!r.duplicate) {
+          await supabaseAdmin.from('activity_events').insert({
+            agency_id: agencyId,
+            actor_id: null,
+            actor_kind: 'system',
+            action: 'credits_auto_topup',
+            category: 'settings',
+            entity_type: 'agency',
+            entity_id: agencyId,
+            metadata: { pack: pack.id, credits: pack.credits, chf: pack.chf, payment_intent: pi.id, balance: r.balance ?? null, via: 'webhook' },
+          })
+        }
         console.log(`payment_intent.succeeded ${pi.id} : recharge ${r.duplicate ? 'déjà créditée' : 'créditée'}`)
         break
       }

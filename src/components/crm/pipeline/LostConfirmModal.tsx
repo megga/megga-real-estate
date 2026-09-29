@@ -10,7 +10,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { type CrmPalette } from '../tokens'
+import { crmVoileAssombrissant, type CrmPalette } from '../tokens'
 import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
@@ -20,9 +20,14 @@ interface Props {
   contactName: string | null
   onCancel: () => void
   onConfirm: () => void
+  /**
+   * Le cadre de la page — le « pager » — où monter la confirmation : son voile et son flou n'en
+   * débordent pas (Julien, 27.09.2026). Sans lui, plein écran, comme avant.
+   */
+  cadre?: HTMLElement | null
 }
 
-export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }: Props) {
+export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm, cadre }: Props) {
   const { t } = useTranslation('pipeline')
 
   // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
@@ -35,13 +40,20 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
   }, [onCancel, ecranActif])
 
   return createPortal(
-    <div onClick={onCancel} style={{
+    <div onClick={onCancel} style={cadre ? {
+      // ⚠ LE VOILE ÉPOUSE LE PAGER : monté dans le cadre, à son rayon, il laisse nettes la barre
+      // latérale et la bande d'onglets. Réglages de `MailModalShell` : voile 0,4, flou 6 px.
+      position: 'absolute', inset: 0, zIndex: 130, borderRadius: 'inherit',
+      background: crmVoileAssombrissant(0.4), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
+      display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)',
+      animation: 'sgSignVeil .15s ease-out',
+    } : {
       position: 'fixed', inset: 0, zIndex: 140,
       background: 'rgba(8,10,14,.45)', display: 'grid', placeItems: 'center',
       animation: 'sgSignVeil .15s ease-out',
     }}>
       <div onClick={(e) => e.stopPropagation()} style={{
-        width: 400, maxWidth: 'calc(100vw - 48px)',
+        width: 400, maxWidth: cadre ? '100%' : 'calc(100vw - 48px)',
         background: sp.solidBg, borderRadius: 'var(--crm-radius-6xl)',
         boxShadow: sp.solidShadow,
         padding: '26px 26px 22px',
@@ -60,6 +72,9 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
           <button onClick={onCancel} style={{
             height: 42, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
             background: sp.solidBgSub, color: sp.ink,
+            // En sombre, `solidBgSub` EST le panneau (une seule surface depuis le 20.09.2026) : sans
+            // son filet, le bouton n'était plus qu'un mot posé à côté de « Marquer perdu ».
+            boxShadow: sp.isDark ? `inset 0 0 0 1px ${sp.cardBorder}` : 'none',
             fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit',
           }}>{t('board.lostConfirm.cancel')}</button>
           <button onClick={onConfirm} style={{
@@ -73,6 +88,6 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
         </div>
       </div>
     </div>,
-    document.body,
+    cadre ?? document.body,
   )
 }

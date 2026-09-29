@@ -13,6 +13,8 @@ import { useNavigate } from 'react-router-dom'
 import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import NouveauBien from '@/components/crm/biens/nouveau/NouveauBien'
+import { PARAM_QUI_POUR } from '@/components/matching-fil/filLiens'
+import { avecArrivee } from '@/lib/jetonArrivee'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function NouveauBienPage() {
@@ -25,7 +27,8 @@ export default function NouveauBienPage() {
         <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark}>
           <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
             <div style={{ position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow }}>
-              <NouveauBien dark={dark} onClose={() => navigate('/dashboard/listings')} onOuvrirBien={(id) => navigate(`/dashboard/listings/${id}`)} />
+              <NouveauBien dark={dark} onClose={() => navigate('/dashboard/listings')} onOuvrirBien={(id) => navigate(`/dashboard/listings/${id}`)}
+                onVoirQui={(id) => navigate(`/dashboard/listings/${id}?${PARAM_QUI_POUR}=1`, avecArrivee())} />
             </div>
           </main>
         </CrmWorkspace>

@@ -1,17 +1,17 @@
 /**
  * Sceau « vérifié » — la coche bleue festonnée du CRM, sans aucune dépendance de thème.
  *
- * Le tracé existe déjà à cinq endroits du dépôt (`crm-mobile/contacts/ContactSeal`,
- * `crm-mobile/matching/MmVerifiedBadge`, `matching-atelier/AtlWhy` et `AtlQueue`,
- * `crm-dossiers` via la fiche contact). Les cinq lisent leur couleur dans un jeton de
- * thème — `useMobileTokens()`, `sp.*` — et sont donc INUTILISABLES dans le parcours
- * d'onboarding, qui vit sous `<MeggaX>` hors de tout ThemeProvider : les monter là lève
- * à l'exécution.
+ * Le tracé existe déjà à trois endroits du dépôt. Deux lisent leur couleur dans un jeton de
+ * thème (`useMobileTokens()`) — `crm-mobile/contacts/ContactSeal` et
+ * `crm-mobile/matching/MmVerifiedBadge` — et sont donc INUTILISABLES dans le parcours
+ * d'onboarding, qui vit sous `<MeggaX>` hors de tout ThemeProvider : les monter là lève à
+ * l'exécution. Le troisième, `CdSeal`, est local à la fiche contact
+ * (`crm/contacts-pager/ContactDetailPager.tsx`).
  *
  * D'où cette version-ci : la couleur est une PROP, le composant ne lit rien. C'est
- * volontairement le seul écart avec les cinq autres, et c'est ce qui la rend partageable.
- * Les cinq copies ne sont pas réécrites dans le même geste — elles marchent, et les
- * rebrancher touche quatre surfaces sans rapport avec ce lot.
+ * volontairement le seul écart avec les trois autres, et c'est ce qui la rend partageable.
+ * Les trois copies ne sont pas réécrites dans le même geste — elles marchent, et les
+ * rebrancher touche trois surfaces sans rapport avec ce lot.
  *
  * `flexShrink: 0` et `display: block` : posé après un nom, ce sceau ne doit ni s'écraser
  * quand le nom est long, ni traîner la ligne de base d'un élément inline.
