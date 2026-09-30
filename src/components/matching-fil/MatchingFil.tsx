@@ -846,7 +846,7 @@ export default function MatchingFil({ dark, onOpenRecherche, montre = true }: {
   )
   // La couverture remplace la page 0 ENTIÈRE, en-tête compris : il n'y a encore rien à filtrer. Son bouton ouvre la
   // création d'un contact : la page Contacts l'ouvre sur cette arrivée, une fois par navigation (`useArrivee`).
-  if (ecran === 'couverture') return <MatchingFirstRun onAjouterAcheteur={() => navigate('/dashboard/contacts?nouveau=1', avecArrivee())} />
+  if (ecran === 'couverture') return <MatchingFirstRun sp={sp} dark={dark} onAjouterAcheteur={() => navigate('/dashboard/contacts?nouveau=1', avecArrivee())} />
   return (
     <div ref={racine} tabIndex={-1} onKeyDown={onKeyDown}
       onFocus={(e) => { dernierFocus.current = e.target }}
