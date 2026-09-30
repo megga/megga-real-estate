@@ -26,7 +26,7 @@ import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo, typ
 import { useTranslation } from 'react-i18next'
 // `motion/react` = la voie du dépôt (18 fichiers, dont le voisin FocusMode).
 import { AnimatePresence, motion } from 'motion/react'
-import { TK } from './tk'
+import { TK, hlCtaStyle } from './tk'
 import { RXIcon, Av, Eyebrow } from './kit'
 import {
   HL_TYPES, HL_KIND_TYPE,
@@ -396,10 +396,7 @@ function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?
           <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
         </div>
       </div>
-      <button
-        onClick={() => onCta && onCta(d)}
-        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-      >{d.cta}</button>
+      <button className="hl-cta" onClick={() => onCta && onCta(d)} style={hlCtaStyle()}>{d.cta}</button>
     </div>
   )
 }
@@ -420,10 +417,7 @@ function HlAnnCard({ a, first, onCta }: { a: HlAnnData; first?: boolean; onCta?:
           <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.issue}</span>
         </div>
       </div>
-      <button
-        onClick={() => onCta && onCta(a)}
-        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
-      >{a.cta}</button>
+      <button className="hl-cta" onClick={() => onCta && onCta(a)} style={hlCtaStyle()}>{a.cta}</button>
     </div>
   )
 }
@@ -712,6 +706,7 @@ export function PageAujourdhuiH() {
         @keyframes hlFade { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
         .hl-dossier { animation: hlFade .32s cubic-bezier(.2,.8,.2,1) both; }
         @media (prefers-reduced-motion: reduce){ .hl-dossier{ animation:none !important } }
+        .hl-cta:hover { background: ${TK.cardHi} !important; }
         @keyframes hlRow { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:none } }
         .hl-abs-row { animation: hlRow .32s cubic-bezier(.2,.8,.2,1) both; }
         @media (prefers-reduced-motion: reduce){ .hl-abs-row{ animation:none !important } }

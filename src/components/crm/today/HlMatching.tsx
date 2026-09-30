@@ -7,7 +7,7 @@
  * de `crm/today`.
  */
 import { useTranslation } from 'react-i18next'
-import { TK } from './tk'
+import { TK, hlCtaStyle } from './tk'
 import { RXIcon } from './kit'
 import { ecrire, type ActionMatching, type GenreAction } from './matchingDuJour'
 
@@ -36,8 +36,7 @@ function HlActionLigne({ a, premiere, onAction }: { a: ActionMatching; premiere:
           <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: TK.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.detail}</div>
         )}
       </div>
-      <button type="button" onClick={() => onAction(a)}
-        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      <button type="button" className="hl-cta" onClick={() => onAction(a)} style={hlCtaStyle()}>
         {t(CTA[a.genre])}
       </button>
     </div>
