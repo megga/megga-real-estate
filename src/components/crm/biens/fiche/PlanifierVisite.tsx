@@ -38,6 +38,8 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { VxAvatar, VxPhoto } from '@/components/crm-dossiers/vitrine/vitrineKit'
 import type { VxPalette } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 import { crmVoileAssombrissant, type CrmPalette } from '@/components/crm/tokens'
+import { FilScore } from '@/components/matching-fil/filAtomes'
+import { palierScore } from '@/components/matching-fil/filModele'
 import { useContacts, useCreateContact } from '@/hooks/useContacts'
 import { detailsVisite, useCreateAgentVisit, type CreateVisitInput } from '@/hooks/useVisitDetail'
 import { useVisits } from '@/hooks/useVisits'
@@ -458,7 +460,7 @@ export default function PlanifierVisite({ bien, dark, sp, vx, contexte, onClose,
                                 <VxAvatar name={l.nom} bg={pickAvatarBg(l.contactId)} size={32} dark={dark} />
                                 <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.nom}</span>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', color: l.dealId ? vx.ok : vx.muted, fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                  {l.dealId ? t('fiche.visite.qui.enCours') : <><MEIcon name="sparkle" size={11} />{t('fiche.visite.qui.score', { score: l.score ?? 0 })}</>}
+                                  {l.dealId ? t('fiche.visite.qui.enCours') : <FilScore sp={sp} score={l.score ?? 0} palier={palierScore(l.score ?? 0)} />}
                                 </span>
                               </button>
                             ))}

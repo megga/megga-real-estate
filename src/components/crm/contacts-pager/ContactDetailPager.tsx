@@ -1820,9 +1820,10 @@ function CdBoucle({ P, dark, loop, lecture, firstName, onOpenMatching, onOuvrirF
   const titreDe = (b: BienBoucle) => b.m.bien.titre || t('loop.bienSansTitre')
 
   // Un compte lu accorde son intitulé (« 1 Proposé », « 5 Proposés ») ; un compte INCONNU s'écrit « — » sous
-  // l'intitulé au pluriel : une catégorie, pas une quantité.
-  const compteur = (cle: string, n: number) => ({ v: pret ? String(n) : '—', l: pret ? t(cle, { count: n }) : t(`${cle}_other`) })
-  const counters: { v: string; l: string; liked?: boolean }[] = [
+  // l'intitulé au pluriel : une catégorie, pas une quantité. Le vert des intéressés ne se pose que sur un compte
+  // non nul : un « 0 » vert se lisait comme une bonne nouvelle (revue UX du 29.09.2026).
+  const compteur = (cle: string, n: number) => ({ n, v: pret ? String(n) : '—', l: pret ? t(cle, { count: n }) : t(`${cle}_other`) })
+  const counters: { n: number; v: string; l: string; liked?: boolean }[] = [
     compteur('loop.compteurs.proposes', loop.compteurs.proposes),
     { ...compteur('loop.compteurs.interesses', loop.compteurs.interesses), liked: true },
     compteur('loop.compteurs.refuses', loop.compteurs.refuses),
@@ -1837,7 +1838,7 @@ function CdBoucle({ P, dark, loop, lecture, firstName, onOpenMatching, onOuvrirF
         <div style={{ flex: 1 }} />
         {counters.map((c) => (
           <div key={c.l} style={{ textAlign: 'center', minWidth: 62 }}>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: !pret ? P.muted : c.liked ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, lineHeight: 1, color: !pret ? P.muted : c.liked && c.n > 0 ? P.ok : P.ink, fontVariantNumeric: 'tabular-nums' }}>{c.v}</div>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: P.muted, marginTop: 4 }}>{c.l}</div>
           </div>
         ))}

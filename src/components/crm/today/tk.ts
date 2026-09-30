@@ -10,6 +10,7 @@
 // re-render sur le changement de `dark`, donc lire le singleton muté au render
 // renvoie toujours l'ambiance courante (comportement identique au proto).
 
+import type { CSSProperties } from 'react'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_CARD_SHADOW, MXC_COLOR, MXC_DARK_SURFACE } from '@/components/megga-x-crm/tokens'
 
@@ -179,4 +180,17 @@ export const TK: Tk = { ...TK_DARK, mode: 'dark' }
 export function applyTK(dark: boolean): void {
   Object.assign(TK, dark === false ? TK_LIGHT : TK_DARK)
   TK.mode = dark === false ? 'light' : 'dark'
+}
+
+/**
+ * Le geste d'une ligne du cockpit : SECONDAIRE — le fond de carte, un filet, l'encre de la page, comme « Nouveautés ».
+ * Un aplat d'accent sur chaque ligne (revue UX du 29.09.2026) laissait la page sans affordance principale. Le survol
+ * vit dans la feuille du cockpit (`.hl-cta:hover`). Lu au rendu : `TK` suit le thème.
+ */
+export function hlCtaStyle(): CSSProperties {
+  return {
+    flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
+    fontFamily: 'inherit', background: TK.card, color: TK.ink, boxShadow: `inset 0 0 0 1px ${TK.cardBorder}`,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+  }
 }

@@ -74,7 +74,6 @@ export default function FilPanneau({ sp, m, historique, onProposer, onPlusTard, 
           </div>
           <div style={{ flex: 'none', textAlign: 'right' }}>
             <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} grand />
-            <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{t('fil.estimation')}</div>
           </div>
         </div>
 

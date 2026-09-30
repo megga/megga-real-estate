@@ -179,6 +179,19 @@ describe('le pager de Matching — le fil en page 0', () => {
     }
   })
 
+  // Revue UX du 29.09.2026 : montée hors de l'espace de travail, l'indice se calait sur le bord de l'écran — sous la
+  // barre latérale ; posé dans le cadre, son libellé couvrait au survol la liste du fil.
+  it('l’indice de molette vit dans la page, dans la gouttière sous le cadre', async () => {
+    await rendre(<Arbre />)
+    const indice = document.querySelector<HTMLElement>('.matching-scroll-hint')!
+    const page = indice.closest('main')
+    expect(page, 'monté dans le <main> de la page, pas à côté de l’espace de travail').not.toBeNull()
+    expect(page!.style.position).toBe('relative')
+    expect(page!.lastElementChild).toBe(indice)
+    expect(indice.style.height, 'la hauteur de la gouttière : le rembourrage bas de la page').toBe(page!.style.paddingBottom)
+    expect(parseFloat(indice.style.bottom)).toBe(0)
+  })
+
   it('le banc garde ses emplacements : ses deux pages remplacent celles de la production, et il s’ouvre sur la page 0', async () => {
     await rendre(<Arbre banc={BANC} />)
     expect(temoins()).toEqual(['banc-fil', 'banc-recherche'])

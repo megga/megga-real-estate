@@ -392,7 +392,6 @@
     "votreBien": "Votre bien",
     "voirBien": "Voir le bien",
     "sansPhoto": "Pas de photo",
-    "estimation": "estimation",
     "scoreAria": "Score {{score}}, estimation · {{palier}}",
     "palier": {
       "fort": "très proche",

@@ -392,7 +392,6 @@
     "votreBien": "Your property",
     "voirBien": "View property",
     "sansPhoto": "No photo",
-    "estimation": "estimate",
     "scoreAria": "Score {{score}}, estimate · {{palier}}",
     "palier": {
       "fort": "very close",

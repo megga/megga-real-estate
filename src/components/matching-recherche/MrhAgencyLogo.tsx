@@ -32,8 +32,7 @@ import type { CrmPalette } from '@/components/crm/tokens'
  * EXCEPTION ASSUMÉE à CLAUDE.md §5 (« Couleurs hardcodées → tokens thème »).
  * Un logo de régie est dessiné pour un fond blanc : le poser sur une surface
  * sombre le rendrait illisible ou invisible. La plaque reste donc blanche dans
- * les deux thèmes, comme la couverture mono-thème de MatchingFirstRun. Toute
- * autre couleur de ce fichier passe par les tokens.
+ * les deux thèmes. Toute autre couleur de ce fichier passe par les tokens.
  */
 const LOGO_PLATE_BG = '#FFFFFF'
 

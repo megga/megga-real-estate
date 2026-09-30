@@ -265,6 +265,14 @@ describe('lot E1 — la lecture de « Sa boucle » (`useContactSentMatches`)', (
   })
 })
 
+describe('les compteurs de l’en-tête (revue UX du 29.09.2026)', () => {
+  it('le vert des « Intéressés » ne se pose que sur un compte non nul : un « 0 » vert se lisait comme une bonne nouvelle', () => {
+    const source = readFileSync(join(process.cwd(), 'src/components/crm/contacts-pager/ContactDetailPager.tsx'), 'utf8')
+    expect(source).toContain('c.liked && c.n > 0 ? P.ok : P.ink')
+    expect(source).not.toContain('c.liked ? P.ok')
+  })
+})
+
 describe('lot E1 — le titre de la liste compte ce qu’elle liste', () => {
   // La liste porte aussi les biens revenus, qui ne sont pas « Proposés » (décision 10a) : « Biens proposés (5) » sous
   // « 4 Proposés » se contredisait. Un titre neutre, sur la longueur de la liste (décision de Julien, 27.09.2026).

@@ -13,6 +13,7 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { inflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { ecranDuFil, type RecherchesAgence } from '@/components/matching-fil/filDemarrage'
 import matchingFr from '@/i18n/locales/fr/matching.json'
@@ -23,6 +24,39 @@ import matchingIt from '@/i18n/locales/it/matching.json'
 const lu = (matchs: number) => ({ chargement: false, erreur: false, matchs })
 const TOUTES: RecherchesAgence[] = ['chargement', 'erreur', 'aucune', 'actives']
 const source = (chemin: string): string => readFileSync(join(process.cwd(), chemin), 'utf8')
+
+/**
+ * Les pixels d'un PNG RVBA 8 bits non entrelacé — le seul format que la garde de la couverture lit. Le dépôt n'a pas de
+ * décodeur d'image : les blocs IDAT, `inflateSync`, puis les cinq filtres de ligne de la norme.
+ */
+function pixelsPng(png: Buffer): { largeur: number; hauteur: number; rgba: Uint8Array } {
+  const largeur = png.readUInt32BE(16)
+  const hauteur = png.readUInt32BE(20)
+  expect([png[24], png[25], png[28]], 'profondeur 8, RVBA, non entrelacé').toEqual([8, 6, 0])
+  const blocs: Buffer[] = []
+  for (let i = 8; i < png.length; ) {
+    const longueur = png.readUInt32BE(i)
+    if (png.toString('latin1', i + 4, i + 8) === 'IDAT') blocs.push(png.subarray(i + 8, i + 8 + longueur))
+    i += 12 + longueur
+  }
+  const brut = inflateSync(Buffer.concat(blocs))
+  const pas = largeur * 4
+  const rgba = new Uint8Array(pas * hauteur)
+  for (let y = 0; y < hauteur; y++) {
+    const filtre = brut[y * (pas + 1)]!
+    for (let x = 0; x < pas; x++) {
+      const v = brut[y * (pas + 1) + 1 + x]!
+      const a = x >= 4 ? rgba[y * pas + x - 4]! : 0
+      const b = y > 0 ? rgba[(y - 1) * pas + x]! : 0
+      const c = x >= 4 && y > 0 ? rgba[(y - 1) * pas + x - 4]! : 0
+      const p = a + b - c
+      const paeth = Math.abs(p - a) <= Math.abs(p - b) && Math.abs(p - a) <= Math.abs(p - c) ? a : Math.abs(p - b) <= Math.abs(p - c) ? b : c
+      const predit = [0, a, b, (a + b) >> 1, paeth][filtre]!
+      rgba[y * pas + x] = (v + predit) & 0xff
+    }
+  }
+  return { largeur, hauteur, rgba }
+}
 
 describe('ecranDuFil — la page 0 du Matching (§5.1)', () => {
   it('une agence sans recherche active et sans match : la couverture', () => {
@@ -84,5 +118,23 @@ describe('la couverture', () => {
     const couverture = source('src/components/matching-fil/MatchingFirstRun.tsx')
     const etapes = [...couverture.matchAll(/\{ icon: '(\w+)', key: '(\w+)' \}/g)].map((m) => [m[2], m[1]])
     expect(etapes).toEqual([['acheteur', 'users'], ['biens', 'home'], ['scores', 'sparkle']])
+  })
+
+  // Revue UX du 29.09.2026 : elle restait noire en clair, au milieu d'un CRM blanc.
+  it('elle suit le thème, comme celle de Contacts : en clair, le fond de carte et les encres de la palette', () => {
+    const couverture = source('src/components/matching-fil/MatchingFirstRun.tsx')
+    expect(couverture).toContain('encresCouverture(sp, dark)')
+    expect(couverture).toMatch(/:\s*\{\s*fond: sp\.cardBg, ink: sp\.ink, sub: sp\.sub,/)
+    expect(couverture).toContain('bouton: { fond: sp.accent, ink: encreSur(sp.accent)')
+  })
+
+  it('son image se pose sur les deux fonds : aucun noir peint sous les points', () => {
+    // Elle avait déjà un canal alpha, mais opaque : 892 408 pixels noirs sur 917 280. Le noir est devenu transparence.
+    const { rgba } = pixelsPng(readFileSync(join(process.cwd(), 'public/matching/matching-cover.png')))
+    let noirsOpaques = 0
+    for (let i = 0; i < rgba.length; i += 4) {
+      if (rgba[i + 3]! > 200 && Math.max(rgba[i]!, rgba[i + 1]!, rgba[i + 2]!) < 16) noirsOpaques += 1
+    }
+    expect(noirsOpaques).toBe(0)
   })
 })
