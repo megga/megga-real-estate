@@ -91,9 +91,9 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
       onMouseDown={garderLeFocus}
       aria-label={t('pager.wheelTo', { label: targetLabel })}
       style={{
-        position: 'absolute', bottom: 20, left: 26, zIndex: 80,
+        position: 'absolute', bottom: 0, left: 24, zIndex: 60, height: 'var(--crm-space-6xl)',
         display: 'flex', alignItems: 'center', gap: 11,
-        padding: 6, border: 0, background: 'transparent',
+        padding: '0 6px', border: 0, background: 'transparent',
         fontFamily: 'inherit', cursor: 'pointer',
       }}>
       <span className="msh-mouse" style={{
@@ -371,7 +371,7 @@ export default function MatchingPage(
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="matching" sp={sp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)' }}>
+        <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)' }}>
           {/* Viewport pager — clippe les deux pages, capte la molette */}
           <div ref={viewportRef} style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
@@ -397,11 +397,14 @@ export default function MatchingPage(
             </div>
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />
           </div>
+          {/* Dans la page, et dans la GOUTTIÈRE sous le cadre (sa hauteur est le `paddingBottom` de ce `<main>`).
+              Montée hors de l'espace de travail, elle se calait sur le bord de l'écran, donc sous la barre latérale
+              (revue UX du 29.09.2026) ; posée DANS le cadre, son libellé couvrait au survol la liste du fil, qui
+              descend jusqu'au bord. */}
+          <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />
         </main>
         </CrmWorkspace>
       </div>
-
-      <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />
     </div>
   )
 }

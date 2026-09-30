@@ -37,6 +37,11 @@ function BpgPageDots({ page, onGo, sp, dark, labels }: { page: number; onGo: (i:
   )
 }
 
+/**
+ * L'indice de molette, dans la GOUTTIÈRE sous le cadre (sa hauteur est le `paddingBottom` du `<main>`), comme celui
+ * du Matching : posé dans le coin du cadre, il chevauchait les cartes, et son libellé les recouvrait au survol
+ * (revue UX du 29.09.2026).
+ */
 function BpgScrollHint({ page, onGo, sp, labels }: { page: number; onGo: (i: number) => void; sp: CrmPalette; labels: string[] }) {
   const nextLabel = page + 1 < labels.length ? labels[page + 1] : null
   const prevLabel = page > 0 ? labels[page - 1] : null
@@ -44,7 +49,7 @@ function BpgScrollHint({ page, onGo, sp, labels }: { page: number; onGo: (i: num
   if (!target) return null
   const dir = nextLabel ? 1 : -1
   return (
-    <button className="bpg-scroll-hint" onClick={() => onGo(page + dir)} aria-label={target} style={{ position: 'absolute', bottom: 18, left: 24, zIndex: 60, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-sm)', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer' }}>
+    <button className="bpg-scroll-hint" onClick={() => onGo(page + dir)} aria-label={target} style={{ position: 'absolute', bottom: 0, left: 24, zIndex: 60, height: 'var(--crm-space-6xl)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: '0 var(--crm-space-sm)', border: 0, background: 'transparent', fontFamily: 'inherit', cursor: 'pointer' }}>
       <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, lineHeight: 1, color: sp.sub }}>{nextLabel ? '↓' : '↑'}</span>
       <span className="bpg-hint-label" style={{ display: 'flex', alignItems: 'flex-start', whiteSpace: 'nowrap', maxWidth: 0, overflow: 'hidden', opacity: 0, transform: 'translateX(-6px)', transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)' }}>
         <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{target}</span>
