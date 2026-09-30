@@ -74,8 +74,6 @@ export interface HlHotData {
   ctaIcon: string
   price: string
   photo?: string
-  g1?: string
-  g2?: string
 }
 
 export interface HlAnnData {
@@ -86,8 +84,6 @@ export interface HlAnnData {
   issue: string
   cta: string
   photo?: string
-  g1?: string
-  g2?: string
 }
 
 export interface HlNewsData {

@@ -383,13 +383,24 @@ function HlZoneError({ label }: { label: string }) {
   )
 }
 
+// ─── La vignette d'une ligne ─────────────────────────────────────────────
+// La photo, sinon une tuile du thème et l'icône du bien. Le repli était un dégradé sombre écrit en dur, jamais
+// renseigné : un bloc noir sur chaque ligne sans photo, en clair comme en sombre (revue UX du 29.09.2026).
+function HlVignette({ photo }: { photo?: string | null }) {
+  return (
+    <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: TK.card, boxShadow: `inset 0 0 0 1px ${TK.cardBorder}`, color: TK.inkDim, display: 'grid', placeItems: 'center' }}>
+      {photo
+        ? <img src={photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <RXIcon name="home" size={18} />}
+    </div>
+  )
+}
+
 // ─── Dossiers chauds ────────────────────────────────────────────────────
 function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?: (d: HlHotData) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', minWidth: 0, borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
-      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: d.photo ? MXC_DARK_SURFACE.s1 : `linear-gradient(135deg, ${d.g1 || '#262C3A'}, ${d.g2 || '#181B22'})` }}>
-        {d.photo && <img src={d.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-      </div>
+      <HlVignette photo={d.photo} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <Av initials={d.init} av={d.av} size={22} />
@@ -405,9 +416,7 @@ function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?
 function HlAnnCard({ a, first, onCta }: { a: HlAnnData; first?: boolean; onCta?: (a: HlAnnData) => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xs)', minWidth: 0, borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
-      <div style={{ position: 'relative', width: 76, height: 56, borderRadius: 'var(--crm-radius-md)', overflow: 'hidden', flexShrink: 0, background: a.photo ? MXC_DARK_SURFACE.s1 : `linear-gradient(135deg, ${a.g1 || '#262C3A'}, ${a.g2 || '#181B22'})` }}>
-        {a.photo && <img src={a.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
-      </div>
+      <HlVignette photo={a.photo} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {a.title} <span style={{ fontWeight: 600, color: TK.sub }}>{a.price}</span>

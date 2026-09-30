@@ -163,7 +163,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // est retiré avec ses vingt-quatre littéraux hors barreaux ; l'écran n'a plus qu'une page
   // (lot E1). → 460 le 29.09.2026, à la fusion avec le Pipeline : l'ancien Pipeline (huit colonnes, liste, bento de signature,
   // « Nouveau deal » et sa palette) est retiré — la refonte à cinq phases le remplace.
-  ['src/components/crm', 460],
+  // 460 → 456 le 30.09.2026 : les vignettes sans photo d'« Aujourd'hui » perdent leur dégradé noir en dur
+  // (`#262C3A` → `#181B22`, deux cartes) ; elles prennent le fond de carte et un filet, dans les deux thèmes.
+  ['src/components/crm', 456],
   ['src/components/crm-mobile', 138],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
