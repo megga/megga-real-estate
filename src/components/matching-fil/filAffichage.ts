@@ -1,7 +1,8 @@
 /**
  * Affichage du fil de matchs, hors composants : les teintes qui ENCODENT (le palier d'un score, un critère
- * tenu, un écart), l'encre d'une action en texte, l'écriture d'un montant et d'une date, le style d'une
- * ligne, le signal « prix baissé » (lot B) et les signaux « pourquoi maintenant » (lot C).
+ * tenu, un écart), l'encre d'une action en texte, l'écriture d'un montant, d'une date et de l'état d'un compatible
+ * (`texteEtatCompatible`), le style d'une ligne, le signal « prix baissé » (lot B) et les signaux « pourquoi
+ * maintenant » (lot C).
  *
  * ⚠ Jamais d'aplat teinté sous du texte : la couleur est portée par une pastille ou une icône, le
  * chiffre et les libellés restent à l'encre. Les couleurs de système de la vitrine sont PÂLES,
@@ -17,6 +18,7 @@ import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { formatCHF } from '@/lib/utils'
 import type { FilBien, FilMatch, PalierScore } from './filModele'
 import { signalPrix } from './filBoucle'
+import type { EtatCompatible } from './filQuiPour'
 import { signalBien, type SignalBien } from './filSignaux'
 
 /** Pastille du palier : vert, bleu de marque, ou la sourdine. */
@@ -55,35 +57,74 @@ export const dateCourte = (iso: string): string => format(new Date(iso), 'dd.MM'
 export const dateLongue = (iso: string): string => format(new Date(iso), 'dd.MM.yyyy')
 
 /**
- * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), ou `null` sans baisse mesurée sur
- * `prix_propose`. Long dans un panneau — « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000
- * depuis », ou « Prix baissé de … depuis que vous l'avez proposé » sur un bien sans réponse —, court sur une
- * ligne (« Prix baissé de CHF 250'000 »).
+ * Où en est un compatible — un match, vu d'un bien ou d'un acheteur —, écrit (`fil.quiPour.etat.*`) : « Proposé le
+ * 24.09 », « Revenu · refusé à CHF … ». Partagé par « Qui pour ce bien ? » et le bloc « Matching » de la fiche
+ * d'affaire : un état se dit partout de la même façon.
+ */
+export function texteEtatCompatible(e: EtatCompatible, location: boolean, t: TFunction): string {
+  switch (e.cle) {
+    case 'reporte': return t('fil.quiPour.etat.reporte', { date: dateCourte(e.date) })
+    case 'aProposer': return t('fil.quiPour.etat.aProposer')
+    case 'revenu': return t('fil.quiPour.etat.revenu', { prix: montant(location, e.prix, t) })
+    case 'propose': return t('fil.quiPour.etat.propose', { date: dateCourte(e.date) })
+    case 'proposeSansDate': return t('fil.quiPour.etat.proposeSansDate')
+    case 'interesse': return t('fil.quiPour.etat.interesse')
+    case 'visite': return t('fil.quiPour.etat.visite')
+    case 'refuse': return t('fil.quiPour.etat.refuse', { motif: t(e.motif) })
+    case 'refuseSansMotif': return t('fil.quiPour.etat.refuseSansMotif')
+    default: {
+      // Un état ajouté à `etatCompatible` sans son texte ne compile plus. Une clé bâtie sur `e.cle` l'aurait affiché
+      // sans ses valeurs (une date, un prix restés `{{…}}`), et rien ne l'aurait signalé.
+      const inconnu: never = e
+      return inconnu
+    }
+  }
+}
+
+/**
+ * La baisse du prix d'un bien depuis qu'on l'a proposé à CET acheteur (le signal du lot B), écrite (« CHF 250'000 »),
+ * ou `null` sans baisse mesurée sur `prix_propose`. Une ligne et la photo d'un panneau la dessinent en flèche (`FilBaisse`).
+ */
+export function baisseDuMatch(m: FilMatch, t: TFunction): string | null {
+  const s = signalPrix(m)
+  return s && m.suivi?.prixPropose != null ? montant(m.bien.location, s.baisse, t) : null
+}
+
+/** La baisse du prix d'une annonce (le signal « pourquoi maintenant » du lot C), écrite ; `null` pour un autre signal. */
+export function baisseDuBien(s: SignalBien, bien: FilBien, t: TFunction): string | null {
+  return s.genre === 'baisse' ? montant(bien.location, s.montant, t) : null
+}
+
+/**
+ * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), écrit en toutes lettres là où une phrase a sa
+ * place (le dépli de la carte focus, « Sa boucle » de la fiche contact), ou `null` sans baisse mesurée sur
+ * `prix_propose` : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis », ou « Prix baissé de …
+ * depuis que vous l'avez proposé » sur un bien sans réponse. Sur une ligne du fil et sur la photo de la carte, c'est
+ * une flèche (`baisseDuMatch`).
  *
  * ⚠ Aucune tournure « de {{prenom}} » : le français élide devant une voyelle (« d'Antoine », « d'Emma »), et
  * une interpolation ne le sait pas.
  */
-export function texteSignal(m: FilMatch, t: TFunction, court = false): string | null {
+export function texteSignal(m: FilMatch, t: TFunction): string | null {
   const s = signalPrix(m)
   const propose = m.suivi?.prixPropose
   if (!s || propose == null) return null
   const baisse = montant(m.bien.location, s.baisse, t)
-  if (court) return t('fil.signal.court', { montant: baisse })
   return s.depuis === 'refus'
     ? t('fil.signal.baisseRefus', { prenom: m.acheteur.prenom, prix: montant(m.bien.location, propose, t), montant: baisse })
     : t('fil.signal.baissePropose', { montant: baisse })
 }
 
 /**
- * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne (« Nouveau sur le marché »),
- * daté dans un panneau (« Prix baissé de CHF 250'000 le 18.09 »).
+ * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne et dans l'infobulle de la pastille
+ * « Nouveau » (« Nouveau sur le marché »), daté en toutes lettres là où une phrase a sa place (« Prix baissé de CHF
+ * 250'000 le 18.09 », dans le dépli de la carte focus). Sur une ligne du fil et sur la photo de la carte, une baisse
+ * est une flèche (`baisseDuBien`).
  */
 export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, court = false): string {
   switch (s.genre) {
-    case 'baisse': {
-      const baisse = montant(bien.location, s.montant, t)
-      return court ? t('fil.signal.court', { montant: baisse }) : t('fil.signal.baisseMarche', { montant: baisse, date: dateCourte(s.le) })
-    }
+    case 'baisse':
+      return t('fil.signal.baisseMarche', { montant: montant(bien.location, s.montant, t), date: dateCourte(s.le) })
     case 'nouveau':
       return court ? t('fil.signal.nouveauCourt') : t('fil.signal.nouveau', { date: dateCourte(s.le) })
     case 'mandat':
@@ -91,12 +132,12 @@ export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, cour
   }
 }
 
-/** Le signal d'un match, écrit : le sien d'abord (lot B — il parle de CET acheteur), sinon celui de son bien. */
-export function texteSignalMatch(m: FilMatch, t: TFunction, maintenant: number, court = false): string | null {
-  const propre = texteSignal(m, t, court)
+/** Le signal d'un match, écrit pour un panneau : le sien d'abord (lot B — il parle de CET acheteur), sinon celui de son bien. */
+export function texteSignalMatch(m: FilMatch, t: TFunction, maintenant: number): string | null {
+  const propre = texteSignal(m, t)
   if (propre) return propre
   const s = signalBien(m.bien, maintenant)
-  return s ? texteSignalBien(s, m.bien, t, court) : null
+  return s ? texteSignalBien(s, m.bien, t) : null
 }
 
 /**

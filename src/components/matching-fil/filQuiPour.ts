@@ -83,7 +83,7 @@ export function versCompatible(
 }
 
 /** L'état d'un compatible, à écrire : une clé `fil.quiPour.etat.*` et ses valeurs (dates et prix encore bruts). */
-type EtatCompatible =
+export type EtatCompatible =
   | { cle: 'reporte'; date: string }
   | { cle: 'aProposer' }
   | { cle: 'revenu'; prix: number }

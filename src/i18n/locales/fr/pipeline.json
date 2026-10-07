@@ -160,10 +160,6 @@
       "counter_sent": "Contre-offre envoyée"
     },
     "next_action": "Prochaine action",
-    "matches_title": "Biens à proposer",
-    "matches_count_one": "{{count}} match",
-    "matches_count_other": "{{count}} matchs",
-    "no_matches": "Aucun bien du portefeuille ne correspond encore.",
     "open_contact": "Ouvrir la fiche contact",
     "lang": {
       "fr": "Français",
@@ -430,11 +426,23 @@
     "jusquaSignature": "Jusqu’à la signature",
     "kycClient": "KYC du client",
     "ouvrirMatching": "Ouvrir le matching",
+    "matching": {
+      "titre": "Matching",
+      "nombre_one": "{{count}} bien",
+      "nombre_other": "{{count}} biens"
+    },
     "visites": "Visites",
     "aucuneVisite": "Aucune visite pour l’instant.",
     "planifierVisite": "Planifier une visite",
     "historique": "Historique",
     "hist": {
+      "propose": "Proposé : {{bien}}",
+      "proposeSelection_one": "Proposé : {{count}} bien",
+      "proposeSelection_other": "Proposé : {{count}} biens",
+      "interesse": "Intéressé·e : {{bien}}",
+      "visite": "Visite planifiée : {{bien}}",
+      "unBien": "un bien",
+      "creeDepuisMatching": "Deal créé depuis le matching",
       "etape": "Étape : {{de}} → {{a}}",
       "conclue": "Affaire conclue",
       "rouverte": "Affaire rouverte",

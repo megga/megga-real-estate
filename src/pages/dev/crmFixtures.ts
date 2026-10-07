@@ -896,6 +896,56 @@ const FAITS_DEALS = [
     ...faitDeal('fd7', 'd14', 'signed', 'signed', 24 * 90),
     action: 'status_change', object_label: 'active → completed', metadata: { old_status: 'active', new_status: 'completed' },
   },
+  // d6 : l'étape que la visite planifiée depuis le matching fait avancer, cinq secondes après son geste
+  // (`FAITS_MATCHING`) — à moins de dix secondes (`doublonDeVisite`), la fiche n'en garde que la ligne du matching,
+  // qui nomme le bien.
+  faitDeal('fd8', 'd6', 'active_search', 'visit_planned', 20 - 5 / 3600),
+]
+
+/**
+ * La date de la visite de Champel d'Anastasia : `v2` la porte et son geste (fm5) la consigne, comme
+ * `execPlanifierVisite` écrit `visite.debut` aux deux endroits. Dans vingt jours : hors de la semaine que le
+ * Calendrier du banc éprouve au glissé.
+ */
+const DATE_VISITE_CHAMPEL = ilYA(-24 * 20)
+
+/**
+ * Le journal du MATCHING de deux affaires (étape 5b-1), écrit comme l'écrivent le fil (`logEvent`, `matchingGestes.ts`)
+ * et le déclencheur `log_match_reaction` : sur le CONTACT (`entity_type = 'contact'`), avec leur famille, leur sujet
+ * et leurs métadonnées ; une proposition et une visite portent l'affaire (`metadata.deal_id`), un intérêt ne porte que
+ * son match. L'historique de la fiche d'affaire les lit (`useMatchingAffaire`). Le banc ne joue aucun déclencheur, et
+ * un geste n'y écrit sa ligne qu'une fois posé : sans ces lignes, les deux historiques s'ouvriraient vides. Des gestes
+ * d'AGENT (`actor_kind = 'user'`) : la cloche ne les montre pas.
+ */
+const faitMatching = (
+  id: string, contact: string, action: string, categorie: 'deal' | 'contact', sujet: string, heures: number,
+  metadata: Record<string, unknown>,
+) => ({
+  id, agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action, category: categorie,
+  severity: 'info', entity_type: 'contact', entity_id: contact, object_label: sujet, metadata, created_at: ilYA(heures),
+  actor: { full_name: AGENT_BANC.full_name },
+})
+const FAITS_MATCHING = [
+  // Julie Morand (d5, Recherche) : un mandat proposé, puis une sélection du marché de deux biens.
+  faitMatching('fm1', 'c9', 'match_propose', 'deal', 'Julie Morand · Appartement 4,5 pièces · Petit-Saconnex', 24 * 6, {
+    match_ids: ['m26'], deal_id: 'd5', bien_refs: ['MG-IN-P4'], nombre: 1, score: 97,
+  }),
+  faitMatching('fm2', 'c9', 'match_propose', 'deal', 'Julie Morand · 2 biens', 48, {
+    match_ids: ['m14', 'm15'], deal_id: 'd5', bien_refs: ['MG-MK-52211', 'MG-MK-52212'], nombre: 2,
+  }),
+  // Anastasia Volkova (d6, Visites) : l'affaire, ouverte par l'agent sur le mandat off-market de Florissant, reçoit une
+  // heure plus tard la proposition de Champel — `rattacherDeal` s'y rattache et lui laisse son bien —, puis l'intérêt,
+  // la visite. Proposé dans la minute de l'ouverture, Champel ferait lire « Deal créé depuis le matching », ce qu'une
+  // affaire ouverte sur Florissant n'est pas.
+  faitMatching('fm3', 'c11', 'match_propose', 'deal', 'Anastasia Volkova · Appartement 4,5 pièces · Champel', 24 * 2 - 1, {
+    match_ids: ['m28'], deal_id: 'd6', bien_refs: ['MG-IN-P1'], nombre: 1, score: 91,
+  }),
+  faitMatching('fm4', 'c11', 'match_reaction', 'deal', 'sent → interested', 30, {
+    match_id: 'm28', old_status: 'sent', new_status: 'interested', contact_id: 'c11',
+  }),
+  faitMatching('fm5', 'c11', 'visit_scheduled', 'contact', 'Anastasia Volkova · Appartement 4,5 pièces · Champel', 20, {
+    match_id: 'm28', visit_id: 'v2', deal_id: 'd6', bien_ref: 'MG-IN-P1', scheduled_at: DATE_VISITE_CHAMPEL,
+  }),
 ]
 
 const OFFRES_BANC = [
@@ -916,7 +966,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   profiles: [AGENT_BANC, ...COLLEGUES_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
-  activity_events: [...EVENEMENTS, ...FAITS_DEALS, ...TRAINE_JOURNAL],
+  activity_events: [...EVENEMENTS, ...FAITS_DEALS, ...FAITS_MATCHING, ...TRAINE_JOURNAL],
   relance_sessions: [],
   relance_items: [],
   // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »
@@ -947,6 +997,15 @@ export const CRM_TABLES: Record<string, unknown[]> = {
       scheduled_at: ilYA(-5), duration_minutes: 45, status: 'confirmed', calendar_label_id: 'cl1', created_at: ilYA(40),
       property: { id: 'p1', title: 'Appartement 4,5 pièces · Champel', address: 'Avenue de Champel 12', city: 'Genève', canton: 'GE', photos: [], type: 'apartment', surface_m2: 118, rooms: 4.5, price: 1_450_000 },
       contact: { id: 'c1', first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
+    },
+    // La visite de Champel d'Anastasia, planifiée depuis son matching (`FAITS_MATCHING`, fm5) et rattachée à son
+    // affaire (d6).
+    {
+      id: 'v2', agency_id: AGENCE_BANC.id, contact_id: 'c11', property_id: 'p1', agent_id: AGENT_BANC.id, transaction_id: 'd6',
+      scheduled_at: DATE_VISITE_CHAMPEL, duration_minutes: 45, status: 'planned', calendar_label_id: null, created_at: ilYA(20),
+      property: { id: 'p1', ...CHAMPEL_EMBARQUE },
+      contact: { id: 'c11', ...ANASTASIA_EMBARQUEE },
       agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
     },
   ],
@@ -1416,7 +1475,8 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     {
       id: 'm28', agency_id: AGENCE_BANC.id, client_search_id: 'cs11', contact_id: 'c11', source: 'internal',
       property_id: 'p1', market_listing_id: null,
-      score: 91, status: 'visit_planned', sent_via: 'agent', sent_at: ilYA(24 * 9), snoozed_until: null, created_at: ilYA(24 * 10),
+      score: 91, status: 'visit_planned', sent_via: 'agent', sent_at: ilYA(24 * 2 - 1), snoozed_until: null, created_at: ilYA(24 * 10),
+      response_at: ilYA(30), reaction_motif: null, reaction_note: null, prix_propose: 1_450_000, apprentissage_at: null,
       reasons: {
         budget: { match: true, score: 30, detail: 'Dans le budget' },
         zone: { match: true, score: 24, detail: 'Genève correspond' },

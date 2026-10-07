@@ -378,6 +378,8 @@ describe('le jeton d’arrivée — les écrans et leurs liens', () => {
   const CIBLE = /\/dashboard\/matching(?:\?|\$\{)|\/dashboard\/(?:listings|market)\/\$\{[^}]+\}\?\$\{PARAM_QUI_POUR\}=1|\/dashboard\/contacts\?nouveau=1/
   /** Les liens d'arrivée, par fichier. Un lien neuf s'inscrit ici — avec son jeton. */
   const SITES: Record<string, number> = {
+    // Étape 5b-1 : chaque bien du bloc « Matching » de la fiche d'affaire, à sa place dans le fil.
+    'src/components/matching-fil/BlocMatchingAffaire.tsx': 1,
     // « Ajouter un acheteur », la couverture de premier lancement du fil.
     'src/components/matching-fil/MatchingFil.tsx': 1,
     'src/components/matching-recherche/MatchingRechercheHybride.tsx': 1,

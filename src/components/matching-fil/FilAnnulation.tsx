@@ -5,9 +5,9 @@
  * (21.09.2026). Elle peut offrir un second geste (« Planifier la visite » après « Intéressé », lot B), qui
  * fait partir l'écriture tout de suite.
  *
- * ⚠ Ce second geste porte sa TOUCHE, écrite dessus comme sur tout bouton du fil : la barre est un overlay en
- * fin de DOM, qu'on n'atteint au clavier qu'en traversant tout le panneau. C'est `MatchingFil` qui l'écoute,
- * et sa région vivante l'annonce avec le geste.
+ * ⚠ Ce second geste porte sa TOUCHE écrite dessus, quand les boutons du fil la portent en infobulle depuis le fil
+ * épuré (07.10.2026) : la barre est un overlay en fin de DOM, qu'on n'atteint au clavier qu'en traversant tout le
+ * panneau. C'est `MatchingFil` qui l'écoute, et sa région vivante l'annonce avec le geste.
  *
  * ⚠ Pas de `role="status"` ici : une région vivante MONTÉE avec son texte n'est pas annoncée de façon
  * fiable. L'annonce passe par la région que `MatchingFil` garde montée en permanence.

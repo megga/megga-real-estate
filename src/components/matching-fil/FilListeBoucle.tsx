@@ -13,8 +13,8 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { initiales, type FilMatch } from './filModele'
 import { cleAttente, cleEtatMandat, type FilAttente } from './filBoucle'
-import { dateCourte, styleLigne, teinteEcart, texteSignal, unSeulClic } from './filAffichage'
-import { FilAvatar } from './filAtomes'
+import { baisseDuMatch, dateCourte, styleLigne, teinteEcart, unSeulClic } from './filAffichage'
+import { FilAvatar, FilBaisse } from './filAtomes'
 
 interface Props {
   sp: CrmPalette
@@ -43,11 +43,10 @@ export default function FilListeBoucle({ sp, onglet, attentes, conclure, courant
 function LigneAttente({ sp, a, active, onChoisir }: { sp: CrmPalette; a: FilAttente; active: boolean; onChoisir: (cle: string) => void }) {
   const { t } = useTranslation('matching')
   const cle = cleAttente(a.acheteur.id)
-  const baisse = a.matchs.map((m) => texteSignal(m, t, true)).find((s) => s != null) ?? null
+  const baisse = a.matchs.map((m) => baisseDuMatch(m, t)).find((s) => s != null) ?? null
   const resume = [
     t('fil.attente.ligne', { count: a.matchs.length }),
     a.echeance ? t(a.due ? 'fil.attente.relanceDue' : 'fil.attente.relance', { date: dateCourte(a.echeance) }) : null,
-    baisse,
   ].filter(Boolean).join(' · ')
   return (
     <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={cle}
@@ -63,7 +62,8 @@ function LigneAttente({ sp, a, active, onChoisir }: { sp: CrmPalette; a: FilAtte
               <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
             </span>
           )}
-          {resume}
+          {resume}{baisse && ' ·'}
+          {baisse && <FilBaisse sp={sp} montant={baisse} />}
         </span>
       </span>
     </button>

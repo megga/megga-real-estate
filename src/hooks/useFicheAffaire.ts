@@ -1,11 +1,10 @@
 /**
  * Ce que la fiche d'affaire (proposition du 27.09.2026) lit EN PLUS de la fiche deal d'avant :
- * les faits de l'affaire (historique), les biens que le moteur propose à son client, ses visites.
+ * les faits de l'affaire (historique) et ses visites.
  *
- * ⛔ LES BIENS À PROPOSER VIENNENT DU MOTEUR (`matches`), plus d'un calcul local. La fiche d'avant
- * recalculait un « score de proximité » dans le navigateur : il ne filtrait ni les pièces ni la
- * surface, et proposait à une acheteuse de quatre pièces deux studios notés 89 % (mesuré sur le
- * banc). Le moteur, lui, est celui du fil de matchs — une seule vérité pour les deux écrans.
+ * ⚠ Les biens de l'acheteur ne sont plus lus ici depuis l'étape 5b-1 : le bloc « Matching » les lit
+ * par état, sous la clé du fil (`useMatchingAffaire`) — la lecture d'ici, trois matchs par score montrés
+ * sans leur état, ne se rafraîchissait pas après un geste du fil et rendait un mandat supprimé sans titre.
  *
  * ⚠ L'historique lit les faits par `entity_id` = l'affaire : ceux que la base écrit
  * (`stage_change`, `status_change`, trigger `trg_transaction_lifecycle`) et ceux que l'écran écrit
@@ -21,27 +20,11 @@ export interface FaitAffaire {
   created_at: string
 }
 
-export interface MatchAffaire {
-  id: string
-  score: number
-  status: string
-  bien: { id: string | null; titre: string; prix: number | null; interne: boolean }
-}
-
 export interface VisiteAffaire {
   id: string
   scheduled_at: string
   status: string
   bien: string | null
-}
-
-interface LigneMatch {
-  id: string
-  score: number
-  status: string
-  property_id: string | null
-  property: { title?: string | null; price?: number | null } | null
-  market_listing: { title?: string | null; price?: number | null } | null
 }
 
 interface LigneVisite {
@@ -51,7 +34,7 @@ interface LigneVisite {
   property: { title?: string | null } | null
 }
 
-/** Les faits, les biens proposés et les visites d'une affaire — chaque lecture reste bornée. */
+/** Les faits et les visites d'une affaire — chaque lecture reste bornée. */
 export function useFicheAffaire(dealId: string | undefined, contactId: string | undefined) {
   const faits = useQuery({
     queryKey: ['fiche-affaire', 'faits', dealId],
@@ -65,32 +48,6 @@ export function useFicheAffaire(dealId: string | undefined, contactId: string | 
         .limit(30)
       if (error) throw error
       return (data ?? []) as FaitAffaire[]
-    },
-  })
-
-  const matchs = useQuery({
-    queryKey: ['fiche-affaire', 'matchs', contactId],
-    enabled: !!contactId,
-    queryFn: async (): Promise<MatchAffaire[]> => {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('id, score, status, property_id, property:properties(title, price), market_listing:market_listings(title, price)')
-        .eq('contact_id', contactId!)
-        .in('status', ['suggested', 'sent', 'interested'])
-        .order('score', { ascending: false })
-        .limit(3)
-      if (error) throw error
-      return ((data ?? []) as unknown as LigneMatch[]).map((m) => ({
-        id: m.id,
-        score: m.score,
-        status: m.status,
-        bien: {
-          id: m.property_id,
-          titre: m.property?.title ?? m.market_listing?.title ?? '',
-          prix: m.property?.price ?? m.market_listing?.price ?? null,
-          interne: !!m.property_id,
-        },
-      }))
     },
   })
 
@@ -113,7 +70,6 @@ export function useFicheAffaire(dealId: string | undefined, contactId: string | 
 
   return {
     faits: faits.data ?? [],
-    matchs: matchs.data ?? [],
     visites: visites.data ?? [],
   }
 }

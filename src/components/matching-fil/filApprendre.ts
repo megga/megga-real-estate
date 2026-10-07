@@ -52,7 +52,7 @@ export type CorrectionChangement =
 /** Les corrections qui se saisissent : un nombre pré-rempli, que l'agent peut changer avant de valider. */
 export type ChangementNumerique = Extract<CorrectionChangement, { cle: 'budget_max' | 'surface_min' | 'rooms_min' }>
 
-/** Une correction de recherche proposée : une ligne de la section « Recherches à ajuster ». */
+/** Une correction de recherche proposée : une ligne de la section « À ajuster ». */
 export interface Correction {
   /** `correction:<recherche>:<motif>`. */
   cle: string

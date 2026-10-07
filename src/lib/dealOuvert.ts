@@ -1,7 +1,8 @@
 /**
  * Le deal OUVERT d'un acheteur : la seule règle qui dit si un deal l'est encore. Les gestes du matching la lisent pour
  * trouver le deal auquel un geste se rattache (`rattacherDeal`, matchingGestes.ts), la fiche d'un mandat pour savoir qui
- * y est un acheteur en cours (`visiteurs.ts`). Module PUR : ni React, ni Supabase, ni traduction.
+ * y est un acheteur en cours (`visiteurs.ts`), la fiche d'une affaire pour montrer son bloc « Matching »
+ * (`DealDetailPage`). Module PUR : ni React, ni Supabase, ni traduction.
  *
  * ⚠ Le module ne porte que ce prédicat, pas « son deal » : entre plusieurs deals ouverts, chaque lecteur choisit — le
  * dernier créé pour les gestes et le copilote, le dernier modifié sur ce bien pour la fiche (l'ordre de

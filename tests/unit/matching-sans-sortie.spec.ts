@@ -48,6 +48,9 @@ const MATCHING = [
   'src/hooks/useAjouterSelection.ts',
   'src/hooks/useAnciensProspects.ts',
   'src/hooks/useContactSentMatches.ts',
+  // Étape 5b-1 : la lecture du matching de la fiche d'affaire. Son bloc et son modèle vivent dans `matching-fil` ; la
+  // fiche d'affaire, page hôte, reste hors du périmètre : elle porte ses liens WhatsApp et e-mail vers le client.
+  'src/hooks/useMatchingAffaire.ts',
   // Lot D1 (23.09.2026) : les surfaces qui montrent la boucle hors du fil. `src/components/matching-fil` couvre déjà
   // `filLiens`, `filQuiPour`, `QuiPourCeBien` et `QuiPourFiche`.
   'src/hooks/useQuiPourCeBien.ts',
