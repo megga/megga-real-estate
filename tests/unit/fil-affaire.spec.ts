@@ -1,6 +1,7 @@
 /**
  * La fiche d'AFFAIRE branchée sur le matching (étape 5b-1, conception `2026-09-30-fiche-affaire-matching-design.md`) :
- * le modèle pur `filAffaire.ts` — les biens de l'acheteur rangés par état.
+ * le modèle pur `filAffaire.ts` — les biens de l'acheteur rangés par état, et les lignes que le matching ajoute à
+ * l'historique de l'affaire.
  *
  * Ce que cette spec refuse :
  *   · un refus, un mandat supprimé, un bien à proposer qui n'est plus une occasion, un bien jamais proposé et reporté
@@ -9,11 +10,16 @@
  *   · plus de trois biens à proposer lus hors de « Sa boucle », plus de huit lignes, un total qui ne compte pas tout ;
  *   · un bien lu deux fois compté deux fois ; les trois meilleurs choisis avant d'écarter les reportés et les biens qui ne
  *     sont plus en vente ; un report jugé à une autre heure que celle de l'appelant ;
- *   · un lien vers une autre place que celle du bien dans le fil ; un proposé reporté écrit « reporté ».
+ *   · un lien vers une autre place que celle du bien dans le fil ; un proposé reporté écrit « reporté » ;
+ *   · une ligne du journal d'une AUTRE affaire, un intérêt pour un bien qui n'y a pas été proposé, un refus au journal ;
+ *   · une origine « depuis le matching » au-delà d'une minute, un doublon de visite au-delà de dix secondes.
  */
 import { describe, expect, it } from 'vitest'
 import type { LigneBoucleContact } from '@/components/crm/contacts-pager/saBoucle'
-import { biensDeLAffaire } from '@/components/matching-fil/filAffaire'
+import {
+  biensDeLAffaire, doublonDeVisite, journalMatchingDeLAffaire, neeDuMatching, titresDesMatchs,
+  type EvenementMatching,
+} from '@/components/matching-fil/filAffaire'
 import type { SearchCriteria } from '@/types/contact'
 import { Constants } from '@/types/database'
 
@@ -185,5 +191,126 @@ describe('biensDeLAffaire — l’état, le lien', () => {
   it('le titre, le prix, la location — le prix courant d’une annonce du marché', () => {
     const r = biens([], [aProposer('m1', 99, { market_listing: { ...annonce('Loft · Eaux-Vives', 1_500_000), current_price: 1_390_000, transaction_type: 'rent' } })])
     expect(r.lignes[0]).toMatchObject({ titre: 'Loft · Eaux-Vives', prix: 1_390_000, location: true, etat: { cle: 'aProposer' } })
+  })
+})
+
+/** Un événement du journal d'un contact. */
+const evt = (action: string, heures: number, metadata: Record<string, unknown>): EvenementMatching => ({
+  action, created_at: new Date(MAINTENANT - heures * 3_600_000).toISOString(), metadata,
+})
+const TITRES = new Map([['m1', 'Attique · Florissant'], ['m2', 'Appartement · Champel']])
+
+describe('journalMatchingDeLAffaire — les lignes de l’historique', () => {
+  it('une proposition de CETTE affaire, nommée ; celle d’une autre affaire n’y entre pas', () => {
+    const j = journalMatchingDeLAffaire([
+      evt('match_propose', 5, { deal_id: 'd5', match_ids: ['m1'], nombre: 1 }),
+      evt('match_propose', 4, { deal_id: 'd9', match_ids: ['m2'], nombre: 1 }),
+    ], 'd5', TITRES)
+    expect(j).toEqual([{ quand: evt('x', 5, {}).created_at, genre: 'propose', bien: 'Attique · Florissant', nombre: 1 }])
+  })
+
+  it('une sélection se compte ; elle ne nomme pas un bien', () => {
+    const [l] = journalMatchingDeLAffaire([evt('match_propose', 5, { deal_id: 'd5', match_ids: ['m1', 'm2', 'm3'], nombre: 3 })], 'd5', TITRES)
+    expect(l).toMatchObject({ genre: 'propose', bien: null, nombre: 3 })
+  })
+
+  it('un intérêt se relie à l’affaire par les biens qui y ont été proposés — un refus, ou un autre bien, n’y entre pas', () => {
+    const j = journalMatchingDeLAffaire([
+      evt('match_reaction', 1, { match_id: 'm1', new_status: 'interested' }),
+      evt('match_reaction', 2, { match_id: 'm2', new_status: 'interested' }),
+      evt('match_reaction', 3, { match_id: 'm1', new_status: 'rejected' }),
+      evt('match_propose', 5, { deal_id: 'd5', match_ids: ['m1'], nombre: 1 }),
+    ], 'd5', TITRES)
+    expect(j.map((l) => [l.genre, l.bien])).toEqual([['interesse', 'Attique · Florissant'], ['propose', 'Attique · Florissant']])
+  })
+
+  it('un intérêt pour un bien proposé avec UNE AUTRE affaire n’entre pas', () => {
+    const j = journalMatchingDeLAffaire([
+      evt('match_reaction', 1, { match_id: 'm3', new_status: 'interested' }),
+      evt('match_propose', 5, { deal_id: 'd9', match_ids: ['m3'], nombre: 1 }),
+    ], 'd5', TITRES)
+    expect(j).toEqual([])
+  })
+
+  it('un bien reproposé avec une autre affaire lui appartient : l’intérêt qui suit n’est plus celui de la première', () => {
+    const evenements = [
+      evt('match_reaction', 1, { match_id: 'm1', new_status: 'interested' }),
+      evt('match_propose', 3, { deal_id: 'dB', match_ids: ['m1'], nombre: 1 }),
+      evt('match_propose', 720, { deal_id: 'dA', match_ids: ['m1'], nombre: 1 }),
+    ]
+    expect(journalMatchingDeLAffaire(evenements, 'dA', TITRES).map((l) => l.genre)).toEqual(['propose'])
+    expect(journalMatchingDeLAffaire(evenements, 'dB', TITRES).map((l) => l.genre)).toEqual(['interesse', 'propose'])
+  })
+
+  it('des métadonnées inattendues ne font ni exception ni ligne parasite ; sans `match_ids`, le nombre dit la sélection', () => {
+    const j = journalMatchingDeLAffaire([
+      { action: 'match_propose', created_at: evt('x', 1, {}).created_at, metadata: null },
+      evt('match_propose', 2, { deal_id: 5, match_ids: 'm1' }),
+      evt('match_propose', 3, { deal_id: 'd5', nombre: 3 }),
+      evt('visit_scheduled', 4, { deal_id: 'd5', match_id: 7 }),
+    ], 'd5', TITRES)
+    expect(j.map((l) => [l.genre, l.bien, l.nombre])).toEqual([['propose', null, 3], ['visite', null, 1]])
+  })
+
+  it('une visite planifiée de cette affaire ; un bien introuvable s’écrit « un bien » (`null`)', () => {
+    const j = journalMatchingDeLAffaire([
+      evt('visit_scheduled', 1, { deal_id: 'd5', match_id: 'm2', visit_id: 'v1' }),
+      evt('visit_scheduled', 2, { deal_id: 'd5', match_id: 'm-supprime', visit_id: 'v2' }),
+      evt('visit_scheduled', 3, { deal_id: 'd9', match_id: 'm1', visit_id: 'v3' }),
+    ], 'd5', TITRES)
+    expect(j.map((l) => [l.genre, l.bien])).toEqual([['visite', 'Appartement · Champel'], ['visite', null]])
+  })
+
+  it('du plus récent au plus ancien', () => {
+    const j = journalMatchingDeLAffaire([
+      evt('match_propose', 9, { deal_id: 'd5', match_ids: ['m1'], nombre: 1 }),
+      evt('visit_scheduled', 2, { deal_id: 'd5', match_id: 'm1' }),
+      evt('match_reaction', 4, { match_id: 'm1', new_status: 'interested' }),
+    ], 'd5', TITRES)
+    expect(j.map((l) => l.genre)).toEqual(['visite', 'interesse', 'propose'])
+  })
+})
+
+describe('neeDuMatching, doublonDeVisite', () => {
+  const cree = new Date(MAINTENANT - 10 * 3_600_000).toISOString()
+  const decale = (ms: number) => new Date(Date.parse(cree) + ms).toISOString()
+
+  it('« Deal créé depuis le matching » : une proposition ou une visite de l’affaire à moins d’une minute de sa création', () => {
+    expect(neeDuMatching(cree, [{ quand: decale(800), genre: 'propose', bien: null, nombre: 1 }])).toBe(true)
+    expect(neeDuMatching(cree, [{ quand: decale(0), genre: 'visite', bien: null, nombre: 1 }])).toBe(true)
+    expect(neeDuMatching(cree, [{ quand: decale(59_000), genre: 'propose', bien: null, nombre: 1 }])).toBe(true)
+    expect(neeDuMatching(cree, [{ quand: decale(61_000), genre: 'propose', bien: null, nombre: 1 }])).toBe(false)
+    expect(neeDuMatching(cree, [{ quand: decale(120_000), genre: 'propose', bien: null, nombre: 1 }])).toBe(false)
+    // Un geste PLUS ANCIEN que l'affaire ne l'a pas fait naître.
+    expect(neeDuMatching(cree, [{ quand: decale(-800), genre: 'propose', bien: null, nombre: 1 }])).toBe(false)
+    // Un intérêt ne crée pas d'affaire.
+    expect(neeDuMatching(cree, [{ quand: decale(500), genre: 'interesse', bien: null, nombre: 1 }])).toBe(false)
+  })
+
+  it('un changement d’étape à moins de dix secondes d’une visite planifiée est son doublon', () => {
+    const lignes = [{ quand: decale(0), genre: 'visite' as const, bien: 'Champel', nombre: 1 }]
+    expect(doublonDeVisite(decale(3_000), lignes)).toBe(true)
+    // Des deux côtés : le changement d'étape peut précéder ou suivre la ligne de la visite.
+    expect(doublonDeVisite(decale(9_000), lignes)).toBe(true)
+    expect(doublonDeVisite(decale(-9_000), lignes)).toBe(true)
+    expect(doublonDeVisite(decale(-11_000), lignes)).toBe(false)
+    expect(doublonDeVisite(decale(11_000), lignes)).toBe(false)
+    expect(doublonDeVisite(decale(30_000), lignes)).toBe(false)
+    expect(doublonDeVisite(decale(1_000), [{ ...lignes[0]!, genre: 'propose' }])).toBe(false)
+  })
+})
+
+describe('titresDesMatchs', () => {
+  it('le titre de chaque bien lu, par match — l’adresse à défaut de titre', () => {
+    const t = titresDesMatchs(
+      [ligne('m1', 'sent', { market_listing: { ...annonce(''), address: 'Rue du Rhône 1' } })],
+      [aProposer('m2', 90, { property_id: 'p2', market_listing_id: null, market_listing: null, property: mandat('Villa · Cologny') })],
+    )
+    expect(Object.fromEntries(t)).toEqual({ m1: 'Rue du Rhône 1', m2: 'Villa · Cologny' })
+  })
+
+  it('un mandat supprimé n’a pas de nom, même lu par un super-administrateur : « un bien »', () => {
+    const t = titresDesMatchs([ligne('m3', 'sent', { property_id: 'p3', market_listing_id: null, market_listing: null, property: mandat('Villa · Cologny', 3_000_000, 'active', il(2)) })])
+    expect(t.has('m3')).toBe(false)
   })
 })

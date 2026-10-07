@@ -436,6 +436,13 @@
     "planifierVisite": "Schedule a viewing",
     "historique": "History",
     "hist": {
+      "propose": "Proposed: {{bien}}",
+      "proposeSelection_one": "Proposed: {{count}} property",
+      "proposeSelection_other": "Proposed: {{count}} properties",
+      "interesse": "Interested: {{bien}}",
+      "visite": "Viewing scheduled: {{bien}}",
+      "unBien": "a property",
+      "creeDepuisMatching": "Deal created from matching",
       "etape": "Stage: {{de}} → {{a}}",
       "conclue": "Deal won",
       "rouverte": "Deal reopened",

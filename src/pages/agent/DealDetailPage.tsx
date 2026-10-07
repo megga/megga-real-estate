@@ -16,7 +16,8 @@
  *    pièces) : ici, le matching de l'acheteur, bien par bien et par état — le bloc « Matching »
  *    (`useMatchingAffaire`, étape 5b-1), en Prospects, Recherche et Visites ;
  *  - l'offre se lisait sans le prix demandé : ici, l'écart de chaque tour au prix affiché ;
- *  - aucun historique : ici, les faits de l'affaire et ses offres, datés.
+ *  - aucun historique : ici, les faits de l'affaire et ses offres, datés — et, depuis l'étape 5b-1, ses
+ *    étapes du matching (proposé, intéressé, visite planifiée), lues dans le journal du contact.
  *
  * ⚠ LE MOTEUR NE CHANGE PAS. Accepter une offre SIGNE l'affaire (trigger `trg_crm_offer_sign_deal`,
  * contrat de la boucle de négociation) et la conclut, exactement comme la fiche d'avant.
@@ -66,6 +67,8 @@ import { echeanceDans, iconeAction, jourCourt, joursProposes } from '@/component
 import { PHASES, echeanceDe, joursJusqua, montantCourt, phase, phaseDe, stadeDEntree } from '@/components/crm/pipeline/phases'
 import { ton } from '@/components/crm/pipeline/tons'
 import BlocMatchingAffaire from '@/components/matching-fil/BlocMatchingAffaire'
+import { doublonDeVisite, neeDuMatching, type LigneJournalMatching } from '@/components/matching-fil/filAffaire'
+import { temps } from '@/components/matching-fil/filModele'
 import { lienFil } from '@/components/matching-fil/filLiens'
 
 /** Une section de la feuille : un filet en haut, jamais une carte. */
@@ -115,6 +118,11 @@ function Pilule({ sp, onClick, plein, ton: t, children }: {
   )
 }
 
+/** Les icônes des lignes du matching dans l'historique : discrètes, comme les autres (conception §5.4). */
+const ICONES_MATCHING: Record<LigneJournalMatching['genre'], MEIconName> = { propose: 'send', interesse: 'heart', visite: 'home' }
+/** Douze lignes d'historique au plus (conception §5.4 ; huit avant le matching). */
+const HISTORIQUE_LIGNES = 12
+
 export default function DealDetailPage() {
   const { t, i18n } = useTranslation(['pipeline', 'contacts', 'common'])
   const { id } = useParams<{ id: string }>()
@@ -134,8 +142,9 @@ export default function DealDetailPage() {
   const { data: kyc } = useKycDossierByContact(acheteurId)
   const { nextAction } = useTransactionNextReminder(deal?.id)
   const { faits, visites } = useFicheAffaire(deal?.id, contactId)
-  // Le matching de l'ACHETEUR : une affaire côté vendeur seul n'en a pas (le bloc ne s'y rend pas).
-  const matching = useMatchingAffaire(acheteurId)
+  // Le matching de l'ACHETEUR : une affaire côté vendeur seul n'en a pas. La lecture tourne dans TOUTES les phases, même
+  // là où le bloc ne se rend pas : l'historique en lit le journal (proposé, intéressé, visite), et nomme ses biens.
+  const matching = useMatchingAffaire(acheteurId, deal?.id)
   // La clôture ne se lit que pour une affaire conclue : une affaire en cours n'a rien à clore.
   const { data: etatCloture } = useClotureAffaire(deal?.id, deal?.status === 'completed')
   const planifierApres = usePlanifierApresVente()
@@ -354,7 +363,7 @@ export default function DealDetailPage() {
     : `${echeance === 'retard' ? t('board.card.overdue') : echeance === 'aujourdhui' ? t('board.card.today')
       : echeance === 'demain' ? t('board.card.tomorrow') : jourCourt(nextAction.dueAt, langue)}, ${heure(nextAction.dueAt)}`
 
-  /* ─── L'historique : les faits de la base, ceux de l'écran, les offres ──── */
+  /* ─── L'historique : les faits de la base, ceux de l'écran, le matching, les offres ─ */
   // Hors de sa phase, un libellé court ne dit plus rien (« Faite ») : l'historique prend le libellé long s'il existe.
   const libelleStade = (s: unknown, repli: unknown) => typeof s === 'string'
     ? t(`phases.stadesLongs.${s}`, { defaultValue: t(`phases.stades.${s}`, { defaultValue: s }) })
@@ -364,12 +373,23 @@ export default function DealDetailPage() {
   // près (10 s) — le banc, qui n'a pas de trigger, ne garde donc que lui.
   const doublonDeLaBase = (iso: string) => faits.some((f) => f.action === 'stage_change'
     && Math.abs(new Date(f.created_at).getTime() - new Date(iso).getTime()) < 10_000)
+  // Le matching de l'affaire (étape 5b-1) : ses propositions, les intérêts pour ses biens, ses visites — lus dans le
+  // journal du CONTACT (`useMatchingAffaire`), où les gestes du fil et du copilote WhatsApp s'écrivent.
+  const texteMatching = (l: LigneJournalMatching): string => {
+    const bienNomme = l.bien ?? t('fiche.hist.unBien')
+    if (l.genre === 'propose') {
+      return l.nombre > 1 ? t('fiche.hist.proposeSelection', { count: l.nombre }) : t('fiche.hist.propose', { bien: bienNomme })
+    }
+    return l.genre === 'interesse' ? t('fiche.hist.interesse', { bien: bienNomme }) : t('fiche.hist.visite', { bien: bienNomme })
+  }
   type Entree = { quand: string; icone: MEIconName; texte: string }
   const historique: Entree[] = [
-    { quand: deal.created_at, icone: 'plus', texte: t('deal.timeline_created') } as Entree,
     ...faits.flatMap((f): Entree[] => {
       const m = f.metadata ?? {}
       if (f.action === 'stage_change' || (f.action === 'Étape changée' && !doublonDeLaBase(f.created_at))) {
+        // Planifier une visite depuis le matching fait aussi avancer l'affaire : la ligne du matching, qui nomme le bien,
+        // tient lieu de ce changement d'étape.
+        if (m.new_stage === 'visit_planned' && doublonDeVisite(f.created_at, matching.journal)) return []
         return [{ quand: f.created_at, icone: 'arrow-right' as MEIconName, texte: t('fiche.hist.etape', {
           de: libelleStade(m.old_stage, m.from), a: libelleStade(m.new_stage, m.to),
         }) }]
@@ -385,11 +405,18 @@ export default function DealDetailPage() {
       }
       return []
     }),
+    ...matching.journal.map((l): Entree => ({ quand: l.quand, icone: ICONES_MATCHING[l.genre], texte: texteMatching(l) })),
     ...chaine.map((o): Entree => ({
       quand: o.created_at, icone: 'banknote',
       texte: `${o.kind === 'counter' ? t('deal.offer_row.counter') : t('deal.offer_row.offer')} · ${crmFmtCHF(o.amount)}`,
     })),
-  ].sort((a, b) => b.quand.localeCompare(a.quand)).slice(0, 8)
+    // La création en DERNIER avant le tri, qui est stable : à instant égal — le copilote crée l'affaire et consigne son
+    // geste dans la même transaction —, elle reste sous le geste qui l'a fait naître.
+    {
+      quand: deal.created_at, icone: 'plus',
+      texte: neeDuMatching(deal.created_at, matching.journal) ? t('fiche.hist.creeDepuisMatching') : t('deal.timeline_created'),
+    } as Entree,
+  ].sort((a, b) => temps(b.quand) - temps(a.quand)).slice(0, HISTORIQUE_LIGNES)
   const ilYA = (iso: string) => {
     const j = -joursJusqua(iso)
     return j <= 0 ? t('board.card.today') : j === 1 ? t('phases.agenda.hier') : t('phases.agenda.ilYA', { count: j })

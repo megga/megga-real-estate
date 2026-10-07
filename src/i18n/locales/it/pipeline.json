@@ -436,6 +436,13 @@
     "planifierVisite": "Pianifica una visita",
     "historique": "Cronologia",
     "hist": {
+      "propose": "Proposto: {{bien}}",
+      "proposeSelection_one": "Proposto: {{count}} immobile",
+      "proposeSelection_other": "Proposti: {{count}} immobili",
+      "interesse": "Interessato: {{bien}}",
+      "visite": "Visita pianificata: {{bien}}",
+      "unBien": "un immobile",
+      "creeDepuisMatching": "Deal creato dal matching",
       "etape": "Fase: {{de}} → {{a}}",
       "conclue": "Affare concluso",
       "rouverte": "Affare riaperto",

@@ -101,22 +101,35 @@ const ETATS: Record<string, EtatBoucle> = {
 const premiere = <T>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? x[0] ?? null : x ?? null)
 
 /**
+ * Le bien d'un match, tel qu'une fiche peut le montrer : son mandat, ou son annonce du marché. Un mandat supprimé revient
+ * sans jointure (`properties_select_agency` exige `deleted_at is null`) ; un super-administrateur le lit encore, sa
+ * jointure le dit (`deleted_at`) : pas de bien non plus. La RLS ne masque jamais une annonce du marché. Lu par
+ * `versMatch` et par le journal de la fiche d'affaire (`titresDesMatchs`).
+ */
+export function jointureDuMatch(l: LigneBoucleContact): JointureBien | null {
+  const mandat = premiere(l.property)
+  if (l.property_id != null) return mandat != null && mandat.deleted_at == null ? mandat : null
+  return premiere(l.market_listing)
+}
+
+/** Le nom d'un bien : son titre, son adresse à défaut. */
+export const titreDuBien = (b: JointureBien | null): string => b?.title?.trim() || b?.address?.trim() || ''
+
+/**
  * Un match de la fiche, dans la forme du fil ; `null` sans bien — un mandat masqué par la RLS, ou supprimé, n'en a pas.
  * Lu aussi par le bloc « Matching » de la fiche d'affaire (`filAffaire.ts`), pour ses biens à proposer.
  */
 export function versMatch(l: LigneBoucleContact, acheteur: FilMatch['acheteur'], criteres: SearchCriteria | null): FilMatch | null {
   const bienId = l.property_id ?? l.market_listing_id
   if (!bienId) return null
-  // Un mandat supprimé revient sans jointure : `properties_select_agency` exige `deleted_at is null`. La règle du fil :
-  // on n'invente pas la ligne. Un mandat seulement — la RLS ne masque jamais une annonce du marché. Un
-  // super-administrateur le lit encore, sa jointure le dit (`deleted_at`) : pas de ligne non plus.
-  const mandat = premiere(l.property)
-  if (l.property_id != null && (mandat == null || mandat.deleted_at != null)) return null
+  // Un mandat sans bien lisible — supprimé, ou masqué par la RLS (`jointureDuMatch`) : la règle du fil, on n'invente
+  // pas la ligne.
+  const b = jointureDuMatch(l)
+  if (l.property_id != null && !b) return null
   const marche = l.property_id == null
-  const b = mandat ?? premiere(l.market_listing)
   const bien: FilBien = {
     id: bienId,
-    titre: b?.title?.trim() || b?.address?.trim() || '',
+    titre: titreDuBien(b),
     prix: marche ? nombreOuNull(b?.current_price ?? null) ?? nombreOuNull(b?.price ?? null) : nombreOuNull(b?.price ?? null),
     location: b?.transaction_type === 'rent',
     type: b?.type ?? null, pieces: nombreOuNull(b?.rooms ?? null), surface: nombreOuNull(b?.surface_m2 ?? null),

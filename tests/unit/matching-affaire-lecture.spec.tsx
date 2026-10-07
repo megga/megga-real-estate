@@ -1,9 +1,12 @@
 /**
  * La lecture du matching de la fiche d'affaire (`useMatchingAffaire`, étape 5b-1, conception
- * `2026-09-30-fiche-affaire-matching-design.md` §6.2) : les biens de l'acheteur, par état.
+ * `2026-09-30-fiche-affaire-matching-design.md` §6.2) : les biens de l'acheteur, par état, et les lignes que le
+ * matching ajoute à l'historique de l'affaire.
  *
  * Ce que cette spec refuse :
  *   · des biens à proposer lus autrement que ceux de L'ACHETEUR, en `suggested`, par score puis id, vingt au plus ;
+ *   · un journal lu ailleurs que sur le CONTACT, ou sans les trois actions du matching, ou qui garderait les lignes
+ *     d'une autre affaire ;
  *   · une lecture hors de la clé du fil (`CLE_FIL`) — un geste consigné dans le fil ne la relirait pas —, ou sans
  *     l'acheteur dans sa clé ; d'autres colonnes que celles de « Sa boucle » (`COLONNES_BOUCLE`) ;
  *   · un « en lecture » perdu tant que l'une des lectures n'a pas rendu ; un second abonnement realtime ;
@@ -77,8 +80,18 @@ const match = (id: string, status: string, score: number, sentAt: string | null 
   market_listing: annonce(`Annonce ${id}`),
 })
 
-/** Les réponses par défaut : « Sa boucle » porte m1 (proposé) ; les biens à proposer lus ramènent m1 aussi, m2 et m3. */
+/** Le journal du contact : une proposition de CETTE affaire (m2), une d'une autre (m3). */
+const JOURNAL = [
+  { action: 'match_propose', created_at: '2026-09-29T08:00:00Z', metadata: { deal_id: 'd5', match_ids: ['m2'], nombre: 1 } },
+  { action: 'match_propose', created_at: '2026-09-28T08:00:00Z', metadata: { deal_id: 'd9', match_ids: ['m3'], nombre: 1 } },
+]
+
+/**
+ * Les réponses par défaut : « Sa boucle » porte m1 (proposé) ; les biens à proposer lus ramènent m1 aussi, m2 et m3 ; le
+ * journal, `JOURNAL`.
+ */
 function repondreParDefaut(l: Lecture): Promise<Reponse> {
+  if (l.table === 'activity_events') return Promise.resolve({ data: JOURNAL, error: null })
   const statut = l.eq.find(([c]) => c === 'status')?.[1]
   if (l.table === 'matches' && l.in.length) return Promise.resolve({ data: [match('m1', 'sent', 90, '2026-09-28T08:00:00Z')], error: null })
   if (l.table === 'matches' && statut === 'suggested' && l.gt.length) return Promise.resolve({ data: [], error: null })
@@ -90,7 +103,7 @@ function repondreParDefaut(l: Lecture): Promise<Reponse> {
 
 const vues: MatchingAffaire[] = []
 function Lecteur({ contactId }: { contactId: string | undefined }) {
-  const v = useMatchingAffaire(contactId)
+  const v = useMatchingAffaire(contactId, 'd5')
   useEffect(() => { vues.push(v) })
   return null
 }
@@ -140,6 +153,54 @@ describe('useMatchingAffaire', () => {
       order: [['score', { ascending: false }], ['id', null]],
       limit: 20,
     })
+  })
+
+  it('le journal du CONTACT : les trois actions du matching, du plus récent au plus ancien, cent au plus', async () => {
+    await monter('c9')
+    const [l] = h.lectures.filter((x) => x.table === 'activity_events')
+    expect(l).toMatchObject({
+      eq: [['entity_type', 'contact'], ['entity_id', 'c9']],
+      in: [['action', ['match_propose', 'visit_scheduled', 'match_reaction']]],
+      order: [['created_at', { ascending: false }], ['id', { ascending: false }]],
+      limit: 100,
+    })
+  })
+
+  it('le journal ne garde que les lignes de CETTE affaire, nommées par les biens lus', async () => {
+    await monter('c9')
+    expect(derniere().journal).toEqual([{ quand: '2026-09-29T08:00:00Z', genre: 'propose', bien: 'Annonce m2', nombre: 1 }])
+  })
+
+  it('le journal nomme aussi un bien que « Sa boucle » seule lit — ici, un proposé', async () => {
+    h.repondre = (l) => {
+      if (l.table === 'activity_events') {
+        return Promise.resolve({ data: [{ action: 'match_propose', created_at: '2026-09-29T08:00:00Z', metadata: { deal_id: 'd5', match_ids: ['m1'], nombre: 1 } }], error: null })
+      }
+      // Les biens à proposer lus ne ramènent PAS m1 : seule « Sa boucle » le lit.
+      if (l.table === 'matches' && !l.in.length && !l.gt.length) return Promise.resolve({ data: [match('m2', 'suggested', 99)], error: null })
+      return repondreParDefaut(l)
+    }
+    await monter('c9')
+    expect(derniere().journal).toEqual([{ quand: '2026-09-29T08:00:00Z', genre: 'propose', bien: 'Annonce m1', nombre: 1 }])
+  })
+
+  it('en lecture tant que le journal l’est', async () => {
+    let liberer: () => void = () => undefined
+    const attente = new Promise<void>((r) => { liberer = r })
+    h.repondre = (l) => (l.table === 'activity_events' ? attente.then(() => repondreParDefaut(l)) : repondreParDefaut(l))
+    await monter('c9')
+    expect(derniere().isLoading).toBe(true)
+    await act(async () => { liberer() })
+    await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+    expect(derniere().isLoading).toBe(false)
+  })
+
+  it('un échec du journal se dit aussi, sans données déjà lues', async () => {
+    h.repondre = (l) => (l.table === 'activity_events'
+      ? Promise.resolve({ data: null, error: { code: '57014', message: 'canceling statement due to statement timeout' } })
+      : repondreParDefaut(l))
+    await monter('c9')
+    expect(derniere()).toMatchObject({ isError: true, aDesDonnees: false })
   })
 
   it('un bien que « Sa boucle » porte déjà n’est pas compté deux fois ; il y garde son état', async () => {
@@ -199,7 +260,7 @@ describe('useMatchingAffaire', () => {
   it('sans acheteur, aucune lecture', async () => {
     await monter(undefined)
     expect(h.lectures).toEqual([])
-    expect(derniere()).toMatchObject({ lignes: [], total: 0, isLoading: false, isError: false })
+    expect(derniere()).toMatchObject({ lignes: [], total: 0, journal: [], isLoading: false, isError: false })
   })
 
   it('sans acheteur, « Réessayer » ne lit rien non plus : `refetch` passe outre `enabled`', async () => {
@@ -248,7 +309,7 @@ describe('useMatchingAffaire', () => {
     await act(async () => { await derniere().refetch() })
     await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
     expect(derniere().isError).toBe(false)
-    // « Sa boucle » (ses deux lectures de matchs) et les biens à proposer.
-    expect(h.lectures.length - avant).toBe(3)
+    // « Sa boucle » (ses deux lectures de matchs), les biens à proposer et le journal.
+    expect(h.lectures.length - avant).toBe(4)
   })
 })

@@ -436,6 +436,13 @@
     "planifierVisite": "Planifier une visite",
     "historique": "Historique",
     "hist": {
+      "propose": "Proposé : {{bien}}",
+      "proposeSelection_one": "Proposé : {{count}} bien",
+      "proposeSelection_other": "Proposé : {{count}} biens",
+      "interesse": "Intéressé·e : {{bien}}",
+      "visite": "Visite planifiée : {{bien}}",
+      "unBien": "un bien",
+      "creeDepuisMatching": "Deal créé depuis le matching",
       "etape": "Étape : {{de}} → {{a}}",
       "conclue": "Affaire conclue",
       "rouverte": "Affaire rouverte",

@@ -436,6 +436,13 @@
     "planifierVisite": "Besichtigung planen",
     "historique": "Verlauf",
     "hist": {
+      "propose": "Vorgeschlagen: {{bien}}",
+      "proposeSelection_one": "Vorgeschlagen: {{count}} Objekt",
+      "proposeSelection_other": "Vorgeschlagen: {{count}} Objekte",
+      "interesse": "Interessiert: {{bien}}",
+      "visite": "Besichtigung geplant: {{bien}}",
+      "unBien": "ein Objekt",
+      "creeDepuisMatching": "Deal aus dem Matching erstellt",
       "etape": "Etappe: {{de}} → {{a}}",
       "conclue": "Geschäft abgeschlossen",
       "rouverte": "Geschäft wieder geöffnet",
