@@ -18,6 +18,9 @@ export type MEIconName =
   | 'mail' | 'phone' | 'calendar' | 'clock' | 'lock'
   | 'home' | 'building' | 'key' | 'gallery'
   | 'sparkle' | 'shield' | 'eye' | 'eye-off' | 'globe' | 'compass'
+  // ⚠ `shield` porte une COCHE : c'est un bouclier « vérifié ». Le bouclier nu dit un KYC qui ne l'est pas
+  // (carte focus du Matching, 07.10.2026) — sans lui, « à compléter » s'y dessinait coché, en gris.
+  | 'shield-plain'
   | 'filter' | 'sort' | 'settings' | 'download' | 'upload'
   | 'user' | 'users' | 'logout' | 'info' | 'help' | 'alert'
   | 'credit-card' | 'bell' | 'bell-ring'
@@ -89,6 +92,7 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   gallery: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-5-5-7 7" /></>,
   sparkle: <path d="m12 3-1.91 5.81a2 2 0 0 1-1.28 1.28L3 12l5.81 1.91a2 2 0 0 1 1.28 1.28L12 21l1.91-5.81a2 2 0 0 1 1.28-1.28L21 12l-5.81-1.91a2 2 0 0 1-1.28-1.28L12 3Z" />,
   shield: <><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></>,
+  'shield-plain': <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" />,
   eye: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
   // Même tracé que l'œil barré des Réglages (`settings/atoms`) : les deux champs de mot de passe
   // du CRM montrent le même geste.

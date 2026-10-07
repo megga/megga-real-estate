@@ -83,7 +83,7 @@ export function texteEtatCompatible(e: EtatCompatible, location: boolean, t: TFu
 
 /**
  * La baisse du prix d'un bien depuis qu'on l'a proposé à CET acheteur (le signal du lot B), écrite (« CHF 250'000 »),
- * ou `null` sans baisse mesurée sur `prix_propose`. Une ligne la dessine en flèche (`FilBaisse`).
+ * ou `null` sans baisse mesurée sur `prix_propose`. Une ligne et la photo d'un panneau la dessinent en flèche (`FilBaisse`).
  */
 export function baisseDuMatch(m: FilMatch, t: TFunction): string | null {
   const s = signalPrix(m)
@@ -96,10 +96,11 @@ export function baisseDuBien(s: SignalBien, bien: FilBien, t: TFunction): string
 }
 
 /**
- * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), écrit pour un panneau, ou `null` sans baisse
- * mesurée sur `prix_propose` : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis », ou « Prix
- * baissé de … depuis que vous l'avez proposé » sur un bien sans réponse. Sur une ligne, c'est une flèche
- * (`baisseDuMatch`).
+ * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), écrit en toutes lettres là où une phrase a sa
+ * place (le dépli de la carte focus, « Sa boucle » de la fiche contact), ou `null` sans baisse mesurée sur
+ * `prix_propose` : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis », ou « Prix baissé de …
+ * depuis que vous l'avez proposé » sur un bien sans réponse. Sur une ligne du fil et sur la photo de la carte, c'est
+ * une flèche (`baisseDuMatch`).
  *
  * ⚠ Aucune tournure « de {{prenom}} » : le français élide devant une voyelle (« d'Antoine », « d'Emma »), et
  * une interpolation ne le sait pas.
@@ -115,9 +116,10 @@ export function texteSignal(m: FilMatch, t: TFunction): string | null {
 }
 
 /**
- * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne (« Nouveau sur le marché »),
- * daté dans un panneau (« Prix baissé de CHF 250'000 le 18.09 »). Une baisse ne s'écrit que dans un panneau : sur
- * une ligne, c'est une flèche (`baisseDuBien`).
+ * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne et dans l'infobulle de la pastille
+ * « Nouveau » (« Nouveau sur le marché »), daté en toutes lettres là où une phrase a sa place (« Prix baissé de CHF
+ * 250'000 le 18.09 », dans le dépli de la carte focus). Sur une ligne du fil et sur la photo de la carte, une baisse
+ * est une flèche (`baisseDuBien`).
  */
 export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, court = false): string {
   switch (s.genre) {

@@ -411,6 +411,8 @@
     },
     "panneauAria": "{{acheteur}} pour {{bien}}",
     "pourquoi": "Pourquoi ce match",
+    "criteresSur_one": "{{count}} critère sur {{total}}",
+    "criteresSur_other": "{{count}} critères sur {{total}}",
     "colonnes": {
       "critere": "Critère",
       "recherche": "Recherché",
@@ -483,7 +485,8 @@
       "plusTard": "Plus tard",
       "ecarter": "Écarter",
       "raccourci": "Raccourci : {{touche}}",
-      "infobulle": "{{libelle}} · {{touche}}"
+      "infobulle": "{{libelle}} · {{touche}}",
+      "propose": "Proposé"
     },
     "reporte": "{{nom}} reporté·e d'une semaine",
     "ecarte": "{{nom}} écarté·e pour ce bien",
@@ -608,7 +611,8 @@
       "nouveauCourt": "Nouveau sur le marché",
       "nouveau": "Nouveau sur le marché depuis le {{date}}",
       "mandatCourt": "Nouveau mandat",
-      "mandat": "Nouveau mandat du {{date}}"
+      "mandat": "Nouveau mandat du {{date}}",
+      "pastille": "Nouveau"
     },
     "corrections": {
       "section": "Recherches à ajuster",

@@ -411,6 +411,8 @@
     },
     "panneauAria": "{{acheteur}} für {{bien}}",
     "pourquoi": "Warum dieser Match",
+    "criteresSur_one": "{{count}} von {{total}} Kriterien",
+    "criteresSur_other": "{{count}} von {{total}} Kriterien",
     "colonnes": {
       "critere": "Kriterium",
       "recherche": "Gesucht",
@@ -483,7 +485,8 @@
       "plusTard": "Später",
       "ecarter": "Verwerfen",
       "raccourci": "Tastenkürzel: {{touche}}",
-      "infobulle": "{{libelle}} · {{touche}}"
+      "infobulle": "{{libelle}} · {{touche}}",
+      "propose": "Vorgeschlagen"
     },
     "reporte": "{{nom}} um eine Woche zurückgestellt",
     "ecarte": "{{nom}} für dieses Objekt verworfen",
@@ -608,7 +611,8 @@
       "nouveauCourt": "Neu auf dem Markt",
       "nouveau": "Neu auf dem Markt seit {{date}}",
       "mandatCourt": "Neues Mandat",
-      "mandat": "Neues Mandat vom {{date}}"
+      "mandat": "Neues Mandat vom {{date}}",
+      "pastille": "Neu"
     },
     "corrections": {
       "section": "Anzupassende Suchen",

@@ -411,6 +411,8 @@
     },
     "panneauAria": "{{acheteur}} per {{bien}}",
     "pourquoi": "Perché questo match",
+    "criteresSur_one": "{{count}} criterio su {{total}}",
+    "criteresSur_other": "{{count}} criteri su {{total}}",
     "colonnes": {
       "critere": "Criterio",
       "recherche": "Cercato",
@@ -483,7 +485,8 @@
       "plusTard": "Più tardi",
       "ecarter": "Scarta",
       "raccourci": "Scorciatoia: {{touche}}",
-      "infobulle": "{{libelle}} · {{touche}}"
+      "infobulle": "{{libelle}} · {{touche}}",
+      "propose": "Proposto"
     },
     "reporte": "{{nom}} rinviato di una settimana",
     "ecarte": "{{nom}} scartato per questo immobile",
@@ -608,7 +611,8 @@
       "nouveauCourt": "Nuovo sul mercato",
       "nouveau": "Nuovo sul mercato dal {{date}}",
       "mandatCourt": "Nuovo mandato",
-      "mandat": "Nuovo mandato del {{date}}"
+      "mandat": "Nuovo mandato del {{date}}",
+      "pastille": "Nuovo"
     },
     "corrections": {
       "section": "Ricerche da adattare",

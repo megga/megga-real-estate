@@ -3,7 +3,7 @@
  * survol des lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
  * dessinent jamais de deux façons sur un écran.
  */
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
@@ -59,8 +59,9 @@ export function FilScore({ sp, score, palier, grand = false }: { sp: CrmPalette;
 }
 
 /**
- * Une baisse de prix sur une ligne : la flèche et le montant, sans phrase (décision de Julien, 01.10.2026). La phrase
- * reste au survol et pour un lecteur d'écran (« Prix baissé de CHF 250'000 ») ; un panneau l'écrit en entier, datée.
+ * Une baisse de prix sur une ligne ou sur la photo d'un panneau : la flèche et le montant, sans phrase (décision de
+ * Julien, 01.10.2026). La phrase reste au survol et pour un lecteur d'écran (« Prix baissé de CHF 250'000 ») ; le dépli
+ * d'un panneau l'écrit en entier, datée.
  */
 export function FilBaisse({ sp, montant }: { sp: CrmPalette; montant: string }) {
   const { t } = useTranslation('matching')
@@ -69,6 +70,24 @@ export function FilBaisse({ sp, montant }: { sp: CrmPalette; montant: string }) 
     <span title={libelle} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', whiteSpace: 'nowrap' }}>
       <span aria-hidden style={{ display: 'inline-flex' }}><MEIcon name="arrow-down" size={12} color={sp.sub} /></span>
       <span aria-hidden>{montant}</span>
+      <span className="sr-only">{libelle}</span>
+    </span>
+  )
+}
+
+/**
+ * Un bien neuf — un mandat, une annonce nouvelle sur le marché — en un mot : « Nouveau ». Son libellé (« Nouveau
+ * mandat ») au survol et pour un lecteur d'écran, comme la flèche de `FilBaisse`. La pastille d'une ligne par défaut ;
+ * `style` la remplace là où elle se pose ailleurs (sur la photo de la carte focus).
+ */
+export function FilNouveau({ sp, libelle, style }: { sp: CrmPalette; libelle: string; style?: CSSProperties }) {
+  const { t } = useTranslation('matching')
+  return (
+    <span title={libelle} style={style ?? {
+      flex: 'none', padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${sp.cardBorder}`,
+      fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.ink,
+    }}>
+      <span aria-hidden>{t('fil.signal.pastille')}</span>
       <span className="sr-only">{libelle}</span>
     </span>
   )

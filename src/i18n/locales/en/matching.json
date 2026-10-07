@@ -411,6 +411,8 @@
     },
     "panneauAria": "{{acheteur}} for {{bien}}",
     "pourquoi": "Why this match",
+    "criteresSur_one": "{{count}} of {{total}} criteria",
+    "criteresSur_other": "{{count}} of {{total}} criteria",
     "colonnes": {
       "critere": "Criterion",
       "recherche": "Looking for",
@@ -483,7 +485,8 @@
       "plusTard": "Later",
       "ecarter": "Dismiss",
       "raccourci": "Shortcut: {{touche}}",
-      "infobulle": "{{libelle}} · {{touche}}"
+      "infobulle": "{{libelle}} · {{touche}}",
+      "propose": "Proposed"
     },
     "reporte": "{{nom}} postponed by a week",
     "ecarte": "{{nom}} dismissed for this property",
@@ -608,7 +611,8 @@
       "nouveauCourt": "New on the market",
       "nouveau": "New on the market since {{date}}",
       "mandatCourt": "New mandate",
-      "mandat": "New mandate from {{date}}"
+      "mandat": "New mandate from {{date}}",
+      "pastille": "New"
     },
     "corrections": {
       "section": "Searches to adjust",
