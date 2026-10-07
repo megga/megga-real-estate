@@ -82,20 +82,33 @@ export function texteEtatCompatible(e: EtatCompatible, location: boolean, t: TFu
 }
 
 /**
- * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), ou `null` sans baisse mesurée sur
- * `prix_propose`. Long dans un panneau — « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000
- * depuis », ou « Prix baissé de … depuis que vous l'avez proposé » sur un bien sans réponse —, court sur une
- * ligne (« Prix baissé de CHF 250'000 »).
+ * La baisse du prix d'un bien depuis qu'on l'a proposé à CET acheteur (le signal du lot B), écrite (« CHF 250'000 »),
+ * ou `null` sans baisse mesurée sur `prix_propose`. Une ligne la dessine en flèche (`FilBaisse`).
+ */
+export function baisseDuMatch(m: FilMatch, t: TFunction): string | null {
+  const s = signalPrix(m)
+  return s && m.suivi?.prixPropose != null ? montant(m.bien.location, s.baisse, t) : null
+}
+
+/** La baisse du prix d'une annonce (le signal « pourquoi maintenant » du lot C), écrite ; `null` pour un autre signal. */
+export function baisseDuBien(s: SignalBien, bien: FilBien, t: TFunction): string | null {
+  return s.genre === 'baisse' ? montant(bien.location, s.montant, t) : null
+}
+
+/**
+ * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), écrit pour un panneau, ou `null` sans baisse
+ * mesurée sur `prix_propose` : « Refusé par Antoine à CHF 3'450'000 · baissé de CHF 250'000 depuis », ou « Prix
+ * baissé de … depuis que vous l'avez proposé » sur un bien sans réponse. Sur une ligne, c'est une flèche
+ * (`baisseDuMatch`).
  *
  * ⚠ Aucune tournure « de {{prenom}} » : le français élide devant une voyelle (« d'Antoine », « d'Emma »), et
  * une interpolation ne le sait pas.
  */
-export function texteSignal(m: FilMatch, t: TFunction, court = false): string | null {
+export function texteSignal(m: FilMatch, t: TFunction): string | null {
   const s = signalPrix(m)
   const propose = m.suivi?.prixPropose
   if (!s || propose == null) return null
   const baisse = montant(m.bien.location, s.baisse, t)
-  if (court) return t('fil.signal.court', { montant: baisse })
   return s.depuis === 'refus'
     ? t('fil.signal.baisseRefus', { prenom: m.acheteur.prenom, prix: montant(m.bien.location, propose, t), montant: baisse })
     : t('fil.signal.baissePropose', { montant: baisse })
@@ -103,14 +116,13 @@ export function texteSignal(m: FilMatch, t: TFunction, court = false): string | 
 
 /**
  * Le signal « pourquoi maintenant » d'un bien (lot C), écrit : court sur une ligne (« Nouveau sur le marché »),
- * daté dans un panneau (« Prix baissé de CHF 250'000 le 18.09 »).
+ * daté dans un panneau (« Prix baissé de CHF 250'000 le 18.09 »). Une baisse ne s'écrit que dans un panneau : sur
+ * une ligne, c'est une flèche (`baisseDuBien`).
  */
 export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, court = false): string {
   switch (s.genre) {
-    case 'baisse': {
-      const baisse = montant(bien.location, s.montant, t)
-      return court ? t('fil.signal.court', { montant: baisse }) : t('fil.signal.baisseMarche', { montant: baisse, date: dateCourte(s.le) })
-    }
+    case 'baisse':
+      return t('fil.signal.baisseMarche', { montant: montant(bien.location, s.montant, t), date: dateCourte(s.le) })
     case 'nouveau':
       return court ? t('fil.signal.nouveauCourt') : t('fil.signal.nouveau', { date: dateCourte(s.le) })
     case 'mandat':
@@ -118,12 +130,12 @@ export function texteSignalBien(s: SignalBien, bien: FilBien, t: TFunction, cour
   }
 }
 
-/** Le signal d'un match, écrit : le sien d'abord (lot B — il parle de CET acheteur), sinon celui de son bien. */
-export function texteSignalMatch(m: FilMatch, t: TFunction, maintenant: number, court = false): string | null {
-  const propre = texteSignal(m, t, court)
+/** Le signal d'un match, écrit pour un panneau : le sien d'abord (lot B — il parle de CET acheteur), sinon celui de son bien. */
+export function texteSignalMatch(m: FilMatch, t: TFunction, maintenant: number): string | null {
+  const propre = texteSignal(m, t)
   if (propre) return propre
   const s = signalBien(m.bien, maintenant)
-  return s ? texteSignalBien(s, m.bien, t, court) : null
+  return s ? texteSignalBien(s, m.bien, t) : null
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
- * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, le bouton d'un geste et le survol des
- * lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
+ * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, la baisse d'un prix, le bouton d'un geste et le
+ * survol des lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
  * dessinent jamais de deux façons sur un écran.
  */
 import type { ReactNode } from 'react'
@@ -53,6 +53,22 @@ export function FilScore({ sp, score, palier, grand = false }: { sp: CrmPalette;
       <span aria-hidden style={{ fontSize: grand ? 'var(--crm-text-6xl)' : 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
         {score}
       </span>
+      <span className="sr-only">{libelle}</span>
+    </span>
+  )
+}
+
+/**
+ * Une baisse de prix sur une ligne : la flèche et le montant, sans phrase (décision de Julien, 01.10.2026). La phrase
+ * reste au survol et pour un lecteur d'écran (« Prix baissé de CHF 250'000 ») ; un panneau l'écrit en entier, datée.
+ */
+export function FilBaisse({ sp, montant }: { sp: CrmPalette; montant: string }) {
+  const { t } = useTranslation('matching')
+  const libelle = t('fil.signal.court', { montant })
+  return (
+    <span title={libelle} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', whiteSpace: 'nowrap' }}>
+      <span aria-hidden style={{ display: 'inline-flex' }}><MEIcon name="arrow-down" size={12} color={sp.sub} /></span>
+      <span aria-hidden>{montant}</span>
       <span className="sr-only">{libelle}</span>
     </span>
   )

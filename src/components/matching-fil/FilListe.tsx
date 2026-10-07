@@ -24,9 +24,11 @@ import {
   type FilBien, type FilMatch, type FilSelectionResume, type FilVue,
 } from './filModele'
 import type { Correction } from './filApprendre'
-import { dateCourte, encreAccent, prixBien, styleLigne, teinteEcart, texteSignal, texteSignalBien, unSeulClic } from './filAffichage'
+import {
+  baisseDuBien, baisseDuMatch, dateCourte, encreAccent, prixBien, styleLigne, teinteEcart, texteSignalBien, unSeulClic,
+} from './filAffichage'
 import { signalBien } from './filSignaux'
-import { FilAvatar, FilScore, FilVignette } from './filAtomes'
+import { FilAvatar, FilBaisse, FilScore, FilVignette } from './filAtomes'
 
 interface Props {
   sp: CrmPalette
@@ -178,6 +180,7 @@ function EnTeteBien({ sp, bien, nombre, maintenant, active, onChoisir }: {
   const { t } = useTranslation('matching')
   const cle = cleBien(bien.id)
   const signal = signalBien(bien, maintenant)
+  const baisse = signal ? baisseDuBien(signal, bien, t) : null
   return (
     <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={cle}
       aria-label={t('fil.quiPour.ligneAria', { titre: bien.titre, count: nombre })}
@@ -188,8 +191,9 @@ function EnTeteBien({ sp, bien, nombre, maintenant, active, onChoisir }: {
           {bien.titre}
         </span>
         <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {/* La forme COURTE sur la ligne (« Nouveau mandat ») ; la date est dans le panneau. */}
-          {[prixBien(bien, t), t('fil.acheteurs', { count: nombre }), signal ? texteSignalBien(signal, bien, t, true) : null].filter(Boolean).join(' · ')}
+          {/* La forme COURTE sur la ligne (« Nouveau mandat », une baisse en flèche) ; la date est dans le panneau. */}
+          {[prixBien(bien, t), t('fil.acheteurs', { count: nombre }), signal && !baisse ? texteSignalBien(signal, bien, t, true) : null].filter(Boolean).join(' · ')}
+          {baisse && <> · <FilBaisse sp={sp} montant={baisse} /></>}
         </span>
       </span>
       {/* ⚠ L'invite ne s'écrit que sur l'en-tête CHOISI : écrite sur chacun, elle coupait le sous-titre, et avec lui le
@@ -205,11 +209,12 @@ function Ligne({ sp, m, active, onChoisir }: { sp: CrmPalette; m: FilMatch; acti
   const { t } = useTranslation('matching')
   const lignes = lignesCriteres(m)
   const ecart = premierEcart(lignes)
-  const signal = texteSignal(m, t, true)
-  // Sans écart, rien : l'alerte ne se lit que là où il y en a une.
-  const resume = signal ?? (lignes.length === 0 ? t('fil.sansCriteres')
+  const baisse = baisseDuMatch(m, t)
+  // Une baisse passe devant les critères : c'est le « pourquoi maintenant » de CET acheteur. Sans écart, rien :
+  // l'alerte ne se lit que là où il y en a une.
+  const resume = baisse ? null : lignes.length === 0 ? t('fil.sansCriteres')
     : ecart ? t('fil.ecartSur', { critere: t(`fil.criteres.${ecart}`) })
-      : lignes.some((l) => l.ok === null) ? t('fil.nonEvalues') : null)
+      : lignes.some((l) => l.ok === null) ? t('fil.nonEvalues') : null
   return (
     <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={m.id}
       className="fil-ligne" onClick={unSeulClic(() => onChoisir(m.id))} onFocus={() => onChoisir(m.id)} style={styleLigne(sp, active)}>
@@ -220,9 +225,10 @@ function Ligne({ sp, m, active, onChoisir }: { sp: CrmPalette; m: FilMatch; acti
         </span>
         {/* ⚠ Le résumé reste à l'encre sourde, l'écart est porté par l'icône : l'ambre en texte tombe
             à 4,29:1 sur la ligne choisie ou survolée, en clair. */}
-        {resume && (
+        {(baisse || resume) && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-            {ecart && !signal && (
+            {baisse && <FilBaisse sp={sp} montant={baisse} />}
+            {ecart && !baisse && (
               <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
                 <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
               </span>
