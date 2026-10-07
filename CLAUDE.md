@@ -647,6 +647,7 @@ useEffect(() => {
 - Composants shadcn/ui quand ils existent
 - États loading, empty, error pour chaque liste/page
 - Responsive mobile-first (md: lg:)
+- Maquettes (compagnon visuel, artefact, HTML, sous-agent compris) : charger le skill `design-taste-frontend` avant de dessiner, puis relire avec `web-design-guidelines` avant de montrer — décision de Julien du 07.10.2026, « très, très important ». Ces deux skills visent des sites en anglais : en cas de conflit, ce document prime (MEGGA X, français, `formatCHF()`, Lucide + MEIcon)
 - Human-in-the-loop : validation KYC, envoi message/document
 - Audit trail : `activity_events` pour toute action (y compris IA avec `actor_kind = 'ai'`, `actor_id` NULL — une FK uuid ne porte pas `'ai'`, et le CHECK de cohérence réserve `actor_id` aux humains ; l'acteur se LIT dans `actor_kind`, cf. `src/lib/auditActor.ts`)
 - Appeler une Edge Function par `supabase.functions.invoke` ou `urlFonction` (`src/lib/supabase.ts` ; côté edge `_shared/function-url.ts`), jamais par une URL écrite à la main : c'est ce qui l'épingle dans la région de la base — sans quoi elle s'exécute près de l'appelant, aux États-Unis pour Meta (13.09.2026, system-map §5)
