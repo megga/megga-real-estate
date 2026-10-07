@@ -11,9 +11,12 @@
  * Une `option` dans le groupe du bien — un `listbox` ne contient que des options et des groupes. Il porte le
  * signal « nouveau mandat ».
  *
- * ⚠ Un bien refusé pour le PRIX et revenu par une baisse porte, à la place de ses écarts, « Prix baissé de
- * … » : c'est ce qui le ramène, donc ce qui le fait proposer (le panneau dit le reste). Le survol des lignes
+ * ⚠ Un bien refusé pour le PRIX et revenu par une baisse porte, à la place de ses écarts, la flèche de sa baisse
+ * (`FilBaisse`) : c'est ce qui le ramène, donc ce qui le fait proposer (le panneau dit le reste). Le survol des lignes
  * (`.fil-ligne`) est posé par `MatchingFil` (`FilStyleLignes`), commun aux trois onglets.
+ *
+ * ⚠ Le fil épuré (07.10.2026) : des sous-titres courts (« À ajuster », « Marché »), des compteurs et des icônes au lieu
+ * de phrases ; un libellé ôté de l'écran reste au survol et pour un lecteur d'écran.
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -28,7 +31,7 @@ import {
   baisseDuBien, baisseDuMatch, dateCourte, encreAccent, prixBien, styleLigne, teinteEcart, texteSignalBien, unSeulClic,
 } from './filAffichage'
 import { signalBien } from './filSignaux'
-import { FilAvatar, FilBaisse, FilScore, FilVignette } from './filAtomes'
+import { FilAvatar, FilBaisse, FilCompteur, FilNouveau, FilScore, FilVignette } from './filAtomes'
 
 interface Props {
   sp: CrmPalette
@@ -46,7 +49,6 @@ interface Props {
 export default function FilListe({ sp, vue, selections, corrections, courant, onChoisir, onReactiver, maintenant }: Props) {
   const { t } = useTranslation('matching')
   const [reportesOuverts, setReportesOuverts] = useState(false)
-  const prochainRetour = vue.reportes[0]?.reporteJusquau ?? null
   const titreSection = { margin: 0, padding: 'var(--crm-space-sm) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: sp.sub }
   return (
     <div style={{ padding: 'var(--crm-space-lg)' }}>
@@ -84,15 +86,16 @@ export default function FilListe({ sp, vue, selections, corrections, courant, on
           </div>
         </>
       )}
-      {vue.reportes.length > 0 && prochainRetour && (
+      {vue.reportes.length > 0 && (
         <div style={{ marginTop: 'var(--crm-space-md)', paddingTop: 'var(--crm-space-md)', borderTop: `1px solid ${sp.cardBorder}` }}>
           <button type="button" aria-expanded={reportesOuverts} onClick={() => setReportesOuverts((v) => !v)} style={{
             display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', width: '100%', border: 0, background: 'transparent',
             cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', color: sp.sub, textAlign: 'left',
             padding: 'var(--crm-space-sm) var(--crm-space-lg)',
           }}>
+            <MEIcon name="clock" size={14} color={sp.sub} />
+            {t('fil.reportes', { count: vue.reportes.length })}
             <MEIcon name={reportesOuverts ? 'chevron-up' : 'chevron-down'} size={14} color={sp.sub} />
-            {t('fil.reportes', { count: vue.reportes.length, date: dateCourte(prochainRetour) })}
           </button>
           {reportesOuverts && vue.reportes.map((m) => (
             <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-lg)' }}>
@@ -161,11 +164,9 @@ function LigneSelection({ sp, s, active, onChoisir }: { sp: CrmPalette; s: FilSe
           {s.acheteur.prenom} {s.acheteur.nom}
         </span>
         <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-          {[
-            t('fil.selection.ligne', { count: s.nombre }),
-            s.baisses ? t('fil.selection.baisses', { count: s.baisses }) : null,
-            s.nouveaux ? t('fil.selection.nouveaux', { count: s.nouveaux }) : null,
-          ].filter(Boolean).join(' · ')}
+          {t('fil.selection.biens', { count: s.nombre })}
+          {s.baisses ? <> · <FilCompteur sp={sp} icone="arrow-down" valeur={s.baisses} libelle={t('fil.selection.baisses', { count: s.baisses })} /></> : null}
+          {s.nouveaux ? <> · <FilCompteur sp={sp} icone="bolt" valeur={s.nouveaux} libelle={t('fil.selection.nouveaux', { count: s.nouveaux })} /></> : null}
         </span>
       </span>
       <FilScore sp={sp} score={s.meilleurScore} palier={palierScore(s.meilleurScore)} />
@@ -181,9 +182,13 @@ function EnTeteBien({ sp, bien, nombre, maintenant, active, onChoisir }: {
   const cle = cleBien(bien.id)
   const signal = signalBien(bien, maintenant)
   const baisse = signal ? baisseDuBien(signal, bien, t) : null
+  const nouveau = signal && !baisse ? texteSignalBien(signal, bien, t, true) : null
+  // ⚠ Le nom de l'option COUVRE son contenu : le libellé de la pastille ou de la flèche n'atteint un lecteur d'écran que
+  // par lui — leur `sr-only`, ici, n'est lu par personne.
+  const signalLu = nouveau ?? (baisse ? t('fil.signal.court', { montant: baisse }) : null)
   return (
     <button type="button" role="option" aria-selected={active} tabIndex={active ? 0 : -1} data-match={cle}
-      aria-label={t('fil.quiPour.ligneAria', { titre: bien.titre, count: nombre })}
+      aria-label={[t('fil.quiPour.ligneAria', { titre: bien.titre, count: nombre }), signalLu].filter(Boolean).join(' · ')}
       className="fil-ligne" onClick={unSeulClic(() => onChoisir(cle))} onFocus={() => onChoisir(cle)} style={styleLigne(sp, active)}>
       <FilVignette sp={sp} photo={bien.photo} largeur={40} hauteur={30} />
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -191,13 +196,17 @@ function EnTeteBien({ sp, bien, nombre, maintenant, active, onChoisir }: {
           {bien.titre}
         </span>
         <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {/* La forme COURTE sur la ligne (« Nouveau mandat », une baisse en flèche) ; la date est dans le panneau. */}
-          {[prixBien(bien, t), t('fil.acheteurs', { count: nombre }), signal && !baisse ? texteSignalBien(signal, bien, t, true) : null].filter(Boolean).join(' · ')}
+          {/* Le prix seul : ses acheteurs sont listés dessous. Une baisse en flèche ; sa date est dans le panneau. */}
+          {prixBien(bien, t)}
           {baisse && <> · <FilBaisse sp={sp} montant={baisse} /></>}
         </span>
       </span>
-      {/* ⚠ L'invite ne s'écrit que sur l'en-tête CHOISI : écrite sur chacun, elle coupait le sous-titre, et avec lui le
-          signal « Nouveau mandat » — le « pourquoi maintenant » qu'on veut lire. Ailleurs, la flèche seule. */}
+      {/* Un bien neuf (un mandat, une annonce) : la pastille « Nouveau », son libellé au survol. ⚠ Sur l'en-tête CHOISI elle
+          cède sa place à l'invite — le panneau qu'il ouvre dit le signal : les deux ensemble ne laissaient au titre et au
+          prix que 23 px d'une colonne de 300. */}
+      {nouveau && !active && <FilNouveau sp={sp} libelle={nouveau} />}
+      {/* ⚠ L'invite ne s'écrit que sur l'en-tête CHOISI : écrite sur chacun, elle rognait le titre et le prix de chaque
+          bien. Ailleurs, la flèche seule. */}
       <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: encreAccent(sp) }}>
         {active && t('fil.quiPour.titre')}<MEIcon name="arrow-right" size={12} color={active ? encreAccent(sp) : sp.sub} />
       </span>

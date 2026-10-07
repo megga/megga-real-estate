@@ -1,7 +1,8 @@
 /**
- * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, la baisse d'un prix, le bouton d'un geste et le
- * survol des lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
- * dessinent jamais de deux façons sur un écran.
+ * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, une donnée en icône (la baisse d'un prix, les
+ * compteurs d'une ligne « Marché »), la pastille « Nouveau », le bouton d'un geste et le survol des lignes, partagés par
+ * les listes et les panneaux : un même acheteur, un même score ou un même geste ne se dessinent jamais de deux façons
+ * sur un écran.
  */
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -59,20 +60,28 @@ export function FilScore({ sp, score, palier, grand = false }: { sp: CrmPalette;
 }
 
 /**
+ * Une donnée en icône : l'icône et sa valeur à l'écran, son libellé au survol et pour un lecteur d'écran — la baisse
+ * d'un prix (`FilBaisse`), les compteurs d'une ligne « Marché » (« ↓ 1 », « ⚡ 1 »). ⚠ `verticalAlign` la pose sur la
+ * ligne d'un texte : sans lui, écrite après un texte, elle montait de 2 px ; dans une rangée flex, il est sans effet.
+ */
+export function FilCompteur({ sp, icone, valeur, libelle }: { sp: CrmPalette; icone: MEIconName; valeur: string | number; libelle: string }) {
+  return (
+    <span title={libelle} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
+      <span aria-hidden style={{ display: 'inline-flex' }}><MEIcon name={icone} size={12} color={sp.sub} /></span>
+      <span aria-hidden>{valeur}</span>
+      <span className="sr-only">{libelle}</span>
+    </span>
+  )
+}
+
+/**
  * Une baisse de prix sur une ligne ou sur la photo d'un panneau : la flèche et le montant, sans phrase (décision de
  * Julien, 01.10.2026). La phrase reste au survol et pour un lecteur d'écran (« Prix baissé de CHF 250'000 ») ; le dépli
  * d'un panneau l'écrit en entier, datée.
  */
 export function FilBaisse({ sp, montant }: { sp: CrmPalette; montant: string }) {
   const { t } = useTranslation('matching')
-  const libelle = t('fil.signal.court', { montant })
-  return (
-    <span title={libelle} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flex: 'none', whiteSpace: 'nowrap' }}>
-      <span aria-hidden style={{ display: 'inline-flex' }}><MEIcon name="arrow-down" size={12} color={sp.sub} /></span>
-      <span aria-hidden>{montant}</span>
-      <span className="sr-only">{libelle}</span>
-    </span>
-  )
+  return <FilCompteur sp={sp} icone="arrow-down" valeur={montant} libelle={t('fil.signal.court', { montant })} />
 }
 
 /**
