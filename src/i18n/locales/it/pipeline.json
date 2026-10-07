@@ -142,10 +142,6 @@
       "counter_sent": "Controfferta inviata"
     },
     "next_action": "Prossima azione",
-    "matches_title": "Immobili da proporre",
-    "matches_count_one": "{{count}} match",
-    "matches_count_other": "{{count}} match",
-    "no_matches": "Nessun immobile del portafoglio corrisponde ancora.",
     "open_contact": "Apri la scheda contatto",
     "lang": {
       "fr": "Francese",
@@ -430,6 +426,11 @@
     "jusquaSignature": "Fino alla firma",
     "kycClient": "KYC del cliente",
     "ouvrirMatching": "Apri il matching",
+    "matching": {
+      "titre": "Matching",
+      "nombre_one": "{{count}} immobile",
+      "nombre_other": "{{count}} immobili"
+    },
     "visites": "Visite",
     "aucuneVisite": "Nessuna visita per ora.",
     "planifierVisite": "Pianifica una visita",

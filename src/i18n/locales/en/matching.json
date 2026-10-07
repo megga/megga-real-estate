@@ -367,6 +367,11 @@
     }
   },
   "fil": {
+    "affaire": {
+      "chargement": "Reading the buyer's properties…",
+      "erreur": "The buyer's properties could not be read.",
+      "aucun": "No properties yet."
+    },
     "titre": "Matching",
     "chargement": "Loading matches",
     "filtres": {

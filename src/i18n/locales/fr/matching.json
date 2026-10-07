@@ -367,6 +367,11 @@
     }
   },
   "fil": {
+    "affaire": {
+      "chargement": "Lecture des biens de l'acheteur…",
+      "erreur": "Les biens de l'acheteur n'ont pas pu être lus.",
+      "aucun": "Aucun bien pour l'instant."
+    },
     "titre": "Matching",
     "chargement": "Chargement des matchs",
     "filtres": {

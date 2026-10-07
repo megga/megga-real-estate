@@ -367,6 +367,11 @@
     "start": "Aggiungi un acquirente"
   },
   "fil": {
+    "affaire": {
+      "chargement": "Lettura degli immobili dell'acquirente…",
+      "erreur": "Non è stato possibile leggere gli immobili dell'acquirente.",
+      "aucun": "Ancora nessun immobile."
+    },
     "titre": "Matching",
     "chargement": "Caricamento dei match",
     "filtres": {

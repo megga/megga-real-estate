@@ -142,10 +142,6 @@
       "counter_sent": "Counter-offer sent"
     },
     "next_action": "Next action",
-    "matches_title": "Properties to propose",
-    "matches_count_one": "{{count}} match",
-    "matches_count_other": "{{count}} matches",
-    "no_matches": "No portfolio property matches yet.",
     "open_contact": "Open the contact profile",
     "lang": {
       "fr": "French",
@@ -430,6 +426,11 @@
     "jusquaSignature": "Until signing",
     "kycClient": "Client KYC",
     "ouvrirMatching": "Open matching",
+    "matching": {
+      "titre": "Matching",
+      "nombre_one": "{{count}} property",
+      "nombre_other": "{{count}} properties"
+    },
     "visites": "Viewings",
     "aucuneVisite": "No viewing yet.",
     "planifierVisite": "Schedule a viewing",

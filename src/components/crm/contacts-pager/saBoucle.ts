@@ -100,8 +100,11 @@ const ETATS: Record<string, EtatBoucle> = {
 
 const premiere = <T>(x: T | T[] | null | undefined): T | null => (Array.isArray(x) ? x[0] ?? null : x ?? null)
 
-/** Un match de la fiche, dans la forme du fil ; `null` sans bien — un mandat masqué par la RLS, ou supprimé, n'en a pas. */
-function versMatch(l: LigneBoucleContact, acheteur: FilMatch['acheteur'], criteres: SearchCriteria | null): FilMatch | null {
+/**
+ * Un match de la fiche, dans la forme du fil ; `null` sans bien — un mandat masqué par la RLS, ou supprimé, n'en a pas.
+ * Lu aussi par le bloc « Matching » de la fiche d'affaire (`filAffaire.ts`), pour ses biens à proposer.
+ */
+export function versMatch(l: LigneBoucleContact, acheteur: FilMatch['acheteur'], criteres: SearchCriteria | null): FilMatch | null {
   const bienId = l.property_id ?? l.market_listing_id
   if (!bienId) return null
   // Un mandat supprimé revient sans jointure : `properties_select_agency` exige `deleted_at is null`. La règle du fil :

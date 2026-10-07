@@ -367,6 +367,11 @@
     "start": "Käufer hinzufügen"
   },
   "fil": {
+    "affaire": {
+      "chargement": "Objekte des Käufers werden gelesen…",
+      "erreur": "Die Objekte des Käufers konnten nicht gelesen werden.",
+      "aucun": "Noch kein Objekt."
+    },
     "titre": "Matching",
     "chargement": "Matches werden geladen",
     "filtres": {

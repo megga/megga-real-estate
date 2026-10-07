@@ -142,10 +142,6 @@
       "counter_sent": "Gegenangebot gesendet"
     },
     "next_action": "Nächste Aktion",
-    "matches_title": "Objekte zum Vorschlagen",
-    "matches_count_one": "{{count}} Match",
-    "matches_count_other": "{{count}} Matches",
-    "no_matches": "Noch kein Objekt des Portfolios passt.",
     "open_contact": "Kontaktprofil öffnen",
     "lang": {
       "fr": "Französisch",
@@ -430,6 +426,11 @@
     "jusquaSignature": "Bis zur Unterzeichnung",
     "kycClient": "KYC des Kunden",
     "ouvrirMatching": "Matching öffnen",
+    "matching": {
+      "titre": "Matching",
+      "nombre_one": "{{count}} Objekt",
+      "nombre_other": "{{count}} Objekte"
+    },
     "visites": "Besichtigungen",
     "aucuneVisite": "Noch keine Besichtigung.",
     "planifierVisite": "Besichtigung planen",

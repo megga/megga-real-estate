@@ -13,7 +13,8 @@
  *    page invitait à « Saisir une offre ». Ici, les cinq phases et le stade exact, RÉGLABLES ;
  *  - rien ne s'y faisait AVANCER : la prochaine action n'avait ni date ni geste ;
  *  - les biens proposés venaient d'un calcul local (deux studios à 89 % pour une acheteuse de quatre
- *    pièces) : ici, le moteur de matching (`useFicheAffaire`) ;
+ *    pièces) : ici, le matching de l'acheteur, bien par bien et par état — le bloc « Matching »
+ *    (`useMatchingAffaire`, étape 5b-1), en Prospects, Recherche et Visites ;
  *  - l'offre se lisait sans le prix demandé : ici, l'écart de chaque tour au prix affiché ;
  *  - aucun historique : ici, les faits de l'affaire et ses offres, datés.
  *
@@ -42,17 +43,19 @@ import {
   useCompleteReminder, usePipelineReminderCreators, useRescheduleReminder, useTransactionNextReminder,
 } from '@/hooks/usePipelineNextActions'
 import { useFicheAffaire } from '@/hooks/useFicheAffaire'
+import { useMatchingAffaire } from '@/hooks/useMatchingAffaire'
 import { ACTION_CLOTURE, useClotureAffaire, usePlanifierApresVente } from '@/hooks/useClotureAffaire'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { mapStage } from '@/lib/crmAdapters'
+import { dealOuvert } from '@/lib/dealOuvert'
 import { avecArrivee } from '@/lib/jetonArrivee'
 import type { TransactionStage } from '@/lib/constants'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import type { Offer, OfferKind } from '@/types/offer'
-import { crmFmtCHF, crmMix, crmPalette, crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
+import { crmFmtCHF, crmMix, crmPalette, type CrmPalette } from '@/components/crm/tokens'
 import { CapsuleToast } from '@/components/crm/pipeline/CapsuleToast'
 import { ClotureAffaire } from '@/components/crm/pipeline/ClotureAffaire'
 import { ETAPES_APRES_VENTE, dateEtape } from '@/components/crm/pipeline/apresVente'
@@ -62,6 +65,8 @@ import { menuNatifVoulu, type EntreeMenu, type MenuOuvert } from '@/components/c
 import { echeanceDans, iconeAction, jourCourt, joursProposes } from '@/components/crm/pipeline/affaire'
 import { PHASES, echeanceDe, joursJusqua, montantCourt, phase, phaseDe, stadeDEntree } from '@/components/crm/pipeline/phases'
 import { ton } from '@/components/crm/pipeline/tons'
+import BlocMatchingAffaire from '@/components/matching-fil/BlocMatchingAffaire'
+import { lienFil } from '@/components/matching-fil/filLiens'
 
 /** Une section de la feuille : un filet en haut, jamais une carte. */
 function Section({ sp, titre, droite, etire, premiere, children }: {
@@ -125,9 +130,12 @@ export default function DealDetailPage() {
   const { data: contact } = useContact(contactId)
   const { data: bien } = useProperty(deal?.property_id || undefined)
   const { data: chaine = [] } = useOfferChain(deal?.id)
-  const { data: kyc } = useKycDossierByContact(deal?.contact_buyer_id ?? undefined)
+  const acheteurId = deal?.contact_buyer_id ?? undefined
+  const { data: kyc } = useKycDossierByContact(acheteurId)
   const { nextAction } = useTransactionNextReminder(deal?.id)
-  const { faits, matchs, visites } = useFicheAffaire(deal?.id, contactId)
+  const { faits, visites } = useFicheAffaire(deal?.id, contactId)
+  // Le matching de l'ACHETEUR : une affaire côté vendeur seul n'en a pas (le bloc ne s'y rend pas).
+  const matching = useMatchingAffaire(acheteurId)
   // La clôture ne se lit que pour une affaire conclue : une affaire en cours n'a rien à clore.
   const { data: etatCloture } = useClotureAffaire(deal?.id, deal?.status === 'completed')
   const planifierApres = usePlanifierApresVente()
@@ -210,6 +218,14 @@ export default function DealDetailPage() {
   const prixDemande = bien?.price ?? null
   const dernier = lastOffer(chaine)
   const vendeurSeul = !deal.contact_buyer_id && !!deal.contact_seller_id
+  // Le bloc « Matching » (étape 5b-1) : tant que l'affaire cherche son bien, et qu'elle est OUVERTE (`dealOuvert`, la
+  // règle des gestes du fil : ni conclue, ni perdue, ni annulée, ni archivée). À partir de l'Offre, la fiche se concentre
+  // sur le bien négocié ; une affaire revenue en Recherche le retrouve.
+  const montrerMatching = !!acheteurId && dealOuvert(deal)
+    && (idPhase === 'prospects' || idPhase === 'recherche' || idPhase === 'visites')
+  // Le nombre de l'en-tête ne se dit qu'avec les lignes, c'est-à-dire une fois TOUTES les lectures rendues
+  // (`aDesDonnees`) : avant, il compterait ce qui est déjà arrivé, puis sauterait.
+  const montrerNombre = matching.aDesDonnees && matching.total > 0
 
   const rafraichir = () => { void queryClient.invalidateQueries({ queryKey: ['fiche-affaire'] }) }
 
@@ -553,31 +569,9 @@ export default function DealDetailPage() {
         </Section>
       )
     }
-    return (
-      <Section sp={sp} premiere titre={t('deal.matches_title')}
-        droite={<span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('deal.matches_count', { count: matchs.length })}</span>}>
-        {matchs.length === 0
-          ? <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub }}>{t('deal.no_matches')}</span>
-          : matchs.map((m, i) => (
-            <button key={m.id} type="button"
-              onClick={() => { if (m.bien.interne && m.bien.id) navigate(`/dashboard/listings/${m.bien.id}`) }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) 0', textAlign: 'left',
-                border: 0, background: 'transparent', fontFamily: 'inherit', cursor: m.bien.interne ? 'pointer' : 'default',
-                borderTop: i === 0 ? 'none' : `1px solid ${sp.cardBorder}`,
-              }}>
-              <span style={{
-                minWidth: 40, textAlign: 'center', padding: 'var(--crm-space-2xs) var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)',
-                background: i === 0 ? ton('aujourdhui', sp).fond : crmVoileEncre(dark, dark ? 0.06 : 0.05),
-                color: i === 0 ? ton('aujourdhui', sp).encre : sp.ink, fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums',
-              }}>{m.score} %</span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.bien.titre}</span>
-              {m.bien.prix ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>{crmFmtCHF(m.bien.prix)}</span> : null}
-            </button>
-          ))}
-        <Lien sp={sp} onClick={() => navigate(`/dashboard/matching${contactId ? `?contact=${contactId}` : ''}`, contactId ? avecArrivee() : undefined)}>{t('fiche.ouvrirMatching')}</Lien>
-      </Section>
-    )
+    // Prospects et Recherche sans offre : rien de propre à la phase — le bloc « Matching », monté juste après, prend
+    // la tête de la colonne (`premiere={phaseContenu == null}`) ; sans lui, c'est l'historique.
+    return null
   })()
 
   function loyerOuPrix(montant: number): string {
@@ -780,7 +774,19 @@ export default function DealDetailPage() {
             </Section>
           )}
           {phaseContenu}
-          <Section sp={sp} titre={t('fiche.historique')} etire>
+          {montrerMatching && (
+            <Section sp={sp} premiere={phaseContenu == null} titre={t('fiche.matching.titre')}
+              droite={montrerNombre
+                ? <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('fiche.matching.nombre', { count: matching.total })}</span>
+                : undefined}>
+              <BlocMatchingAffaire sp={sp} lecture={matching} />
+              <Lien sp={sp} onClick={() => navigate(`/dashboard/matching?${lienFil({ contact: acheteurId })}`, avecArrivee())}>{t('fiche.ouvrirMatching')}</Lien>
+            </Section>
+          )}
+          {/* Seul dans sa colonne — une affaire en Prospects ou en Recherche, sans offre et sans bloc « Matching »
+              (archivée, annulée, sans acheteur) —, l'historique prend le filet de tête : celui de la grille ne doit pas
+              s'y doubler. */}
+          <Section sp={sp} titre={t('fiche.historique')} etire premiere={chiffres.length === 0 && phaseContenu == null && !montrerMatching}>
             {historique.map((h, i) => (
               <div key={`${h.quand}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}>
                 <MEIcon name={h.icone} size={13} color={sp.sub} />

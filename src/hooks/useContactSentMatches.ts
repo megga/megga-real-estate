@@ -23,9 +23,10 @@ const REGROUPEMENT_MS = 300
 /**
  * Le match et son bien, colonnes légères (§7 de CLAUDE.md) ; le `status` d'un bien dit s'il est encore une occasion —
  * une annonce retirée, un mandat qui n'est plus en vente (lot E1) —, et `deleted_at` qu'un mandat est supprimé, ce que
- * seul un super-administrateur lit encore (`saBoucle`). Les deux lectures partagent ces colonnes.
+ * seul un super-administrateur lit encore (`saBoucle`). Les deux lectures partagent ces colonnes — et la fiche d'affaire,
+ * pour les biens à proposer de son acheteur (`useMatchingAffaire`) : `saBoucle` et `filAffaire` lisent les mêmes lignes.
  */
-const COLONNES = 'id, status, score, sent_at, response_at, reaction_motif, reaction_note, prix_propose, apprentissage_at,'
+export const COLONNES_BOUCLE = 'id, status, score, sent_at, response_at, reaction_motif, reaction_note, prix_propose, apprentissage_at,'
   + ' client_search_id, snoozed_until, property_id, market_listing_id,'
   + ' property:properties(title, address, city, canton, price, rooms, surface_m2, photos, type, transaction_type, features, status, deleted_at),'
   + ' market_listing:market_listings(title, address, city, canton, price, current_price, rooms, surface_m2, photos, photos_cf, type, transaction_type, features, status)'
@@ -67,10 +68,10 @@ export function useContactSentMatches(contactId: string | undefined): LectureBou
       // Un ORDRE TOTAL, la proposition la plus récente d'abord : sans lui, une troncature (`max_rows`) garderait
       // n'importe quelles lignes, et pas les mêmes d'une lecture à l'autre (la règle de `useMatchingFil`).
       const [boucle, revenus] = await Promise.all([
-        lire<LigneBoucleContact>(supabase.from('matches').select(COLONNES)
+        lire<LigneBoucleContact>(supabase.from('matches').select(COLONNES_BOUCLE)
           .eq('contact_id', contactId).in('status', STATUTS_BOUCLE)
           .order('sent_at', { ascending: false, nullsFirst: false }).order('id').abortSignal(signal)),
-        lire<LigneBoucleContact>(supabase.from('matches').select(COLONNES)
+        lire<LigneBoucleContact>(supabase.from('matches').select(COLONNES_BOUCLE)
           .eq('contact_id', contactId).eq('status', 'suggested').gt('prix_propose', 0)
           .order('sent_at', { ascending: false, nullsFirst: false }).order('id').abortSignal(signal)),
       ])
