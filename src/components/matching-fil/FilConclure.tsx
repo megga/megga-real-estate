@@ -13,7 +13,13 @@
  * matching ne fait plus (`matching-sans-sortie.spec.ts`). Mêmes durées (30 à 90 minutes).
  *
  * ⚠ L'annonce d'origine s'ouvre par un LIEN (`<a>`), jamais par `window.open` : son adresse vient du
- * portail, et seul un `http(s)` est rendu cliquable.
+ * portail, et seul un `http(s)` est rendu cliquable. Le fil épuré (07.10.2026) : une icône nommée à côté du titre ; le
+ * titre d'un mandat est le lien vers sa fiche — celui d'une annonce n'en est pas un : `onVoirBien` ouvre
+ * `/dashboard/listings/:id`, la fiche d'un MANDAT.
+ *
+ * ⚠ Le fil épuré garde ici deux choses qu'il retire des autres panneaux : la pastille « Votre bien » / « Marché » dit
+ * où la visite s'écrira (une visite, ou l'agenda — « À conclure » mêle les deux), et la ligne du prix finit sur
+ * l'adresse et la ville, le lieu que la visite écrira (`lieu`), relu avant de la confirmer.
  *
  * ⚠ L'horloge est FIGÉE à l'ouverture (`ouvertLe`, comme `PlanifierVisite`) : un rendu reste pur, et la date
  * proposée ne bouge pas pendant la saisie.
@@ -26,6 +32,7 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { addDays, format } from 'date-fns'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import type { VisiteAPlanifier } from '@/lib/matchingGestes'
 import { initiales, palierScore, type FilMatch } from './filModele'
@@ -75,7 +82,7 @@ export default function FilConclure({
   const lienAnnonce = bien.marche?.sourceUrl && /^https?:\/\//i.test(bien.marche.sourceUrl) ? bien.marche.sourceUrl : null
   const lien: CSSProperties = {
     border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-    fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: encreAccent(sp), textDecoration: 'none',
+    fontWeight: 600, color: sp.ink,
   }
   const champ: CSSProperties = {
     height: 36, border: `1px solid ${sp.cardBorder}`, borderRadius: 'var(--crm-radius-md)', background: sp.cardBg, color: sp.ink,
@@ -103,17 +110,23 @@ export default function FilConclure({
             }}>
               {t(bien.marche ? 'fil.selection.marche' : 'fil.votreBien')}
             </span>
-            <h2 style={{ margin: 0, marginTop: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink }}>{bien.titre}</h2>
+            <h2 style={{
+              margin: 0, marginTop: 'var(--crm-space-sm)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+              fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink,
+            }}>
+              {bien.marche ? bien.titre : (
+                <button type="button" onClick={onVoirBien} style={{ ...lien, fontSize: 'inherit' }}>{bien.titre}</button>
+              )}
+              {bien.marche && lienAnnonce && (
+                <a href={lienAnnonce} target="_blank" rel="noopener noreferrer" aria-label={t('fil.conclure.voirAnnonce')}
+                  title={t('fil.conclure.voirAnnonce')} style={{ display: 'inline-flex' }}>
+                  <MEIcon name="external" size={16} color={encreAccent(sp)} />
+                </a>
+              )}
+            </h2>
             <p style={{ margin: 0, marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub }}>
               {[etat ? t(etat) : null, prixBien(bien, t), bien.adresse, bien.ville].filter(Boolean).join(' · ')}
             </p>
-            {bien.marche
-              ? lienAnnonce && (
-                <a href={lienAnnonce} target="_blank" rel="noopener noreferrer" style={{ ...lien, display: 'inline-block', marginTop: 'var(--crm-space-sm)' }}>
-                  {t('fil.conclure.voirAnnonce')}
-                </a>
-              )
-              : <button type="button" onClick={onVoirBien} style={{ ...lien, marginTop: 'var(--crm-space-sm)' }}>{t('fil.voirBien')}</button>}
           </div>
           <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} grand />
         </div>
@@ -121,7 +134,7 @@ export default function FilConclure({
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <FilAvatar sp={sp} texte={initiales(acheteur.prenom, acheteur.nom)} taille={36} />
           <div style={{ minWidth: 0 }}>
-            <button type="button" onClick={onVoirContact} style={{ ...lien, fontSize: 'var(--crm-text-lg)', color: sp.ink }}>
+            <button type="button" onClick={onVoirContact} style={{ ...lien, fontSize: 'var(--crm-text-lg)' }}>
               {acheteur.prenom} {acheteur.nom}
             </button>
             {repondu && <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{t('fil.conclure.interesseLe', { date: dateCourte(repondu) })}</div>}

@@ -1,8 +1,9 @@
 /**
  * « Qui pour ce bien ? » (lot C, conception de la boucle §4.2) — le panneau de l'en-tête d'un bien en mandat, dans le
- * fil : l'en-tête du bien (vignette, prix, signal, « Voir le bien »), puis les deux listes partagées avec les fiches
- * (`QuiPourCeBien`, lot D1) — les acquéreurs compatibles, qu'on ouvre en un clic s'ils sont une ligne du fil, et les
- * anciens prospects. Les prescripteurs attendent le modèle relationnel (étape 6) : pas de section vide.
+ * fil : l'en-tête du bien (vignette, titre en lien, prix, la pastille « Nouveau » d'un mandat neuf — le fil épuré,
+ * 07.10.2026), puis les deux listes partagées avec les fiches (`QuiPourCeBien`, lot D1) — les acquéreurs compatibles,
+ * qu'on ouvre en un clic s'ils sont une ligne du fil, et les anciens prospects. Les prescripteurs attendent le modèle
+ * relationnel (étape 6) : pas de section vide.
  *
  * ⚠ Il ne s'ouvre que sur un mandat EN VENTE (lot E1) : un mandat qui ne l'est plus n'a plus d'en-tête dans « À
  * proposer » (`horsVente`). D'où les anciens prospects demandés d'office (`avecAnciens`) : le moteur ne les note que
@@ -16,9 +17,9 @@ import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { CrmPalette } from '@/components/crm/tokens'
 import type { FilBien, FilMatch } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, texteSignalBien } from './filAffichage'
+import { MARGE_POINTS, prixBien, texteSignalBien } from './filAffichage'
 import { signalBien } from './filSignaux'
-import { FilVignette } from './filAtomes'
+import { FilNouveau, FilVignette } from './filAtomes'
 import QuiPourCeBien from './QuiPourCeBien'
 
 /** Le temps qu'un en-tête reste choisi avant qu'on note ses anciens prospects : au-delà, on s'y arrête. */
@@ -44,9 +45,12 @@ interface Props {
 export default function FilQuiPourCeBien({ sp, bien, compatibles, maintenant, peutOuvrir, onChoisir, onVoirBien, onVoirContact }: Props) {
   const { t } = useTranslation('matching')
   const signal = signalBien(bien, maintenant)
+  // Un mandat neuf : la pastille « Nouveau », son libellé au survol. Le fil n'ouvre ce panneau que sur un mandat, mais
+  // une baisse n'y sera jamais une pastille « Nouveau » au libellé « Prix baissé de … » (règle des autres surfaces).
+  const nouveau = signal && signal.genre !== 'baisse' ? texteSignalBien(signal, bien, t, true) : null
   const lien: CSSProperties = {
     border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-    marginTop: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: encreAccent(sp),
+    fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit',
   }
   return (
     <section aria-label={t('fil.quiPour.titreAria', { titre: bien.titre })} style={{
@@ -56,22 +60,16 @@ export default function FilQuiPourCeBien({ sp, bien, compatibles, maintenant, pe
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-2xl)' }}>
         <FilVignette sp={sp} photo={bien.photo} largeur={96} hauteur={72} />
         <div style={{ minWidth: 0 }}>
-          <span style={{
-            display: 'inline-block', padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
-            border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-xs)', color: sp.sub,
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink }}>
+            <button type="button" onClick={onVoirBien} style={lien}>{bien.titre}</button>
+          </h2>
+          <p style={{
+            margin: 0, marginTop: 'var(--crm-space-2xs)', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+            fontSize: 'var(--crm-text-md)', color: sp.sub,
           }}>
-            {t('fil.quiPour.titre')}
-          </span>
-          <h2 style={{ margin: 0, marginTop: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink }}>{bien.titre}</h2>
-          <p style={{ margin: 0, marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', color: sp.sub }}>
-            {[prixBien(bien, t), bien.adresse, bien.ville].filter(Boolean).join(' · ')}
+            {prixBien(bien, t)}
+            {nouveau && <FilNouveau sp={sp} libelle={nouveau} />}
           </p>
-          {signal && (
-            <p style={{ margin: 0, marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>
-              {texteSignalBien(signal, bien, t)}
-            </p>
-          )}
-          <button type="button" onClick={onVoirBien} style={lien}>{t('fil.voirBien')}</button>
         </div>
       </div>
 
