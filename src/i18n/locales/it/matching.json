@@ -482,7 +482,8 @@
       "proposer": "L'ho proposto a {{prenom}}",
       "plusTard": "Più tardi",
       "ecarter": "Scarta",
-      "raccourci": "Scorciatoia: {{touche}}"
+      "raccourci": "Scorciatoia: {{touche}}",
+      "infobulle": "{{libelle}} · {{touche}}"
     },
     "reporte": "{{nom}} rinviato di una settimana",
     "ecarte": "{{nom}} scartato per questo immobile",

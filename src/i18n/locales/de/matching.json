@@ -482,7 +482,8 @@
       "proposer": "Ich habe es {{prenom}} vorgeschlagen",
       "plusTard": "Später",
       "ecarter": "Verwerfen",
-      "raccourci": "Tastenkürzel: {{touche}}"
+      "raccourci": "Tastenkürzel: {{touche}}",
+      "infobulle": "{{libelle}} · {{touche}}"
     },
     "reporte": "{{nom}} um eine Woche zurückgestellt",
     "ecarte": "{{nom}} für dieses Objekt verworfen",

@@ -482,7 +482,8 @@
       "proposer": "I proposed it to {{prenom}}",
       "plusTard": "Later",
       "ecarter": "Dismiss",
-      "raccourci": "Shortcut: {{touche}}"
+      "raccourci": "Shortcut: {{touche}}",
+      "infobulle": "{{libelle}} · {{touche}}"
     },
     "reporte": "{{nom}} postponed by a week",
     "ecarte": "{{nom}} dismissed for this property",

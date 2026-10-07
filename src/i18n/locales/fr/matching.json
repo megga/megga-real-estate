@@ -482,7 +482,8 @@
       "proposer": "Je l'ai proposé à {{prenom}}",
       "plusTard": "Plus tard",
       "ecarter": "Écarter",
-      "raccourci": "Raccourci : {{touche}}"
+      "raccourci": "Raccourci : {{touche}}",
+      "infobulle": "{{libelle}} · {{touche}}"
     },
     "reporte": "{{nom}} reporté·e d'une semaine",
     "ecarte": "{{nom}} écarté·e pour ce bien",
