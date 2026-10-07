@@ -26,8 +26,8 @@
 - **Gardes** : `fil-affaire.spec.ts`, `matching-affaire-lecture.spec.tsx`, `bloc-matching-affaire.spec.tsx` ; `score-une-ecriture`, `jeton-arrivee`, `matching-sans-sortie` et `fiche-qui-pour` étendues.
 - **Banc** : le journal du matching de Julie Morand et d'Anastasia Volkova, et la visite de Champel d'Anastasia. Détail : cerveau `megga/deal-detail-matching`.
 
-#### Matching · lot E1, la bascule au bureau (29 septembre 2026 — sur la branche `megga/matching-lot-e`, PAS en production)
-> Sert les objectifs 1 (temps administratif) et 3 (closing). ⚠ **Fusion à la fin, avec toute la pile** (lots B à D2), sur accord de Julien : E1 suffit à D1 et D2, dont les liens atterrissent enfin sur le fil ; E2 (le téléphone) suit. Rien ne part vers l'acheteur.
+#### Matching · lot E1, la bascule au bureau (29 septembre 2026 — PR #1341, en production le 30.09.2026)
+> Sert les objectifs 1 (temps administratif) et 3 (closing). **Fusionné avec toute la pile** (lots A à D2, la pige, les rôles des contacts, le Pipeline refait) par la PR #1341, le 29.09.2026 : E1 suffit à D1 et D2, dont les liens atterrissent enfin sur le fil ; E2 (le téléphone) suit. Rien ne part vers l'acheteur.
 
 - **Le fil de matchs devient le Matching du bureau** : « Matching » s'ouvre sur lui, page 0 du pager, la Recherche en page 1. L'atelier de bureau est retiré — sa page, dix composants, sa feuille et son banc `/dev/matching-atelier` ; ses gestes vivent dans `src/lib/matchingGestes.ts` (un écrivain par geste, pour le fil, la fiche d'un mandat et l'écran mobile), sa file d'annulation dans `src/lib/matchingAnnulation.ts`. Feuille `MatchingPage-*.css` : **50,26 → 2,95 kB**.
 - **« Aujourd'hui » n'a plus qu'une page** : le catalogue de matchs est retiré (un refus y portait « Nouveau », la baisse y valait 0 en dur, et il chargeait tous les matchs de l'agence). `TodayPage-*.js` : **122,97 → 68,92 kB**.
