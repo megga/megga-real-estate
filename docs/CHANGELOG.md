@@ -6,6 +6,15 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Pipeline · la fiche d'affaire branchée sur le matching (30 septembre 2026 — étape 5b-1, sur la branche `megga/fiche-affaire-matching`, PAS en production)
+> Sert les objectifs 1 (temps administratif) et 3 (closing). Aucune migration, rien n'est écrit en base, rien ne part vers l'acheteur. [Conception](superpowers/specs/2026-09-30-fiche-affaire-matching-design.md), [plan](superpowers/plans/2026-09-30-fiche-affaire-matching.md).
+
+- **Le bloc « Matching » de la fiche d'affaire** (`DealDetailPage`) : sur une affaire ouverte qui a un acheteur, en Prospects, Recherche et Visites, les biens de l'acheteur par état — intéressés et visites planifiées, proposés, puis les biens à proposer, en vente (les revenus, et les trois meilleurs jamais proposés et non reportés) —, huit lignes au plus ; l'état écrit comme dans « Qui pour ce bien ? » (« Proposé le 24.09 · Vendu »), le score en `FilScore`, chaque bien menant à sa place dans le fil s'il en a une (une visite planifiée ou un revenu reporté n'en ont pas) ; un rafraîchissement en échec garde les biens déjà lus. Il remplace « Biens à proposer », qu'un geste du fil ne rafraîchissait pas : trois matchs sans état, un score en « 92 % », un mandat supprimé sans titre.
+- **L'historique dit les étapes du matching** : « Proposé : … » (ou « Proposé : 3 biens »), « Intéressé·e : … » (relié à l'affaire par la dernière proposition de son bien), « Visite planifiée : … », lus dans le journal du contact ; « Deal créé depuis le matching » ; le changement d'étape que pose une visite planifiée s'efface devant sa ligne « Visite planifiée : … », qui nomme le bien ; 12 lignes au lieu de 8.
+- **Partagés, pas recopiés** : l'écriture de l'état (`texteEtatCompatible`, `filAffichage.ts`), la lecture d'un match et son titre (`versCompatible` ; `versMatch`, `jointureDuMatch` et `titreDuBien`, exportés par `saBoucle.ts`) et les colonnes de « Sa boucle » (`COLONNES_BOUCLE`). Nouveaux : `src/components/matching-fil/filAffaire.ts`, `src/components/matching-fil/BlocMatchingAffaire.tsx`, `src/hooks/useMatchingAffaire.ts` ; `useFicheAffaire` perd sa lecture des matchs.
+- **Gardes** : `fil-affaire.spec.ts`, `matching-affaire-lecture.spec.tsx`, `bloc-matching-affaire.spec.tsx` ; `score-une-ecriture`, `jeton-arrivee`, `matching-sans-sortie` et `fiche-qui-pour` étendues.
+- **Banc** : le journal du matching de Julie Morand et d'Anastasia Volkova, et la visite de Champel d'Anastasia. Détail : cerveau `megga/deal-detail-matching`.
+
 #### Matching · lot E1, la bascule au bureau (29 septembre 2026 — sur la branche `megga/matching-lot-e`, PAS en production)
 > Sert les objectifs 1 (temps administratif) et 3 (closing). ⚠ **Fusion à la fin, avec toute la pile** (lots B à D2), sur accord de Julien : E1 suffit à D1 et D2, dont les liens atterrissent enfin sur le fil ; E2 (le téléphone) suit. Rien ne part vers l'acheteur.
 
