@@ -10,18 +10,26 @@
  * ⚠ Seul ce qui reste À VÉRIFIER s'affiche, pas la grille complète : sur vingt biens, c'est ce qui les
  * distingue. Même règle que le pré-cochage (`criteresNonTenus`) : un bien laissé décoché dit pourquoi.
  *
- * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) le dit sous ses détails (`texteSignal`). Un
- * bien nouveau sur le marché ou en baisse le dit aussi, daté (lot C), et passe devant à score égal.
+ * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B), ou en baisse sur le marché (lot C), porte la flèche
+ * de sa baisse, et au survol la phrase que le dépli de la carte focus écrit (`texteSignalMatch`) : ici, aucun dépli ne
+ * la porte. Un bien nouveau, la pastille « Nouveau » (son libellé au survol). Il passe devant à score égal.
+ *
+ * ⚠ Le fil épuré (07.10.2026) : le nom seul, la recherche repliée derrière un chevron ; un bien à son prix, ses écarts
+ * en icône (leur liste au survol) ; « Proposé · 2 », la phrase entière au survol.
  *
  * ⚠ Chaque case porte `data-bien` : `MatchingFil` y rend le focus après un « Écarter » ou son annulation.
  */
-import { useId, useLayoutEffect, useRef, type CSSProperties, type MouseEvent } from 'react'
+import { useId, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { criteresNonTenus, initiales, lignesCriteres, palierScore, type FilMatch, type FilSelectionResume } from './filModele'
-import { encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, texteSignalMatch, unSeulClic } from './filAffichage'
-import { FilAvatar, FilScore, FilVignette } from './filAtomes'
+import {
+  baisseDuBien, baisseDuMatch, encreAccent, MARGE_POINTS, prixBien, secondClic, teinteEcart, texteSignalBien, texteSignalMatch,
+  unSeulClic,
+} from './filAffichage'
+import { signalBien } from './filSignaux'
+import { FilAvatar, FilBaisse, FilNouveau, FilScore, FilVignette } from './filAtomes'
 import { resumeRecherche } from './filValeurs'
 
 interface Props {
@@ -56,6 +64,11 @@ export default function FilSelection({
   const raisonId = useId()
   const { acheteur } = resume
   const reference = matchs[0]
+  const aRecherche = reference != null && lignesCriteres(reference).length > 0
+  // Sa recherche se lit d'un clic, et se replie d'un acheteur à l'autre : l'état retient l'acheteur ouvert.
+  const rechercheId = useId()
+  const [rechercheOuverte, setRechercheOuverte] = useState<string | null>(null)
+  const ouverte = rechercheOuverte === acheteur.id
   const echecSeul = isError && !aDesDonnees
   const listeChargee = !isLoading && !echecSeul
   const bloque = coches.length === 0
@@ -123,18 +136,23 @@ export default function FilSelection({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <FilAvatar sp={sp} texte={initiales(acheteur.prenom, acheteur.nom)} taille={36} />
-          <div style={{ minWidth: 0 }}>
-            <button type="button" onClick={onVoirContact} style={{ ...lien, fontSize: 'var(--crm-text-3xl)', color: sp.ink }}>
-              {acheteur.prenom} {acheteur.nom}
+          <button type="button" onClick={onVoirContact} style={{ ...lien, fontSize: 'var(--crm-text-3xl)', color: sp.ink }}>
+            {acheteur.prenom} {acheteur.nom}
+          </button>
+          {/* `aria-controls` ne vise la recherche que quand elle est rendue : repliée, elle n'existe pas (comme le dépli de
+              la carte focus). */}
+          {aRecherche && (
+            <button type="button" aria-expanded={ouverte} aria-controls={ouverte ? rechercheId : undefined}
+              aria-label={t('fil.selection.rechercheAria')} title={t('fil.selection.rechercheAria')}
+              onClick={() => setRechercheOuverte(ouverte ? null : acheteur.id)}
+              style={{ ...lien, display: 'inline-flex', padding: 'var(--crm-space-xs)' }}>
+              <MEIcon name={ouverte ? 'chevron-up' : 'chevron-down'} size={16} color={sp.sub} />
             </button>
-            <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
-              {t('fil.selection.marche')} · {t('fil.selection.ligne', { count: resume.nombre })}
-            </div>
-          </div>
+          )}
         </div>
 
-        {reference && lignesCriteres(reference).length > 0 && (
-          <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
+        {aRecherche && ouverte && (
+          <p id={rechercheId} style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
             {t('fil.selection.recherche', { resume: resumeRecherche(reference, t, nombre) })}
           </p>
         )}
@@ -149,7 +167,7 @@ export default function FilSelection({
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
             {matchs.map((m) => (
-              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} nombre={nombre} maintenant={maintenant} onCocher={onCocher} onEcarter={onEcarter} />
+              <Bien key={m.id} sp={sp} m={m} coche={coches.includes(m.id)} maintenant={maintenant} onCocher={onCocher} onEcarter={onEcarter} />
             ))}
           </ul>
         )}
@@ -173,39 +191,42 @@ export default function FilSelection({
         {raison && <span id={raisonId} style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{raison}</span>}
         <span style={{ flex: 1 }} />
         <button type="button" onClick={unSeulClic(onProposer)} disabled={bloque}
-          aria-describedby={raison ? raisonId : undefined} aria-keyshortcuts="E" title={t('fil.actions.raccourci', { touche: 'E' })}
+          aria-describedby={raison ? raisonId : undefined} aria-keyshortcuts="E" title={t('fil.actions.infobulle', {
+            libelle: coches.length === 0 ? t('fil.selection.proposerAucun', { prenom: acheteur.prenom })
+              : t('fil.selection.proposer', { count: coches.length, prenom: acheteur.prenom }),
+            touche: 'E',
+          })}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40,
             paddingLeft: 'var(--crm-space-2xl)', paddingRight: 'var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
             border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
             background: sp.accent, color: sp.accentInk, opacity: bloque ? 0.5 : 1, cursor: bloque ? 'not-allowed' : 'pointer',
           }}>
-          {/* « J'ai proposé 0 bien à Julie » se lit mal : à zéro, le bouton (désactivé, sa raison à côté) ne compte pas. */}
-          {coches.length === 0 ? t('fil.selection.proposerAucun', { prenom: acheteur.prenom })
-            : t('fil.selection.proposer', { count: coches.length, prenom: acheteur.prenom })}
+          {/* « Proposé · 2 » ; la phrase entière (« J'ai proposé 2 biens à Julie ») au survol. À zéro, le bouton (désactivé, sa
+              raison à côté) ne compte pas. */}
+          {coches.length === 0 ? t('fil.actions.propose') : t('fil.selection.propose', { count: coches.length })}
         </button>
       </div>
     </section>
   )
 }
 
-function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
-  sp: CrmPalette; m: FilMatch; coche: boolean; nombre: (n: number) => string; maintenant: number
+function Bien({ sp, m, coche, maintenant, onCocher, onEcarter }: {
+  sp: CrmPalette; m: FilMatch; coche: boolean; maintenant: number
   onCocher: (id: string, coche: boolean) => void; onEcarter: (m: FilMatch) => void
 }) {
   const { t } = useTranslation('matching')
   const lignes = lignesCriteres(m)
   const aVerifier = criteresNonTenus(lignes)
-  // Le signal du match (lot B : revenu par une baisse depuis la proposition), sinon celui du bien (lot C :
-  // nouveau sur le marché, prix baissé), daté.
-  const signal = texteSignalMatch(m, t, maintenant)
+  const signal = signalBien(m.bien, maintenant)
+  // La baisse depuis la proposition à CET acheteur (lot B), sinon celle de l'annonce (lot C) ; un bien neuf, sa pastille
+  // — qui cède à une baisse, comme sur la carte focus et dans la liste.
+  const baisse = baisseDuMatch(m, t) ?? (signal ? baisseDuBien(signal, m.bien, t) : null)
+  const nouveau = signal && !baisse ? texteSignalBien(signal, m.bien, t, true) : null
+  // Même ordre que `baisse`, le match d'abord : « Refusé par … à CHF … » (lot B), « … dernière baisse le … » (lot C).
+  const phraseBaisse = baisse ? texteSignalMatch(m, t, maintenant) : null
   // Aucun verdict du tout : le dire tel quel plutôt que lister chaque critère « à vérifier ».
   const nonEvalues = lignes.length > 0 && lignes.every((l) => l.ok === null)
-  const details = [
-    prixBien(m.bien, t),
-    m.bien.pieces != null ? t('fil.selection.pieces', { count: m.bien.pieces, valeur: nombre(m.bien.pieces) }) : null,
-    m.bien.surface != null ? t('fil.valeurs.m2', { valeur: nombre(m.bien.surface) }) : null,
-  ].filter(Boolean).join(' · ')
   // Sans écart, rien : l'alerte ne se lit que là où il y en a une.
   const resume = lignes.length === 0 ? t('fil.sansCriteres')
     : aVerifier.length === 0 ? null
@@ -228,26 +249,32 @@ function Bien({ sp, m, coche, nombre, maintenant, onCocher, onEcarter }: {
           <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {m.bien.titre}
           </span>
-          <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{details}</span>
-          {signal && <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.ink }}>{signal}</span>}
-          {resume && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
-              {alerte && (
-                <span aria-hidden style={{ display: 'inline-flex', flex: 'none' }}>
-                  <MEIcon name="alert" size={12} color={teinteEcart(sp)} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
+            {prixBien(m.bien, t)}
+            {baisse && <FilBaisse sp={sp} montant={baisse} libelle={phraseBaisse} />}
+            {nouveau && <FilNouveau sp={sp} libelle={nouveau} />}
+            {/* Un écart se dit par l'alerte ambre ; sa liste au survol et pour un lecteur d'écran. Sans verdict ou sans
+                critère, rien n'est en écart : un « ? » en sourdine dit pourquoi le bien reste décoché. Une autre FORME,
+                pas seulement une autre teinte — en clair, l'ambre et la sourdine ont presque la même luminance (1,1:1). */}
+            {resume && (
+              <span title={resume} style={{ display: 'inline-flex', flex: 'none' }}>
+                <span aria-hidden style={{ display: 'inline-flex' }}>
+                  <MEIcon name={alerte ? 'alert' : 'help'} size={12} color={alerte ? teinteEcart(sp) : sp.sub} />
                 </span>
-              )}
-              {resume}
-            </span>
-          )}
+                <span className="sr-only">{resume}</span>
+              </span>
+            )}
+          </span>
         </span>
       </label>
       <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} />
-      <button type="button" onClick={unSeulClic(() => onEcarter(m))} aria-label={t('fil.selection.ecarterAria', { titre: m.bien.titre })} style={{
-        border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)',
-        fontWeight: 600, color: sp.sub, padding: 'var(--crm-space-xs) var(--crm-space-sm)',
-      }}>
-        {t('fil.actions.ecarter')}
+      {/* La cible fait 24 × 24, le minimum de WCAG 2.5.8 ; la croix garde ses 14 px. */}
+      <button type="button" onClick={unSeulClic(() => onEcarter(m))} aria-label={t('fil.selection.ecarterAria', { titre: m.bien.titre })}
+        title={t('fil.actions.ecarter')} style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flex: 'none', width: 24, height: 24, padding: 0,
+          border: 0, background: 'transparent', cursor: 'pointer',
+        }}>
+        <MEIcon name="close" size={14} color={sp.sub} />
       </button>
     </li>
   )

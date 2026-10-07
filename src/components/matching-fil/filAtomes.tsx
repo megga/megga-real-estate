@@ -1,8 +1,8 @@
 /**
  * Atomes du fil de matchs — l'avatar, la vignette d'un bien, le score, une donnée en icône (la baisse d'un prix, les
- * compteurs d'une ligne « Marché »), la pastille « Nouveau », le bouton d'un geste et le survol des lignes, partagés par
- * les listes et les panneaux : un même acheteur, un même score ou un même geste ne se dessinent jamais de deux façons
- * sur un écran.
+ * compteurs d'une ligne « Marché »), la pastille « Nouveau », celle d'un en-tête de panneau, le bouton d'un geste et le
+ * survol des lignes, partagés par les listes et les panneaux : un même acheteur, un même score ou un même geste ne se
+ * dessinent jamais de deux façons sur un écran.
  */
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -77,11 +77,12 @@ export function FilCompteur({ sp, icone, valeur, libelle }: { sp: CrmPalette; ic
 /**
  * Une baisse de prix sur une ligne ou sur la photo d'un panneau : la flèche et le montant, sans phrase (décision de
  * Julien, 01.10.2026). La phrase reste au survol et pour un lecteur d'écran (« Prix baissé de CHF 250'000 ») ; le dépli
- * d'un panneau l'écrit en entier, datée.
+ * d'un panneau l'écrit en entier, datée. Là où aucun dépli ne l'écrit (la sélection du marché), `libelle` porte cette
+ * phrase entière — qui l'a refusé, à quel prix, depuis quand.
  */
-export function FilBaisse({ sp, montant }: { sp: CrmPalette; montant: string }) {
+export function FilBaisse({ sp, montant, libelle }: { sp: CrmPalette; montant: string; libelle?: string | null }) {
   const { t } = useTranslation('matching')
-  return <FilCompteur sp={sp} icone="arrow-down" valeur={montant} libelle={t('fil.signal.court', { montant })} />
+  return <FilCompteur sp={sp} icone="arrow-down" valeur={montant} libelle={libelle ?? t('fil.signal.court', { montant })} />
 }
 
 /**
@@ -98,6 +99,27 @@ export function FilNouveau({ sp, libelle, style }: { sp: CrmPalette; libelle: st
     }}>
       <span aria-hidden>{t('fil.signal.pastille')}</span>
       <span className="sr-only">{libelle}</span>
+    </span>
+  )
+}
+
+/**
+ * L'état d'un acheteur dans l'en-tête de son panneau, rangé à droite de son nom : le motif d'« À ajuster » (« Prix ·
+ * 2 refus »), la « Relance » d'« En attente ». Une icône peut y porter la couleur (`teinte`) ; le texte reste à l'encre.
+ * Quand le mot ne dit pas tout, `libelle` le dit au survol ET à un lecteur d'écran — « Relance », pour « relance due
+ * depuis le 30.09 » —, comme `FilNouveau`, la pastille d'une LIGNE (plus petite : elle ne doit pas grandir sa ligne).
+ */
+export function FilPastille({ sp, icone, teinte, libelle, children }: {
+  sp: CrmPalette; icone?: MEIconName; teinte?: string; libelle?: string; children: ReactNode
+}) {
+  return (
+    <span title={libelle} style={{
+      marginLeft: 'auto', flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)',
+      padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
+      border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-sm)', color: sp.ink,
+    }}>
+      {icone && <span aria-hidden style={{ display: 'inline-flex' }}><MEIcon name={icone} size={14} color={teinte ?? sp.sub} /></span>}
+      {libelle ? <><span aria-hidden>{children}</span><span className="sr-only">{libelle}</span></> : children}
     </span>
   )
 }

@@ -9,9 +9,9 @@
  * Appliquées ici côté client aussi — le banc ne connaît ni `not`, ni `or`.
  *
  * ⚠ Un bien refusé pour le PRIX et revenu par une baisse (lot B) porte son suivi (`suiviAProposer`) : la
- * sélection écrit le signal de ce retour (`texteSignal`, clé `fil.signal.baisseRefus`). La lecture et la forme
- * d'une annonce viennent de `useMatchingFil` (`COLONNES_ANNONCE`, `versBienMarche`) : la boucle lit les
- * annonces pareil.
+ * sélection en dessine la flèche, et la phrase de ce retour au survol (`texteSignal`, clé
+ * `fil.signal.baisseRefus`). La lecture et la forme d'une annonce viennent de `useMatchingFil`
+ * (`COLONNES_ANNONCE`, `versBienMarche`) : la boucle lit les annonces pareil.
  */
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
