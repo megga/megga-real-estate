@@ -61,13 +61,13 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 
 | Route | Écran |
 |---|---|
-| `/dashboard` | Cockpit « Aujourd'hui », une seule page depuis le lot E1 (29.09.2026, sur branche) : le catalogue de matchs de la page 1 est retiré, le segment Matching et le fil prennent le relais |
+| `/dashboard` | Cockpit « Aujourd'hui », une seule page depuis le lot E1 (29.09.2026, en production le 30.09.2026) : le catalogue de matchs de la page 1 est retiré, le segment Matching et le fil prennent le relais |
 | `/dashboard/pipeline` | Pipeline à cinq phases (refonte du 27.09.2026, 14 stades DB → 5 phases) : Kanban + Timeline de quatorze jours, zones de dépôt Conclu / Perdu, panneau de clôture, « Nouveau deal » dans le cadre de la page + création en ligne, menus du clic droit (affaire, fond) ; téléphone : `MobilePipelinePage` |
 | `/dashboard/contacts` · `/new` · `/:id` | Liste, création, fiche contact |
 | `/dashboard/contacts/import` | Import de leads |
 | `/dashboard/import-lead` | Import d'un lead unitaire |
 | `/dashboard/listings` · `/new` · `/:id` · `/:id/edit` | Mes biens (pager galerie + à-suivre), wizard « Créer un bien » Sugar v2 (7 étapes), fiche bien V4 (bento mono-page), formulaire d'édition |
-| `/dashboard/matching` | Matching acquéreur ↔ bien : un pager, le fil de matchs en page 0 (« Matching » s'ouvre sur lui) et la Recherche en page 1. Le fil y remplace l'atelier au lot E1 (29.09.2026, sur branche) ; au téléphone, `ResponsiveRoute` rend `MobileMatchingPage`, sur le modèle de l'atelier jusqu'au lot E2. Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » (nouveaux, en baisse, retirés) |
+| `/dashboard/matching` | Matching acquéreur ↔ bien : un pager, le fil de matchs en page 0 (« Matching » s'ouvre sur lui) et la Recherche en page 1. Le fil y remplace l'atelier au lot E1 (29.09.2026, en production le 30.09.2026) ; au téléphone, `ResponsiveRoute` rend `MobileMatchingPage`, sur le modèle de l'atelier jusqu'au lot E2. Il reste chez l'agent (21.09.2026) : les gestes consignent, rien ne part vers l'acheteur ; la Recherche porte « Ce qui a bougé » (nouveaux, en baisse, retirés) |
 | `/dashboard/transactions/:id` | Fiche d'affaire (refonte du 27.09.2026) : cinq phases réglables, prochaine action datée, négociation, biens du moteur de matching, historique ; conclue : récapitulatif, clôture et après-vente ; téléphone : `MobileDealDetailPage` |
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
@@ -166,7 +166,7 @@ design system survivante (CLAUDE.md §3), servie délibérément.
 Les **douze bancs `/dev/*`** sont tous conditionnés à `import.meta.env.DEV`, remplacé par `false` au build :
 la branche d'import tombe en code mort et Vite n'émet aucun chunk. Relevé dans `App.tsx` : **12 ternaires,
 un seul `lazy()` nu**. Remesuré le 29.09.2026 : toujours douze — `/dev/labs` est venu avec le studio Labs, et
-`/dev/matching-atelier` est parti avec l'atelier de bureau (lot E1, sur branche) ; le pager de Matching
+`/dev/matching-atelier` est parti avec l'atelier de bureau (lot E1, en production le 30.09.2026) ; le pager de Matching
 s'éprouve désormais sur `/dev/crm` (surface « Matching · fil »). Un banc livré n'est pas seulement du poids
 mort, c'est une surface que personne ne teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des erreurs Sentry.
 
@@ -206,7 +206,7 @@ propre vitrine : c'est la direction **unique** du CRM depuis le 10.08.2026 (PR #
 | Compte acheteur (favoris, recherches, messagerie) | Retiré. |
 | Réseau inter-agences | Jamais construit ; prototype supprimé. |
 | Réception acquéreur (`/reception/:token`) et tout envoi du matching à l'acheteur | Retirés 21.09.2026 (décision de Julien : le matching reste chez l'agent ; 0 lien jamais créé). Garde : `tests/unit/matching-sans-sortie.spec.ts`. |
-| Atelier Matching de bureau (triptyque) et catalogue de matchs d'« Aujourd'hui » | Retirés par le lot E1 (29.09.2026, sur branche, fusion à la fin) : le fil de matchs les remplace. L'écran mobile garde le modèle de l'atelier jusqu'au lot E2. Gardes : `matching-atelier-retire.spec.ts`, `aujourdhui-une-page.spec.ts`. |
+| Atelier Matching de bureau (triptyque) et catalogue de matchs d'« Aujourd'hui » | Retirés par le lot E1 (29.09.2026, en production le 30.09.2026) : le fil de matchs les remplace. L'écran mobile garde le modèle de l'atelier jusqu'au lot E2. Gardes : `matching-atelier-retire.spec.ts`, `aujourdhui-une-page.spec.ts`. |
 | Onboarding post-login | Retiré 18.07.2026 (agence solo créée au signup). |
 | 2FA | N'existe pas — malgré ce qu'affirme `docs/design-system.md`. |
 | Annuaire agents/agences | Retiré ; moissonnage coupé le 20.07.2026. |
