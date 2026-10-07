@@ -23,7 +23,7 @@ import type { CrmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAnciensProspects, type AncienProspect } from '@/hooks/useAnciensProspects'
 import { initiales, palierScore } from './filModele'
-import { dateCourte, dateLongue, montant } from './filAffichage'
+import { dateLongue, texteEtatCompatible } from './filAffichage'
 import { etatCompatible, trierCompatibles, type Compatible } from './filQuiPour'
 import { FilAvatar, FilBouton, FilScore } from './filAtomes'
 
@@ -89,7 +89,7 @@ export default function QuiPourCeBien({ sp, bien, compatibles, maintenant, ouvri
                   <FilAvatar sp={sp} texte={initiales(m.acheteur.prenom, m.acheteur.nom)} taille={28} />
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <button type="button" onClick={() => onVoirContact(m.acheteur.id)} style={nom}>{m.acheteur.prenom} {m.acheteur.nom}</button>
-                    <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{texteEtat(m, maintenant, bien.location, t)}</span>
+                    <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>{texteEtatCompatible(etatCompatible(m, maintenant), bien.location, t)}</span>
                   </span>
                   <FilScore sp={sp} score={m.score} palier={palierScore(m.score)} />
                   {geste && (
@@ -134,28 +134,6 @@ export default function QuiPourCeBien({ sp, bien, compatibles, maintenant, ouvri
       )}
     </>
   )
-}
-
-/** L'état d'un compatible, écrit. */
-function texteEtat(m: Compatible, maintenant: number, location: boolean, t: TFunction): string {
-  const e = etatCompatible(m, maintenant)
-  switch (e.cle) {
-    case 'reporte': return t('fil.quiPour.etat.reporte', { date: dateCourte(e.date) })
-    case 'aProposer': return t('fil.quiPour.etat.aProposer')
-    case 'revenu': return t('fil.quiPour.etat.revenu', { prix: montant(location, e.prix, t) })
-    case 'propose': return t('fil.quiPour.etat.propose', { date: dateCourte(e.date) })
-    case 'proposeSansDate': return t('fil.quiPour.etat.proposeSansDate')
-    case 'interesse': return t('fil.quiPour.etat.interesse')
-    case 'visite': return t('fil.quiPour.etat.visite')
-    case 'refuse': return t('fil.quiPour.etat.refuse', { motif: t(e.motif) })
-    case 'refuseSansMotif': return t('fil.quiPour.etat.refuseSansMotif')
-    default: {
-      // Un état ajouté à `etatCompatible` sans son texte ne compile plus. Une clé bâtie sur `e.cle` l'aurait affiché
-      // sans ses valeurs (une date, un prix restés `{{…}}`), et rien ne l'aurait signalé.
-      const inconnu: never = e
-      return inconnu
-    }
-  }
 }
 
 /** Ce qui fait un ancien prospect, daté avec l'année : un deal perdu remonte jusqu'à 24 mois. */

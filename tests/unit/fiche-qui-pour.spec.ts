@@ -6,15 +6,24 @@
  * Lot E1 : le panneau du fil compte les compatibles comme les fiches, sans les refus (décision 13a) ; sur une fiche, un
  * compatible à proposer d'un bien qui ne se propose plus — annonce retirée, mandat qui n'est plus en vente (décision
  * 12a) — ne mène nulle part dans le fil.
+ *
+ * Étape 5b-1 : l'état d'un compatible s'écrit à un seul endroit, `texteEtatCompatible` (`filAffichage.ts`).
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import i18next, { type TFunction } from 'i18next'
+import deMatching from '@/i18n/locales/de/matching.json'
+import enMatching from '@/i18n/locales/en/matching.json'
+import frMatching from '@/i18n/locales/fr/matching.json'
+import itMatching from '@/i18n/locales/it/matching.json'
 import {
   aDesCompatiblesAProposer, compatiblesDuFil, etatCompatible, lienCompatible, STATUTS_COMPATIBLES, trierCompatibles,
-  versCompatible, type Compatible,
+  versCompatible, type Compatible, type EtatCompatible,
 } from '@/components/matching-fil/filQuiPour'
 import { DELAI_RECHERCHE_MS, etatAcquereurs } from '@/components/crm/biens/nouveau/acquereurs'
+import { dateCourte, texteEtatCompatible } from '@/components/matching-fil/filAffichage'
+import { MOTIFS_REFUS } from '@/components/matching-fil/filBoucle'
 
 const T = Date.parse('2026-09-23T10:00:00Z')
 const base: Compatible = { id: 'm1', score: 90, reporteJusquau: null, acheteur: { id: 'c1', prenom: 'Julie', nom: 'Morand' } }
@@ -241,5 +250,58 @@ describe('le nouveau mandat', () => {
     // Un rafraîchissement en échec garde ses données : 4 acheteurs lus restent 4 acheteurs.
     expect(etatAcquereurs(4, false, true)).toEqual({ genre: 'trouves', nombre: 4 })
     expect(etatAcquereurs(0, false, true)).toEqual({ genre: 'erreur' })
+  })
+})
+
+describe('texteEtatCompatible — un état s’écrit partout de la même façon (« Qui pour ce bien ? », fiche d’affaire)', () => {
+  // Le faux `t` MARQUE ce qu'il traduit (‹clé›), ses valeurs accolées en JSON : on lit la clé choisie, ce qu'elle
+  // reçoit, et qu'un motif passe bien par `t`.
+  const t = ((cle: string, o?: Record<string, unknown>) => (o ? `‹${cle}› ${JSON.stringify(o)}` : `‹${cle}›`)) as unknown as TFunction
+
+  it('chaque état a sa clé, et ses valeurs écrites — une date courte, un montant, un motif traduit', () => {
+    expect(texteEtatCompatible({ cle: 'reporte', date: '2026-10-03T08:00:00Z' }, false, t)).toBe('‹fil.quiPour.etat.reporte› {"date":"03.10"}')
+    expect(texteEtatCompatible({ cle: 'revenu', prix: 1_560_000 }, false, t)).toBe(`‹fil.quiPour.etat.revenu› {"prix":"CHF 1'560'000"}`)
+    expect(texteEtatCompatible({ cle: 'propose', date: '2026-09-24T08:00:00Z' }, false, t)).toBe('‹fil.quiPour.etat.propose› {"date":"24.09"}')
+    expect(texteEtatCompatible({ cle: 'refuse', motif: 'fil.motifs.prix' }, false, t)).toBe('‹fil.quiPour.etat.refuse› {"motif":"‹fil.motifs.prix›"}')
+    for (const cle of ['aProposer', 'proposeSansDate', 'interesse', 'visite', 'refuseSansMotif'] as const) {
+      expect(texteEtatCompatible({ cle }, false, t)).toBe(`‹fil.quiPour.etat.${cle}›`)
+    }
+  })
+
+  it('le prix d’un revenu en location se dit par mois', () => {
+    expect(texteEtatCompatible({ cle: 'revenu', prix: 2_950 }, true, t))
+      .toBe(`‹fil.quiPour.etat.revenu› ${JSON.stringify({ prix: `‹fil.valeurs.parMois› ${JSON.stringify({ valeur: "CHF 2'950" })}` })}`)
+  })
+
+  it('dans les quatre langues, chaque état s’écrit en toutes lettres, avec ses valeurs — chaque motif de refus compris', () => {
+    // `filAffichage.ts` est un module pur : la porte `lint:i18n-keys` ne le lit pas (elle ne collecte que les fichiers qui
+    // appellent `useTranslation`). Les clés `fil.quiPour.etat.*` sont donc gardées ICI, avec un vrai i18next.
+    const REPORTE = '2026-10-03T08:00:00Z'
+    const PROPOSE = '2026-09-24T08:00:00Z'
+    // Ce que chaque texte doit porter en plus de ses lettres : sa valeur écrite, s'il en a une.
+    const etats: [EtatCompatible, string | null][] = [
+      [{ cle: 'reporte', date: REPORTE }, dateCourte(REPORTE)], [{ cle: 'aProposer' }, null],
+      [{ cle: 'revenu', prix: 1_560_000 }, "1'560'000"], [{ cle: 'propose', date: PROPOSE }, dateCourte(PROPOSE)],
+      [{ cle: 'proposeSansDate' }, null], [{ cle: 'interesse' }, null], [{ cle: 'visite' }, null],
+      [{ cle: 'refuseSansMotif' }, null],
+      ...MOTIFS_REFUS.map((m): [EtatCompatible, string | null] => [{ cle: 'refuse', motif: `fil.motifs.${m}` }, null]),
+    ]
+    for (const [lng, matching] of Object.entries({ fr: frMatching, en: enMatching, de: deMatching, it: itMatching })) {
+      const i18n = i18next.createInstance()
+      void i18n.init({
+        lng, fallbackLng: false, resources: { [lng]: { matching } }, ns: ['matching'], defaultNS: 'matching',
+        initImmediate: false, interpolation: { escapeValue: false },
+      })
+      const tLangue = i18n.getFixedT(lng, 'matching')
+      for (const [e, valeur] of etats) {
+        for (const location of [false, true]) {
+          const texte = texteEtatCompatible(e, location, tLangue)
+          const cas = `${lng} · ${e.cle}${e.cle === 'refuse' ? ` · ${e.motif}` : ''}${location ? ' · location' : ''}`
+          expect(texte, cas).not.toMatch(/\bfil\.[A-Za-z]|\{\{|\}\}/)
+          expect(texte, cas).toMatch(/\p{L}/u)
+          if (valeur) expect(texte, cas).toContain(valeur)
+        }
+      }
+    }
   })
 })

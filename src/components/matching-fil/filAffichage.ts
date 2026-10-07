@@ -1,7 +1,8 @@
 /**
  * Affichage du fil de matchs, hors composants : les teintes qui ENCODENT (le palier d'un score, un critère
- * tenu, un écart), l'encre d'une action en texte, l'écriture d'un montant et d'une date, le style d'une
- * ligne, le signal « prix baissé » (lot B) et les signaux « pourquoi maintenant » (lot C).
+ * tenu, un écart), l'encre d'une action en texte, l'écriture d'un montant, d'une date et de l'état d'un compatible
+ * (`texteEtatCompatible`), le style d'une ligne, le signal « prix baissé » (lot B) et les signaux « pourquoi
+ * maintenant » (lot C).
  *
  * ⚠ Jamais d'aplat teinté sous du texte : la couleur est portée par une pastille ou une icône, le
  * chiffre et les libellés restent à l'encre. Les couleurs de système de la vitrine sont PÂLES,
@@ -17,6 +18,7 @@ import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { formatCHF } from '@/lib/utils'
 import type { FilBien, FilMatch, PalierScore } from './filModele'
 import { signalPrix } from './filBoucle'
+import type { EtatCompatible } from './filQuiPour'
 import { signalBien, type SignalBien } from './filSignaux'
 
 /** Pastille du palier : vert, bleu de marque, ou la sourdine. */
@@ -53,6 +55,31 @@ export const dateCourte = (iso: string): string => format(new Date(iso), 'dd.MM'
 
 /** « 21.09.2025 » : une date qui peut remonter à une autre année (un deal perdu, jusqu'à 24 mois). */
 export const dateLongue = (iso: string): string => format(new Date(iso), 'dd.MM.yyyy')
+
+/**
+ * Où en est un compatible — un match, vu d'un bien ou d'un acheteur —, écrit (`fil.quiPour.etat.*`) : « Proposé le
+ * 24.09 », « Revenu · refusé à CHF … ». Partagé par « Qui pour ce bien ? » et le bloc « Matching » de la fiche
+ * d'affaire : un état se dit partout de la même façon.
+ */
+export function texteEtatCompatible(e: EtatCompatible, location: boolean, t: TFunction): string {
+  switch (e.cle) {
+    case 'reporte': return t('fil.quiPour.etat.reporte', { date: dateCourte(e.date) })
+    case 'aProposer': return t('fil.quiPour.etat.aProposer')
+    case 'revenu': return t('fil.quiPour.etat.revenu', { prix: montant(location, e.prix, t) })
+    case 'propose': return t('fil.quiPour.etat.propose', { date: dateCourte(e.date) })
+    case 'proposeSansDate': return t('fil.quiPour.etat.proposeSansDate')
+    case 'interesse': return t('fil.quiPour.etat.interesse')
+    case 'visite': return t('fil.quiPour.etat.visite')
+    case 'refuse': return t('fil.quiPour.etat.refuse', { motif: t(e.motif) })
+    case 'refuseSansMotif': return t('fil.quiPour.etat.refuseSansMotif')
+    default: {
+      // Un état ajouté à `etatCompatible` sans son texte ne compile plus. Une clé bâtie sur `e.cle` l'aurait affiché
+      // sans ses valeurs (une date, un prix restés `{{…}}`), et rien ne l'aurait signalé.
+      const inconnu: never = e
+      return inconnu
+    }
+  }
+}
 
 /**
  * Le signal « prix baissé » d'un bien (conception de la boucle, §4.6), ou `null` sans baisse mesurée sur
